@@ -3190,6 +3190,17 @@ const triggerPrint = (singleTruck?: Truck) => {
 // Initialize
 onMounted(async () => {
     await loadVessels();
+    
+    // Check if redirected from Home page
+    const redirectBargeId = localStorage.getItem('home_redirect_barge_id');
+    const redirectVesselId = localStorage.getItem('home_redirect_vessel_id');
+    if (redirectBargeId && redirectVesselId) {
+        activeVesselId.value = Number(redirectVesselId);
+        await selectBarge(Number(redirectVesselId), Number(redirectBargeId));
+        localStorage.removeItem('home_redirect_barge_id');
+        localStorage.removeItem('home_redirect_vessel_id');
+    }
+
     loadGlobalGoods();
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('online', updateOnlineStatus);

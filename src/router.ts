@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from './views/HomeView.vue'
 import ToolsView from './views/ToolsView.vue'
 import AdminView from './views/AdminView.vue'
 import LoginView from './views/LoginView.vue'
@@ -10,6 +11,12 @@ const router = createRouter({
     routes: [
         {
             path: '/',
+            name: 'home',
+            component: HomeView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/tools',
             name: 'tools',
             component: ToolsView,
             meta: { requiresAuth: true }

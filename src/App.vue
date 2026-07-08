@@ -45,9 +45,13 @@ onUnmounted(() => {
       </div>
       
       <nav class="hidden md:flex items-center gap-8">
-        <router-link to="/" class="flex items-center gap-2 text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors" active-class="text-primary">
+        <router-link to="/" class="flex items-center gap-2 text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">
             <span class="material-symbols-outlined text-lg">home</span>
-            Trang chủ
+            Home
+        </router-link>
+        <router-link to="/tools" class="flex items-center gap-2 text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">
+            <span class="material-symbols-outlined text-lg">widgets</span>
+            Tools
         </router-link>
         <router-link v-if="authStore.role === 'admin'" to="/admin" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Admin</router-link>
       </nav>

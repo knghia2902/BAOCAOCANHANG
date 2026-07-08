@@ -7,7 +7,11 @@ import { authStore } from '../stores/auth';
 const activeTab = ref<'allocator' | 'printer'>('allocator');
 
 onMounted(() => {
-    if (authStore.role === 'staff') {
+    const savedTab = localStorage.getItem('home_redirect_tab') as 'allocator' | 'printer' | null;
+    if (savedTab) {
+        activeTab.value = savedTab;
+        localStorage.removeItem('home_redirect_tab');
+    } else if (authStore.role === 'staff') {
         // Staff goes directly to In phiếu
         activeTab.value = 'printer';
     }
@@ -15,7 +19,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
+  <main class="flex-1 w-[95%] max-w-[1500px] mx-auto bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-110px)] mb-6 no-print font-display">
     <!-- Header bar -->
     <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
       <div class="flex items-center gap-2.5">
