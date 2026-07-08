@@ -6,7 +6,7 @@ import CargoAllocator from '../components/tools/CargoAllocator.vue';
 import { authStore } from '../stores/auth';
 
 const router = useRouter();
-const activeTab = ref<'allocator' | 'printer'>('printer');
+const activeTab = ref<'allocator' | 'printer'>('allocator');
 
 onMounted(() => {
     const savedTab = localStorage.getItem('home_redirect_tab') as 'allocator' | 'printer' | null;

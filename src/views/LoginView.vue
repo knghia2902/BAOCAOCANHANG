@@ -19,7 +19,7 @@ const handleLogin = async () => {
             if (authStore.role === 'admin') {
                 router.push('/admin');
             } else {
-                router.push('/tools');
+                router.push('/');
             }
         } else {
             error.value = 'Tên đăng nhập hoặc mật khẩu không đúng!';
