@@ -1,0 +1,67 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
+import CargoAllocator from '../components/tools/CargoAllocator.vue';
+import { authStore } from '../stores/auth';
+
+const activeTab = ref<'allocator' | 'printer'>('allocator');
+
+onMounted(() => {
+    if (authStore.role === 'staff') {
+        // Staff goes directly to In phiếu
+        activeTab.value = 'printer';
+    }
+});
+</script>
+
+<template>
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-white">
+    <!-- Header bar -->
+    <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
+      <div class="flex items-center gap-2.5">
+        <div class="size-9 rounded-full bg-primary flex items-center justify-center text-white shadow-soft">
+          <span class="material-symbols-outlined text-lg">print</span>
+        </div>
+        <div>
+          <h2 class="text-sm font-black text-primary leading-tight">
+            PHẦN MỀM IN & PHÂN BỔ PHIẾU CÂN
+          </h2>
+          <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">
+            Cảng Nguyên Ngọc - Đồng bộ đám mây
+          </p>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <nav class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl">
+        <button 
+          v-if="authStore.role === 'admin'"
+          @click="activeTab = 'allocator'"
+          :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'allocator' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
+        >
+          <span class="material-symbols-outlined text-sm">shuffle</span>
+          Báo cáo cân hàng
+        </button>
+        <button 
+          @click="activeTab = 'printer'"
+          :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'printer' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
+        >
+          <span class="material-symbols-outlined text-sm">print</span>
+          In Phiếu Cân Xe
+        </button>
+      </nav>
+      
+      <!-- User info info -->
+      <div class="text-[10px] text-gray-500 font-bold">
+        {{ authStore.user }} ({{ authStore.role === 'admin' ? 'Quản trị' : 'Nhân viên' }})
+      </div>
+    </header>
+
+    <!-- Workspace contents -->
+    <div class="flex-1 overflow-hidden relative">
+      <!-- We keep printer active in background using v-show to listen to BroadcastChannel allocator sync notifications -->
+      <CargoAllocator v-show="activeTab === 'allocator'" class="w-full h-full" />
+      <WeighbridgePrinter v-show="activeTab === 'printer'" class="w-full h-full" />
+    </div>
+  </main>
+</template>

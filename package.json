@@ -1,0 +1,37 @@
+{
+  "name": "baocaocanhang",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "docx": "^9.7.1",
+    "docx-preview": "^0.3.7",
+    "exceljs": "^4.4.0",
+    "html2pdf.js": "^0.14.0",
+    "idb": "^8.0.3",
+    "pdfjs-dist": "^5.7.284",
+    "tesseract.js": "^7.0.0",
+    "vue": "^3.5.24",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.8.1",
+    "autoprefixer": "^10.4.23",
+    "happy-dom": "^20.9.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4",
+    "vitest": "^4.1.7",
+    "vue-tsc": "^3.1.4"
+  }
+}

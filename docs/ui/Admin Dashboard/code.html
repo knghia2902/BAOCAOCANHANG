@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Dashboard | Ngoc Anh Cute Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f0426e",
+                        "background-light": "#fff9fa",
+                        "pastel-peach": "#fff1e6",
+                        "pastel-pink": "#ffe5ec",
+                        "pastel-lavender": "#f2e9fb",
+                        "soft-rose": "#fb6f92"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem",
+                        "lg": "2.5rem",
+                        "xl": "4rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .soft-shadow {
+            box-shadow: 0 10px 25px -5px rgba(240, 66, 110, 0.08);
+        }
+        .sidebar-item-active {
+            @apply bg-white text-primary shadow-sm;
+        }
+        input:focus, textarea:focus {
+            @apply outline-none ring-2 ring-pastel-pink border-primary/20;
+        }
+        .toggle-checkbox:checked {
+            @apply right-0 bg-primary;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            @apply bg-pastel-pink;
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-[#1b0d11]">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-72 bg-pastel-pink/50 m-4 rounded-lg flex flex-col border border-primary/5">
+<div class="p-8 flex items-center gap-3">
+<div class="size-10 bg-primary rounded-full flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-2xl">auto_fix_high</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-primary">Ngoc Anh</h2>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="sidebar-item-active flex items-center gap-3 px-6 py-4 rounded-full font-bold transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-4 rounded-full font-bold text-[#1b0d11]/60 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined">edit_square</span>
+<span>Trang chủ</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-4 rounded-full font-bold text-[#1b0d11]/60 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined">folder</span>
+<span>Projects</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-4 rounded-full font-bold text-[#1b0d11]/60 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>About Me</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-4 rounded-full font-bold text-[#1b0d11]/60 hover:bg-white/50 transition-all" href="#">
+<span class="material-symbols-outlined">mail</span>
+<span>Messages</span>
+</a>
+</nav>
+<div class="p-6">
+<div class="bg-white/60 p-4 rounded-xl flex items-center gap-3 border border-white/80">
+<div class="size-10 rounded-full bg-cover bg-center border-2 border-primary/20" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDpyOZU63z80-gG8qighS06AKdJBzZeu9FQbZ-qPF8ziCtVwdAZRyovsPm-gxv7bwuY-nWEk-SmGiFwao3G1vwzOXIJ-lRi0xyFtPLzwHNJsOEyyqthZtYxRg6y41Dt3oiv8bYXV-KuxnemhACsYKwmxZx7I4z5aN20BrglTZdSgcPpt_sbi6jlBKNX4P2nMm530Gr0qfzVTmUN_N2v3t0m0PDsoENGj9zHbbfN0oBTDO8_zwZaMFcNoPqUL7v5PDO1EDcv6lgCqvLU");'></div>
+<div>
+<p class="text-xs font-bold opacity-40">ADMIN MODE</p>
+<p class="text-sm font-bold">Ngoc Anh</p>
+</div>
+<button class="ml-auto text-primary/40 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-hidden">
+<header class="p-8 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<div class="size-12 bg-pastel-lavender rounded-full flex items-center justify-center text-primary text-2xl">
+<span class="material-symbols-outlined">waving_hand</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold">Welcome back, Admin!</h1>
+<p class="text-[#1b0d11]/50 font-medium">Ready to sprinkle some more magic today?</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="size-12 rounded-full bg-white flex items-center justify-center border border-primary/5 soft-shadow hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+<button class="size-12 rounded-full bg-white flex items-center justify-center border border-primary/5 soft-shadow hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-primary">settings</span>
+</button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto px-8 pb-12">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 space-y-8">
+<div class="bg-white rounded-lg p-8 soft-shadow border border-primary/5">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">home</span>
+                                    Edit 'Trang chủ' Content
+                                </h3>
+<button class="bg-primary text-white px-6 py-2.5 rounded-full font-bold hover:bg-soft-rose transition-colors">
+                                    Save Changes
+                                </button>
+</div>
+<div class="space-y-6">
+<div>
+<label class="block text-sm font-bold mb-2 opacity-60">Hero Title</label>
+<input class="w-full bg-background-light border-none rounded-2xl p-4 font-medium text-lg" type="text" value="Hi, I'm Ngoc Anh!"/>
+</div>
+<div>
+<label class="block text-sm font-bold mb-2 opacity-60">Hero Subtitle</label>
+<textarea class="w-full bg-background-light border-none rounded-2xl p-4 font-medium text-lg resize-none" rows="3">Designing digital dreams with a touch of magic. I create whimsical experiences that spark joy for people everywhere.</textarea>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-bold mb-2 opacity-60">Primary Button Text</label>
+<input class="w-full bg-background-light border-none rounded-2xl p-4 font-medium" type="text" value="See my work"/>
+</div>
+<div>
+<label class="block text-sm font-bold mb-2 opacity-60">Secondary Button Text</label>
+<input class="w-full bg-background-light border-none rounded-2xl p-4 font-medium" type="text" value="My Story"/>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg p-8 soft-shadow border border-primary/5">
+<h3 class="text-xl font-bold mb-8 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">visibility</span>
+                                Section Visibility
+                            </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="flex items-center justify-between p-4 bg-background-light rounded-2xl">
+<span class="font-bold">Hero Section</span>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="toggle1" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-pastel-peach cursor-pointer" for="toggle1"></label>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-background-light rounded-2xl">
+<span class="font-bold">Skills Magic Toolkit</span>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="toggle2" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-pastel-peach cursor-pointer" for="toggle2"></label>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-background-light rounded-2xl">
+<span class="font-bold">Project Highlights</span>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="toggle3" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-pastel-peach cursor-pointer" for="toggle3"></label>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-background-light rounded-2xl">
+<span class="font-bold">Sparkle Animations</span>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="toggle4" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-200 cursor-pointer" for="toggle4"></label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-8">
+<div class="bg-pastel-lavender/30 rounded-lg p-8 border border-pastel-lavender/50 text-center relative overflow-hidden group">
+<div class="absolute top-[-20px] right-[-20px] text-primary/10 transition-transform group-hover:scale-125 duration-700">
+<span class="material-symbols-outlined text-9xl">auto_awesome</span>
+</div>
+<div class="relative z-10">
+<p class="text-sm font-bold text-primary/60 uppercase tracking-widest mb-2">Portfolio Visitors</p>
+<h4 class="text-5xl font-bold text-primary mb-2">1,284</h4>
+<p class="text-sm font-medium text-[#1b0d11]/40">Last 7 days</p>
+</div>
+</div>
+<div class="bg-white rounded-lg p-8 soft-shadow border border-primary/5">
+<h3 class="font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">image</span>
+                                Active Hero Image
+                            </h3>
+<div class="aspect-square rounded-2xl bg-cover bg-center mb-4 border-4 border-pastel-pink shadow-inner" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDxCJ9jnxEvcGHLMJ9qIRFXcQwSV-VJmsbVXnXszz5QNieKfQgXvHzChmw5X7lyzNyekshO8uguWEWnskJqALQkUmryGpo00cXOHRV8YUmYSLqwJX4w9_IDB73NehyLPYMOUPA7KhKK2kUtn2bTw_mXPWgCfei2oAH4kuKAaZzJDVvIaJgf9vt8PtQwHUfgrh8ZppB1zRAz2rquSl4l5u1zFUu7NVpPS3lpo5HigDFd719ScBMFRIeYNf7-xUM4XtuVpPhc5g-iDYiJ");'></div>
+<button class="w-full py-3 rounded-full border-2 border-primary/10 font-bold hover:bg-pastel-pink/20 transition-all text-sm">
+                                Change Image
+                            </button>
+</div>
+<div class="bg-pastel-peach/30 rounded-lg p-6 border border-pastel-peach/50">
+<h3 class="font-bold mb-4">Quick Tip</h3>
+<p class="text-sm font-medium opacity-70 leading-relaxed">
+                                Don't forget to update your skills toolkit regularly! New magic spells keep your visitors enchanted. ✨
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[15%] left-[300px] text-pastel-pink/40">
+<span class="material-symbols-outlined text-4xl">favorite</span>
+</div>
+<div class="absolute bottom-[10%] right-[5%] text-pastel-peach/40">
+<span class="material-symbols-outlined text-5xl">star</span>
+</div>
+</div>
+
+</body></html>

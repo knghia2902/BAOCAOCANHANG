@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Projects Listing - Ngoc Anh Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff8fa3",
+                        "strawberry-cream": "#ffb3c1",
+                        "background-light": "#FFF0F5",
+                        "soft-pink": "#FFF0F5",
+                        "white-pink": "#fff9fb",
+                        "pastel-pink": "#ffccd5",
+                        "pastel-lavender": "#f9f2ff"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem",
+                        "lg": "2.5rem",
+                        "xl": "4rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer components {
+            .glow-primary {
+                box-shadow: 0 0 20px rgba(255, 143, 163, 0.4);
+            }
+            .glow-primary:hover {
+                box-shadow: 0 0 30px rgba(255, 143, 163, 0.6);
+            }
+            .glass-nav {
+                @apply backdrop-blur-[40px] bg-white/50 border-white/40 border-solid;
+            }
+            .wavy-border {
+                border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+            }
+            .floating-1 { animation: float1 6s ease-in-out infinite; }
+            .floating-2 { animation: float1 8s ease-in-out infinite reverse; }
+            @keyframes float1 {
+                0%, 100% { transform: translateY(0) rotate(0); }
+                50% { transform: translateY(-20px) rotate(5deg); }
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #FFF0F5 0%, #ffffff 100%);
+            }
+            .pastel-bubble {
+                @apply px-4 py-1.5 rounded-full text-xs font-bold shadow-sm;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="gradient-bg font-display text-[#4a2c32] selection:bg-strawberry-cream selection:text-white min-h-screen">
+<div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+<div class="absolute top-[15%] left-[10%] text-strawberry-cream floating-1 opacity-40">
+<span class="material-symbols-outlined text-4xl">colors_spark</span>
+</div>
+<div class="absolute bottom-[20%] right-[15%] text-strawberry-cream floating-2 opacity-40">
+<span class="material-symbols-outlined text-5xl">favorite</span>
+</div>
+<div class="absolute top-[60%] left-[5%] text-strawberry-cream floating-1 opacity-20" style="animation-delay: 2s">
+<span class="material-symbols-outlined text-6xl">flare</span>
+</div>
+<div class="absolute top-[40%] right-[10%] text-strawberry-cream floating-2 opacity-30" style="animation-delay: 1s">
+<span class="material-symbols-outlined text-3xl">magic_button</span>
+</div>
+<div class="absolute top-[10%] right-[25%] text-primary floating-1 opacity-30">
+<span class="material-symbols-outlined text-4xl">auto_awesome</span>
+</div>
+</div>
+<header class="mx-auto mt-6 w-[90%] max-w-[1200px] flex items-center justify-between whitespace-nowrap border glass-nav px-8 py-4 rounded-full shadow-sm sticky top-6 z-50">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary rounded-full flex items-center justify-center text-white glow-primary">
+<span class="material-symbols-outlined text-2xl">auto_fix_high</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-[#4a2c32]">Ngoc Anh</h2>
+</div>
+<nav class="hidden md:flex items-center gap-10">
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">Home</a>
+<a class="text-sm font-bold text-primary transition-colors border-b-2 border-primary" href="#">Projects</a>
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">About</a>
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">Contact</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex min-w-[120px] cursor-pointer items-center justify-center rounded-full h-11 px-6 bg-primary text-white text-sm font-bold hover:scale-105 transition-transform glow-primary">
+<span>Let's Talk</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-11 border-2 border-primary" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDpyOZU63z80-gG8qighS06AKdJBzZeu9FQbZ-qPF8ziCtVwdAZRyovsPm-gxv7bwuY-nWEk-SmGiFwao3G1vwzOXIJ-lRi0xyFtPLzwHNJsOEyyqthZtYxRg6y41Dt3oiv8bYXV-KuxnemhACsYKwmxZx7I4z5aN20BrglTZdSgcPpt_sbi6jlBKNX4P2nMm530Gr0qfzVTmUN_N2v3t0m0PDsoENGj9zHbbfN0oBTDO8_zwZaMFcNoPqUL7v5PDO1EDcv6lgCqvLU");'></div>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto px-4 md:px-10 pb-20 pt-16">
+<div class="flex flex-col items-center gap-6 mb-16 text-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">star</span>
+<span class="text-primary font-bold tracking-widest uppercase text-sm">Portfolio</span>
+<span class="material-symbols-outlined text-primary text-2xl">star</span>
+</div>
+<h1 class="text-5xl md:text-6xl font-bold tracking-tight text-[#4a2c32] rounded-full">
+                My <span class="text-primary">Creative Journey</span>
+</h1>
+<p class="text-lg text-[#4a2c32]/70 max-w-2xl font-medium">
+                A collection of magical digital experiences, whimsical illustrations, and user-centered designs crafted with love and pink sparkles.
+            </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+<div class="group flex flex-col gap-5 bg-white/40 p-4 rounded-[2rem] border border-white/60 hover:bg-white/60 transition-all shadow-sm hover:shadow-xl">
+<div class="aspect-[4/3] wavy-border overflow-hidden bg-white relative">
+<div class="size-full bg-cover bg-center group-hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDDtuQ-Qqf0P3w46KbDd_T_5UjbSApHIO1_sd5JzcvZxvj--I-W8moccJd5dDqv1OG0gn6PNjKYSH_JJVa8ANuM7g0lExusgGQTumWu5cSx2QtnLwFUmS_NhZnbTu0ZRLMQg0TOgr8qAWZgZhYjlqdFGWcNtakpN83s5FFqANJTFjqm1wcd6oyHHskMiP6u4TRudCvZgc67f5yk1z7k8sMzKq9CnOichOfk8gnL7QAS4KVCQWEBv-Yf4PDIyCpDMVhMEUc1MCa5_eeQ");'></div>
+</div>
+<div class="px-2 flex flex-col gap-3">
+<div class="flex flex-wrap gap-2">
+<span class="pastel-bubble bg-pastel-pink text-primary">UI/UX</span>
+<span class="pastel-bubble bg-pastel-lavender text-[#a78bfa]">Mobile</span>
+</div>
+<h3 class="text-2xl font-bold text-[#4a2c32] group-hover:text-primary transition-colors">PinkyPal Finance</h3>
+<p class="text-sm text-[#4a2c32]/70 line-clamp-2">Making personal budgeting fun and accessible with a gamified interface and cute avatars.</p>
+</div>
+</div>
+<div class="group flex flex-col gap-5 bg-white/40 p-4 rounded-[2rem] border border-white/60 hover:bg-white/60 transition-all shadow-sm hover:shadow-xl">
+<div class="aspect-[4/3] wavy-border overflow-hidden bg-white relative" style="border-radius: 40% 60% 70% 30% / 40% 70% 30% 60%;">
+<div class="size-full bg-cover bg-center group-hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCXacRQSWbqLihUyyvzft1dF5Io_ZWUgzVu2E-_rOuR_OoRY-0woM57sLN6UfR8UGQclUK7x8zckxdwTrxjmGQw1kIABTemeOpEpe0fiuAGZb7GoK6ZrETsyqOy2o6HvyA-kgU390-b0VRgBvsOp9J_We0K1GsfTFTQJ8_qwZh9B_3jaBdx1FGcQ4q-vLuhPwXTSz7EJ-nOVCvbee7TVjBL_7IssZO37yI32Tt_WtsG6oFR-uA4wOYatSwo-lvyw7-vuu3TgbcuKhVu");'></div>
+</div>
+<div class="px-2 flex flex-col gap-3">
+<div class="flex flex-wrap gap-2">
+<span class="pastel-bubble bg-pastel-pink text-primary">Illustration</span>
+<span class="pastel-bubble bg-[#e0f2fe] text-[#0ea5e9]">Web</span>
+</div>
+<h3 class="text-2xl font-bold text-[#4a2c32] group-hover:text-primary transition-colors">Doodle Library</h3>
+<p class="text-sm text-[#4a2c32]/70 line-clamp-2">A set of 100+ hand-drawn vector elements for modern SaaS landing pages.</p>
+</div>
+</div>
+<div class="group flex flex-col gap-5 bg-white/40 p-4 rounded-[2rem] border border-white/60 hover:bg-white/60 transition-all shadow-sm hover:shadow-xl">
+<div class="aspect-[4/3] wavy-border overflow-hidden bg-white relative">
+<div class="size-full bg-cover bg-center group-hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDxCJ9jnxEvcGHLMJ9qIRFXcQwSV-VJmsbVXnXszz5QNieKfQgXvHzChmw5X7lyzNyekshO8uguWEWnskJqALQkUmryGpo00cXOHRV8YUmYSLqwJX4w9_IDB73NehyLPYMOUPA7KhKK2kUtn2bTw_mXPWgCfei2oAH4kuKAaZzJDVvIaJgf9vt8PtQwHUfgrh8ZppB1zRAz2rquSl4l5u1zFUu7NVpPS3lpo5HigDFd719ScBMFRIeYNf7-xUM4XtuVpPhc5g-iDYiJ");'></div>
+</div>
+<div class="px-2 flex flex-col gap-3">
+<div class="flex flex-wrap gap-2">
+<span class="pastel-bubble bg-pastel-pink text-primary">Branding</span>
+<span class="pastel-bubble bg-[#fef3c7] text-[#d97706]">Magic</span>
+</div>
+<h3 class="text-2xl font-bold text-[#4a2c32] group-hover:text-primary transition-colors">Starlight Identity</h3>
+<p class="text-sm text-[#4a2c32]/70 line-clamp-2">Visual identity for a boutique creative agency focusing on Gen-Z aesthetic.</p>
+</div>
+</div>
+<div class="group flex flex-col gap-5 bg-white/40 p-4 rounded-[2rem] border border-white/60 hover:bg-white/60 transition-all shadow-sm hover:shadow-xl">
+<div class="aspect-[4/3] wavy-border overflow-hidden bg-white relative" style="border-radius: 70% 30% 60% 40% / 30% 60% 40% 70%;">
+<div class="size-full bg-cover bg-center group-hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDDtuQ-Qqf0P3w46KbDd_T_5UjbSApHIO1_sd5JzcvZxvj--I-W8moccJd5dDqv1OG0gn6PNjKYSH_JJVa8ANuM7g0lExusgGQTumWu5cSx2QtnLwFUmS_NhZnbTu0ZRLMQg0TOgr8qAWZgZhYjlqdFGWcNtakpN83s5FFqANJTFjqm1wcd6oyHHskMiP6u4TRudCvZgc67f5yk1z7k8sMzKq9CnOichOfk8gnL7QAS4KVCQWEBv-Yf4PDIyCpDMVhMEUc1MCa5_eeQ");'></div>
+</div>
+<div class="px-2 flex flex-col gap-3">
+<div class="flex flex-wrap gap-2">
+<span class="pastel-bubble bg-pastel-pink text-primary">App Design</span>
+<span class="pastel-bubble bg-pastel-lavender text-[#a78bfa]">Social</span>
+</div>
+<h3 class="text-2xl font-bold text-[#4a2c32] group-hover:text-primary transition-colors">BerryChat App</h3>
+<p class="text-sm text-[#4a2c32]/70 line-clamp-2">A secure messaging platform designed with soft gradients and playful animations.</p>
+</div>
+</div>
+<div class="group flex flex-col gap-5 bg-white/40 p-4 rounded-[2rem] border border-white/60 hover:bg-white/60 transition-all shadow-sm hover:shadow-xl">
+<div class="aspect-[4/3] wavy-border overflow-hidden bg-white relative">
+<div class="size-full bg-cover bg-center group-hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCXacRQSWbqLihUyyvzft1dF5Io_ZWUgzVu2E-_rOuR_OoRY-0woM57sLN6UfR8UGQclUK7x8zckxdwTrxjmGQw1kIABTemeOpEpe0fiuAGZb7GoK6ZrETsyqOy2o6HvyA-kgU390-b0VRgBvsOp9J_We0K1GsfTFTQJ8_qwZh9B_3jaBdx1FGcQ4q-vLuhPwXTSz7EJ-nOVCvbee7TVjBL_7IssZO37yI32Tt_WtsG6oFR-uA4wOYatSwo-lvyw7-vuu3TgbcuKhVu");'></div>
+</div>
+<div class="px-2 flex flex-col gap-3">
+<div class="flex flex-wrap gap-2">
+<span class="pastel-bubble bg-pastel-pink text-primary">Web Design</span>
+<span class="pastel-bubble bg-[#ecfdf5] text-[#10b981]">E-commerce</span>
+</div>
+<h3 class="text-2xl font-bold text-[#4a2c32] group-hover:text-primary transition-colors">Pastel Treats</h3>
+<p class="text-sm text-[#4a2c32]/70 line-clamp-2">Online bakery store with a focus on high-quality visuals and cute interactions.</p>
+</div>
+</div>
+<div class="group flex flex-col gap-5 bg-white/40 p-4 rounded-[2rem] border border-white/60 hover:bg-white/60 transition-all shadow-sm hover:shadow-xl">
+<div class="aspect-[4/3] wavy-border overflow-hidden bg-white relative" style="border-radius: 40% 80% 30% 60% / 50% 30% 70% 40%;">
+<div class="size-full bg-cover bg-center group-hover:scale-110 transition-transform duration-700" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDxCJ9jnxEvcGHLMJ9qIRFXcQwSV-VJmsbVXnXszz5QNieKfQgXvHzChmw5X7lyzNyekshO8uguWEWnskJqALQkUmryGpo00cXOHRV8YUmYSLqwJX4w9_IDB73NehyLPYMOUPA7KhKK2kUtn2bTw_mXPWgCfei2oAH4kuKAaZzJDVvIaJgf9vt8PtQwHUfgrh8ZppB1zRAz2rquSl4l5u1zFUu7NVpPS3lpo5HigDFd719ScBMFRIeYNf7-xUM4XtuVpPhc5g-iDYiJ");'></div>
+</div>
+<div class="px-2 flex flex-col gap-3">
+<div class="flex flex-wrap gap-2">
+<span class="pastel-bubble bg-pastel-pink text-primary">UX Research</span>
+<span class="pastel-bubble bg-[#fef2f2] text-[#f87171]">Analysis</span>
+</div>
+<h3 class="text-2xl font-bold text-[#4a2c32] group-hover:text-primary transition-colors">StudyBuddy Case</h3>
+<p class="text-sm text-[#4a2c32]/70 line-clamp-2">In-depth research and redesign of a collaborative learning platform for students.</p>
+</div>
+</div>
+</div>
+<footer class="mt-32 flex flex-col items-center gap-10">
+<div class="h-px w-full bg-primary/20"></div>
+<div class="flex flex-col items-center gap-6">
+<div class="size-16 bg-primary rounded-full flex items-center justify-center text-white shadow-lg glow-primary">
+<span class="material-symbols-outlined text-3xl text-white">waving_hand</span>
+</div>
+<h3 class="text-3xl font-bold">Let's build something magical!</h3>
+<div class="flex gap-4">
+<a class="size-12 rounded-full bg-white/60 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-sm" href="#">
+<span class="material-symbols-outlined">mail</span>
+</a>
+<a class="size-12 rounded-full bg-white/60 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-sm" href="#">
+<span class="material-symbols-outlined">link</span>
+</a>
+<a class="size-12 rounded-full bg-white/60 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-sm" href="#">
+<span class="material-symbols-outlined">alternate_email</span>
+</a>
+</div>
+</div>
+<div class="pb-10 flex flex-col items-center gap-2">
+<p class="text-sm font-bold opacity-40">© 2024 Ngoc Anh Portfolio</p>
+<p class="text-xs font-bold text-primary flex items-center gap-1">
+                    Made with <span class="material-symbols-outlined text-[10px]">favorite</span> and magic
+                </p>
+</div>
+</footer>
+</main>
+
+</body></html>

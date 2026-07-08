@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Góc nhỏ tiện ích của Ánh | Extra Cute Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&amp;family=Fredoka:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff8fab",
+                        "soft-pink": "#ffccd5",
+                        "pastel-pink": "#fff0f3",
+                        "cute-peach": "#ffe5d9",
+                        "cute-lavender": "#f2e9fb",
+                        "cloud-white": "#ffffff"
+                    },
+                    fontFamily: {
+                        "display": ["Fredoka", "sans-serif"],
+                        "body": ["Quicksand", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "puffy": "2rem",
+                        "cloud": "3rem"
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .cloud-shape {
+                border-radius: 70% 30% 70% 30% / 30% 70% 30% 70%;
+            }
+            .puffy-button {
+                @apply bg-primary text-white font-bold rounded-full transition-all shadow-[0_4px_0_0_#fb6f92] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#fb6f92] active:translate-y-[4px] active:shadow-none;
+            }
+            .dashed-cloud {
+                border: 3px dashed #ff8fab;
+                background-image: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 240, 243, 0.8) 90%);
+            }
+            .sticker-rotate-1 { transform: rotate(-10deg); }
+            .sticker-rotate-2 { transform: rotate(15deg); }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-pastel-pink font-body text-[#5c3d46] selection:bg-soft-pink">
+<div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+<div class="absolute top-10 left-[10%] text-primary/30 sticker-rotate-1"><span class="material-symbols-outlined text-6xl">grade</span></div>
+<div class="absolute top-[20%] right-[5%] text-primary/20 sticker-rotate-2"><span class="material-symbols-outlined text-5xl">favorite</span></div>
+<div class="absolute bottom-[10%] left-[5%] text-primary/25 sticker-rotate-1"><span class="material-symbols-outlined text-4xl">cruelty_free</span></div>
+<div class="absolute bottom-[20%] right-[10%] text-primary/30 sticker-rotate-2"><span class="material-symbols-outlined text-7xl">temp_preferences_eco</span></div>
+</div>
+<div class="layout-container flex h-full grow flex-col">
+<header class="mx-auto mt-6 w-[90%] max-w-[1000px] flex items-center justify-between bg-white/80 backdrop-blur-md px-8 py-4 rounded-full shadow-sm sticky top-6 z-50 border-2 border-primary/10">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary rounded-full flex items-center justify-center text-white shadow-inner">
+<span class="material-symbols-outlined text-2xl">auto_fix_high</span>
+</div>
+<h1 class="text-2xl font-display font-bold text-primary tracking-tight">Góc nhỏ tiện ích của Ánh</h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-bold hover:text-primary transition-colors flex items-center gap-1" href="#"><span class="material-symbols-outlined text-lg">home</span> Home</a>
+<a class="text-sm font-bold text-primary underline underline-offset-4 decoration-2" href="#">Tools</a>
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">About</a>
+</nav>
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full border-2 border-primary overflow-hidden">
+<img alt="Ngoc Anh" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpyOZU63z80-gG8qighS06AKdJBzZeu9FQbZ-qPF8ziCtVwdAZRyovsPm-gxv7bwuY-nWEk-SmGiFwao3G1vwzOXIJ-lRi0xyFtPLzwHNJsOEyyqthZtYxRg6y41Dt3oiv8bYXV-KuxnemhACsYKwmxZx7I4z5aN20BrglTZdSgcPpt_sbi6jlBKNX4P2nMm530Gr0qfzVTmUN_N2v3t0m0PDsoENGj9zHbbfN0oBTDO8_zwZaMFcNoPqUL7v5PDO1EDcv6lgCqvLU"/>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-[1000px] mx-auto px-6 py-12 w-full">
+<section class="text-center mb-16 relative">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 text-primary/10 select-none">
+<span class="material-symbols-outlined text-[120px]">cloud</span>
+</div>
+<h2 class="text-4xl md:text-5xl font-display font-bold mb-4 relative z-10">Làm việc thật vui! ✨</h2>
+<p class="text-lg font-medium opacity-80 max-w-lg mx-auto">Chọn một công cụ nhỏ để giúp cậu xử lý công việc nhanh hơn nhé!</p>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+<div class="bg-white rounded-cloud p-8 shadow-xl shadow-primary/5 border-2 border-soft-pink flex flex-col gap-6 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 opacity-10">
+<span class="material-symbols-outlined text-9xl">extension</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="size-16 bg-cute-peach rounded-puffy flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl">diversity_1</span>
+</div>
+<div>
+<h3 class="text-xl font-display font-bold">Ghép Dữ Liệu</h3>
+<p class="text-sm opacity-60">Kết hợp nhiều file thành một</p>
+</div>
+</div>
+<div class="dashed-cloud rounded-[3rem] p-10 flex flex-col items-center justify-center gap-4 text-center cursor-pointer hover:bg-white/50 transition-all">
+<div class="text-primary">
+<span class="material-symbols-outlined text-5xl">cloud_upload</span>
+</div>
+<div>
+<p class="font-bold text-primary">Thả file vào mây nhé!</p>
+<p class="text-xs opacity-50 mt-1">Hỗ trợ Excel, CSV, JSON</p>
+</div>
+</div>
+<button class="puffy-button py-4 w-full">Bắt đầu ghép nào!</button>
+</div>
+<div class="bg-white rounded-cloud p-8 shadow-xl shadow-primary/5 border-2 border-soft-pink flex flex-col gap-6 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 opacity-10">
+<span class="material-symbols-outlined text-9xl">magic_button</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="size-16 bg-cute-lavender rounded-puffy flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl">flare</span>
+</div>
+<div>
+<h3 class="text-xl font-display font-bold">Làm Sạch Dữ Liệu</h3>
+<p class="text-sm opacity-60">Xoá khoảng trắng và lỗi định dạng</p>
+</div>
+</div>
+<div class="flex-1 space-y-4">
+<div class="bg-pastel-pink/50 rounded-2xl p-4 text-sm font-medium border border-soft-pink/30 italic">
+                        "Hãy dán dữ liệu thô vào đây để Ánh dọn dẹp giúp cậu nha..."
+                    </div>
+<textarea class="w-full bg-cute-peach/20 border-2 border-dashed border-primary/20 rounded-2xl p-4 text-sm focus:ring-primary focus:border-primary min-h-[120px]" placeholder="Nhập văn bản tại đây..."></textarea>
+</div>
+<button class="puffy-button py-4 w-full">Biến hoá ngay ✨</button>
+</div>
+<div class="md:col-span-2 flex justify-center items-center py-8">
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-soft-pink to-cute-peach rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+<div class="relative bg-white px-8 py-3 rounded-full border border-primary/20 flex items-center gap-4 text-sm font-bold">
+<span class="text-primary material-symbols-outlined">stars</span>
+                        Cần thêm công cụ khác? Đừng ngần ngại nhắn Ánh nhé!
+                        <span class="text-primary material-symbols-outlined">chat_bubble</span>
+</div>
+</div>
+</div>
+</div>
+<footer class="mt-16 flex flex-col items-center gap-8">
+<div class="flex gap-6">
+<div class="size-12 bg-white rounded-2xl shadow-sm border border-soft-pink flex items-center justify-center sticker-rotate-1">
+<span class="material-symbols-outlined text-primary">heart_plus</span>
+</div>
+<div class="size-12 bg-white rounded-2xl shadow-sm border border-soft-pink flex items-center justify-center sticker-rotate-2">
+<span class="material-symbols-outlined text-primary">celebration</span>
+</div>
+<div class="size-12 bg-white rounded-2xl shadow-sm border border-soft-pink flex items-center justify-center sticker-rotate-1">
+<span class="material-symbols-outlined text-primary">face_6</span>
+</div>
+</div>
+<div class="text-center">
+<p class="text-sm font-bold opacity-40">© 2024 Ngoc Anh • Crafted with love and sparkles</p>
+<div class="flex items-center justify-center gap-1 mt-2 text-primary font-display font-bold">
+<span class="material-symbols-outlined text-sm">potted_plant</span>
+<span>Phòng lab nhỏ của Ánh</span>
+</div>
+</div>
+</footer>
+</main>
+</div>
+
+</body></html>
