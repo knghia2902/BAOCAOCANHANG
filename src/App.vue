@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { RouterView, useRouter } from 'vue-router'
-import { onMounted, ref, onUnmounted } from 'vue';
+import { RouterView, useRouter, useRoute } from 'vue-router'
+import { onMounted, ref, onUnmounted, watch } from 'vue';
 import { ContentService } from './services/ContentService';
 import { authStore, logout } from './stores/auth';
 import ToastNotification from './components/ui/ToastNotification.vue';
 
 const router = useRouter();
+const route = useRoute();
 const showDropdown = ref(false);
 
 const toggleDropdown = (e: Event) => {
@@ -21,6 +22,11 @@ const handleHeaderLogout = () => {
     logout();
     router.push('/login');
 };
+
+watch(() => route.path, (newPath) => {
+    const isWeighbridge = newPath === '/tools';
+    (document.documentElement.style as any).zoom = isWeighbridge ? 1 : 0.9;
+}, { immediate: true });
 
 onMounted(async () => {
     // Load all content from Supabase
