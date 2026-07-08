@@ -41,7 +41,6 @@ onMounted(() => {
       <!-- Tab Navigation -->
       <nav class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl">
         <button 
-          v-if="authStore.role === 'admin'"
           @click="activeTab = 'allocator'"
           :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'allocator' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
         >
