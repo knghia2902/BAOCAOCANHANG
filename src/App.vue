@@ -25,7 +25,7 @@ const handleHeaderLogout = () => {
 
 watch(() => route.path, (newPath) => {
     const isWeighbridge = newPath === '/tools';
-    (document.documentElement.style as any).zoom = isWeighbridge ? 1 : 0.9;
+    (document.documentElement.style as any).zoom = isWeighbridge ? 0.9 : 0.8;
 }, { immediate: true });
 
 onMounted(async () => {
