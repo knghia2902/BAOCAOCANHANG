@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
 import CargoAllocator from '../components/tools/CargoAllocator.vue';
 import { authStore } from '../stores/auth';
 
+const router = useRouter();
 const activeTab = ref<'allocator' | 'printer'>('allocator');
 
 onMounted(() => {
@@ -19,7 +21,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="flex-1 w-[95%] max-w-[1500px] mx-auto bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-110px)] mb-6 no-print font-display">
+  <main class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
     <!-- Header bar -->
     <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
       <div class="flex items-center gap-2.5">
@@ -55,9 +57,18 @@ onMounted(() => {
         </button>
       </nav>
       
-      <!-- User info info -->
-      <div class="text-[10px] text-gray-500 font-bold">
-        {{ authStore.user }} ({{ authStore.role === 'admin' ? 'Quản trị' : 'Nhân viên' }})
+      <!-- User info and close button -->
+      <div class="flex items-center gap-4">
+        <span class="text-xs font-bold text-[#4a2c32]/60 hidden sm:inline">
+          {{ authStore.displayName }} ({{ authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên' }})
+        </span>
+        <button 
+          @click="router.push('/')" 
+          class="size-9 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all shadow-inner"
+          title="Quay lại Trang chủ"
+        >
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
       </div>
     </header>
 
