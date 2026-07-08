@@ -45,7 +45,7 @@ const handleLogin = async () => {
                     <span class="material-symbols-outlined text-4xl">magic_button</span>
                 </div>
                 <h1 class="text-3xl font-display font-bold text-primary">Đăng Nhập</h1>
-                <p class="text-[#1b0d11]/50 mt-2 font-medium">Chào mừng bạn quay trở lại góc nhỏ! ✨</p>
+                <p class="text-[#1b0d11]/50 mt-2 font-medium">Hệ thống quản lý cân hàng Nguyên Ngọc Port! ✨</p>
             </div>
 
 

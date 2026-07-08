@@ -41,7 +41,7 @@ onUnmounted(() => {
         <router-link to="/" class="size-10 bg-soft-rose rounded-full flex items-center justify-center text-white glow-primary">
           <span class="material-symbols-outlined text-2xl">magic_button</span>
         </router-link>
-        <router-link to="/" class="text-xl font-display font-bold tracking-tight text-soft-rose hover:text-primary transition-colors">Góc nhỏ tiện ích của Ánh</router-link>
+        <router-link to="/" class="text-xl font-display font-bold tracking-tight text-soft-rose hover:text-primary transition-colors">Nguyên Ngọc Port</router-link>
       </div>
       
       <nav class="hidden md:flex items-center gap-8">
