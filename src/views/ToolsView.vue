@@ -15,7 +15,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="flex-1 flex flex-col h-full overflow-hidden bg-white">
+  <main class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
     <!-- Header bar -->
     <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
       <div class="flex items-center gap-2.5">
