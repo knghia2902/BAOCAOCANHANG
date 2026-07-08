@@ -76,7 +76,7 @@ onMounted(() => {
     <div class="flex-1 overflow-hidden relative">
       <!-- We keep printer active in background using v-show to listen to BroadcastChannel allocator sync notifications -->
       <CargoAllocator v-show="activeTab === 'allocator'" class="w-full h-full" />
-      <WeighbridgePrinter v-show="activeTab === 'printer'" class="w-full h-full" />
+      <WeighbridgePrinter v-show="activeTab === 'printer'" :hide-card="true" class="w-full h-full" />
     </div>
   </main>
 </template>
