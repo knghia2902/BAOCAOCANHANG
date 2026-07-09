@@ -2354,6 +2354,15 @@ const isAlreadySaved = computed(() => {
     if (generatedTrips.value.length === 0) return false;
     return generatedTrips.value.every(gt => {
         return existingTrips.value.some(et => {
+            // Nếu dùng số phiếu tự động, ta kiểm tra thêm biển số, trọng lượng và ngày giờ để tránh trùng lặp giả do số phiếu bị lặp
+            if (useAutoTicketNo.value) {
+                const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
+                const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
+                return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
+                       gt.weightNet === et.weightNet &&
+                       gtDateStr === etDateStr;
+            }
+            
             if (gt.ticketNo && et.ticketNo && gt.ticketNo === et.ticketNo) {
                 return true;
             }
@@ -2441,6 +2450,13 @@ async function saveToHistory() {
     const duplicates: string[] = [];
     generatedTrips.value.forEach(gt => {
         const isDup = existingTrips.value.some(et => {
+            if (useAutoTicketNo.value) {
+                const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
+                const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
+                return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
+                       gt.weightNet === et.weightNet &&
+                       gtDateStr === etDateStr;
+            }
             if (gt.ticketNo && et.ticketNo && gt.ticketNo === et.ticketNo) {
                 return true;
             }
@@ -2478,6 +2494,11 @@ async function saveToHistory() {
         cancelText: 'Hủy'
     });
     if (confirmSave) {
+        // Tự động tăng số phiếu bắt đầu nếu đang dùng tự động sinh số phiếu
+        if (useAutoTicketNo.value) {
+            ticketStart.value = ticketStart.value + generatedTrips.value.length;
+        }
+
         // Append generated trips to history
         existingTrips.value = [...existingTrips.value, ...generatedTrips.value];
         
