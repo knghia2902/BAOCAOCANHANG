@@ -291,10 +291,9 @@ onMounted(() => {
                     </h3>
                     <div class="flex items-center gap-2">
                         <button 
-                            v-if="allBarges.length > 0"
                             @click="exportBargesToExcel" 
-                            :disabled="exporting"
-                            class="h-8 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-[10px] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 animate-fade-in"
+                            :disabled="exporting || allBarges.length === 0 || loading"
+                            class="h-8 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-[10px] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Xuất tất cả sà lan ra tệp Excel"
                         >
                             <span v-if="exporting" class="material-symbols-outlined text-xs animate-spin">sync</span>
