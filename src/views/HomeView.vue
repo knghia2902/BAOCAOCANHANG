@@ -3,11 +3,14 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { authStore } from '../stores/auth';
 import { WeighbridgeService } from '../services/excel/WeighbridgeService';
+import { useToast } from '../composables/useToast';
 
 const router = useRouter();
+const { addToast } = useToast();
 
 const vessels = ref<any[]>([]);
 const loading = ref(true);
+const exporting = ref(false);
 
 const loadData = async () => {
     try {
@@ -52,6 +55,144 @@ const navigateToTool = (tab: 'allocator' | 'printer', bargeId?: number, vesselId
         localStorage.setItem('home_redirect_vessel_id', String(vesselId));
     }
     router.push('/tools');
+};
+
+const exportBargesToExcel = async () => {
+    if (allBarges.value.length === 0) return;
+    try {
+        exporting.value = true;
+        addToast('Đang chuẩn bị xuất tệp Excel...', 'info');
+        
+        const ExcelJS = await import('exceljs');
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Danh sách Sà Lan');
+        
+        sheet.views = [{ showGridLines: true }];
+        
+        sheet.columns = [
+            { header: 'STT', key: 'stt', width: 6 },
+            { header: 'Tên Sà Lan', key: 'name', width: 20 },
+            { header: 'Mã Lệnh', key: 'orderNo', width: 15 },
+            { header: 'Thuộc Tàu', key: 'vesselName', width: 25 },
+            { header: 'Hàng Hóa', key: 'goods', width: 22 },
+            { header: 'Mã Hàng', key: 'goodsCode', width: 12 },
+            { header: 'Chủ Hàng', key: 'owner', width: 25 },
+            { header: 'Trực Ca', key: 'operator', width: 18 },
+            { header: 'Loại Hàng (X/N)', key: 'xn', width: 15 },
+            { header: 'Trạng Thái', key: 'status', width: 15 },
+        ];
+        
+        sheet.insertRow(1, []);
+        sheet.insertRow(2, ['DANH SÁCH SÀ LAN ĐANG VẬN HÀNH HỆ THỐNG']);
+        sheet.insertRow(3, [`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')} - Tổng số: ${allBarges.value.length} sà lan`]);
+        sheet.insertRow(4, []);
+        
+        sheet.mergeCells('A2:J2');
+        sheet.mergeCells('A3:J3');
+        
+        const titleRow = sheet.getRow(2);
+        titleRow.getCell(1).font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: '4A2C32' } };
+        titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        titleRow.height = 30;
+        
+        const subTitleRow = sheet.getRow(3);
+        subTitleRow.getCell(1).font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: '666666' } };
+        subTitleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        subTitleRow.height = 18;
+        
+        const headerRowNumber = 5;
+        const headers = ['STT', 'Tên Sà Lan', 'Mã Lệnh', 'Thuộc Tàu', 'Hàng Hóa', 'Mã Hàng', 'Chủ Hàng', 'Trực Ca', 'Loại Hàng (X/N)', 'Trạng Thái'];
+        sheet.getRow(headerRowNumber).values = headers;
+        
+        const headerRow = sheet.getRow(headerRowNumber);
+        headerRow.height = 25;
+        headerRow.eachCell((cell) => {
+            cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFF' } };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF6B81' }
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'E5E7EB' } },
+                left: { style: 'thin', color: { argb: 'E5E7EB' } },
+                bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+                right: { style: 'thin', color: { argb: 'E5E7EB' } },
+            };
+        });
+        
+        allBarges.value.forEach((b, index) => {
+            const rowData = [
+                index + 1,
+                b.name || '',
+                b.orderNo || '-',
+                b.vesselName || '',
+                b.config?.goods || '-',
+                b.config?.goodsCode || '-',
+                b.config?.owner || '-',
+                b.config?.operator || '-',
+                b.config?.xn || '-',
+                b.locked ? 'Đã khóa' : 'Đang mở'
+            ];
+            
+            const rNumber = headerRowNumber + 1 + index;
+            sheet.getRow(rNumber).values = rowData;
+            
+            const r = sheet.getRow(rNumber);
+            r.height = 20;
+            
+            r.eachCell((cell, colNum) => {
+                cell.font = { name: 'Segoe UI', size: 10, color: { argb: '333333' } };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'F3F4F6' } },
+                    left: { style: 'thin', color: { argb: 'F3F4F6' } },
+                    bottom: { style: 'thin', color: { argb: 'F3F4F6' } },
+                    right: { style: 'thin', color: { argb: 'F3F4F6' } },
+                };
+                
+                if (colNum === 1 || colNum === 3 || colNum === 6 || colNum === 9 || colNum === 10) {
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                } else {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                }
+                
+                if (colNum === 10) {
+                    if (b.locked) {
+                        cell.font = { name: 'Segoe UI', size: 10, color: { argb: 'DC2626' }, bold: true };
+                    } else {
+                        cell.font = { name: 'Segoe UI', size: 10, color: { argb: '0D9488' }, bold: true };
+                    }
+                }
+            });
+        });
+        
+        sheet.columns.forEach((column) => {
+            let maxLen = 0;
+            column.eachCell!({ includeEmpty: false }, (cell, rowNum) => {
+                if (rowNum >= headerRowNumber) {
+                    const value = cell.value ? String(cell.value) : '';
+                    if (value.length > maxLen) maxLen = value.length;
+                }
+            });
+            column.width = Math.max(maxLen + 4, column.width || 10);
+        });
+        
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Danh_Sach_Sa_Lan_Van_Hanh_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        addToast('Xuất tệp Excel thành công! 📊', 'success');
+    } catch (e) {
+        console.error('Error exporting barges to excel:', e);
+        addToast('Có lỗi xảy ra khi xuất Excel!', 'error');
+    } finally {
+        exporting.value = false;
+    }
 };
 
 onMounted(() => {
@@ -148,9 +289,22 @@ onMounted(() => {
                         <span class="material-symbols-outlined text-primary text-lg font-black">analytics</span>
                         Danh sách sà lan đang vận hành
                     </h3>
-                    <button @click="loadData" class="size-8 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-400 hover:text-primary transition-colors border border-gray-100">
-                        <span class="material-symbols-outlined text-base" :class="{'animate-spin': loading}">refresh</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button 
+                            v-if="allBarges.length > 0"
+                            @click="exportBargesToExcel" 
+                            :disabled="exporting"
+                            class="h-8 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-[10px] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 animate-fade-in"
+                            title="Xuất tất cả sà lan ra tệp Excel"
+                        >
+                            <span v-if="exporting" class="material-symbols-outlined text-xs animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-xs">download</span>
+                            Xuất Excel ({{ allBarges.length }})
+                        </button>
+                        <button @click="loadData" class="size-8 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-400 hover:text-primary transition-colors border border-gray-100" title="Tải lại dữ liệu">
+                            <span class="material-symbols-outlined text-base" :class="{'animate-spin': loading}">refresh</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div v-if="loading" class="flex-1 flex flex-col justify-center items-center text-gray-400 text-xs gap-2">
