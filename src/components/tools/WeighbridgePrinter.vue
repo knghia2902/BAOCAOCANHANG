@@ -983,9 +983,12 @@ const exportAllBargesToExcel = () => {
             
             sheet.columns.forEach((col, idx) => {
                 let maxLen = 10;
-                sheet.eachRow((row) => {
-                    const val = row.getCell(idx + 1).value;
-                    if (val) maxLen = Math.max(maxLen, String(val).length);
+                sheet.eachRow((row, rowNumber) => {
+                    // Bỏ qua tiêu đề (dòng 1, 2, 3) để tránh làm dãn cột STT quá rộng
+                    if (rowNumber >= 4) {
+                        const val = row.getCell(idx + 1).value;
+                        if (val) maxLen = Math.max(maxLen, String(val).length);
+                    }
                 });
                 col.width = maxLen + 4;
             });
@@ -1141,9 +1144,12 @@ const exportVesselSummaryExcel = () => {
             
             sheet.columns.forEach((col, idx) => {
                 let maxLen = 10;
-                sheet.eachRow((row) => {
-                    const val = row.getCell(idx + 1).value;
-                    if (val) maxLen = Math.max(maxLen, String(val).length);
+                sheet.eachRow((row, rowNumber) => {
+                    // Bỏ qua tiêu đề (dòng 1, 2, 3) để tránh làm dãn cột STT quá rộng
+                    if (rowNumber >= 4) {
+                        const val = row.getCell(idx + 1).value;
+                        if (val) maxLen = Math.max(maxLen, String(val).length);
+                    }
                 });
                 col.width = maxLen + 4;
             });
