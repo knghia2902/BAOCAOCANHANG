@@ -2707,7 +2707,7 @@ async function compileAndDownload() {
     
     try {
         let workbook: any = null;
-        let dsSheet;
+        let dsSheet: any;
         const ExcelJS = await import('exceljs');
         workbook = new ExcelJS.Workbook();
         dsSheet = workbook.addWorksheet('DS');
@@ -2811,52 +2811,81 @@ async function compileAndDownload() {
                 currentRowIdx++;
             });
         } else {
-            // Set 11 columns for summary layout
-            dsSheet.columns = [
-                { header: '', key: 'A', width: 3 },
-                { header: 'STT', key: 'stt', width: 8 },
-                { header: 'Ngày giờ', key: 'timeStr', width: 22 },
-                { header: 'Số xe', key: 'plateNumber', width: 15 },
-                { header: 'TTTP (tấn)', key: 'tttp', width: 15 },
-                { header: 'Hạn mức hàng (tấn)', key: 'limit', width: 22 },
-                { header: 'Số phiếu cân', key: 'ticketNo', width: 18 },
-                { header: 'Mã lệnh', key: 'orderNo', width: 18 },
-                { header: 'Loại hàng hóa', key: 'cargoType', width: 18 },
-                { header: 'Trọng lượng hàng (tấn)', key: 'weightTons', width: 22 },
-                { header: 'Ghi chú', key: 'notes', width: 15 }
-            ];
-            
-            // Write headers at Row 9
-            const headerRow = dsSheet.getRow(9);
-            headerRow.getCell(2).value = 'STT';
-            headerRow.getCell(3).value = 'Ngày giờ';
-            headerRow.getCell(4).value = 'Số xe';
-            headerRow.getCell(5).value = 'TTTP (tấn)';
-            headerRow.getCell(6).value = 'Hạn mức hàng (tấn)';
-            headerRow.getCell(7).value = 'Số phiếu cân';
-            headerRow.getCell(8).value = 'Mã lệnh';
-            headerRow.getCell(9).value = 'Loại hàng hóa';
-            headerRow.getCell(10).value = 'Trọng lượng hàng (tấn)';
-            headerRow.getCell(11).value = 'Ghi chú';
-            
-            headerRow.font = { name: 'Arial', size: 10, bold: true };
-            headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-            
-            for (let colIdx = 2; colIdx <= 11; colIdx++) {
-                const cell = headerRow.getCell(colIdx);
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFE2EBF5' } // soft light blue fill
-                };
-                cell.border = {
-                    top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                    left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                    bottom: { style: 'medium', color: { argb: 'FF808080' } },
-                    right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
-                };
+            // Load template instead of creating blank workbook
+            try {
+                const response = await fetch('/SO_THEO_DOI_TEMPLATE.xlsx');
+                if (!response.ok) throw new Error('Không thể tải tệp mẫu Excel');
+                const arrayBuffer = await response.arrayBuffer();
+                
+                const ExcelJS = await import('exceljs');
+                workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+                dsSheet = workbook.worksheets[0];
+            } catch (err) {
+                console.warn('Failed to load template, falling back to clean sheet', err);
+                const ExcelJS = await import('exceljs');
+                workbook = new ExcelJS.Workbook();
+                dsSheet = workbook.addWorksheet('DS');
+                
+                dsSheet.columns = [
+                    { header: '', key: 'A', width: 3 },
+                    { header: 'STT', key: 'stt', width: 8 },
+                    { header: 'Thời gian rời bến  (Giờ/Ngày)', key: 'timeStr', width: 22 },
+                    { header: 'Số xe', key: 'plateNumber', width: 15 },
+                    { header: 'TTTP (tấn)', key: 'tttp', width: 15 },
+                    { header: 'Trọng lượng hàng cho phép (tấn)', key: 'limit', width: 22 },
+                    { header: 'Mã lệnh', key: 'orderNo', width: 18 },
+                    { header: 'Số phiếu', key: 'ticketNo', width: 18 },
+                    { header: 'Loại hàng', key: 'cargoType', width: 18 },
+                    { header: 'Khối lượng (tấn)', key: 'weightTons', width: 22 },
+                    { header: 'Ghi chú', key: 'notes', width: 15 }
+                ];
+                
+                const headerRow = dsSheet.getRow(9);
+                headerRow.getCell(2).value = 'STT';
+                headerRow.getCell(3).value = 'Thời gian rời bến  (Giờ/Ngày)';
+                headerRow.getCell(4).value = 'Số xe';
+                headerRow.getCell(5).value = 'TTTP (tấn)';
+                headerRow.getCell(6).value = 'Trọng lượng hàng cho phép (tấn)';
+                headerRow.getCell(7).value = 'Mã lệnh';
+                headerRow.getCell(8).value = 'Số phiếu';
+                headerRow.getCell(9).value = 'Loại hàng';
+                headerRow.getCell(10).value = 'Khối lượng (tấn)';
+                headerRow.getCell(11).value = 'Ghi chú';
+                
+                headerRow.font = { name: 'Times New Roman', size: 10, bold: true };
+                headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                
+                for (let colIdx = 2; colIdx <= 11; colIdx++) {
+                    const cell = headerRow.getCell(colIdx);
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFE2EBF5' }
+                    };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
+                        left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
+                        bottom: { style: 'medium', color: { argb: 'FF808080' } },
+                        right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
+                    };
+                }
+                headerRow.height = 25;
             }
-            headerRow.height = 25;
+            
+            const startRowIdx = 10;
+            const maxEmptyRowsInTemplate = 18;
+            const dataCount = dataToExport.length;
+            
+            const isUsingTemplate = dsSheet.name === 'Sheet1' || dsSheet.name === 'Danh sách Sà Lan' || dsSheet.rowCount >= 28;
+            if (isUsingTemplate && dataCount > maxEmptyRowsInTemplate) {
+                const rowsToInsert = dataCount - maxEmptyRowsInTemplate;
+                const emptyRows = [];
+                for (let i = 0; i < rowsToInsert; i++) {
+                    emptyRows.push([]);
+                }
+                dsSheet.spliceRows(28, 0, ...emptyRows);
+            }
             
             let currentSTT = 0;
             let currentRowIdx = 10;
@@ -2865,25 +2894,25 @@ async function compileAndDownload() {
                 currentSTT++;
                 
                 const row = dsSheet.getRow(currentRowIdx);
-                row.getCell(2).value = currentSTT;             // Col B: STT
-                row.getCell(3).value = trip.timeStr;           // Col C: Date/Time
-                row.getCell(4).value = formatPlate(trip.plateNumber);       // Col D: Plate
-                row.getCell(5).value = trip.tttp;              // Col E: TTTP
-                row.getCell(6).value = trip.limit;             // Col F: Allowed Cargo
-                row.getCell(7).value = trip.ticketNo;          // Col G: Ticket No
-                row.getCell(8).value = trip.orderNo || '';     // Col H: Order No
-                row.getCell(9).value = trip.cargoType;         // Col I: Cargo type
-                row.getCell(10).value = trip.weightTons;       // Col J: Weight in tons
-                row.getCell(11).value = null;                  // Col K: Ghi chú
+                row.getCell(2).value = currentSTT;                         // Col B: STT
+                row.getCell(3).value = trip.timeStr;                       // Col C: Date/Time
+                row.getCell(4).value = formatPlate(trip.plateNumber);      // Col D: Plate
+                row.getCell(5).value = trip.tttp;                          // Col E: TTTP
+                row.getCell(6).value = trip.limit;                         // Col F: Allowed Cargo
+                row.getCell(7).value = trip.orderNo || '';                 // Col G: Mã lệnh
+                row.getCell(8).value = trip.ticketNo;                      // Col H: Số phiếu
+                row.getCell(9).value = trip.cargoType;                     // Col I: Loại hàng
+                row.getCell(10).value = trip.weightTons;                   // Col J: Khối lượng (tấn)
+                row.getCell(11).value = null;                              // Col K: Ghi chú
                 
                 for (let colIdx = 2; colIdx <= 11; colIdx++) {
                     const cell = row.getCell(colIdx);
-                    cell.font = { name: 'Arial', size: 10 };
+                    cell.font = { name: 'Times New Roman', size: 11 };
                     cell.border = {
-                        top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-                        left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-                        bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-                        right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+                        top: { style: 'thin', color: { argb: 'FF000000' } },
+                        left: { style: 'thin', color: { argb: 'FF000000' } },
+                        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                        right: { style: 'thin', color: { argb: 'FF000000' } }
                     };
                     if (colIdx === 2 || colIdx === 3 || colIdx === 4 || colIdx === 7 || colIdx === 8) {
                         cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -2894,9 +2923,14 @@ async function compileAndDownload() {
                         cell.alignment = { horizontal: 'left', vertical: 'middle' };
                     }
                 }
-                
                 currentRowIdx++;
             });
+            
+            if (isUsingTemplate && dataCount < maxEmptyRowsInTemplate) {
+                const unusedStart = startRowIdx + dataCount;
+                const countToDelete = 27 - unusedStart + 1;
+                dsSheet.spliceRows(unusedStart, countToDelete);
+            }
         }
         
         // Write to buffer
@@ -2909,7 +2943,7 @@ async function compileAndDownload() {
         link.href = url;
         link.download = activeDataTab.value === 'template' 
             ? 'SỔ PHÂN BỔ CHI TIẾT_PhanBo.xlsx' 
-            : 'SỔ THEO DÕI XẾP HÀNG HÓA_LichSu.xlsx';
+            : 'SỐ THEO DÕI XẾP HÀNG HÓA LÊN PHƯƠNG TIỆN_NNP_TVPL.xlsx';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
