@@ -156,6 +156,7 @@ const globalBargeSearchQuery = ref<string>('');
 const globalFilterMonth = ref<string>('');
 const globalBargesSummary = ref<BargeSummary[]>([]);
 const loadingGlobalSummary = ref(false);
+const exportingGlobalBarges = ref(false);
 const sortKey = ref<string>('');
 const sortOrder = ref<'asc' | 'desc'>('asc');
 
@@ -833,6 +834,180 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
         } finally {
             loading.value = false;
         }
+    }
+};
+
+const exportAllBargesToExcel = () => {
+    if (filteredAllBarges.value.length === 0) return;
+    
+    try {
+        exportingGlobalBarges.value = true;
+        showToast('Đang chuẩn bị xuất tệp Excel...', 'success');
+        
+        import('exceljs').then(async (ExcelJS) => {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Danh sách Sà Lan');
+            
+            sheet.pageSetup.margins = {
+                left: 0.7, right: 0.7,
+                top: 0.75, bottom: 0.75,
+                header: 0.3, footer: 0.3
+            };
+            
+            sheet.views = [{ showGridLines: true }];
+            
+            sheet.addRow(['DANH SÁCH QUẢN LÝ TẤT CẢ SÀ LAN']);
+            sheet.addRow([`Cảng Nguyên Ngọc - Xuất lúc: ${formatDateTimeStr(new Date().toISOString())} - Tổng số: ${filteredAllBarges.value.length} sà lan`]);
+            sheet.addRow([]);
+            
+            const headerRow = sheet.addRow([
+                'STT', 
+                'Tên sà lan', 
+                'Mã lệnh', 
+                'Thuộc Tàu', 
+                'Thời gian bắt đầu', 
+                'Thời gian kết thúc', 
+                'Số chuyến xe', 
+                'Tổng sản lượng (kg)', 
+                'Trạng thái'
+            ]);
+            
+            sheet.mergeCells('A1:I1');
+            const titleCell = sheet.getCell('A1');
+            titleCell.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: '4A2C32' } };
+            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            
+            sheet.mergeCells('A2:I2');
+            const subtitleCell = sheet.getCell('A2');
+            subtitleCell.font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: '666666' } };
+            subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            
+            headerRow.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFF' } };
+            headerRow.height = 25;
+            headerRow.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF6B81' }
+                };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    left: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'E5E7EB' } }
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            });
+            
+            let totalTrips = 0;
+            let grandTotalWeight = 0;
+            
+            filteredAllBarges.value.forEach((b, idx) => {
+                const row = sheet.addRow([
+                    idx + 1,
+                    b.name || '',
+                    b.orderNo || '-',
+                    b.vesselName || '',
+                    b.dateStart ? formatDateTimeStr(b.dateStart) : '-',
+                    b.dateEnd ? formatDateTimeStr(b.dateEnd) : '-',
+                    b.truckCount || 0,
+                    b.totalWeight || 0,
+                    b.locked ? 'Đã khóa' : 'Đang mở'
+                ]);
+                totalTrips += (b.truckCount || 0);
+                grandTotalWeight += (b.totalWeight || 0);
+                
+                row.font = { name: 'Segoe UI', size: 11 };
+                row.height = 20;
+                row.eachCell((cell, colNumber) => {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'F3F4F6' } },
+                        left: { style: 'thin', color: { argb: 'F3F4F6' } },
+                        bottom: { style: 'thin', color: { argb: 'F3F4F6' } },
+                        right: { style: 'thin', color: { argb: 'F3F4F6' } }
+                    };
+                    
+                    if (colNumber === 1 || colNumber === 3 || colNumber === 5 || colNumber === 6 || colNumber === 9) {
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    } else if (colNumber === 7 || colNumber === 8) {
+                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                        if (colNumber === 8) cell.numFmt = '#,##0';
+                    } else {
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    }
+                    
+                    if (colNumber === 9) {
+                        if (b.locked) {
+                            cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'DC2626' }, bold: true };
+                        } else {
+                            cell.font = { name: 'Segoe UI', size: 11, color: { argb: '0D9488' }, bold: true };
+                        }
+                    }
+                });
+            });
+            
+            const totalRow = sheet.addRow([
+                'TỔNG CỘNG',
+                '',
+                '',
+                '',
+                '',
+                '',
+                totalTrips,
+                grandTotalWeight,
+                ''
+            ]);
+            sheet.mergeCells(`A${totalRow.number}:F${totalRow.number}`);
+            
+            totalRow.font = { name: 'Segoe UI', size: 11, bold: true };
+            totalRow.height = 22;
+            totalRow.eachCell((cell, colNumber) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    left: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'E5E7EB' } }
+                };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFF5EBE6' }
+                };
+                if (colNumber === 1) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else if (colNumber === 7 || colNumber === 8) {
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                    if (colNumber === 8) cell.numFmt = '#,##0';
+                }
+            });
+            
+            sheet.columns.forEach((col, idx) => {
+                let maxLen = 10;
+                sheet.eachRow((row) => {
+                    const val = row.getCell(idx + 1).value;
+                    if (val) maxLen = Math.max(maxLen, String(val).length);
+                });
+                col.width = maxLen + 4;
+            });
+            
+            const buffer = await workbook.xlsx.writeBuffer();
+            excelService.downloadFile(
+                buffer, 
+                `Danh_Sach_Quan_Ly_Sa_Lan_${new Date().toISOString().slice(0, 10)}.xlsx`, 
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            );
+            
+            showToast('Xuất tệp Excel thành công! 📊', 'success');
+            exportingGlobalBarges.value = false;
+        }).catch((err) => {
+            console.error('Error exporting global barges:', err);
+            showToast('Có lỗi xảy ra khi xuất Excel!', 'error');
+            exportingGlobalBarges.value = false;
+        });
+    } catch (e) {
+        console.error('Error in exportAllBargesToExcel:', e);
+        showToast('Có lỗi xảy ra khi xuất Excel!', 'error');
+        exportingGlobalBarges.value = false;
     }
 };
 
@@ -3458,6 +3633,16 @@ onUnmounted(() => {
                                     <span class="material-symbols-outlined text-base">analytics</span>
                                     Danh sách quản lý tất cả sà lan
                                 </h3>
+                                <button 
+                                    @click="exportAllBargesToExcel" 
+                                    :disabled="exportingGlobalBarges || filteredAllBarges.length === 0"
+                                    class="h-8 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-[10px] transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Xuất danh sách sà lan hiện tại ra Excel"
+                                >
+                                    <span v-if="exportingGlobalBarges" class="material-symbols-outlined text-xs animate-spin">sync</span>
+                                    <span v-else class="material-symbols-outlined text-xs">download</span>
+                                    Xuất Excel ({{ filteredAllBarges.length }})
+                                </button>
                             </div>
                             
                             <!-- Filters Row for all barges -->
