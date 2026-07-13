@@ -2806,6 +2806,7 @@ async function compileAndDownload() {
             let currentRowIdx = 2;
             dataToExport.forEach(trip => {
                 const row = dsSheet.getRow(currentRowIdx);
+                row.height = 20; // Đặt chiều cao hàng dữ liệu bằng nhau
                 row.getCell(1).value = trip.ticketNo;
                 row.getCell(2).value = trip.orderNo || '';
                 row.getCell(3).value = formatPlate(trip.plateNumber);
@@ -2843,6 +2844,23 @@ async function compileAndDownload() {
                 }
                 currentRowIdx++;
             });
+
+            // Tự động căn chỉnh độ rộng cột cho Tab Phân bổ
+            for (let colIdx = 1; colIdx <= 16; colIdx++) {
+                const col = dsSheet.getColumn(colIdx);
+                let maxLen = 10;
+                dsSheet.eachRow((row: any) => {
+                    const cell = row.getCell(colIdx);
+                    const val = cell.value;
+                    if (val !== null && val !== undefined) {
+                        const strVal = String(val);
+                        if (strVal.length > maxLen) {
+                            maxLen = strVal.length;
+                        }
+                    }
+                });
+                col.width = Math.min(maxLen + 4, 30);
+            }
         } else {
             // Load template instead of creating blank workbook
             try {
@@ -2908,6 +2926,10 @@ async function compileAndDownload() {
                 headerRow.height = 25;
             }
             
+            // Thiết lập chiều cao dòng tiêu đề chính (Row 8 & 9) trong trường hợp dùng template
+            dsSheet.getRow(8).height = 25;
+            dsSheet.getRow(9).height = 25;
+
             const startRowIdx = 10;
             const maxEmptyRowsInTemplate = 18;
             const dataCount = dataToExport.length;
@@ -2929,6 +2951,7 @@ async function compileAndDownload() {
                 currentSTT++;
                 
                 const row = dsSheet.getRow(currentRowIdx);
+                row.height = 20; // Đặt chiều cao các hàng dữ liệu bằng nhau
                 
                 let timeVal = '';
                 let dateVal = '';
@@ -2984,6 +3007,39 @@ async function compileAndDownload() {
                 const unusedStart = startRowIdx + dataCount;
                 const countToDelete = 27 - unusedStart + 1;
                 dsSheet.spliceRows(unusedStart, countToDelete);
+            }
+
+            // Tự động căn chỉnh độ rộng cột cho Tab Theo dõi (bỏ qua dòng tiêu đề lớn)
+            dsSheet.getColumn(1).width = 3; // Cột A trống
+            
+            const lastDataRowIdx = 10 + dataCount - 1;
+            for (let colIdx = 2; colIdx <= 12; colIdx++) {
+                const col = dsSheet.getColumn(colIdx);
+                let maxLen = 10;
+                
+                for (let rIdx = 8; rIdx <= lastDataRowIdx; rIdx++) {
+                    const cell = dsSheet.getRow(rIdx).getCell(colIdx);
+                    // Bỏ qua dòng 8 của các cột đã gộp để tránh giãn cột vô lý
+                    if (rIdx === 8 && [3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(colIdx)) {
+                        continue;
+                    }
+                    const val = cell.value;
+                    if (val !== null && val !== undefined) {
+                        let strVal = '';
+                        if (typeof val === 'object' && val.result !== undefined) {
+                            strVal = String(val.result);
+                        } else {
+                            strVal = String(val);
+                        }
+                        const lines = strVal.split('\n');
+                        lines.forEach(l => {
+                            if (l.length > maxLen) {
+                                maxLen = l.length;
+                            }
+                        });
+                    }
+                }
+                col.width = Math.min(maxLen + 4, 30);
             }
         }
         
