@@ -2864,7 +2864,7 @@ async function compileAndDownload() {
         } else {
             // Load template instead of creating blank workbook
             try {
-                const response = await fetch('/SO_THEO_DOI_TEMPLATE.xlsx');
+                const response = await fetch('/SO_THEO_DOI_TEMPLATE.xlsx?v=' + Date.now());
                 if (!response.ok) throw new Error('Không thể tải tệp mẫu Excel');
                 const arrayBuffer = await response.arrayBuffer();
                 
@@ -3015,7 +3015,18 @@ async function compileAndDownload() {
             const lastDataRowIdx = 10 + dataCount - 1;
             for (let colIdx = 2; colIdx <= 12; colIdx++) {
                 const col = dsSheet.getColumn(colIdx);
-                let maxLen = 10;
+                
+                // Thu nhỏ cột Trọng tải cho phép (Col 6 / F) và Hạn mức hàng (Col 7 / G)
+                if (colIdx === 6) {
+                    col.width = 12;
+                    continue;
+                }
+                if (colIdx === 7) {
+                    col.width = 14;
+                    continue;
+                }
+                
+                let maxLen = 12; // Tăng chiều rộng cơ bản tối thiểu
                 
                 for (let rIdx = 8; rIdx <= lastDataRowIdx; rIdx++) {
                     const cell = dsSheet.getRow(rIdx).getCell(colIdx);
@@ -3039,7 +3050,7 @@ async function compileAndDownload() {
                         });
                     }
                 }
-                col.width = Math.min(maxLen + 4, 30);
+                col.width = Math.min(maxLen + 5, 35); // Tăng đệm lên +5 và giới hạn tối đa lên 35
             }
         }
         
