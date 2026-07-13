@@ -2986,10 +2986,10 @@ async function compileAndDownload() {
                     const cell = row.getCell(colIdx);
                     cell.font = { name: 'Times New Roman', size: 11 };
                     cell.border = {
-                        top: { style: 'thin', color: { argb: 'FF000000' } },
-                        left: { style: 'thin', color: { argb: 'FF000000' } },
-                        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-                        right: { style: 'thin', color: { argb: 'FF000000' } }
+                        top: { style: 'thin', color: { indexed: 64 } },
+                        left: { style: 'thin', color: { indexed: 64 } },
+                        bottom: { style: 'thin', color: { indexed: 64 } },
+                        right: { style: 'thin', color: { indexed: 64 } }
                     };
                     if ([2, 3, 4, 5, 8, 9].includes(colIdx)) {
                         cell.alignment = { horizontal: 'center', vertical: 'middle' };
