@@ -2424,11 +2424,31 @@ watch(historySearchQuery, () => {
     historyCurrentPage.value = 1;
 });
 
+function getTripsWithoutMooc(): SplitTrip[] {
+    return generatedTrips.value.filter(gt => {
+        return !formatPlate(gt.plateNumber).includes('/');
+    });
+}
+
 async function triggerManualSyncToPrinter() {
     if (generatedTrips.value.length === 0) {
         addToast('Không có dữ liệu phân bổ để đồng bộ!', 'info');
         return;
     }
+    
+    const missingMoocTrips = getTripsWithoutMooc();
+    if (missingMoocTrips.length > 0) {
+        const plates = missingMoocTrips.map(t => formatPlate(t.plateNumber)).join(', ');
+        await showConfirm({
+            title: 'Cảnh báo: Thiếu số moóc phương tiện',
+            message: `Có ${missingMoocTrips.length} xe chưa có số moóc:\n\n${plates}\n\nVui lòng cập nhật đầy đủ số moóc trước khi đồng bộ.`,
+            type: 'warning',
+            okText: 'Đã hiểu',
+            cancelText: ''
+        });
+        return;
+    }
+    
     try {
         await dbContext.set('allocator_generated_trips', generatedTrips.value);
     } catch (e) {
@@ -2443,6 +2463,19 @@ async function triggerManualSyncToPrinter() {
 async function saveToHistory() {
     if (generatedTrips.value.length === 0) {
         addToast('Không có dữ liệu phân bổ để lưu!', 'info');
+        return;
+    }
+    
+    const missingMoocTrips = getTripsWithoutMooc();
+    if (missingMoocTrips.length > 0) {
+        const plates = missingMoocTrips.map(t => formatPlate(t.plateNumber)).join(', ');
+        await showConfirm({
+            title: 'Cảnh báo: Thiếu số moóc phương tiện',
+            message: `Có ${missingMoocTrips.length} xe chưa có số moóc:\n\n${plates}\n\nVui lòng cập nhật đầy đủ số moóc trước khi lưu vào Sổ Theo Dõi.`,
+            type: 'warning',
+            okText: 'Đã hiểu',
+            cancelText: ''
+        });
         return;
     }
     
@@ -2830,7 +2863,8 @@ async function compileAndDownload() {
                 dsSheet.columns = [
                     { header: '', key: 'A', width: 3 },
                     { header: 'STT', key: 'stt', width: 8 },
-                    { header: 'Thời gian rời bến  (Giờ/Ngày)', key: 'timeStr', width: 22 },
+                    { header: 'Giờ', key: 'timeOnlyStr', width: 12 },
+                    { header: 'Ngày', key: 'dateOnlyStr', width: 12 },
                     { header: 'Số xe', key: 'plateNumber', width: 15 },
                     { header: 'TTTP (tấn)', key: 'tttp', width: 15 },
                     { header: 'Trọng lượng hàng cho phép (tấn)', key: 'limit', width: 22 },
@@ -2843,20 +2877,21 @@ async function compileAndDownload() {
                 
                 const headerRow = dsSheet.getRow(9);
                 headerRow.getCell(2).value = 'STT';
-                headerRow.getCell(3).value = 'Thời gian rời bến  (Giờ/Ngày)';
-                headerRow.getCell(4).value = 'Số xe';
-                headerRow.getCell(5).value = 'TTTP (tấn)';
-                headerRow.getCell(6).value = 'Trọng lượng hàng cho phép (tấn)';
-                headerRow.getCell(7).value = 'Mã lệnh';
-                headerRow.getCell(8).value = 'Số phiếu';
-                headerRow.getCell(9).value = 'Loại hàng';
-                headerRow.getCell(10).value = 'Khối lượng (tấn)';
-                headerRow.getCell(11).value = 'Ghi chú';
+                headerRow.getCell(3).value = 'Giờ';
+                headerRow.getCell(4).value = 'Ngày';
+                headerRow.getCell(5).value = 'Số xe';
+                headerRow.getCell(6).value = 'TTTP (tấn)';
+                headerRow.getCell(7).value = 'Trọng lượng hàng cho phép (tấn)';
+                headerRow.getCell(8).value = 'Mã lệnh';
+                headerRow.getCell(9).value = 'Số phiếu';
+                headerRow.getCell(10).value = 'Loại hàng';
+                headerRow.getCell(11).value = 'Khối lượng (tấn)';
+                headerRow.getCell(12).value = 'Ghi chú';
                 
                 headerRow.font = { name: 'Times New Roman', size: 10, bold: true };
                 headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                 
-                for (let colIdx = 2; colIdx <= 11; colIdx++) {
+                for (let colIdx = 2; colIdx <= 12; colIdx++) {
                     const cell = headerRow.getCell(colIdx);
                     cell.fill = {
                         type: 'pattern',
@@ -2894,18 +2929,37 @@ async function compileAndDownload() {
                 currentSTT++;
                 
                 const row = dsSheet.getRow(currentRowIdx);
-                row.getCell(2).value = currentSTT;                         // Col B: STT
-                row.getCell(3).value = trip.timeStr;                       // Col C: Date/Time
-                row.getCell(4).value = formatPlate(trip.plateNumber);      // Col D: Plate
-                row.getCell(5).value = trip.tttp;                          // Col E: TTTP
-                row.getCell(6).value = trip.limit;                         // Col F: Allowed Cargo
-                row.getCell(7).value = trip.orderNo || '';                 // Col G: Mã lệnh
-                row.getCell(8).value = trip.ticketNo;                      // Col H: Số phiếu
-                row.getCell(9).value = trip.cargoType;                     // Col I: Loại hàng
-                row.getCell(10).value = trip.weightTons;                   // Col J: Khối lượng (tấn)
-                row.getCell(11).value = null;                              // Col K: Ghi chú
                 
-                for (let colIdx = 2; colIdx <= 11; colIdx++) {
+                let timeVal = '';
+                let dateVal = '';
+                if (trip.timeStr && trip.timeStr.includes('\n')) {
+                    const timeParts = trip.timeStr.split('\n');
+                    timeVal = timeParts[0] || '';
+                    dateVal = timeParts[1] || '';
+                } else if (trip.timeStr) {
+                    const timeParts = trip.timeStr.trim().split(/\s+/);
+                    if (timeParts.length === 2) {
+                        timeVal = timeParts[0] || '';
+                        dateVal = timeParts[1] || '';
+                    } else {
+                        timeVal = trip.timeStr;
+                        dateVal = '';
+                    }
+                }
+                
+                row.getCell(2).value = currentSTT;                         // Col B: STT
+                row.getCell(3).value = timeVal;                            // Col C: Giờ
+                row.getCell(4).value = dateVal;                            // Col D: Ngày
+                row.getCell(5).value = formatPlate(trip.plateNumber);      // Col E: Số đăng ký
+                row.getCell(6).value = trip.tttp;                          // Col F: TTTP
+                row.getCell(7).value = trip.limit;                         // Col G: Hạn mức hàng
+                row.getCell(8).value = trip.orderNo || '';                 // Col H: Mã lệnh
+                row.getCell(9).value = trip.ticketNo;                      // Col I: Số phiếu
+                row.getCell(10).value = trip.cargoType;                    // Col J: Loại hàng
+                row.getCell(11).value = trip.weightTons;                   // Col K: Khối lượng (tấn)
+                row.getCell(12).value = null;                              // Col L: Ghi chú
+                
+                for (let colIdx = 2; colIdx <= 12; colIdx++) {
                     const cell = row.getCell(colIdx);
                     cell.font = { name: 'Times New Roman', size: 11 };
                     cell.border = {
@@ -2914,9 +2968,9 @@ async function compileAndDownload() {
                         bottom: { style: 'thin', color: { argb: 'FF000000' } },
                         right: { style: 'thin', color: { argb: 'FF000000' } }
                     };
-                    if (colIdx === 2 || colIdx === 3 || colIdx === 4 || colIdx === 7 || colIdx === 8) {
+                    if ([2, 3, 4, 5, 8, 9].includes(colIdx)) {
                         cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    } else if (colIdx === 5 || colIdx === 6 || colIdx === 10) {
+                    } else if ([6, 7, 11].includes(colIdx)) {
                         cell.alignment = { horizontal: 'right', vertical: 'middle' };
                         cell.numFmt = '#,##0.00';
                     } else {
@@ -3665,8 +3719,9 @@ async function compileAndDownload() {
                                 </td>
                                 <td class="py-1 px-3 font-semibold text-teal-600 font-mono">{{ trip.orderNo || '-' }}</td>
                                 <td class="py-1 px-3 whitespace-pre-line font-mono text-[10px] leading-tight text-gray-500">{{ trip.timeStr }}</td>
-                                <td class="py-1 px-3 font-bold text-gray-900 flex items-center gap-2">
+                                <td class="py-1 px-3 font-bold text-gray-900 flex items-center gap-1.5">
                                     <span class="whitespace-nowrap">{{ formatPlate(trip.plateNumber) }}</span>
+                                    <span v-if="!formatPlate(trip.plateNumber).includes('/')" class="material-symbols-outlined text-[14px] text-red-500 font-bold animate-pulse" title="Thiếu số moóc!">warning</span>
                                 </td>
                                 <td class="py-1 px-3 text-center">{{ trip.tttp.toFixed(1) }}</td>
                                 <td class="py-1 px-3 text-center">{{ trip.limit.toFixed(1) }}</td>
@@ -3880,7 +3935,12 @@ async function compileAndDownload() {
                                 </td>
                                 <td class="py-1 px-3 font-bold text-gray-800 whitespace-nowrap">{{ trip.ticketNo }}</td>
                                 <td class="py-1 px-3 font-semibold text-teal-600 font-mono whitespace-nowrap">{{ trip.orderNo || '-' }}</td>
-                                <td class="py-1 px-3 font-bold text-gray-900 whitespace-nowrap">{{ formatPlate(trip.plateNumber) }}</td>
+                                <td class="py-1 px-3 font-bold text-gray-900 whitespace-nowrap">
+                                    <div class="flex items-center gap-1">
+                                        <span>{{ formatPlate(trip.plateNumber) }}</span>
+                                        <span v-if="!formatPlate(trip.plateNumber).includes('/')" class="material-symbols-outlined text-[14px] text-red-500 font-bold animate-pulse" title="Thiếu số moóc! Vui lòng cấu hình số moóc cho xe.">warning</span>
+                                    </div>
+                                </td>
                                 <td class="py-1 px-3 max-w-[150px] truncate text-gray-500" :title="trip.customer">{{ trip.customer }}</td>
                                 <td class="py-1 px-3 text-right font-mono text-gray-600 whitespace-nowrap">{{ trip.weight1.toLocaleString() }}</td>
                                 <td class="py-1 px-3 text-right font-mono text-gray-600 whitespace-nowrap">{{ trip.weight2.toLocaleString() }}</td>
