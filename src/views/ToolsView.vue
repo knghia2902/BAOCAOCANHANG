@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
 import CargoAllocator from '../components/tools/CargoAllocator.vue';
+import BargeProfileManager from '../components/tools/BargeProfileManager.vue';
 import { authStore } from '../stores/auth';
 
 const router = useRouter();
@@ -83,10 +84,7 @@ onMounted(() => {
       <!-- We keep printer active in background using v-show to listen to BroadcastChannel allocator sync notifications -->
       <CargoAllocator v-show="activeTab === 'allocator'" class="w-full h-full" />
       <WeighbridgePrinter v-show="activeTab === 'printer'" :hide-card="true" class="w-full h-full" />
-      <div v-show="activeTab === 'vehicles'" class="w-full h-full p-8 bg-white overflow-auto flex flex-col justify-center items-center text-gray-400 text-xs italic gap-2">
-          <span class="material-symbols-outlined text-4xl text-gray-300 animate-pulse">local_shipping</span>
-          <span>Nội dung Quản lý hồ sơ phương tiện sẽ được bổ sung sau...</span>
-      </div>
+      <BargeProfileManager v-show="activeTab === 'vehicles'" class="w-full h-full" />
     </div>
   </main>
 </template>

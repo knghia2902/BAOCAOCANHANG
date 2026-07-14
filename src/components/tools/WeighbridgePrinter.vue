@@ -3386,6 +3386,7 @@ onMounted(async () => {
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    window.addEventListener('barge-config-updated', loadVessels);
 });
 
 // Watch activeTab to dynamically register/deregister ResizeObserver when entering/leaving config tab
@@ -3421,6 +3422,7 @@ onUnmounted(() => {
     document.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('online', updateOnlineStatus);
     window.removeEventListener('offline', updateOnlineStatus);
+    window.removeEventListener('barge-config-updated', loadVessels);
     if (resizeObserver) {
         resizeObserver.disconnect();
     }
