@@ -547,7 +547,8 @@ function formatPlate(plate: string): string {
     
     // Look up mooc in vehiclesList
     const normalized = normalizePlate(mainPlate);
-    const vehicle = vehiclesList.value.find(v => normalizePlate(v.plateNumber) === normalized);
+    const matches = vehiclesList.value.filter(v => normalizePlate(v.plateNumber) === normalized);
+    const vehicle = matches.find(v => v.moocNumber && v.moocNumber.trim() !== '') || matches[0];
     
     const targetMooc = (vehicle && vehicle.moocNumber) ? vehicle.moocNumber : existingMooc;
     

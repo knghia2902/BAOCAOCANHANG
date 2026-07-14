@@ -87,6 +87,10 @@ interface Vehicle {
     moocNumber: string;
 }
 
+function normalizePlate(plate: string): string {
+    return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
 const vehicles = ref<Vehicle[]>([]);
 const searchQuery = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -212,7 +216,7 @@ const handleSubmit = async () => {
 
     if (editingIndex.value === null) {
         // Add new
-        const exists = vehicles.value.some(v => v.plateNumber === plate);
+        const exists = vehicles.value.some(v => normalizePlate(v.plateNumber) === normalizePlate(plate));
         if (exists) {
             addToast('Biển số xe này đã tồn tại trong danh sách!', 'info');
             return;
@@ -222,7 +226,7 @@ const handleSubmit = async () => {
     } else {
         // Edit existing
         const index = editingIndex.value;
-        const exists = vehicles.value.some((v, idx) => v.plateNumber === plate && idx !== index);
+        const exists = vehicles.value.some((v, idx) => normalizePlate(v.plateNumber) === normalizePlate(plate) && idx !== index);
         if (exists) {
             addToast('Biển số xe này đã tồn tại ở dòng khác!', 'info');
             return;
