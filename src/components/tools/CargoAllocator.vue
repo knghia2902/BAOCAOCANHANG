@@ -1927,6 +1927,20 @@ onMounted(async () => {
     }
 });
 
+// Tự động tải lại danh sách xe khi chuyển đổi tab con để đảm bảo cập nhật đồng bộ trong cùng một cửa sổ
+watch(activeSubViewMode, async (newVal) => {
+    if (newVal === 'allocator') {
+        try {
+            const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
+            if (savedVehicles && Array.isArray(savedVehicles)) {
+                vehiclesList.value = savedVehicles;
+            }
+        } catch (e) {
+            console.error('Lỗi khi tải lại danh sách xe:', e);
+        }
+    }
+});
+
 // Auto-save tickets on change
 watch(csvRecords, async (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
@@ -2438,6 +2452,15 @@ function getTripsWithoutMooc(): SplitTrip[] {
 }
 
 async function triggerManualSyncToPrinter() {
+    try {
+        const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
+        if (savedVehicles && Array.isArray(savedVehicles)) {
+            vehiclesList.value = savedVehicles;
+        }
+    } catch (e) {
+        console.error('Lỗi khi tải lại danh sách xe trước khi đồng bộ:', e);
+    }
+
     if (generatedTrips.value.length === 0) {
         addToast('Không có dữ liệu phân bổ để đồng bộ!', 'info');
         return;
@@ -2468,6 +2491,15 @@ async function triggerManualSyncToPrinter() {
 
 // Save generated temporary trips into history
 async function saveToHistory() {
+    try {
+        const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
+        if (savedVehicles && Array.isArray(savedVehicles)) {
+            vehiclesList.value = savedVehicles;
+        }
+    } catch (e) {
+        console.error('Lỗi khi tải lại danh sách xe trước khi lưu:', e);
+    }
+
     if (generatedTrips.value.length === 0) {
         addToast('Không có dữ liệu phân bổ để lưu!', 'info');
         return;
