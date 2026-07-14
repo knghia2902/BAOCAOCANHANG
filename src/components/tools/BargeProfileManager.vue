@@ -17,10 +17,6 @@ const activeBargeId = ref<number | null>(null);
 const selectedBarge = ref<Barge | null>(null);
 const selectedVesselName = ref('');
 
-const selectBargeItem = (barge: Barge, vesselName: string) => {
-    openEdit({ barge, vesselName });
-};
-
 // Form fields
 const editBargeName = ref('');
 const editOrderNo = ref('');
@@ -422,56 +418,7 @@ onMounted(() => {
 
 <template>
     <div class="flex-grow flex overflow-hidden gap-4 p-4 h-full bg-slate-50 font-display text-left">
-        <!-- Sidebar (Left): Tree listing of vessels and their barges -->
-        <aside class="w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden">
-            <div class="p-4 border-b border-primary/5 flex items-center justify-between">
-                <span 
-                    @click="activeBargeId = null" 
-                    class="text-xs font-black text-gray-500 hover:text-primary cursor-pointer uppercase tracking-wider transition-colors flex items-center gap-1"
-                    title="Quay lai Trang tong quan"
-                >
-                    <span class="material-symbols-outlined text-sm">home</span>
-                    Tổng quan
-                </span>
-                <button @click="loadData" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors border border-gray-100" title="Tai lai danh sach">
-                    <span class="material-symbols-outlined text-base" :class="{'animate-spin': loading}">refresh</span>
-                </button>
-            </div>
-
-            <!-- Scrollable list -->
-            <div class="flex-grow overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
-                <div v-if="vessels.length === 0" class="text-center py-6 text-gray-400 text-xs">
-                    Chưa có dữ liệu tàu và sà lan.
-                </div>
-
-                <div v-for="vessel in vessels" :key="vessel.id" class="border border-primary/5 rounded-[16px] overflow-hidden bg-gray-50 mb-2">
-                    <!-- Vessel Header -->
-                    <div class="flex items-center gap-1.5 p-2.5 bg-primary/5 font-bold text-xs text-[#4a2c32] select-none border-b border-primary/5">
-                        <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
-                        <span class="truncate">{{ vessel.name }}</span>
-                    </div>
-                    <!-- Barges List under this Vessel -->
-                    <div class="p-1 space-y-0.5">
-                        <button 
-                            v-for="barge in (vessel.barges || [])" 
-                            :key="barge.id"
-                            @click="selectBargeItem(barge, vessel.name)"
-                            :class="['w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center justify-between gap-2', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft font-bold' : 'text-gray-600 hover:bg-gray-150']"
-                        >
-                            <span class="truncate flex-grow">{{ barge.name }}</span>
-                            <span 
-                                class="px-1.5 py-0.5 rounded text-[8px] font-black shrink-0 uppercase whitespace-nowrap"
-                                :class="isDocComplete(barge.config || {}) ? 'bg-teal-50 text-teal-600 border border-teal-200' : 'bg-rose-50 text-rose-600 border border-rose-200'"
-                            >
-                                {{ isDocComplete(barge.config || {}) ? 'ĐỦ' : 'THIẾU' }}
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Right Side: Details or Master Overview List -->
+        <!-- Details or Master Overview List -->
         <div class="flex-grow flex flex-col h-full min-w-0 bg-white rounded-[24px] border border-primary/5 overflow-hidden shadow-sm">
             
             <!-- CASE A: Overview Mode (activeBargeId === null) -->
