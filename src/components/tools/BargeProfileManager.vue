@@ -49,7 +49,20 @@ const allBarges = computed(() => {
             });
         }
     });
-    return list;
+    
+    // Sắp xếp giống "Danh sách quản lý tất cả sà lan" (theo mã lệnh)
+    return list.sort((a, b) => {
+        const orderA = a.barge.config?.orderNo ? String(a.barge.config.orderNo).trim() : '';
+        const orderB = b.barge.config?.orderNo ? String(b.barge.config.orderNo).trim() : '';
+        
+        if (!orderA && orderB) return 1;
+        if (orderA && !orderB) return -1;
+        if (!orderA && !orderB) {
+            return a.barge.name.localeCompare(b.barge.name);
+        }
+        
+        return orderA.localeCompare(orderB, undefined, { numeric: true, sensitivity: 'base' });
+    });
 });
 
 // Filtered list
