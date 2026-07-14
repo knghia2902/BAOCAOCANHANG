@@ -3020,7 +3020,7 @@ async function compileAndDownload() {
                 row.getCell(9).value = trip.ticketNo;                      // Col I: Số phiếu
                 row.getCell(10).value = trip.cargoType;                    // Col J: Loại hàng
                 row.getCell(11).value = trip.weightTons;                   // Col K: Khối lượng (tấn)
-                row.getCell(12).value = null;                              // Col L: Ghi chú
+                row.getCell(12).value = trip.bargeName || '';              // Col L: Ghi chú (Tên sà lan)
                 
                 for (let colIdx = 2; colIdx <= 12; colIdx++) {
                     const cell = row.getCell(colIdx);
