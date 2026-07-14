@@ -76,8 +76,12 @@ const allowedTools = ref<string[]>([]);
 const loadingTools = ref(true);
 
 const navigateToToolItem = (tab: 'allocator' | 'printer' | 'vehicles') => {
-    localStorage.setItem('home_redirect_tab', tab);
-    router.push({ path: '/tools', query: { tool: tab, t: Date.now() } });
+    const routeMap = {
+        allocator: '/tools/allocator',
+        printer: '/tools/printer',
+        vehicles: '/tools/vehicles'
+    };
+    router.push(routeMap[tab]);
 };
 
 watch(() => route.path, (newPath) => {
@@ -133,7 +137,7 @@ onUnmounted(() => {
               class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
             >
               <span class="material-symbols-outlined text-sm">shuffle</span>
-              Báo cáo cân hàng
+              Phân bổ tải trọng sà lan
             </button>
             <button 
               v-if="allowedTools.includes('weighbridge')"
@@ -141,7 +145,7 @@ onUnmounted(() => {
               class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
             >
               <span class="material-symbols-outlined text-sm">print</span>
-              In Phiếu Cân Xe
+              In phiếu nhanh
             </button>
             <button 
               v-if="allowedTools.includes('vehicles')"
@@ -149,7 +153,7 @@ onUnmounted(() => {
               class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
             >
               <span class="material-symbols-outlined text-sm">local_shipping</span>
-              Hồ sơ phương tiện
+              Quản lý hồ sơ phương tiện
             </button>
           </div>
         </div>

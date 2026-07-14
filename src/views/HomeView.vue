@@ -48,7 +48,6 @@ const formattedDate = computed(() => {
 });
 
 const navigateToTool = (tab: 'allocator' | 'printer' | 'vehicles', subView?: 'allocator' | 'vehicles' | 'goods', bargeId?: number, vesselId?: number) => {
-    localStorage.setItem('home_redirect_tab', tab);
     if (subView) {
         localStorage.setItem('home_redirect_subview', subView);
     } else {
@@ -58,7 +57,13 @@ const navigateToTool = (tab: 'allocator' | 'printer' | 'vehicles', subView?: 'al
         localStorage.setItem('home_redirect_barge_id', String(bargeId));
         localStorage.setItem('home_redirect_vessel_id', String(vesselId));
     }
-    router.push({ path: '/tools', query: { tool: tab } });
+    
+    const routeMap = {
+        allocator: '/tools/allocator',
+        printer: '/tools/printer',
+        vehicles: '/tools/vehicles'
+    };
+    router.push(routeMap[tab]);
 };
 
 onMounted(async () => {

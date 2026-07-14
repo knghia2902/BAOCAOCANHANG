@@ -1,132 +1,95 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
-import CargoAllocator from '../components/tools/CargoAllocator.vue';
-import BargeProfileManager from '../components/tools/BargeProfileManager.vue';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { authStore } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
 
 const router = useRouter();
-const route = useRoute();
-const activeTab = ref<'allocator' | 'printer' | 'vehicles'>('allocator');
 const allowedTools = ref<string[]>([]);
-const loadingTools = ref(true);
+const loading = ref(true);
 
-const isAllowed = (tab: 'allocator' | 'printer' | 'vehicles') => {
-    const idMap = {
-        allocator: 'allocator',
-        printer: 'weighbridge',
-        vehicles: 'vehicles'
-    };
-    return allowedTools.value.includes(idMap[tab]);
-};
-
-const initTabs = async () => {
-    loadingTools.value = true;
+onMounted(async () => {
     if (authStore.role === 'staff') {
         allowedTools.value = await ContentService.loadStaffTools();
     } else {
         allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
     }
-    loadingTools.value = false;
-
-    const savedTab = localStorage.getItem('home_redirect_tab') as 'allocator' | 'printer' | 'vehicles' | null;
-    const initialTab = savedTab || (route.query.tool as 'allocator' | 'printer' | 'vehicles' | null);
-    localStorage.removeItem('home_redirect_tab');
-
-    if (initialTab && isAllowed(initialTab)) {
-        activeTab.value = initialTab;
-    } else {
-        if (isAllowed('allocator')) {
-            activeTab.value = 'allocator';
-        } else if (isAllowed('printer')) {
-            activeTab.value = 'printer';
-        } else if (isAllowed('vehicles')) {
-            activeTab.value = 'vehicles';
-        }
-    }
-};
-
-watch(() => route.query.tool, (newTool) => {
-    if (newTool === 'allocator' || newTool === 'printer' || newTool === 'vehicles') {
-        if (isAllowed(newTool)) {
-            activeTab.value = newTool;
-        }
-    }
+    loading.value = false;
 });
-
-onMounted(async () => {
-    await initTabs();
-});</script>
+</script>
 
 <template>
-  <main class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
-    <!-- Header bar -->
-    <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
-      <div class="flex items-center gap-2.5">
-        <div class="size-9 rounded-full bg-primary flex items-center justify-center text-white shadow-soft">
-          <span class="material-symbols-outlined text-lg">print</span>
-        </div>
-        <div>
-          <h2 class="text-sm font-black text-primary leading-tight">
-            PHẦN MỀM IN & PHÂN BỔ PHIẾU CÂN
-          </h2>
-          <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">
-            Cảng Nguyên Ngọc - Đồng bộ đám mây
-          </p>
-        </div>
+  <div class="flex-grow w-[95%] max-w-[1200px] mx-auto py-8 flex flex-col gap-6 no-print text-left font-display">
+    
+    <!-- Title Header banner -->
+    <div class="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-gray-150 relative overflow-hidden flex flex-col justify-between">
+      <div class="absolute -right-6 -bottom-6 text-primary/5 select-none pointer-events-none">
+        <span class="material-symbols-outlined text-[150px]">dashboard_customize</span>
       </div>
-
-      <!-- Tab Navigation -->
-      <nav class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl" v-if="!loadingTools">
-        <button 
-          v-if="isAllowed('allocator')"
-          @click="activeTab = 'allocator'"
-          :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'allocator' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
-        >
-          <span class="material-symbols-outlined text-sm">shuffle</span>
-          Báo cáo cân hàng
-        </button>
-        <button 
-          v-if="isAllowed('printer')"
-          @click="activeTab = 'printer'"
-          :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'printer' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
-        >
-          <span class="material-symbols-outlined text-sm">print</span>
-          In Phiếu Cân Xe
-        </button>
-        <button 
-          v-if="isAllowed('vehicles')"
-          @click="activeTab = 'vehicles'"
-          :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'vehicles' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
-        >
-          <span class="material-symbols-outlined text-sm">local_shipping</span>
-          Hồ sơ phương tiện
-        </button>
-      </nav>
-      
-      <!-- User info and close button -->
-      <div class="flex items-center gap-4">
-        <span class="text-xs font-bold text-[#4a2c32]/60 hidden sm:inline">
-          {{ authStore.displayName }} ({{ authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên' }})
-        </span>
-        <button 
-          @click="router.push('/')" 
-          class="size-9 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all shadow-inner"
-          title="Quay lại Trang chủ"
-        >
-          <span class="material-symbols-outlined text-base">close</span>
-        </button>
+      <div class="relative z-10 space-y-2">
+        <span class="text-[10px] font-black text-primary uppercase tracking-widest bg-white/60 px-3 py-1 rounded-full border border-soft-pink/30">CÔNG CỤ THÔNG MINH</span>
+        <h2 class="text-2xl md:text-3xl font-display font-black text-[#4a2c32] mt-2">
+          Danh Sách Công Cụ Hỗ Trợ
+        </h2>
+        <p class="text-xs md:text-sm font-medium text-[#1b0d11]/60">
+          Hãy chọn công cụ bạn muốn sử dụng dưới đây. Các công cụ đều được bảo mật và đồng bộ trực tiếp lên đám mây.
+        </p>
       </div>
-    </header>
-
-    <!-- Workspace contents -->
-    <div class="flex-1 overflow-hidden relative bg-cute-gradient">
-      <!-- We keep printer active in background using v-show to listen to BroadcastChannel allocator sync notifications -->
-      <CargoAllocator v-if="!loadingTools && isAllowed('allocator')" v-show="activeTab === 'allocator'" class="w-full h-full" />
-      <WeighbridgePrinter v-if="!loadingTools && isAllowed('printer')" v-show="activeTab === 'printer'" :hide-card="true" class="w-full h-full" />
-      <BargeProfileManager v-if="!loadingTools && isAllowed('vehicles')" v-show="activeTab === 'vehicles'" class="w-full h-full" />
     </div>
-  </main>
+
+    <!-- Utilities Grid -->
+    <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-150 flex flex-col">
+      <div v-if="loading" class="py-12 flex flex-col items-center justify-center text-gray-400 text-xs gap-2">
+        <span class="material-symbols-outlined text-3xl animate-spin text-primary">sync</span>
+        <span>Đang kiểm tra quyền hạn của bạn...</span>
+      </div>
+
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <!-- Card 1: In phiếu nhanh -->
+        <div 
+          v-if="allowedTools.includes('weighbridge')"
+          @click="router.push('/tools/printer')"
+          class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+        >
+          <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-soft shrink-0">
+            <span class="material-symbols-outlined text-xl font-black">print</span>
+          </div>
+          <div>
+            <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-primary transition-colors">In phiếu nhanh</h4>
+            <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.</p>
+          </div>
+        </div>
+
+        <!-- Card 2: Phân bổ tải trọng sà lan -->
+        <div 
+          v-if="allowedTools.includes('allocator')"
+          @click="router.push('/tools/allocator')"
+          class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+        >
+          <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-soft shrink-0">
+            <span class="material-symbols-outlined text-xl font-black">shuffle</span>
+          </div>
+          <div>
+            <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-primary transition-colors">Phân bổ tải trọng sà lan</h4>
+            <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.</p>
+          </div>
+        </div>
+
+        <!-- Card 3: Quản lý hồ sơ phương tiện -->
+        <div 
+          v-if="allowedTools.includes('vehicles')"
+          @click="router.push('/tools/vehicles')"
+          class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+        >
+          <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-soft shrink-0 border border-amber-100">
+            <span class="material-symbols-outlined text-xl font-black">local_shipping</span>
+          </div>
+          <div>
+            <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-[#b27218] transition-colors">Quản lý hồ sơ phương tiện</h4>
+            <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Quản lý và đồng bộ danh sách biển số xe và số moóc.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
