@@ -126,7 +126,7 @@ onUnmounted(() => {
         </router-link>
         <div class="relative group" v-if="allowedTools.length > 0">
           <button class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary flex items-center gap-1 py-1">
-            Công cụ
+            Tools
             <span class="material-symbols-outlined text-sm select-none">keyboard_arrow_down</span>
           </button>
           

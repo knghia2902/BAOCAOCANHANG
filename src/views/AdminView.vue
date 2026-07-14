@@ -82,6 +82,29 @@ const markAsRead = async (id: any) => {
 const projectInput = ref<HTMLInputElement | null>(null);
 const heroInput = ref<HTMLInputElement | null>(null);
 
+const isDragging = ref(false);
+const dragStart = ref({ x: 0, y: 0 });
+
+const getX = (e: MouseEvent | TouchEvent) => ('touches' in e && e.touches.length > 0) ? e.touches[0]!.clientX : (e as MouseEvent).clientX;
+const getY = (e: MouseEvent | TouchEvent) => ('touches' in e && e.touches.length > 0) ? e.touches[0]!.clientY : (e as MouseEvent).clientY;
+
+const startDrag = (e: MouseEvent | TouchEvent) => {
+    isDragging.value = true;
+    dragStart.value = { x: getX(e), y: getY(e) };
+};
+
+const onDrag = (e: MouseEvent | TouchEvent) => {
+    if (!isDragging.value) return;
+    const clientX = getX(e);
+    const clientY = getY(e);
+    const dx = (clientX - dragStart.value.x) / 5;
+    const dy = (clientY - dragStart.value.y) / 5;
+    contentStore.hero.position.x = Math.max(0, Math.min(100, contentStore.hero.position.x + dx));
+    contentStore.hero.position.y = Math.max(0, Math.min(100, contentStore.hero.position.y + dy));
+    dragStart.value = { x: clientX, y: clientY };
+};
+const stopDrag = () => isDragging.value = false;
+
 // Actions
 const saveAll = async () => {
     await ContentService.saveAll();
@@ -475,12 +498,12 @@ onMounted(async () => {
         <aside class="w-72 bg-white rounded-[3rem] shadow-xl flex flex-col p-8 z-30 border border-white/50 relative overflow-hidden">
             <div class="flex flex-col items-center mb-12">
                 <div class="relative mb-4 group">
-                    <img :src="contentStore.hero.avatar || 'https://ngocanhcute.vercel.app/avatar.jpg'" class="size-24 rounded-full border-4 border-white shadow-xl object-cover transition-transform" @error="(e: any) => e.target.src = 'https://ngocanhcute.vercel.app/avatar.jpg'" />
+                    <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-24 rounded-full border-4 border-white shadow-xl object-cover transition-transform" />
                     <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white px-4 py-1.5 rounded-full border border-soft-pink shadow-[0_5px_15px_-5px_rgba(255,133,162,0.4)] animate-bounce-short whitespace-nowrap z-10">
                         <span class="text-[10px] font-black text-primary uppercase tracking-widest">ADMIN MODE</span>
                     </div>
                 </div>
-                <h1 class="font-display font-black text-xl text-primary">Ngọc Ánh</h1>
+                <h1 class="font-display font-black text-xl text-primary">{{ authStore.displayName }}</h1>
             </div>
 
             <nav class="flex-1 space-y-2">
@@ -591,8 +614,12 @@ onMounted(async () => {
                     <div class="bg-white rounded-[2.5rem] p-8 card-shadow space-y-4 border-2 border-dashed border-primary/20">
                         <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest text-center">Master Profile Image</h3>
                         <div class="flex justify-center p-2">
-                             <div class="size-52 blob-shape border-4 border-white shadow-2xl relative overflow-hidden group transition-all duration-300 bg-center bg-cover"
-                                  :style="{ backgroundImage: `url(${authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))})` }">
+                             <div class="size-52 blob-shape border-4 border-white shadow-2xl relative overflow-hidden cursor-crosshair group transition-all duration-300"
+                                  :style="{ backgroundImage: `url(${contentStore.hero.image || 'https://ngocanhcute.vercel.app/avatar.jpg'})`, backgroundPosition: `${contentStore.hero.position.x}% ${contentStore.hero.position.y}%`, backgroundSize: 'cover' }"
+                                  @mousedown="startDrag" @touchstart="startDrag" @mousemove="onDrag" @touchmove="onDrag" @mouseup="stopDrag" @touchend="stopDrag">
+                                 <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                     <span class="material-symbols-outlined text-white text-3xl">open_with</span>
+                                 </div>
                              </div>
                         </div>
                         <button @click="triggerHeroImageUpload" class="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">Change Everywhere</button>
