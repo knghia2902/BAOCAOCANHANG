@@ -257,13 +257,22 @@ const triggerToast = (msg: string) => {
 // Accounts State
 const accountsList = ref<any[]>([]);
 const showAccountModal = ref(false);
+const showEditAccountModal = ref(false);
 const showResetPasswordModal = ref(false);
 
 const accountForm = ref({
     username: '',
     password: '',
     displayName: '',
-    role: 'staff' as 'admin' | 'staff'
+    role: 'staff' as 'admin' | 'staff',
+    avatar: ''
+});
+
+const editAccountForm = ref({
+    username: '',
+    displayName: '',
+    role: 'staff' as 'admin' | 'staff',
+    avatar: ''
 });
 
 const resetPasswordForm = ref({
@@ -275,12 +284,31 @@ const loadAccounts = async () => {
     accountsList.value = await ContentService.loadAccounts();
 };
 
+const handleAccountAvatarUpload = async (e: Event, isEdit: boolean) => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        triggerToast('Đang tải ảnh đại diện lên... ⏳');
+        const url = await StorageService.uploadImage(target.files[0], 'avatars');
+        if (url) {
+            if (isEdit) {
+                editAccountForm.value.avatar = url;
+            } else {
+                accountForm.value.avatar = url;
+            }
+            triggerToast('Ảnh đại diện đã được tải lên! ✨');
+        } else {
+            triggerToast('Tải ảnh thất bại.');
+        }
+    }
+};
+
 const openCreateAccountModal = () => {
     accountForm.value = {
         username: '',
         password: '',
         displayName: '',
-        role: 'staff'
+        role: 'staff',
+        avatar: ''
     };
     showAccountModal.value = true;
 };
@@ -311,11 +339,15 @@ const handleCreateAccount = async () => {
     
     const passwordHash = await sha256(accountForm.value.password);
     
+    // Set a unique default initials avatar if empty
+    const avatarUrl = accountForm.value.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(accountForm.value.displayName.trim() || usernameClean)}`;
+    
     const newAcc = {
         username: usernameClean,
         password: passwordHash,
         displayName: accountForm.value.displayName.trim() || usernameClean,
-        role: accountForm.value.role
+        role: accountForm.value.role,
+        avatar: avatarUrl
     };
     
     const updatedAccounts = [...accountsList.value, newAcc];
@@ -324,6 +356,46 @@ const handleCreateAccount = async () => {
         accountsList.value = updatedAccounts;
         showAccountModal.value = false;
         triggerToast('Tạo tài khoản thành công! ✨');
+    } else {
+        triggerToast('Có lỗi xảy ra khi lưu tài khoản.');
+    }
+};
+
+const openEditAccountModal = (account: any) => {
+    editAccountForm.value = {
+        username: account.username,
+        displayName: account.displayName,
+        role: account.role || 'staff',
+        avatar: account.avatar || ''
+    };
+    showEditAccountModal.value = true;
+};
+
+const handleEditAccount = async () => {
+    if (!editAccountForm.value.displayName.trim()) {
+        triggerToast('Tên hiển thị không được để trống!');
+        return;
+    }
+    
+    const avatarUrl = editAccountForm.value.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(editAccountForm.value.displayName.trim())}`;
+    
+    const updatedAccounts = accountsList.value.map(acc => {
+        if (acc.username === editAccountForm.value.username) {
+            return {
+                ...acc,
+                displayName: editAccountForm.value.displayName.trim(),
+                role: editAccountForm.value.role,
+                avatar: avatarUrl
+            };
+        }
+        return acc;
+    });
+    
+    const success = await ContentService.saveAccounts(updatedAccounts);
+    if (success) {
+        accountsList.value = updatedAccounts;
+        showEditAccountModal.value = false;
+        triggerToast('Cập nhật tài khoản thành công! ✨');
     } else {
         triggerToast('Có lỗi xảy ra khi lưu tài khoản.');
     }
@@ -424,15 +496,15 @@ onMounted(async () => {
             </div>
 
             <nav class="flex-1 space-y-2">
-                <button v-for="tab in ['dashboard', 'projects', 'about', 'messages', 'accounts']" :key="tab"
+                <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts']" :key="tab"
                     @click="currentTab = tab"
                     :class="['w-full text-left px-5 py-3 rounded-2xl font-bold transition-all flex items-center gap-3', currentTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:bg-soft-pink/10 hover:text-primary']"
                 >
                     <span class="material-symbols-outlined text-xl">
-                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'projects' ? 'folder' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : 'group' }}
+                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : 'group' }}
                     </span>
                     <span class="capitalize">
-                        {{ tab === 'about' ? 'About Me' : tab === 'accounts' ? 'Tài Khoản' : tab }}
+                        {{ tab === 'about' ? 'About Me' : tab === 'accounts' ? 'Admin' : tab }}
                     </span>
                 </button>
             </nav>
@@ -731,7 +803,10 @@ onMounted(async () => {
                                     <td colspan="4" class="py-12 text-center text-gray-400 italic font-medium">Chưa có tài khoản phụ nào được tạo.</td>
                                 </tr>
                                 <tr v-for="(acc, idx) in accountsList" :key="idx" class="hover:bg-soft-pink/5 transition-colors">
-                                    <td class="py-4 pl-4 font-bold text-sm text-primary">{{ acc.displayName }}</td>
+                                    <td class="py-4 pl-4 font-bold text-sm text-primary flex items-center gap-3">
+                                        <img :src="acc.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(acc.displayName || 'User'))" class="size-8 rounded-full border border-primary/10 object-cover" />
+                                        <span>{{ acc.displayName }}</span>
+                                    </td>
                                     <td class="py-4 font-bold text-sm text-[#4a2c32]">{{ acc.username }}</td>
                                     <td class="py-4">
                                         <span class="px-3 py-1 text-[9px] font-black uppercase rounded-full"
@@ -741,6 +816,7 @@ onMounted(async () => {
                                         </span>
                                     </td>
                                     <td class="py-4 text-right pr-4 space-x-4">
+                                        <button @click="openEditAccountModal(acc)" class="text-xs font-black text-amber-500 hover:underline">Chỉnh sửa</button>
                                         <button @click="openResetPasswordModal(acc)" class="text-xs font-black text-primary hover:underline">Đổi mật khẩu</button>
                                         <button @click="deleteAccount(acc.username)" class="text-xs font-black text-red-400 hover:text-red-600 hover:underline">Xóa</button>
                                     </td>
@@ -933,7 +1009,62 @@ onMounted(async () => {
                             </select>
                         </div>
                     </div>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Ảnh Đại Diện (Tùy chọn)</label>
+                            <input type="file" accept="image/*" @change="handleAccountAvatarUpload($event, false)" class="w-full bg-[#fcf8f9] p-4.5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                        </div>
+                        <div v-if="accountForm.avatar" class="flex items-center gap-2 mt-4 ml-2">
+                            <img :src="accountForm.avatar" class="size-12 rounded-full border-2 border-primary/20 object-cover" />
+                            <button @click="accountForm.avatar = ''" class="text-[10px] font-black text-red-500 hover:underline">Xóa</button>
+                        </div>
+                    </div>
+
                     <button @click="handleCreateAccount" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Xác Nhận Tạo ✨</button>
+                </div>
+             </div>
+        </div>
+
+        <!-- Edit Account Modal -->
+        <div v-if="showEditAccountModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+             <div class="bg-white w-full max-w-xl rounded-[4rem] p-12 card-shadow space-y-8 animate-scale-up relative overflow-hidden">
+                <header class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-3xl font-black text-primary">Chỉnh Sửa Tài Khoản</h3>
+                        <p class="text-[10px] font-bold text-gray-400">Thay đổi thông tin tài khoản: <span class="text-primary font-black">{{ editAccountForm.username }}</span> ✨</p>
+                    </div>
+                    <button @click="showEditAccountModal = false" class="size-12 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                         <span class="material-symbols-outlined">close</span>
+                    </button>
+                </header>
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <select v-model="editAccountForm.role" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
+                                <option value="staff">Staff (Nhân viên)</option>
+                                <option value="admin">Admin (Quản trị viên)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-1">
+                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Ảnh Đại Diện (Tùy chọn)</label>
+                            <input type="file" accept="image/*" @change="handleAccountAvatarUpload($event, true)" class="w-full bg-[#fcf8f9] p-4.5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                        </div>
+                        <div class="flex items-center gap-2 mt-4 ml-2">
+                            <img :src="editAccountForm.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(editAccountForm.displayName || 'User'))" class="size-12 rounded-full border-2 border-primary/20 object-cover" />
+                            <button v-if="editAccountForm.avatar" @click="editAccountForm.avatar = ''" class="text-[10px] font-black text-red-500 hover:underline">Xóa</button>
+                        </div>
+                    </div>
+
+                    <button @click="handleEditAccount" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Lưu Thay Đổi ✨</button>
                 </div>
              </div>
         </div>
