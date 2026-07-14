@@ -69,6 +69,15 @@ export interface BargeConfig {
     bhNo?: string;
     bhIssuedDate?: string;
     bhExpiryDate?: string;
+    // Crew & Movement details
+    captain?: string;
+    captainGrade?: string;
+    chiefEngineer?: string;
+    chiefEngineerGrade?: string;
+    sailors?: string;
+    hasCrewBook?: boolean;
+    arrivalTime?: string;
+    departureTime?: string;
 }
 
 export interface Barge {

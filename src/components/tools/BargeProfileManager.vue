@@ -45,6 +45,16 @@ const editBhNo = ref('');
 const editBhIssuedDate = ref('');
 const editBhExpiryDate = ref('');
 
+// New Crew & Movement fields
+const editCaptain = ref('');
+const editCaptainGrade = ref('');
+const editChiefEngineer = ref('');
+const editChiefEngineerGrade = ref('');
+const editSailors = ref('');
+const editHasCrewBook = ref(false);
+const editArrivalTime = ref('');
+const editDepartureTime = ref('');
+
 // Custom Metadata fields (for additional barge information)
 interface CustomMeta {
     key: string;
@@ -157,6 +167,16 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     editBhIssuedDate.value = config.bhIssuedDate || '';
     editBhExpiryDate.value = config.bhExpiryDate || '';
     
+    // Set crew & movement fields
+    editCaptain.value = config.captain || '';
+    editCaptainGrade.value = config.captainGrade || '';
+    editChiefEngineer.value = config.chiefEngineer || '';
+    editChiefEngineerGrade.value = config.chiefEngineerGrade || '';
+    editSailors.value = config.sailors || '';
+    editHasCrewBook.value = config.hasCrewBook || false;
+    editArrivalTime.value = config.arrivalTime || '';
+    editDepartureTime.value = config.departureTime || '';
+    
     // Parse custom metadata
     const customObj = config.customProfileInfo || {};
     customMetas.value = Object.entries(customObj).map(([key, value]) => ({
@@ -224,7 +244,17 @@ async function saveProfile() {
             bhIssuedDate: editBhIssuedDate.value,
             bhExpiryDate: editBhExpiryDate.value,
             
-            customProfileInfo: customProfileInfo
+            customProfileInfo: customProfileInfo,
+            
+            // Crew & Movement details
+            captain: editCaptain.value.trim(),
+            captainGrade: editCaptainGrade.value.trim(),
+            chiefEngineer: editChiefEngineer.value.trim(),
+            chiefEngineerGrade: editChiefEngineerGrade.value.trim(),
+            sailors: editSailors.value.trim(),
+            hasCrewBook: editHasCrewBook.value,
+            arrivalTime: editArrivalTime.value,
+            departureTime: editDepartureTime.value
         };
         
         // Update name if changed
@@ -559,11 +589,11 @@ onMounted(() => {
 
                 <!-- Form Body -->
                 <div class="flex-1 overflow-auto p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Left: Standard settings -->
+                    <!-- Left: Administrative & Crew & Movement details -->
                     <div class="space-y-4">
                         <h4 class="text-xs font-black text-primary uppercase tracking-wider border-b border-dashed border-gray-200 pb-2 flex items-center gap-1">
                             <span class="material-symbols-outlined text-base">settings</span>
-                            Thông tin hành chính & Cấu hình
+                            Thông tin hành chính & Hành trình
                         </h4>
                         
                         <div class="grid grid-cols-2 gap-4">
@@ -585,111 +615,84 @@ onMounted(() => {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Chủ hàng</label>
-                                <input 
-                                    v-model="editOwner" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
-                                />
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Trực ca</label>
-                                <input 
-                                    v-model="editOperator" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="col-span-2 space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên hàng hóa</label>
-                                <input 
-                                    v-model="editGoods" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
-                                />
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mã hàng</label>
-                                <input 
-                                    v-model="editGoodsCode" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Loại hàng (X/N)</label>
-                                <select 
-                                    v-model="editXn" 
-                                    class="w-full h-8 px-2 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-bold"
-                                >
-                                    <option value="XUẤT">XUẤT</option>
-                                    <option value="NHẬP">NHẬP</option>
-                                </select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tiền tố phiếu</label>
-                                <input 
-                                    v-model="editTicketPrefix" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-bold"
-                                />
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Số phiếu đầu</label>
-                                <input 
-                                    v-model="editTicketSeed" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-bold"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Chính phẩm (%)</label>
-                                <input 
-                                    v-model="editChinhpham" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32]"
-                                />
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Phụ phẩm (%)</label>
-                                <input 
-                                    v-model="editPhupham" 
-                                    type="text" 
-                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32]"
-                                />
-                            </div>
-                        </div>
-
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Kết luận mẫu phiếu</label>
-                            <textarea 
-                                v-model="editKetluan" 
-                                rows="2" 
-                                class="w-full p-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold resize-none"
-                            ></textarea>
+                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên hàng hóa</label>
+                            <input 
+                                v-model="editGoods" 
+                                type="text" 
+                                class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
+                            />
                         </div>
 
-                        <div class="flex items-center gap-2 pt-2">
-                            <input 
-                                v-model="editLocked" 
-                                type="checkbox" 
-                                id="locked_checkbox" 
-                                class="size-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary"
-                            />
-                            <label for="locked_checkbox" class="text-xs font-black text-[#4a2c32] select-none cursor-pointer">
-                                Khóa sà lan này (Không cho nhân viên sửa thông tin khi in)
-                            </label>
+                        <!-- Crew members -->
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-primary">groups</span>
+                                Thông tin thuyền viên
+                            </span>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Thuyền trưởng</label>
+                                    <input v-model="editCaptain" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạng thuyền trưởng</label>
+                                    <input v-model="editCaptainGrade" type="text" placeholder="Ví dụ: Hạng 1" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Máy trưởng</label>
+                                    <input v-model="editChiefEngineer" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạng máy trưởng</label>
+                                    <input v-model="editChiefEngineerGrade" type="text" placeholder="Ví dụ: Hạng 2" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-bold text-gray-400 uppercase">Thủy thủ</label>
+                                <textarea 
+                                    v-model="editSailors" 
+                                    rows="2" 
+                                    placeholder="Danh sách thủy thủ đoàn..." 
+                                    class="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] resize-none"
+                                ></textarea>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <input 
+                                    v-model="editHasCrewBook" 
+                                    type="checkbox" 
+                                    id="crew_book_checkbox" 
+                                    class="size-4 rounded border-gray-300 text-primary focus:ring-primary/20 accent-primary"
+                                />
+                                <label for="crew_book_checkbox" class="text-xs font-black text-[#4a2c32] select-none cursor-pointer">
+                                    Có sổ danh bạ thuyền viên
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Arrival / Departure movement -->
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-primary">schedule</span>
+                                Thời gian cập / rời bến
+                            </span>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Thời gian cập bến</label>
+                                    <input v-model="editArrivalTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Thời gian rời bến</label>
+                                    <input v-model="editDepartureTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
