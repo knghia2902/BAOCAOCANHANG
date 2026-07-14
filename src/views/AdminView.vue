@@ -2,10 +2,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { contentStore } from '../stores/content';
-import { logout } from '../stores/auth';
+import { authStore, logout, updateStoreProfile } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
 import { StorageService } from '../services/storage/StorageService';
-import { sha256 } from '../services/storage/AuthService';
+import { authService, sha256 } from '../services/storage/AuthService';
 import { supabase } from '../supabase';
 
 
@@ -120,6 +120,16 @@ const handleHeroImageUpload = async (e: Event) => {
         if (url) {
             contentStore.hero.image = url;
             contentStore.hero.avatar = url; // Sync with avatar
+            
+            // Sync with currently logged-in primary admin account
+            const { data: currentSettings } = await supabase.from('content').select('settings').eq('id', 'main').single();
+            const settings = currentSettings?.settings || {};
+            const currentUser = authStore.user;
+            if (currentUser && currentUser === settings.username) {
+                await authService.updateProfile(currentUser, authStore.displayName || '', undefined, url);
+                updateStoreProfile(authStore.displayName || '', url);
+            }
+            
             triggerToast('Magic image synced everywhere! 🪄');
             await ContentService.saveAll();
         }

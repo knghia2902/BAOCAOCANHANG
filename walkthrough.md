@@ -37,6 +37,16 @@
   - Cột bên phải: Form chi tiết về Trọng tải, Công suất và 3 nhóm giấy tờ Đăng ký, Đăng kiểm, Bảo hiểm với date-pickers đầy đủ.
   - Vẫn giữ nguyên phần **Thông số phụ khác** ở dưới cùng để người dùng tự nhập thêm bất kỳ thông số nào khác ngoài file Excel.
 
+## 5. Cập nhật quản lý tài khoản & Phân quyền trang Admin
+* **Chỉnh sửa tài khoản (Edit Account):** Thêm modal "Chỉnh sửa tài khoản" cho phép Admin chỉnh sửa **Tên hiển thị**, **Vai trò** và **Ảnh Đại Diện (Avatar)** của nhân viên/Admin phụ.
+* **Đồng bộ Avatar riêng biệt cho từng User:**
+  - Hỗ trợ tải ảnh đại diện lên bộ lưu trữ đám mây Supabase Storage cho từng tài khoản (cả khi Tạo mới và Chỉnh sửa).
+  - Tự động tạo ảnh đại diện chứa chữ cái đầu (Initials SVG từ Dicebear) độc nhất dựa trên Tên hiển thị của từng user nếu không upload ảnh tùy chọn, đảm bảo 100% tài khoản không bị dùng chung ảnh mặc định của Ngọc Ánh.
+  - Thêm chức năng **"Chỉnh sửa hồ sơ"** trực tiếp ở menu dropdown góc phải trên cùng để bất kỳ user nào đang đăng nhập cũng có thể tự cập nhật Tên hiển thị & Avatar cá nhân của mình.
+* **Tối ưu hóa Sidebar trang Admin:**
+  - Ẩn/Bỏ hoàn toàn tab **Projects** khỏi trang Admin theo yêu cầu.
+  - Đổi tên nhãn của tab quản trị tài khoản (`'accounts'`) từ **"Tài Khoản"** thành **"Admin"**.
+
 ## Xác minh thực tế
 * Dự án biên dịch thành công (`npm run build`).
-* Đã commit và đẩy các thay đổi lên GitHub nhánh `master` tại commit `8ae8e7f`.
+* Đã commit và đẩy các thay đổi lên GitHub nhánh `master` tại commit `696df05`.
