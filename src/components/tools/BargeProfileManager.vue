@@ -9,6 +9,9 @@ const loading = ref(false);
 const saving = ref(false);
 const searchQuery = ref('');
 
+// Excel Import state
+const excelFileInput = ref<HTMLInputElement | null>(null);
+
 // Edit Modal state
 const showEditModal = ref(false);
 const selectedBarge = ref<Barge | null>(null);
@@ -28,6 +31,19 @@ const editChinhpham = ref<number | string>('');
 const editPhupham = ref<number | string>('');
 const editKetluan = ref('');
 const editLocked = ref(false);
+
+// New Structured Profile fields
+const editTonnage = ref<number | string>('');
+const editHp = ref<number | string>('');
+const editGcnNo = ref('');
+const editGcnIssuedDate = ref('');
+const editGcnExpiryDate = ref('');
+const editDkNo = ref('');
+const editDkIssuedDate = ref('');
+const editDkExpiryDate = ref('');
+const editBhNo = ref('');
+const editBhIssuedDate = ref('');
+const editBhExpiryDate = ref('');
 
 // Custom Metadata fields (for additional barge information)
 interface CustomMeta {
@@ -81,6 +97,22 @@ const filteredBarges = computed(() => {
     });
 });
 
+// Helpers to calculate status
+const isDocComplete = (config: BargeConfig) => {
+    return !!(config.gcnNo && config.dkNo && config.bhNo);
+};
+
+const getGcnStatus = (config: BargeConfig) => {
+    if (!config.gcnExpiryDate) return '-';
+    const expiry = new Date(config.gcnExpiryDate);
+    if (isNaN(expiry.getTime())) return '-';
+    
+    // Compare YYYY-MM-DD
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const today = new Date(todayStr);
+    return expiry < today ? 'HẾT HẠN' : 'CÒN HẠN';
+};
+
 async function loadData() {
     loading.value = true;
     try {
@@ -111,6 +143,19 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     editPhupham.value = config.phupham !== undefined ? config.phupham : '';
     editKetluan.value = config.ketluan || '';
     editLocked.value = config.locked || false;
+    
+    // Set new profile fields
+    editTonnage.value = config.tonnage !== undefined ? config.tonnage : '';
+    editHp.value = config.hp !== undefined ? config.hp : '';
+    editGcnNo.value = config.gcnNo || '';
+    editGcnIssuedDate.value = config.gcnIssuedDate || '';
+    editGcnExpiryDate.value = config.gcnExpiryDate || '';
+    editDkNo.value = config.dkNo || '';
+    editDkIssuedDate.value = config.dkIssuedDate || '';
+    editDkExpiryDate.value = config.dkExpiryDate || '';
+    editBhNo.value = config.bhNo || '';
+    editBhIssuedDate.value = config.bhIssuedDate || '';
+    editBhExpiryDate.value = config.bhExpiryDate || '';
     
     // Parse custom metadata
     const customObj = config.customProfileInfo || {};
@@ -165,6 +210,20 @@ async function saveProfile() {
             phupham: editPhupham.value,
             ketluan: editKetluan.value.trim(),
             locked: editLocked.value,
+            
+            // Technical details
+            tonnage: editTonnage.value !== '' ? Number(editTonnage.value) : undefined,
+            hp: editHp.value !== '' ? Number(editHp.value) : undefined,
+            gcnNo: editGcnNo.value.trim(),
+            gcnIssuedDate: editGcnIssuedDate.value,
+            gcnExpiryDate: editGcnExpiryDate.value,
+            dkNo: editDkNo.value.trim(),
+            dkIssuedDate: editDkIssuedDate.value,
+            dkExpiryDate: editDkExpiryDate.value,
+            bhNo: editBhNo.value.trim(),
+            bhIssuedDate: editBhIssuedDate.value,
+            bhExpiryDate: editBhExpiryDate.value,
+            
             customProfileInfo: customProfileInfo
         };
         
@@ -191,6 +250,147 @@ async function saveProfile() {
     }
 }
 
+function triggerExcelUpload() {
+    excelFileInput.value?.click();
+}
+
+async function handleExcelImport(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+    loading.value = true;
+    
+    try {
+        const ExcelJS = (await import('exceljs')).default;
+        const workbook = new ExcelJS.Workbook();
+        const arrayBuffer = await file.arrayBuffer();
+        await workbook.xlsx.load(arrayBuffer);
+        
+        const sheetName = 'Hồ sơ phương tiện';
+        let sheet = workbook.getWorksheet(sheetName);
+        if (!sheet) {
+            sheet = workbook.worksheets[0];
+        }
+        
+        if (!sheet) {
+            addToast('Không thể đọc dữ liệu từ file Excel!', 'error');
+            loading.value = false;
+            return;
+        }
+        
+        let matchCount = 0;
+        
+        // Helpers to parse cells
+        const formatDateCell = (cellValue: any): string => {
+            if (!cellValue) return '';
+            if (cellValue instanceof Date) {
+                return cellValue.toISOString().slice(0, 10);
+            }
+            if (typeof cellValue === 'object' && cellValue.result instanceof Date) {
+                return cellValue.result.toISOString().slice(0, 10);
+            }
+            if (typeof cellValue === 'number') {
+                const date = new Date(Math.round((cellValue - 25569) * 86400 * 1000));
+                return date.toISOString().slice(0, 10);
+            }
+            const str = String(cellValue).trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+                return str.slice(0, 10);
+            }
+            return str;
+        };
+        
+        const formatNumberCell = (cellValue: any): number | undefined => {
+            if (cellValue === null || cellValue === undefined) return undefined;
+            if (typeof cellValue === 'number') return cellValue;
+            if (typeof cellValue === 'object' && typeof cellValue.result === 'number') return cellValue.result;
+            const parsed = parseFloat(String(cellValue).replace(/[^0-9.-]/g, ''));
+            return isNaN(parsed) ? undefined : parsed;
+        };
+        
+        const formatStringCell = (cellValue: any): string => {
+            if (cellValue === null || cellValue === undefined) return '';
+            if (typeof cellValue === 'object' && cellValue.result !== undefined) {
+                return String(cellValue.result).trim();
+            }
+            return String(cellValue).trim();
+        };
+
+        const normalizeBargeName = (name: string): string => {
+            return name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        };
+        
+        // Map of normalized barge names in system
+        const systemBargesMap = new Map<string, Barge>();
+        vessels.value.forEach(v => {
+            if (v.barges) {
+                v.barges.forEach(b => {
+                    systemBargesMap.set(normalizeBargeName(b.name), b);
+                });
+            }
+        });
+        
+        // Loop rows (row 1 is header, data starts at row 2)
+        for (let r = 2; r <= sheet.rowCount; r++) {
+            const row = sheet.getRow(r);
+            const rawName = formatStringCell(row.getCell(2).value);
+            if (!rawName) continue;
+            
+            const normName = normalizeBargeName(rawName);
+            const barge = systemBargesMap.get(normName);
+            
+            if (barge) {
+                const tonnage = formatNumberCell(row.getCell(3).value);
+                const hp = formatNumberCell(row.getCell(4).value);
+                const gcnNo = formatStringCell(row.getCell(5).value);
+                const gcnIssuedDate = formatDateCell(row.getCell(6).value);
+                const gcnExpiryDate = formatDateCell(row.getCell(7).value);
+                const dkNo = formatStringCell(row.getCell(8).value);
+                const dkIssuedDate = formatDateCell(row.getCell(9).value);
+                const dkExpiryDate = formatDateCell(row.getCell(10).value);
+                const bhNo = formatStringCell(row.getCell(11).value);
+                const bhIssuedDate = formatDateCell(row.getCell(12).value);
+                const bhExpiryDate = formatDateCell(row.getCell(13).value);
+                
+                const updatedConfig: BargeConfig = {
+                    ...(barge.config || {}),
+                    tonnage,
+                    hp,
+                    gcnNo,
+                    gcnIssuedDate,
+                    gcnExpiryDate,
+                    dkNo,
+                    dkIssuedDate,
+                    dkExpiryDate,
+                    bhNo,
+                    bhIssuedDate,
+                    bhExpiryDate,
+                    updatedAt: Date.now()
+                };
+                
+                await WeighbridgeService.updateBargeConfig(barge.id, updatedConfig);
+                matchCount++;
+            }
+        }
+        
+        if (matchCount > 0) {
+            addToast(`Đã nạp hồ sơ thành công cho ${matchCount} sà lan! 🚢`, 'success');
+            window.dispatchEvent(new CustomEvent('barge-config-updated', { detail: { batch: true } }));
+            await loadData();
+        } else {
+            addToast('Không tìm thấy sà lan nào khớp tên trong danh sách để cập nhật!', 'info');
+        }
+    } catch (e) {
+        console.error('Lỗi khi nhập Excel:', e);
+        addToast('Lỗi khi đọc file Excel, vui lòng kiểm tra lại cấu trúc file!', 'error');
+    } finally {
+        loading.value = false;
+        if (excelFileInput.value) {
+            excelFileInput.value.value = '';
+        }
+    }
+}
+
 onMounted(() => {
     loadData();
     window.addEventListener('barge-config-updated', loadData);
@@ -211,8 +411,25 @@ onMounted(() => {
                 </p>
             </div>
             
-            <div class="flex items-center gap-2 max-w-xs w-full">
-                <div class="relative w-full">
+            <div class="flex items-center gap-2 max-w-md w-full justify-end">
+                <!-- Excel Import -->
+                <input 
+                    type="file" 
+                    ref="excelFileInput" 
+                    @change="handleExcelImport" 
+                    accept=".xlsx" 
+                    class="hidden" 
+                />
+                <button 
+                    @click="triggerExcelUpload"
+                    class="h-8 px-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-600/10 shrink-0"
+                    title="Nhập dữ liệu hồ sơ hàng loạt từ file Excel"
+                >
+                    <span class="material-symbols-outlined text-sm">upload_file</span>
+                    Nhập từ Excel
+                </button>
+
+                <div class="relative w-full max-w-xs">
                     <span class="material-symbols-outlined text-gray-400 text-sm absolute left-3 top-2.5">search</span>
                     <input 
                         v-model="searchQuery" 
@@ -221,7 +438,7 @@ onMounted(() => {
                         class="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
                     />
                 </div>
-                <button @click="loadData" class="size-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors border border-gray-200" title="Tải lại dữ liệu">
+                <button @click="loadData" class="size-8 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors border border-gray-200 shrink-0" title="Tải lại dữ liệu">
                     <span class="material-symbols-outlined text-base" :class="{'animate-spin': loading}">refresh</span>
                 </button>
             </div>
@@ -246,11 +463,10 @@ onMounted(() => {
                                 <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
                                 <th class="px-3 py-2 bg-gray-50">Mã lệnh</th>
                                 <th class="px-3 py-2 bg-gray-50">Thuộc Tàu</th>
-                                <th class="px-3 py-2 bg-gray-50">Chủ hàng</th>
-                                <th class="px-3 py-2 bg-gray-50">Trực ca</th>
-                                <th class="px-3 py-2 bg-gray-50">Hàng hóa</th>
-                                <th class="px-3 py-2 text-center">Thông số phụ</th>
-                                <th class="px-3 py-2 text-center bg-gray-50">Trạng thái</th>
+                                <th class="px-3 py-2 text-center bg-gray-50">Trọng tải (Tấn)</th>
+                                <th class="px-3 py-2 text-center bg-gray-50">Công suất (HP)</th>
+                                <th class="px-3 py-2 text-center bg-gray-50">Đủ hồ sơ</th>
+                                <th class="px-3 py-2 text-center bg-gray-50">Trạng thái GCN</th>
                                 <th class="px-3 py-2 text-center w-28 bg-gray-50">Thao tác</th>
                             </tr>
                         </thead>
@@ -269,25 +485,40 @@ onMounted(() => {
                                         {{ item.vesselName }}
                                     </span>
                                 </td>
-                                <td class="px-3 py-2.5 text-gray-700 max-w-[150px] truncate">{{ item.barge.config?.owner || '-' }}</td>
-                                <td class="px-3 py-2.5 text-gray-700 max-w-[150px] truncate">{{ item.barge.config?.operator || '-' }}</td>
-                                <td class="px-3 py-2.5 text-gray-700 max-w-[150px] truncate">{{ item.barge.config?.goods || '-' }}</td>
-                                <td class="px-3 py-2.5 text-center whitespace-nowrap">
-                                    <span 
-                                        v-if="item.barge.config?.customProfileInfo && Object.keys(item.barge.config.customProfileInfo).length > 0" 
-                                        class="px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[9px] font-black"
-                                    >
-                                        +{{ Object.keys(item.barge.config.customProfileInfo).length }} thông số
-                                    </span>
-                                    <span v-else class="text-gray-400 italic text-[10px]">-</span>
+                                <td class="px-3 py-2.5 text-center text-gray-700">
+                                    {{ item.barge.config?.tonnage !== undefined ? item.barge.config.tonnage.toLocaleString() : '-' }}
+                                </td>
+                                <td class="px-3 py-2.5 text-center text-gray-700">
+                                    {{ item.barge.config?.hp !== undefined ? item.barge.config.hp.toLocaleString() : '-' }}
                                 </td>
                                 <td class="px-3 py-2.5 text-center">
-                                    <span v-if="item.barge.config?.locked" class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap">
-                                        <span class="material-symbols-outlined text-[11px]">lock</span> Khóa
+                                    <span 
+                                        v-if="isDocComplete(item.barge.config || {})" 
+                                        class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
+                                    >
+                                        <span class="material-symbols-outlined text-[11px]">task_alt</span> ĐỦ
                                     </span>
-                                    <span v-else class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap">
-                                        <span class="material-symbols-outlined text-[11px]">lock_open</span> Mở
+                                    <span 
+                                        v-else 
+                                        class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
+                                    >
+                                        <span class="material-symbols-outlined text-[11px]">warning</span> THIẾU
                                     </span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    <span 
+                                        v-if="getGcnStatus(item.barge.config || {}) === 'CÒN HẠN'" 
+                                        class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
+                                    >
+                                        CÒN HẠN
+                                    </span>
+                                    <span 
+                                        v-else-if="getGcnStatus(item.barge.config || {}) === 'HẾT HẠN'" 
+                                        class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
+                                    >
+                                        HẾT HẠN
+                                    </span>
+                                    <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                 </td>
                                 <td class="px-3 py-2.5 text-center">
                                     <button 
@@ -306,7 +537,7 @@ onMounted(() => {
 
         <!-- Edit Profile Modal -->
         <div v-if="showEditModal" class="fixed inset-0 bg-[#1b0d11]/40 z-[999] backdrop-blur-[2px] flex items-center justify-center p-4 transition-all">
-            <div class="bg-white rounded-[2.5rem] border border-[#1b0d11]/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-up">
+            <div class="bg-white rounded-[2.5rem] border border-[#1b0d11]/10 shadow-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col animate-scale-up">
                 <!-- Header -->
                 <div class="px-8 py-5 border-b border-primary/10 flex items-center justify-between bg-slate-50 shrink-0">
                     <div>
@@ -330,7 +561,8 @@ onMounted(() => {
                 <div class="flex-1 overflow-auto p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Left: Standard settings -->
                     <div class="space-y-4">
-                        <h4 class="text-xs font-black text-primary uppercase tracking-wider border-b border-dashed border-gray-200 pb-2">
+                        <h4 class="text-xs font-black text-primary uppercase tracking-wider border-b border-dashed border-gray-200 pb-2 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-base">settings</span>
                             Thông tin hành chính & Cấu hình
                         </h4>
                         
@@ -461,55 +693,124 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Right: Technical profiles (Custom Metadata info) -->
+                    <!-- Right: Technical profiles (Structured Excel fields + Custom fields) -->
                     <div class="space-y-4 flex flex-col h-full min-h-0">
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 pb-2">
-                            <h4 class="text-xs font-black text-primary uppercase tracking-wider">
-                                Thông số kỹ thuật & Hồ sơ sà lan
-                            </h4>
-                            <button 
-                                @click="addCustomMeta" 
-                                class="h-6 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-black flex items-center gap-1 transition-all"
-                            >
-                                <span class="material-symbols-outlined text-[12px]">add</span>
-                                Thêm thông số
-                            </button>
-                        </div>
+                        <h4 class="text-xs font-black text-primary uppercase tracking-wider border-b border-dashed border-gray-200 pb-2 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-base">engineering</span>
+                            Hồ sơ kỹ thuật & Pháp lý (Excel)
+                        </h4>
                         
-                        <p class="text-[9px] text-gray-400 font-bold leading-normal">
-                            Thêm các thông tin kỹ thuật mở rộng như: *Tải trọng đăng kiểm (tấn)*, *Hạn đăng kiểm*, *Chiều dài*, *Chiều rộng*, *Năm sản xuất*, vv.
-                        </p>
-
-                        <!-- Dynamic Key-Value list -->
-                        <div class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[300px]">
-                            <div v-if="customMetas.length === 0" class="py-10 text-center text-gray-400 text-xs italic">
-                                Chưa có thông tin hồ sơ kỹ thuật bổ sung nào. Hãy nhấn "Thêm thông số" để nhập.
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Trọng tải (Tấn)</label>
+                                <input 
+                                    v-model="editTonnage" 
+                                    type="number" 
+                                    placeholder="Ví dụ: 1276"
+                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-bold"
+                                />
                             </div>
-                            <div 
-                                v-else 
-                                v-for="(meta, index) in customMetas" 
-                                :key="index"
-                                class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-gray-200 animate-fade-in"
-                            >
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Công suất (HP)</label>
                                 <input 
-                                    v-model="meta.key" 
-                                    type="text" 
-                                    placeholder="Tên thông số (Ví dụ: Chiều dài)" 
-                                    class="w-1/2 h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-primary/50 text-[#4a2c32] font-black"
+                                    v-model="editHp" 
+                                    type="number" 
+                                    placeholder="Ví dụ: 400"
+                                    class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-bold"
                                 />
-                                <input 
-                                    v-model="meta.value" 
-                                    type="text" 
-                                    placeholder="Giá trị (Ví dụ: 62.5 m)" 
-                                    class="w-1/2 h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
-                                />
+                            </div>
+                        </div>
+
+                        <!-- GCN Đăng ký Group -->
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-primary">feed</span>
+                                Giấy chứng nhận (GCN) đăng ký
+                            </span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-1 space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Số GCN</label>
+                                    <input v-model="editGcnNo" type="text" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Ngày cấp</label>
+                                    <input v-model="editGcnIssuedDate" type="date" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hết hạn GCN</label>
+                                    <input v-model="editGcnExpiryDate" type="date" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Đăng kiểm Group -->
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-primary">verified_user</span>
+                                Chứng nhận Đăng kiểm (ĐK)
+                            </span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-1 space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Số Đăng kiểm</label>
+                                    <input v-model="editDkNo" type="text" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Ngày cấp</label>
+                                    <input v-model="editDkIssuedDate" type="date" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hết hạn ĐK</label>
+                                    <input v-model="editDkExpiryDate" type="date" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bảo hiểm Group -->
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-primary">gavel</span>
+                                Bảo hiểm phương tiện (BH)
+                            </span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-1 space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Số Bảo hiểm</label>
+                                    <input v-model="editBhNo" type="text" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Ngày cấp</label>
+                                    <input v-model="editBhIssuedDate" type="date" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hết hạn BH</label>
+                                    <input v-model="editBhExpiryDate" type="date" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom optional metadata list -->
+                        <div class="border-t border-dashed border-gray-200 pt-3 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Thông số phụ khác (Tự chọn)</span>
                                 <button 
-                                    @click="removeCustomMeta(index)"
-                                    class="size-8 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center shrink-0 border border-transparent hover:border-red-200 transition-all"
-                                    title="Xóa thông số này"
+                                    @click="addCustomMeta" 
+                                    class="h-5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[8px] font-black flex items-center gap-0.5 transition-all"
                                 >
-                                    <span class="material-symbols-outlined text-base">delete</span>
+                                    <span class="material-symbols-outlined text-[10px]">add</span>
+                                    Thêm dòng
                                 </button>
+                            </div>
+                            <div class="max-h-[120px] overflow-y-auto space-y-2 pr-1">
+                                <div 
+                                    v-for="(meta, index) in customMetas" 
+                                    :key="index"
+                                    class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-gray-150"
+                                >
+                                    <input v-model="meta.key" type="text" placeholder="Tên (VD: Chiều dài)" class="w-1/2 h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] font-black" />
+                                    <input v-model="meta.value" type="text" placeholder="Giá trị (VD: 62m)" class="w-1/2 h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                    <button @click="removeCustomMeta(index)" class="size-7 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center shrink-0 border border-transparent hover:border-red-200 transition-all">
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

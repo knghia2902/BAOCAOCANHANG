@@ -57,6 +57,18 @@ export interface BargeConfig {
     signatures?: string[];
     goodsList?: string[];
     updatedAt?: number;
+    // Hồ sơ phương tiện (NNP QL HỒ SƠ PHƯƠNG TIỆN CẢNG)
+    tonnage?: number;
+    hp?: number;
+    gcnNo?: string;
+    gcnIssuedDate?: string;
+    gcnExpiryDate?: string;
+    dkNo?: string;
+    dkIssuedDate?: string;
+    dkExpiryDate?: string;
+    bhNo?: string;
+    bhIssuedDate?: string;
+    bhExpiryDate?: string;
 }
 
 export interface Barge {
