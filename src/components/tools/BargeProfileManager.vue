@@ -229,75 +229,77 @@ onMounted(() => {
 
         <!-- Main Body -->
         <div class="flex-1 overflow-auto p-6">
-            <div v-if="loading" class="h-full flex flex-col justify-center items-center text-gray-400 text-xs gap-2">
-                <span class="material-symbols-outlined text-3xl animate-spin text-primary">sync</span>
-                <span>Đang tải thông tin sà lan...</span>
-            </div>
-            <div v-else-if="filteredBarges.length === 0" class="h-full flex flex-col justify-center items-center text-gray-400 text-xs italic gap-1">
-                <span class="material-symbols-outlined text-3xl text-gray-300">sailing</span>
-                <span>Không tìm thấy sà lan nào. Vui lòng thêm sà lan mới bên tab "In Phiếu Cân Xe".</span>
-            </div>
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Barge Card -->
-                <div 
-                    v-for="item in filteredBarges" 
-                    :key="item.barge.id" 
-                    class="bg-white rounded-[2rem] border border-gray-150 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden"
-                >
-                    <!-- Lock Overlay Icon -->
-                    <div v-if="item.barge.config?.locked" class="absolute top-4 right-4 text-red-500 bg-red-50 px-2 py-0.5 rounded-full text-[9px] font-bold border border-red-200 flex items-center gap-0.5 shadow-sm">
-                        <span class="material-symbols-outlined text-[10px]">lock</span> Khóa
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-3">
-                            <div class="size-10 bg-primary/5 text-primary rounded-2xl flex items-center justify-center border border-primary/10 group-hover:scale-105 transition-transform">
-                                <span class="material-symbols-outlined text-xl">directions_boat</span>
-                            </div>
-                            <div>
-                                <h4 class="font-black text-sm text-[#4a2c32] group-hover:text-primary transition-colors leading-tight">
-                                    {{ item.barge.name }}
-                                </h4>
-                                <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[9px] font-black inline-block mt-0.5 leading-none">
-                                    Tàu: {{ item.vesselName }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Config summary lines -->
-                        <div class="text-[10px] text-gray-500 font-bold space-y-1.5 border-t border-dashed border-gray-100 pt-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Mã lệnh:</span>
-                                <span class="text-[#4a2c32] font-black">{{ item.barge.config?.orderNo || '-' }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Chủ hàng:</span>
-                                <span class="text-[#4a2c32] font-black max-w-[150px] truncate">{{ item.barge.config?.owner || '-' }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Trực ca:</span>
-                                <span class="text-[#4a2c32] font-black max-w-[150px] truncate">{{ item.barge.config?.operator || '-' }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Hàng hóa:</span>
-                                <span class="text-[#4a2c32] font-black max-w-[150px] truncate">{{ item.barge.config?.goods || '-' }}</span>
-                            </div>
-                            
-                            <!-- Custom metadata count -->
-                            <div v-if="item.barge.config?.customProfileInfo && Object.keys(item.barge.config.customProfileInfo).length > 0" class="flex justify-between text-amber-600">
-                                <span>Thông tin bổ sung:</span>
-                                <span class="font-black">+{{ Object.keys(item.barge.config.customProfileInfo).length }} thông số</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button 
-                        @click="openEdit(item)"
-                        class="w-full h-8 mt-5 bg-[#fcf8f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 shadow-sm"
-                    >
-                        <span class="material-symbols-outlined text-[14px]">edit_note</span>
-                        Chỉnh sửa hồ sơ
-                    </button>
+            <div class="bg-white rounded-[24px] p-5 shadow-sm border border-primary/5 flex flex-col h-full min-h-0">
+                <div v-if="loading" class="h-full flex-1 flex flex-col justify-center items-center text-gray-400 text-xs gap-2">
+                    <span class="material-symbols-outlined text-3xl animate-spin text-primary">sync</span>
+                    <span>Đang tải thông tin sà lan...</span>
+                </div>
+                <div v-else-if="filteredBarges.length === 0" class="h-full flex-1 flex flex-col justify-center items-center text-gray-400 text-xs italic gap-1">
+                    <span class="material-symbols-outlined text-3xl text-gray-300">sailing</span>
+                    <span>Không tìm thấy sà lan nào. Vui lòng thêm sà lan mới bên tab "In Phiếu Cân Xe".</span>
+                </div>
+                <div v-else class="flex-1 overflow-auto rounded-[16px] border border-gray-100">
+                    <table class="w-full text-left border-collapse text-xs font-semibold">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
+                                <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
+                                <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
+                                <th class="px-3 py-2 bg-gray-50">Mã lệnh</th>
+                                <th class="px-3 py-2 bg-gray-50">Thuộc Tàu</th>
+                                <th class="px-3 py-2 bg-gray-50">Chủ hàng</th>
+                                <th class="px-3 py-2 bg-gray-50">Trực ca</th>
+                                <th class="px-3 py-2 bg-gray-50">Hàng hóa</th>
+                                <th class="px-3 py-2 text-center">Thông số phụ</th>
+                                <th class="px-3 py-2 text-center bg-gray-50">Trạng thái</th>
+                                <th class="px-3 py-2 text-center w-28 bg-gray-50">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                            <tr v-for="(item, idx) in filteredBarges" :key="item.barge.id" class="hover:bg-gray-50 transition-colors">
+                                <td class="px-3 py-2.5 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
+                                <td class="px-3 py-2.5 font-bold text-gray-900">{{ item.barge.name }}</td>
+                                <td class="px-3 py-2.5">
+                                    <span v-if="item.barge.config?.orderNo" class="px-2 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-black whitespace-nowrap">
+                                        {{ item.barge.config.orderNo }}
+                                    </span>
+                                    <span v-else class="text-gray-400 italic text-[10px]">-</span>
+                                </td>
+                                <td class="px-3 py-2.5">
+                                    <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black whitespace-nowrap">
+                                        {{ item.vesselName }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2.5 text-gray-700 max-w-[150px] truncate">{{ item.barge.config?.owner || '-' }}</td>
+                                <td class="px-3 py-2.5 text-gray-700 max-w-[150px] truncate">{{ item.barge.config?.operator || '-' }}</td>
+                                <td class="px-3 py-2.5 text-gray-700 max-w-[150px] truncate">{{ item.barge.config?.goods || '-' }}</td>
+                                <td class="px-3 py-2.5 text-center whitespace-nowrap">
+                                    <span 
+                                        v-if="item.barge.config?.customProfileInfo && Object.keys(item.barge.config.customProfileInfo).length > 0" 
+                                        class="px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[9px] font-black"
+                                    >
+                                        +{{ Object.keys(item.barge.config.customProfileInfo).length }} thông số
+                                    </span>
+                                    <span v-else class="text-gray-400 italic text-[10px]">-</span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    <span v-if="item.barge.config?.locked" class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap">
+                                        <span class="material-symbols-outlined text-[11px]">lock</span> Khóa
+                                    </span>
+                                    <span v-else class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap">
+                                        <span class="material-symbols-outlined text-[11px]">lock_open</span> Mở
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2.5 text-center">
+                                    <button 
+                                        @click="openEdit(item)" 
+                                        class="px-3 py-1 bg-[#fcf8f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm"
+                                    >
+                                        Chỉnh sửa
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
