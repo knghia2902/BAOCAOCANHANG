@@ -84,7 +84,6 @@ onMounted(() => {
             
             <div class="flex gap-3 relative z-10 shrink-0">
                 <button 
-                    v-if="authStore.role === 'admin'"
                     @click="navigateToTool('allocator')" 
                     class="h-10 px-5 bg-white text-primary border border-soft-pink font-bold rounded-2xl text-xs hover:bg-soft-rose/10 active:scale-95 transition-all flex items-center gap-2 shadow-sm"
                 >
@@ -167,7 +166,6 @@ onMounted(() => {
 
                 <!-- Utility 2: Phân bổ tải trọng sà lan -->
                 <div 
-                    v-if="authStore.role === 'admin'"
                     @click="navigateToTool('allocator')"
                     class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
