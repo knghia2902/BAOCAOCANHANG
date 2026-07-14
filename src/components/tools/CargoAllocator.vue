@@ -1918,6 +1918,13 @@ onMounted(async () => {
     } catch (e) {
         console.error('Lỗi khi nạp cấu hình:', e);
     }
+    
+    // Xử lý chuyển hướng view con từ Trang chủ
+    const redirectSubView = localStorage.getItem('home_redirect_subview');
+    if (redirectSubView) {
+        activeSubViewMode.value = redirectSubView as any;
+        localStorage.removeItem('home_redirect_subview');
+    }
 });
 
 // Auto-save tickets on change
@@ -3478,7 +3485,7 @@ async function compileAndDownload() {
                             class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-[10px] font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed animate-fade-in"
                         >
                             <span class="material-symbols-outlined text-[14px]">sync</span>
-                            Đồng bộ qua In phiếu
+                            Update
                         </button>
                         <button 
                             @click="saveToHistory"
