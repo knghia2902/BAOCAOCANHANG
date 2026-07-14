@@ -115,23 +115,24 @@ const triggerHeroImageUpload = () => heroInput.value?.click();
 const handleHeroImageUpload = async (e: Event) => {
     const target = e.target as HTMLInputElement;
     if (target.files && target.files[0]) {
-        triggerToast('Uploading magic image... ✨');
+        triggerToast('Uploading image... ⏳');
         const url = await StorageService.uploadImage(target.files[0], 'hero');
         if (url) {
-            contentStore.hero.image = url;
-            contentStore.hero.avatar = url; // Sync with avatar
-            
-            // Sync with currently logged-in primary admin account
-            const { data: currentSettings } = await supabase.from('content').select('settings').eq('id', 'main').single();
-            const settings = currentSettings?.settings || {};
             const currentUser = authStore.user;
-            if (currentUser && currentUser === settings.username) {
+            if (currentUser) {
                 await authService.updateProfile(currentUser, authStore.displayName || '', undefined, url);
                 updateStoreProfile(authStore.displayName || '', url);
             }
             
-            triggerToast('Magic image synced everywhere! 🪄');
-            await ContentService.saveAll();
+            const { data: currentSettings } = await supabase.from('content').select('settings').eq('id', 'main').single();
+            const settings = currentSettings?.settings || {};
+            if (currentUser === settings.username) {
+                contentStore.hero.image = url;
+                contentStore.hero.avatar = url;
+                await ContentService.saveAll();
+            }
+            
+            triggerToast('Profile image updated successfully! ✨');
         }
     }
     target.value = '';
@@ -615,7 +616,7 @@ onMounted(async () => {
                         <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest text-center">Master Profile Image</h3>
                         <div class="flex justify-center p-2">
                              <div class="size-52 blob-shape border-4 border-white shadow-2xl relative overflow-hidden cursor-crosshair group transition-all duration-300"
-                                  :style="{ backgroundImage: `url(${contentStore.hero.image || 'https://ngocanhcute.vercel.app/avatar.jpg'})`, backgroundPosition: `${contentStore.hero.position.x}% ${contentStore.hero.position.y}%`, backgroundSize: 'cover' }"
+                                  :style="{ backgroundImage: `url(${authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))})`, backgroundPosition: `${contentStore.hero.position.x}% ${contentStore.hero.position.y}%`, backgroundSize: 'cover' }"
                                   @mousedown="startDrag" @touchstart="startDrag" @mousemove="onDrag" @touchmove="onDrag" @mouseup="stopDrag" @touchend="stopDrag">
                                  <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                      <span class="material-symbols-outlined text-white text-3xl">open_with</span>

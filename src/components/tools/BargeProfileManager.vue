@@ -276,6 +276,66 @@ function triggerExcelUpload() {
     excelFileInput.value?.click();
 }
 
+async function exportToExcel() {
+    try {
+        addToast('Đang khởi tạo tệp Excel... ⏳', 'info');
+        const ExcelJS = (await import('exceljs')).default;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Danh sách sà lan');
+        
+        worksheet.columns = [
+            { header: 'STT', key: 'stt', width: 8 },
+            { header: 'Tên sà lan', key: 'name', width: 20 },
+            { header: 'Mã lệnh', key: 'orderNo', width: 12 },
+            { header: 'Thuộc Tàu', key: 'vesselName', width: 25 },
+            { header: 'Trọng tải (Tấn)', key: 'tonnage', width: 18 },
+            { header: 'Công suất (HP)', key: 'hp', width: 18 },
+            { header: 'Hồ sơ', key: 'docStatus', width: 12 },
+            { header: 'Thuyền trưởng', key: 'captain', width: 20 },
+            { header: 'Máy trưởng', key: 'chiefEngineer', width: 20 }
+        ];
+
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'A82240' }
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        filteredBarges.value.forEach((item, index) => {
+            const config = item.barge.config || {};
+            worksheet.addRow({
+                stt: index + 1,
+                name: item.barge.name,
+                orderNo: config.orderNo || '',
+                vesselName: item.vesselName,
+                tonnage: config.tonnage || '-',
+                hp: config.hp || '-',
+                docStatus: isDocComplete(config) ? 'ĐỦ' : 'THIẾU',
+                captain: config.captain || '-',
+                chiefEngineer: config.chiefEngineer || '-'
+            });
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DANH_SACH_HO_SO_PHUONG_TIEN_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        addToast('Xuất Excel thành công! 📥', 'success');
+    } catch (e) {
+        console.error('Error exporting excel:', e);
+        addToast('Gặp sự cố khi xuất Excel!', 'error');
+    }
+}
+
 async function handleExcelImport(event: Event) {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
@@ -424,18 +484,20 @@ onMounted(() => {
             <!-- CASE A: Overview Mode (activeBargeId === null) -->
             <div v-if="activeBargeId === null" class="flex-grow flex flex-col min-h-0">
                 <!-- Control Bar -->
-                <div class="border-b border-primary/10 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-                    <div>
-                        <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-2">
-                            <span class="material-symbols-outlined text-lg">local_shipping</span>
-                            Hồ sơ phương tiện sà lan
-                        </h3>
-                        <p class="text-[10px] text-gray-400 font-bold mt-0.5">
-                            Quản lý thông tin cấu hình, thông số đăng kiểm và hồ sơ của tất cả sà lan đang làm hàng.
-                        </p>
+                <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between gap-4 shrink-0">
+                    <!-- Left: Search input -->
+                    <div class="relative w-full max-w-xs">
+                        <span class="material-symbols-outlined text-gray-400 text-sm absolute left-3 top-1/2 -translate-y-1/2 select-none">search</span>
+                        <input 
+                            v-model="searchQuery" 
+                            type="text" 
+                            placeholder="Tìm sà lan, tàu, chủ hàng..." 
+                            class="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
+                        />
                     </div>
                     
-                    <div class="flex items-center gap-2 max-w-md w-full justify-end">
+                    <!-- Right: Excel Actions -->
+                    <div class="flex items-center gap-2 shrink-0">
                         <!-- Excel Import -->
                         <input 
                             type="file" 
@@ -447,21 +509,19 @@ onMounted(() => {
                         <button 
                             @click="triggerExcelUpload"
                             class="h-8 px-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-600/10 shrink-0"
-                            title="Nhap du lieu ho so tu file Excel"
+                            title="Nhập dữ liệu hồ sơ từ file Excel"
                         >
                             <span class="material-symbols-outlined text-sm">upload_file</span>
                             Nhập từ Excel
                         </button>
-
-                        <div class="relative w-full max-w-xs">
-                            <span class="material-symbols-outlined text-gray-400 text-sm absolute left-3 top-2.5">search</span>
-                            <input 
-                                v-model="searchQuery" 
-                                type="text" 
-                                placeholder="Tìm sà lan, tàu, chủ hàng..." 
-                                class="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
-                            />
-                        </div>
+                        <button 
+                            @click="exportToExcel"
+                            class="h-8 px-3.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 shrink-0"
+                            title="Xuất dữ liệu hồ sơ sà lan sang file Excel"
+                        >
+                            <span class="material-symbols-outlined text-sm">download</span>
+                            Xuất Excel
+                        </button>
                     </div>
                 </div>
 
