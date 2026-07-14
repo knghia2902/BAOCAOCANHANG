@@ -75,15 +75,6 @@ const handleSaveProfile = async () => {
 const allowedTools = ref<string[]>([]);
 const loadingTools = ref(true);
 
-const navigateToToolItem = (tab: 'allocator' | 'printer' | 'vehicles') => {
-    const routeMap = {
-        allocator: '/tools/allocator',
-        printer: '/tools/printer',
-        vehicles: '/tools/vehicles'
-    };
-    router.push(routeMap[tab]);
-};
-
 watch(() => route.path, (newPath) => {
     const isWeighbridge = newPath === '/tools';
     (document.documentElement.style as any).zoom = isWeighbridge ? 0.9 : 0.8;
@@ -124,39 +115,7 @@ onUnmounted(() => {
             <span class="material-symbols-outlined text-lg">home</span>
             Home
         </router-link>
-        <div class="relative group" v-if="allowedTools.length > 0">
-          <button class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary flex items-center gap-1 py-1">
-            Tools
-            <span class="material-symbols-outlined text-sm select-none">keyboard_arrow_down</span>
-          </button>
-          
-          <div class="absolute left-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-xl border border-primary/10 py-2 hidden group-hover:block z-50">
-            <button 
-              v-if="allowedTools.includes('allocator')"
-              @click="navigateToToolItem('allocator')" 
-              class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
-            >
-              <span class="material-symbols-outlined text-sm">shuffle</span>
-              Phân bổ tải trọng sà lan
-            </button>
-            <button 
-              v-if="allowedTools.includes('weighbridge')"
-              @click="navigateToToolItem('printer')" 
-              class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
-            >
-              <span class="material-symbols-outlined text-sm">print</span>
-              In phiếu nhanh
-            </button>
-            <button 
-              v-if="allowedTools.includes('vehicles')"
-              @click="navigateToToolItem('vehicles')" 
-              class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
-            >
-              <span class="material-symbols-outlined text-sm">local_shipping</span>
-              Quản lý hồ sơ phương tiện
-            </button>
-          </div>
-        </div>
+        <router-link v-if="allowedTools.length > 0" to="/tools" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
         <router-link to="/about" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">About</router-link>
       </nav>
 
