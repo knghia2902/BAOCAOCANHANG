@@ -72,6 +72,14 @@ const handleSaveProfile = async () => {
     }
 };
 
+const allowedTools = ref<string[]>([]);
+const loadingTools = ref(true);
+
+const navigateToToolItem = (tab: 'allocator' | 'printer' | 'vehicles') => {
+    localStorage.setItem('home_redirect_tab', tab);
+    router.push({ path: '/tools', query: { tool: tab, t: Date.now() } });
+};
+
 watch(() => route.path, (newPath) => {
     const isWeighbridge = newPath === '/tools';
     (document.documentElement.style as any).zoom = isWeighbridge ? 0.9 : 0.8;
@@ -81,6 +89,14 @@ onMounted(async () => {
     // Load all content from Supabase
     await ContentService.loadAll();
     window.addEventListener('click', closeDropdown);
+    
+    // Load staff tools
+    if (authStore.role === 'staff') {
+        allowedTools.value = await ContentService.loadStaffTools();
+    } else {
+        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
+    }
+    loadingTools.value = false;
 });
 
 onUnmounted(() => {
@@ -104,7 +120,39 @@ onUnmounted(() => {
             <span class="material-symbols-outlined text-lg">home</span>
             Home
         </router-link>
-        <router-link to="/tools" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
+        <div class="relative group" v-if="allowedTools.length > 0">
+          <button class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary flex items-center gap-1 py-1">
+            Công cụ
+            <span class="material-symbols-outlined text-sm select-none">keyboard_arrow_down</span>
+          </button>
+          
+          <div class="absolute left-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-xl border border-primary/10 py-2 hidden group-hover:block z-50">
+            <button 
+              v-if="allowedTools.includes('allocator')"
+              @click="navigateToToolItem('allocator')" 
+              class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-sm">shuffle</span>
+              Báo cáo cân hàng
+            </button>
+            <button 
+              v-if="allowedTools.includes('weighbridge')"
+              @click="navigateToToolItem('printer')" 
+              class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-sm">print</span>
+              In Phiếu Cân Xe
+            </button>
+            <button 
+              v-if="allowedTools.includes('vehicles')"
+              @click="navigateToToolItem('vehicles')" 
+              class="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-xs font-bold text-[#4a2c32]/80 hover:text-primary flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-sm">local_shipping</span>
+              Hồ sơ phương tiện
+            </button>
+          </div>
+        </div>
         <router-link to="/about" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">About</router-link>
       </nav>
 

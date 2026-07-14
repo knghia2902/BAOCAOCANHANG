@@ -3,11 +3,14 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { authStore } from '../stores/auth';
 import { WeighbridgeService } from '../services/excel/WeighbridgeService';
+import { ContentService } from '../services/ContentService';
 
 const router = useRouter();
 
 const vessels = ref<any[]>([]);
 const loading = ref(true);
+const allowedTools = ref<string[]>([]);
+const loadingTools = ref(true);
 
 const loadData = async () => {
     try {
@@ -55,11 +58,17 @@ const navigateToTool = (tab: 'allocator' | 'printer' | 'vehicles', subView?: 'al
         localStorage.setItem('home_redirect_barge_id', String(bargeId));
         localStorage.setItem('home_redirect_vessel_id', String(vesselId));
     }
-    router.push('/tools');
+    router.push({ path: '/tools', query: { tool: tab } });
 };
 
-onMounted(() => {
+onMounted(async () => {
     loadData();
+    if (authStore.role === 'staff') {
+        allowedTools.value = await ContentService.loadStaffTools();
+    } else {
+        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
+    }
+    loadingTools.value = false;
 });
 </script>
 
@@ -149,9 +158,10 @@ onMounted(() => {
                 Tiện ích hệ thống
             </h3>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6" v-if="!loadingTools">
                 <!-- Utility 1: In phiếu nhanh -->
                 <div 
+                    v-if="allowedTools.includes('weighbridge')"
                     @click="navigateToTool('printer')"
                     class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
@@ -166,6 +176,7 @@ onMounted(() => {
 
                 <!-- Utility 2: Phân bổ tải trọng sà lan -->
                 <div 
+                    v-if="allowedTools.includes('allocator')"
                     @click="navigateToTool('allocator')"
                     class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
@@ -180,6 +191,7 @@ onMounted(() => {
 
                 <!-- Utility 3: Quản lý hồ sơ phương tiện -->
                 <div 
+                    v-if="allowedTools.includes('vehicles')"
                     @click="navigateToTool('vehicles')"
                     class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >

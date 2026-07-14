@@ -441,6 +441,7 @@ const allTools = [
   { id: 'merger', name: 'Gộp Excel Thông Minh' },
   { id: 'weighbridge', name: 'In Phiếu Cân Xe 🚢' },
   { id: 'allocator', name: 'Báo cáo cân hàng 🚛' },
+  { id: 'vehicles', name: 'Hồ sơ phương tiện sà lan 🚢' },
   { id: 'ocr', name: 'Trích Xuất PDF & OCR' }
 ];
 
@@ -824,7 +825,7 @@ onMounted(async () => {
                             <div class="flex items-center gap-3">
                                 <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
                                     <span class="material-symbols-outlined text-sm">
-                                        {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : 'document_scanner' }}
+                                        {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
                                     </span>
                                 </div>
                                 <span class="font-bold text-xs text-[#4a2c32] group-hover:text-primary transition-colors">{{ t.name }}</span>

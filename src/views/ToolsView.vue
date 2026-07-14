@@ -1,25 +1,64 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
 import CargoAllocator from '../components/tools/CargoAllocator.vue';
 import BargeProfileManager from '../components/tools/BargeProfileManager.vue';
 import { authStore } from '../stores/auth';
+import { ContentService } from '../services/ContentService';
 
 const router = useRouter();
+const route = useRoute();
 const activeTab = ref<'allocator' | 'printer' | 'vehicles'>('allocator');
+const allowedTools = ref<string[]>([]);
+const loadingTools = ref(true);
 
-onMounted(() => {
+const isAllowed = (tab: 'allocator' | 'printer' | 'vehicles') => {
+    const idMap = {
+        allocator: 'allocator',
+        printer: 'weighbridge',
+        vehicles: 'vehicles'
+    };
+    return allowedTools.value.includes(idMap[tab]);
+};
+
+const initTabs = async () => {
+    loadingTools.value = true;
+    if (authStore.role === 'staff') {
+        allowedTools.value = await ContentService.loadStaffTools();
+    } else {
+        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
+    }
+    loadingTools.value = false;
+
     const savedTab = localStorage.getItem('home_redirect_tab') as 'allocator' | 'printer' | 'vehicles' | null;
-    if (savedTab) {
-        activeTab.value = savedTab;
-        localStorage.removeItem('home_redirect_tab');
-    } else if (authStore.role === 'staff') {
-        // Staff goes directly to In phiếu
-        activeTab.value = 'printer';
+    const initialTab = savedTab || (route.query.tool as 'allocator' | 'printer' | 'vehicles' | null);
+    localStorage.removeItem('home_redirect_tab');
+
+    if (initialTab && isAllowed(initialTab)) {
+        activeTab.value = initialTab;
+    } else {
+        if (isAllowed('allocator')) {
+            activeTab.value = 'allocator';
+        } else if (isAllowed('printer')) {
+            activeTab.value = 'printer';
+        } else if (isAllowed('vehicles')) {
+            activeTab.value = 'vehicles';
+        }
+    }
+};
+
+watch(() => route.query.tool, (newTool) => {
+    if (newTool === 'allocator' || newTool === 'printer' || newTool === 'vehicles') {
+        if (isAllowed(newTool)) {
+            activeTab.value = newTool;
+        }
     }
 });
-</script>
+
+onMounted(async () => {
+    await initTabs();
+});</script>
 
 <template>
   <main class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
@@ -40,8 +79,9 @@ onMounted(() => {
       </div>
 
       <!-- Tab Navigation -->
-      <nav class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl">
+      <nav class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl" v-if="!loadingTools">
         <button 
+          v-if="isAllowed('allocator')"
           @click="activeTab = 'allocator'"
           :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'allocator' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
         >
@@ -49,6 +89,7 @@ onMounted(() => {
           Báo cáo cân hàng
         </button>
         <button 
+          v-if="isAllowed('printer')"
           @click="activeTab = 'printer'"
           :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'printer' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
         >
@@ -56,6 +97,7 @@ onMounted(() => {
           In Phiếu Cân Xe
         </button>
         <button 
+          v-if="isAllowed('vehicles')"
           @click="activeTab = 'vehicles'"
           :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'vehicles' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
         >
@@ -82,9 +124,9 @@ onMounted(() => {
     <!-- Workspace contents -->
     <div class="flex-1 overflow-hidden relative bg-cute-gradient">
       <!-- We keep printer active in background using v-show to listen to BroadcastChannel allocator sync notifications -->
-      <CargoAllocator v-show="activeTab === 'allocator'" class="w-full h-full" />
-      <WeighbridgePrinter v-show="activeTab === 'printer'" :hide-card="true" class="w-full h-full" />
-      <BargeProfileManager v-show="activeTab === 'vehicles'" class="w-full h-full" />
+      <CargoAllocator v-if="!loadingTools && isAllowed('allocator')" v-show="activeTab === 'allocator'" class="w-full h-full" />
+      <WeighbridgePrinter v-if="!loadingTools && isAllowed('printer')" v-show="activeTab === 'printer'" :hide-card="true" class="w-full h-full" />
+      <BargeProfileManager v-if="!loadingTools && isAllowed('vehicles')" v-show="activeTab === 'vehicles'" class="w-full h-full" />
     </div>
   </main>
 </template>
