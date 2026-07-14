@@ -44,7 +44,7 @@ const formattedDate = computed(() => {
     return new Date().toLocaleDateString('vi-VN', options);
 });
 
-const navigateToTool = (tab: 'allocator' | 'printer', subView?: 'allocator' | 'vehicles' | 'goods', bargeId?: number, vesselId?: number) => {
+const navigateToTool = (tab: 'allocator' | 'printer' | 'vehicles', subView?: 'allocator' | 'vehicles' | 'goods', bargeId?: number, vesselId?: number) => {
     localStorage.setItem('home_redirect_tab', tab);
     if (subView) {
         localStorage.setItem('home_redirect_subview', subView);
@@ -182,8 +182,7 @@ onMounted(() => {
 
                 <!-- Utility 3: Quản lý hồ sơ phương tiện -->
                 <div 
-                    v-if="authStore.role === 'admin'"
-                    @click="navigateToTool('allocator', 'vehicles')"
+                    @click="navigateToTool('vehicles')"
                     class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
                     <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-soft shrink-0 border border-amber-100">

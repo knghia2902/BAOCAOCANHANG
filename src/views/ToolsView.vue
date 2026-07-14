@@ -6,10 +6,10 @@ import CargoAllocator from '../components/tools/CargoAllocator.vue';
 import { authStore } from '../stores/auth';
 
 const router = useRouter();
-const activeTab = ref<'allocator' | 'printer'>('allocator');
+const activeTab = ref<'allocator' | 'printer' | 'vehicles'>('allocator');
 
 onMounted(() => {
-    const savedTab = localStorage.getItem('home_redirect_tab') as 'allocator' | 'printer' | null;
+    const savedTab = localStorage.getItem('home_redirect_tab') as 'allocator' | 'printer' | 'vehicles' | null;
     if (savedTab) {
         activeTab.value = savedTab;
         localStorage.removeItem('home_redirect_tab');
@@ -41,6 +41,7 @@ onMounted(() => {
       <!-- Tab Navigation -->
       <nav class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl">
         <button 
+          v-if="authStore.role === 'admin'"
           @click="activeTab = 'allocator'"
           :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'allocator' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
         >
@@ -53,6 +54,13 @@ onMounted(() => {
         >
           <span class="material-symbols-outlined text-sm">print</span>
           In Phiếu Cân Xe
+        </button>
+        <button 
+          @click="activeTab = 'vehicles'"
+          :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'vehicles' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
+        >
+          <span class="material-symbols-outlined text-sm">local_shipping</span>
+          Hồ sơ phương tiện
         </button>
       </nav>
       
@@ -76,6 +84,10 @@ onMounted(() => {
       <!-- We keep printer active in background using v-show to listen to BroadcastChannel allocator sync notifications -->
       <CargoAllocator v-show="activeTab === 'allocator'" class="w-full h-full" />
       <WeighbridgePrinter v-show="activeTab === 'printer'" :hide-card="true" class="w-full h-full" />
+      <div v-show="activeTab === 'vehicles'" class="w-full h-full p-8 bg-white overflow-auto flex flex-col justify-center items-center text-gray-400 text-xs italic gap-2">
+          <span class="material-symbols-outlined text-4xl text-gray-300 animate-pulse">local_shipping</span>
+          <span>Nội dung Quản lý hồ sơ phương tiện sẽ được bổ sung sau...</span>
+      </div>
     </div>
   </main>
 </template>
