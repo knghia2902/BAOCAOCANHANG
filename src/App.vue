@@ -76,8 +76,8 @@ const allowedTools = ref<string[]>([]);
 const loadingTools = ref(true);
 
 watch(() => route.path, (newPath) => {
-    const isWeighbridge = newPath === '/tools';
-    (document.documentElement.style as any).zoom = isWeighbridge ? 0.9 : 0.8;
+    const isToolPage = newPath.startsWith('/tools/');
+    (document.documentElement.style as any).zoom = isToolPage ? 0.9 : 0.8;
 }, { immediate: true });
 
 onMounted(async () => {
