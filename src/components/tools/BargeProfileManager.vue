@@ -115,6 +115,7 @@ const isDocComplete = (config: BargeConfig) => {
 
 const formatDateTime = (dtStr?: string) => {
     if (!dtStr) return '-';
+    if (dtStr === 'Vô thời hạn') return 'Vô thời hạn';
     try {
         const parts = dtStr.split('T');
         const firstPart = parts[0];
@@ -312,6 +313,15 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     }));
     
     activeBargeId.value = item.barge.id;
+}
+
+function toggleGcnNoExpiry(e: Event) {
+    const checked = (e.target as HTMLInputElement).checked;
+    if (checked) {
+        editGcnExpiryDate.value = 'Vô thời hạn';
+    } else {
+        editGcnExpiryDate.value = '';
+    }
 }
 
 function addCustomMeta() {
@@ -984,8 +994,25 @@ onMounted(() => {
                                     <input v-model="editGcnIssuedDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạn hiệu lực</label>
-                                    <input v-model="editGcnExpiryDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-[8px] font-bold text-gray-400 uppercase">Hạn hiệu lực</label>
+                                        <label class="flex items-center gap-0.5 text-[8px] font-black text-teal-600 cursor-pointer select-none">
+                                            <input type="checkbox" :checked="editGcnExpiryDate === 'Vô thời hạn'" @change="toggleGcnNoExpiry" class="size-2.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-600" />
+                                            <span>Vô hạn</span>
+                                        </label>
+                                    </div>
+                                    <input 
+                                        v-if="editGcnExpiryDate !== 'Vô thời hạn'"
+                                        v-model="editGcnExpiryDate" 
+                                        type="date" 
+                                        class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" 
+                                    />
+                                    <div 
+                                        v-else 
+                                        class="w-full h-7 px-2 bg-teal-50 border border-teal-200 rounded-lg text-[10px] text-teal-700 font-bold flex items-center justify-center select-none"
+                                    >
+                                        Vô thời hạn
+                                    </div>
                                 </div>
                             </div>
                         </div>
