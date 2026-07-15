@@ -4100,6 +4100,14 @@ onUnmounted(() => {
                                             Thêm xe
                                         </button>
                                         <button v-if="authStore.role === 'admin'"
+                                            @click="fileInput?.click()"
+                                            :disabled="cfgForm.locked"
+                                            class="px-3 py-1.5 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-[10px] flex items-center gap-1 transition-all"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">upload_file</span>
+                                            Nhập Excel
+                                        </button>
+                                        <button v-if="authStore.role === 'admin'"
                                             @click="clearTrucks"
                                             :disabled="cfgForm.locked"
                                             class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-[10px] flex items-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
