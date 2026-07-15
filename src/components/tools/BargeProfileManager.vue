@@ -61,6 +61,8 @@ const editDkImages = ref<string[]>([]);
 const editBhImages = ref<string[]>([]);
 const editCrewImages = ref<string[]>([]);
 
+const previewImageUrl = ref<string | null>(null);
+
 // Custom Metadata fields (for additional barge information)
 interface CustomMeta {
     key: string;
@@ -157,6 +159,21 @@ const parseLocalTime = (timeStr?: string): Date | null => {
         return new Date(1899, 11, 30, hr, min, 0);
     }
     return null;
+};
+
+const checkExpiryStatus = (expiryDateStr?: string): string => {
+    if (!expiryDateStr) return '';
+    if (expiryDateStr === 'Vô thời hạn') return 'CÒN HẠN';
+    const expDate = parseLocalDate(expiryDateStr);
+    if (!expDate) return '';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const compareDate = new Date(expDate);
+    compareDate.setHours(0, 0, 0, 0);
+    
+    return compareDate.getTime() < today.getTime() ? 'HẾT HẠN' : 'CÒN HẠN';
 };
 
 const getExpectedCaptainGrade = (tonnage: number): string => {
@@ -623,138 +640,147 @@ async function exportToExcel() {
             });
         };
         
+        const setCellFill = (cell: any, hexColor: string) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: hexColor }
+            };
+        };
+
+        const clearCellFill = (cell: any) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'none'
+            };
+        };
+
         // Store styles of row 2 from template
         const styleRow1 = getRowStyleTemplate(sheet1.getRow(2));
         const styleRow2 = getRowStyleTemplate(sheet2.getRow(2));
         
         // Populate Sheet 1 (Hồ sơ phương tiện)
-        const maxRow1 = Math.max(sheet1.rowCount, filteredBarges.value.length + 1);
-        for (let rowNum = 2; rowNum <= maxRow1; rowNum++) {
+        filteredBarges.value.forEach((item, index) => {
+            const config = item.barge.config || {} as BargeConfig;
+            const rowNum = index + 2;
             const row = sheet1.getRow(rowNum);
-            const index = rowNum - 2;
-            if (index < filteredBarges.value.length) {
-                const item = filteredBarges.value[index];
-                if (item) {
-                    const config = item.barge.config || {} as BargeConfig;
-                    
-                    row.getCell(1).value = { formula: 'ROW()-1' };
-                    row.getCell(2).value = item.barge.name || '';
-                row.getCell(3).value = typeof config.tonnage === 'number' ? config.tonnage : null;
-                row.getCell(4).value = typeof config.hp === 'number' ? config.hp : null;
-                row.getCell(5).value = config.gcnNo || '';
-                row.getCell(6).value = config.gcnIssuedDate ? parseLocalDate(config.gcnIssuedDate) : null;
-                row.getCell(7).value = config.gcnExpiryDate === 'Vô thời hạn' ? 'Không thời hạn' : (config.gcnExpiryDate ? parseLocalDate(config.gcnExpiryDate) : null);
-                row.getCell(8).value = config.dkNo || '';
-                row.getCell(9).value = config.dkIssuedDate ? parseLocalDate(config.dkIssuedDate) : null;
-                row.getCell(10).value = config.dkExpiryDate ? parseLocalDate(config.dkExpiryDate) : null;
-                row.getCell(11).value = config.bhNo || '';
-                row.getCell(12).value = config.bhIssuedDate ? parseLocalDate(config.bhIssuedDate) : null;
-                row.getCell(13).value = config.bhExpiryDate ? parseLocalDate(config.bhExpiryDate) : null;
-                
-                row.getCell(14).value = { formula: `IF(AND(E${rowNum}<>"",H${rowNum}<>"",K${rowNum}<>""),"ĐỦ","THIẾU")` };
-                row.getCell(15).value = { formula: `IF(G${rowNum}="","",IF(G${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-                row.getCell(16).value = { formula: `IF(J${rowNum}="","",IF(J${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-                row.getCell(17).value = { formula: `IF(M${rowNum}="","",IF(M${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-                
-                row.getCell(18).value = config.captain || '';
-                row.getCell(19).value = { formula: `IF(C${rowNum}>1000,"T1",IF(C${rowNum}>=500,"T2","T3"))` };
-                row.getCell(20).value = config.chiefEngineer || '';
-                row.getCell(21).value = { formula: `IF(D${rowNum}<=250,"M3",IF(D${rowNum}<=1000,"M2","M1"))` };
-                row.getCell(22).value = config.sailors || '';
-                row.getCell(23).value = config.hasCrewBook ? 'Có' : 'Không';
-                row.getCell(24).value = { formula: `IF(AND(R${rowNum}<>"",T${rowNum}<>"",W${rowNum}="Có"),"PHÙ HỢP","KHÔNG PHÙ HỢP")` };
-                row.getCell(25).value = config.khaihethong || '';
-                row.getCell(26).value = config.notes || '';
-                
-                applyRowStyleTemplate(row, styleRow1);
-                }
+            
+            applyRowStyleTemplate(row, styleRow1);
+            
+            row.getCell(1).value = index + 1; // STT
+            row.getCell(2).value = item.barge.name || '';
+            row.getCell(3).value = typeof config.tonnage === 'number' ? config.tonnage : null;
+            row.getCell(4).value = typeof config.hp === 'number' ? config.hp : null;
+            row.getCell(5).value = config.gcnNo || '';
+            row.getCell(6).value = config.gcnIssuedDate ? parseLocalDate(config.gcnIssuedDate) : null;
+            row.getCell(7).value = config.gcnExpiryDate === 'Vô thời hạn' ? 'Không thời hạn' : (config.gcnExpiryDate ? parseLocalDate(config.gcnExpiryDate) : null);
+            row.getCell(8).value = config.dkNo || '';
+            row.getCell(9).value = config.dkIssuedDate ? parseLocalDate(config.dkIssuedDate) : null;
+            row.getCell(10).value = config.dkExpiryDate ? parseLocalDate(config.dkExpiryDate) : null;
+            row.getCell(11).value = config.bhNo || '';
+            row.getCell(12).value = config.bhIssuedDate ? parseLocalDate(config.bhIssuedDate) : null;
+            row.getCell(13).value = config.bhExpiryDate ? parseLocalDate(config.bhExpiryDate) : null;
+            
+            const docStatus = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
+            row.getCell(14).value = docStatus;
+            
+            row.getCell(15).value = checkExpiryStatus(config.gcnExpiryDate);
+            row.getCell(16).value = checkExpiryStatus(config.dkExpiryDate);
+            row.getCell(17).value = checkExpiryStatus(config.bhExpiryDate);
+            
+            row.getCell(18).value = config.captain || '';
+            row.getCell(19).value = getExpectedCaptainGrade(config.tonnage || 0);
+            row.getCell(20).value = config.chiefEngineer || '';
+            row.getCell(21).value = getExpectedChiefEngineerGrade(config.hp || 0);
+            row.getCell(22).value = config.sailors || '';
+            row.getCell(23).value = config.hasCrewBook ? 'Có' : 'Không';
+            
+            const crew = getCrewStatus(config);
+            const crewStatus = crew.status === 'ĐỦ' ? 'PHÙ HỢP' : 'KHÔNG PHÙ HỢP';
+            row.getCell(24).value = crewStatus;
+            
+            row.getCell(25).value = config.khaihethong || '';
+            row.getCell(26).value = config.notes || '';
+            
+            if (docStatus === 'THIẾU') {
+                setCellFill(row.getCell(14), 'FFFF00');
             } else {
-                // Clear input cells, write formulas for extra rows
-                row.getCell(2).value = null;
-                row.getCell(3).value = null;
-                row.getCell(4).value = null;
-                row.getCell(5).value = null;
-                row.getCell(6).value = null;
-                row.getCell(7).value = null;
-                row.getCell(8).value = null;
-                row.getCell(9).value = null;
-                row.getCell(10).value = null;
-                row.getCell(11).value = null;
-                row.getCell(12).value = null;
-                row.getCell(13).value = null;
-                row.getCell(18).value = null;
-                row.getCell(20).value = null;
-                row.getCell(22).value = null;
-                row.getCell(23).value = null;
-                row.getCell(25).value = null;
-                row.getCell(26).value = null;
-                
-                row.getCell(1).value = { formula: 'ROW()-1' };
-                row.getCell(14).value = { formula: `IF(AND(E${rowNum}<>"",H${rowNum}<>"",K${rowNum}<>""),"ĐỦ","THIẾU")` };
-                row.getCell(15).value = { formula: `IF(G${rowNum}="","",IF(G${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-                row.getCell(16).value = { formula: `IF(J${rowNum}="","",IF(J${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-                row.getCell(17).value = { formula: `IF(M${rowNum}="","",IF(M${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-                row.getCell(19).value = { formula: `IF(C${rowNum}>1000,"T1",IF(C${rowNum}>=500,"T2","T3"))` };
-                row.getCell(21).value = { formula: `IF(D${rowNum}<=250,"M3",IF(D${rowNum}<=1000,"M2","M1"))` };
-                row.getCell(24).value = { formula: `IF(AND(R${rowNum}<>"",T${rowNum}<>"",W${rowNum}="Có"),"PHÙ HỢP","KHÔNG PHÙ HỢP")` };
-                
-                applyRowStyleTemplate(row, styleRow1);
+                clearCellFill(row.getCell(14));
+            }
+            if (crewStatus === 'KHÔNG PHÙ HỢP') {
+                setCellFill(row.getCell(24), 'FFFF00');
+            } else {
+                clearCellFill(row.getCell(24));
+            }
+            if (config.khaihethong === 'Không') {
+                setCellFill(row.getCell(25), 'B4C6E7');
+            } else {
+                clearCellFill(row.getCell(25));
             }
             row.commit();
-        }
+        });
         
+        // Delete extra template rows in Sheet 1
+        const rowCount1 = sheet1.rowCount;
+        if (rowCount1 > filteredBarges.value.length + 1) {
+            sheet1.spliceRows(filteredBarges.value.length + 2, rowCount1 - (filteredBarges.value.length + 1));
+        }
+
         // Populate Sheet 2 (Nhật ký vào, rời)
-        const maxRow2 = Math.max(sheet2.rowCount, filteredBarges.value.length + 1);
-        for (let rowNum = 2; rowNum <= maxRow2; rowNum++) {
+        filteredBarges.value.forEach((item, index) => {
+            const config = item.barge.config || {} as BargeConfig;
+            const rowNum = index + 2;
             const row = sheet2.getRow(rowNum);
-            const index = rowNum - 2;
-            if (index < filteredBarges.value.length) {
-                const item = filteredBarges.value[index];
-                if (item) {
-                    const config = item.barge.config || {} as BargeConfig;
-                    
-                    row.getCell(1).value = { formula: 'ROW()-1' };
-                    row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.split('T')[0]) : null;
-                    row.getCell(3).value = config.arrivalTime ? parseLocalTime(config.arrivalTime.split('T')[1]) : null;
-                    row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.split('T')[0]) : null;
-                    row.getCell(5).value = config.departureTime ? parseLocalTime(config.departureTime.split('T')[1]) : null;
-                    row.getCell(6).value = item.barge.name || '';
-                    
-                    // 1. "Số đăng ký" chính là "GCN đăng ký" -> Lấy trực tiếp từ hệ thống
-                    row.getCell(7).value = config.gcnNo || '';
-                    
-                    row.getCell(8).value = config.goods || '';
-                    row.getCell(9).value = config.orderNo || '';
-                    
-                    // 2. "Hồ sơ PT", "Hồ sơ thuyền viên", "Kết quả" lấy trực tiếp từ hệ thống, không dùng công thức
-                    row.getCell(10).value = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
-                    
-                    const crew = getCrewStatus(config);
-                    row.getCell(11).value = crew.status === 'ĐỦ' ? 'PHÙ HỢP' : 'KHÔNG PHÙ HỢP';
-                    
-                    row.getCell(12).value = config.ketluan === "Cho phép" ? "CHO PHÉP" : (config.ketluan === "Không cho phép" ? "KHÔNG CHO PHÉP" : "KHÔNG ĐỦ HỒ SƠ");
-                    
-                    applyRowStyleTemplate(row, styleRow2);
-                }
+            
+            applyRowStyleTemplate(row, styleRow2);
+            
+            row.getCell(1).value = index + 1; // STT
+            row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.split('T')[0]) : null;
+            row.getCell(3).value = config.arrivalTime ? parseLocalTime(config.arrivalTime.split('T')[1]) : null;
+            row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.split('T')[0]) : null;
+            row.getCell(5).value = config.departureTime ? parseLocalTime(config.departureTime.split('T')[1]) : null;
+            row.getCell(6).value = item.barge.name || '';
+            row.getCell(7).value = config.gcnNo || '';
+            row.getCell(8).value = config.goods || '';
+            row.getCell(9).value = config.orderNo || '';
+            
+            const docStatus = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
+            row.getCell(10).value = docStatus;
+            
+            const crew = getCrewStatus(config);
+            const crewStatus = crew.status === 'ĐỦ' ? 'PHÙ HỢP' : 'KHÔNG PHÙ HỢP';
+            row.getCell(11).value = crewStatus;
+            
+            const ketluanVal = config.ketluan === "Cho phép" ? "CHO PHÉP" : (config.ketluan === "Không cho phép" ? "KHÔNG CHO PHÉP" : "KHÔNG ĐỦ HỒ SƠ");
+            row.getCell(12).value = ketluanVal;
+            
+            if (ketluanVal === 'KHÔNG ĐỦ HỒ SƠ') {
+                setCellFill(row.getCell(12), 'FFFF00');
             } else {
-                // Clear input cells, write formulas for extra rows
-                row.getCell(2).value = null;
-                row.getCell(3).value = null;
-                row.getCell(4).value = null;
-                row.getCell(5).value = null;
-                row.getCell(6).value = null;
-                row.getCell(8).value = null;
-                row.getCell(9).value = null;
-                
-                row.getCell(1).value = { formula: 'ROW()-1' };
-                row.getCell(7).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$E:$E),"")` };
-                row.getCell(10).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$N:$N),"")` };
-                row.getCell(11).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$X:$X),"")` };
-                row.getCell(12).value = { formula: `IF(AND(J${rowNum}="Đủ",K${rowNum}="PHÙ HỢP"),"CHO PHÉP","KHÔNG ĐỦ HỒ SƠ")` };
-                
-                applyRowStyleTemplate(row, styleRow2);
+                clearCellFill(row.getCell(12));
             }
             row.commit();
+        });
+
+        // Delete extra template rows in Sheet 2
+        const rowCount2 = sheet2.rowCount;
+        if (rowCount2 > filteredBarges.value.length + 1) {
+            sheet2.spliceRows(filteredBarges.value.length + 2, rowCount2 - (filteredBarges.value.length + 1));
+        }
+
+        // Populate Sheet 3 (Dashboard) with direct values
+        const sheet3 = workbook.getWorksheet('Dashboard');
+        if (sheet3) {
+            const totalDocComplete = filteredBarges.value.filter(item => isDocComplete(item.barge.config || {})).length;
+            const totalDocMissing = filteredBarges.value.length - totalDocComplete;
+            
+            sheet3.getRow(2).getCell(2).value = totalDocComplete;
+            sheet3.getRow(3).getCell(2).value = totalDocMissing;
+            sheet3.getRow(4).getCell(2).value = filteredBarges.value.length;
+            
+            sheet3.getRow(2).commit();
+            sheet3.getRow(3).commit();
+            sheet3.getRow(4).commit();
         }
         
         const buffer = await workbook.xlsx.writeBuffer();
@@ -1032,27 +1058,27 @@ onMounted(() => {
                                                 <div v-if="item.barge.config?.gcnImages?.length" class="mb-1.5">
                                                     <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">GCN Đăng ký</div>
                                                     <div class="space-y-0.5">
-                                                        <a v-for="(img, idx) in item.barge.config.gcnImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                        <button v-for="(img, idx) in item.barge.config.gcnImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
                                                             📄 {{ extractFileName(img) }}
-                                                        </a>
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 
                                                 <div v-if="item.barge.config?.dkImages?.length" class="mb-1.5">
                                                     <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">Đăng kiểm</div>
                                                     <div class="space-y-0.5">
-                                                        <a v-for="(img, idx) in item.barge.config.dkImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                        <button v-for="(img, idx) in item.barge.config.dkImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
                                                             📄 {{ extractFileName(img) }}
-                                                        </a>
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 
                                                 <div v-if="item.barge.config?.bhImages?.length">
                                                     <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">Bảo hiểm</div>
                                                     <div class="space-y-0.5">
-                                                        <a v-for="(img, idx) in item.barge.config.bhImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                        <button v-for="(img, idx) in item.barge.config.bhImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
                                                             📄 {{ extractFileName(img) }}
-                                                        </a>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1080,9 +1106,9 @@ onMounted(() => {
                                             <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1 w-48 bg-white border border-primary/10 rounded-xl shadow-xl p-2.5 z-30 text-left text-[10px] pointer-events-auto">
                                                 <div class="font-black text-primary border-b border-primary/5 pb-1 mb-1.5 uppercase select-none">Hồ sơ Thuyền viên</div>
                                                 <div class="space-y-1">
-                                                    <a v-for="(img, idx) in item.barge.config.crewImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                    <button v-for="(img, idx) in item.barge.config.crewImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
                                                         📄 {{ extractFileName(img) }}
-                                                    </a>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1247,7 +1273,7 @@ onMounted(() => {
                             <!-- Crew File list and Upload -->
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
+                                        <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
                                     <label class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
@@ -1258,9 +1284,9 @@ onMounted(() => {
                                     <div v-for="(img, idx) in editCrewImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
-                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
-                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
-                                            </a>
+                                            <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">visibility</span> Xem
+                                            </button>
                                             <button @click="removeImage(idx, 'crew')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-[10px]">delete</span>
                                             </button>
@@ -1396,9 +1422,9 @@ onMounted(() => {
                                     <div v-for="(img, idx) in editGcnImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
-                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
-                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
-                                            </a>
+                                            <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">visibility</span> Xem
+                                            </button>
                                             <button @click="removeImage(idx, 'gcn')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-[10px]">delete</span>
                                             </button>
@@ -1443,9 +1469,9 @@ onMounted(() => {
                                     <div v-for="(img, idx) in editDkImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
-                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
-                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
-                                            </a>
+                                            <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">visibility</span> Xem
+                                            </button>
                                             <button @click="removeImage(idx, 'dk')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-[10px]">delete</span>
                                             </button>
@@ -1490,9 +1516,9 @@ onMounted(() => {
                                     <div v-for="(img, idx) in editBhImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
-                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
-                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
-                                            </a>
+                                            <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">visibility</span> Xem
+                                            </button>
                                             <button @click="removeImage(idx, 'bh')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-[10px]">delete</span>
                                             </button>
@@ -1548,6 +1574,19 @@ onMounted(() => {
                         <span v-else class="material-symbols-outlined text-sm">save</span>
                         Lưu hồ sơ
                     </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Image Preview Modal -->
+        <div v-if="previewImageUrl" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" @click="previewImageUrl = null">
+            <div class="relative max-w-4xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl p-2.5 flex flex-col items-center animate-scale-up" @click.stop>
+                <button @click="previewImageUrl = null" class="absolute top-4 right-4 size-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+                <img :src="previewImageUrl" class="max-w-full max-h-[80vh] object-contain rounded-2xl" />
+                <div class="mt-2 text-center text-xs font-black text-gray-700 truncate max-w-xs uppercase tracking-wider select-none">
+                    {{ extractFileName(previewImageUrl) }}
                 </div>
             </div>
         </div>
