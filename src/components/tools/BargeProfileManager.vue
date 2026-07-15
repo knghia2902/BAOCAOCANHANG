@@ -667,6 +667,10 @@ async function exportToExcel() {
             
             applyRowStyleTemplate(row, styleRow1);
             
+            for (let c = 5; c <= 13; c++) {
+                clearCellFill(row.getCell(c));
+            }
+            
             row.getCell(1).value = index + 1; // STT
             row.getCell(2).value = item.barge.name || '';
             row.getCell(3).value = typeof config.tonnage === 'number' ? config.tonnage : null;
