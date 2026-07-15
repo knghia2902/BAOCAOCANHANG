@@ -250,6 +250,45 @@ watch(computedExpectedChiefEngineerGrade, (newExpected) => {
     }
 });
 
+const isEditDocComplete = computed(() => {
+    return !!(editGcnNo.value.trim() && editDkNo.value.trim() && editBhNo.value.trim());
+});
+
+const isEditCrewFit = computed(() => {
+    const t = editTonnage.value !== '' ? Number(editTonnage.value) : NaN;
+    const hp = editHp.value !== '' ? Number(editHp.value) : NaN;
+    
+    if (!editCaptain.value.trim()) return false;
+    const expCap = getExpectedCaptainGrade(t);
+    if (expCap) {
+        if (!isCaptainGradeSufficient(editCaptainGrade.value, expCap)) return false;
+    }
+    
+    if (!editChiefEngineer.value.trim()) return false;
+    const expChief = getExpectedChiefEngineerGrade(hp);
+    if (expChief) {
+        if (!isChiefEngineerGradeSufficient(editChiefEngineerGrade.value, expChief)) return false;
+    }
+    
+    if (isSailorRequired(t)) {
+        if (!editSailors.value.trim()) return false;
+    }
+    
+    return true;
+});
+
+watch(
+    [isEditDocComplete, isEditCrewFit],
+    ([docOk, crewOk]) => {
+        if (docOk && crewOk) {
+            editKetluan.value = 'Cho phép';
+        } else {
+            editKetluan.value = 'Không cho phép';
+        }
+    },
+    { immediate: true }
+);
+
 async function loadData() {
     loading.value = true;
     try {
@@ -303,7 +342,14 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     editHasCrewBook.value = config.hasCrewBook || false;
     editArrivalTime.value = config.arrivalTime || '';
     editDepartureTime.value = config.departureTime || '';
-    editKhaiHethong.value = config.khaihethong || '';
+    const rawKhai = config.khaihethong || '';
+    if (rawKhai.toUpperCase() === 'CÓ' || rawKhai.toUpperCase() === 'ĐÃ KHAI') {
+        editKhaiHethong.value = 'Có';
+    } else if (rawKhai.toUpperCase() === 'KHÔNG' || rawKhai.toUpperCase() === 'CHƯA KHAI') {
+        editKhaiHethong.value = 'Không';
+    } else {
+        editKhaiHethong.value = rawKhai;
+    }
     
     // Parse custom metadata
     const customObj = config.customProfileInfo || {};
@@ -389,7 +435,7 @@ async function saveProfile() {
             hasCrewBook: editHasCrewBook.value,
             arrivalTime: editArrivalTime.value,
             departureTime: editDepartureTime.value,
-            khaihethong: editKhaiHethong.value.trim().toUpperCase()
+            khaihethong: editKhaiHethong.value.trim()
         };
         
         if (selectedBarge.value.name !== name) {
@@ -429,8 +475,8 @@ async function exportToExcel() {
             { header: 'Trọng tải (Tấn)', key: 'tonnage', width: 18 },
             { header: 'Thời gian cập', key: 'arrivalTime', width: 20 },
             { header: 'Thời gian rời', key: 'departureTime', width: 20 },
-            { header: 'Đủ hồ sơ', key: 'docStatus', width: 12 },
-            { header: 'Trạng thái thuyền viên', key: 'crewStatus', width: 35 },
+            { header: 'TT Hồ sơ', key: 'docStatus', width: 12 },
+            { header: 'TT Thuyền viên', key: 'crewStatus', width: 35 },
             { header: 'Kết quả', key: 'result', width: 15 },
             { header: 'Khai hệ thống', key: 'systemDeclared', width: 18 }
         ];
@@ -455,7 +501,7 @@ async function exportToExcel() {
                 arrivalTime: config.arrivalTime ? config.arrivalTime.replace('T', ' ') : '-',
                 departureTime: config.departureTime ? config.departureTime.replace('T', ' ') : '-',
                 docStatus: isDocComplete(config) ? 'ĐỦ' : 'THIẾU',
-                crewStatus: crew.status === 'ĐỦ' ? 'ĐỦ' : `THIẾU: ${crew.details}`,
+                crewStatus: crew.status === 'ĐỦ' ? 'Phù hợp' : `Không phù hợp: ${crew.details}`,
                 result: config.ketluan || '-',
                 systemDeclared: config.khaihethong || '-'
             });
@@ -687,8 +733,8 @@ onMounted(() => {
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trọng tải (Tấn)</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian cập</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian rời</th>
-                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Đủ hồ sơ</th>
-                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trạng thái thuyền viên</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">TT Hồ sơ</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">TT Thuyền viên</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Kết quả</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Khai hệ thống</th>
                                     <th class="px-3 py-2.5 text-center w-28 bg-gray-50 sticky top-0 z-10">Thao tác</th>
@@ -733,26 +779,25 @@ onMounted(() => {
                                             class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap cursor-help"
                                             :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">how_to_reg</span> ĐỦ
+                                            <span class="material-symbols-outlined text-[11px]">how_to_reg</span> Phù hợp
                                         </span>
                                         <span 
                                             v-else 
                                             class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap cursor-help"
                                             :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">person_off</span> THIẾU
+                                            <span class="material-symbols-outlined text-[11px]">person_off</span> Không phù hợp
                                         </span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="item.barge.config?.ketluan === 'ĐẠT'" class="inline-flex px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-[10px] font-black">ĐẠT</span>
-                                        <span v-else-if="item.barge.config?.ketluan === 'KHÔNG ĐẠT'" class="inline-flex px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-black">KHÔNG ĐẠT</span>
-                                        <span v-else-if="item.barge.config?.ketluan === 'ĐANG CHỜ'" class="inline-flex px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[10px] font-black">ĐANG CHỜ</span>
+                                        <span v-if="item.barge.config?.ketluan === 'Cho phép'" class="inline-flex px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-[10px] font-black">Cho phép</span>
+                                        <span v-else-if="item.barge.config?.ketluan === 'Không cho phép'" class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-black">Không cho phép</span>
                                         <span v-else-if="item.barge.config?.ketluan" class="text-gray-700 font-semibold">{{ item.barge.config.ketluan }}</span>
                                         <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="item.barge.config?.khaihethong === 'ĐÃ KHAI'" class="inline-flex px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[10px] font-black">ĐÃ KHAI</span>
-                                        <span v-else-if="item.barge.config?.khaihethong === 'CHƯA KHAI'" class="inline-flex px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[10px] font-black">CHƯA KHAI</span>
+                                        <span v-if="item.barge.config?.khaihethong === 'Có'" class="inline-flex px-2.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[10px] font-black">Có</span>
+                                        <span v-else-if="item.barge.config?.khaihethong === 'Không'" class="inline-flex px-2.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[10px] font-black">Không</span>
                                         <span v-else-if="item.barge.config?.khaihethong" class="text-gray-700 font-semibold">{{ item.barge.config.khaihethong }}</span>
                                         <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                     </td>
@@ -931,19 +976,17 @@ onMounted(() => {
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Kết quả</label>
-                                    <select v-model="editKetluan" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer">
-                                        <option value="">- Chọn kết quả -</option>
-                                        <option value="ĐẠT">ĐẠT</option>
-                                        <option value="KHÔNG ĐẠT">KHÔNG ĐẠT</option>
-                                        <option value="ĐANG CHỜ">ĐANG CHỜ</option>
+                                    <select v-model="editKetluan" disabled class="w-full h-8 px-2 text-xs bg-gray-100 border border-gray-200 rounded-lg text-[#4a2c32] cursor-not-allowed font-black">
+                                        <option value="Cho phép">Cho phép</option>
+                                        <option value="Không cho phép">Không cho phép</option>
                                     </select>
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Khai hệ thống</label>
-                                    <select v-model="editKhaiHethong" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer">
-                                        <option value="">- Chọn trạng thái -</option>
-                                        <option value="ĐÃ KHAI">ĐÃ KHAI</option>
-                                        <option value="CHƯA KHAI">CHƯA KHAI</option>
+                                    <select v-model="editKhaiHethong" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer font-bold">
+                                        <option value="">- Chọn -</option>
+                                        <option value="Có">Có</option>
+                                        <option value="Không">Không</option>
                                     </select>
                                 </div>
                             </div>
