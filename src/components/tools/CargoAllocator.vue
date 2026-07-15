@@ -520,13 +520,15 @@ function parseCSVText(text: string): CSVRecord[] {
 }
 
 // Normalize plate numbers to compare easily
-function normalizePlate(plate: string): string {
+function normalizePlate(plate: string | null | undefined): string {
+    if (!plate) return '';
     return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 // Format plate numbers to standard display: e.g. "61H-16907"
-function formatPlate(plate: string): string {
-    let clean = plate.trim().toUpperCase().replace(/\s+/g, '');
+function formatPlate(plate: string | null | undefined): string {
+    if (!plate) return '';
+    let clean = String(plate).trim().toUpperCase().replace(/\s+/g, '');
     
     // If it already contains a slash, extract the main plate number and existing mooc
     let mainPlate = clean;
@@ -2487,7 +2489,7 @@ async function triggerManualSyncToPrinter() {
     }
     await saveTicketsToSupabase();
     syncChannel.postMessage({ type: 'manual_sync_request' });
-    addToast('Đang tiến hành đồng bộ theo mã lệnh qua In phiếu cân...', 'info');
+    addToast('Đồng bộ dữ liệu thành công! Bản phân bổ đã được lưu lên đám mây và sẽ tự động cập nhật khi bạn mở trang In phiếu nhanh.', 'success');
 }
 
 // Save generated temporary trips into history

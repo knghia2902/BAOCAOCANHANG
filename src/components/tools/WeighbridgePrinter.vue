@@ -2388,10 +2388,27 @@ function isBargeMatch(trip: any, barge: Barge): boolean {
     return false;
 }
 
-// Auto-sync allocator trips for all barges of loaded vessels
 async function autoSyncAllBarges(isManual = false) {
     try {
-        const allocatorTrips = await dbContext.get<any[]>('allocator_generated_trips') || [];
+        let allocatorTrips: any[] = [];
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+                
+            if (!fetchError && data?.settings) {
+                allocatorTrips = data.settings.allocator_generated_trips || [];
+                await dbContext.set('allocator_generated_trips', allocatorTrips);
+            } else {
+                allocatorTrips = await dbContext.get<any[]>('allocator_generated_trips') || [];
+            }
+        } catch (dbErr) {
+            console.error('Lỗi khi truy xuất dữ liệu đồng bộ:', dbErr);
+            allocatorTrips = await dbContext.get<any[]>('allocator_generated_trips') || [];
+        }
+
         if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
             if (isManual) {
                 const emptyMsg = 'Không tìm thấy chuyến xe nào trong Báo cáo phân bổ để đồng bộ!';
@@ -3383,6 +3400,11 @@ onMounted(async () => {
     }
 
     loadGlobalGoods();
+    try {
+        await autoSyncAllBarges(false);
+    } catch (e) {
+        console.error('Lỗi khi tự động đồng bộ khi mở trang in phiếu:', e);
+    }
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
