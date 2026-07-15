@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { WeighbridgeService, type Vessel, type Barge, type BargeConfig } from '@/services/excel/WeighbridgeService';
+import { StorageService } from '@/services/storage/StorageService';
 import { useToast } from '@/composables/useToast';
 
 const { addToast } = useToast();
@@ -55,6 +56,10 @@ const editHasCrewBook = ref(false);
 const editArrivalTime = ref('');
 const editDepartureTime = ref('');
 const editKhaiHethong = ref('');
+const editGcnImages = ref<string[]>([]);
+const editDkImages = ref<string[]>([]);
+const editBhImages = ref<string[]>([]);
+const editCrewImages = ref<string[]>([]);
 
 // Custom Metadata fields (for additional barge information)
 interface CustomMeta {
@@ -358,6 +363,11 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
         value: String(value)
     }));
     
+    editGcnImages.value = Array.isArray(config.gcnImages) ? [...config.gcnImages] : [];
+    editDkImages.value = Array.isArray(config.dkImages) ? [...config.dkImages] : [];
+    editBhImages.value = Array.isArray(config.bhImages) ? [...config.bhImages] : [];
+    editCrewImages.value = Array.isArray(config.crewImages) ? [...config.crewImages] : [];
+    
     activeBargeId.value = item.barge.id;
 }
 
@@ -368,6 +378,77 @@ function toggleGcnNoExpiry(e: Event) {
     } else {
         editGcnExpiryDate.value = '';
     }
+}
+
+async function handleImageUpload(e: Event, type: 'gcn' | 'dk' | 'bh' | 'crew') {
+    const target = e.target as HTMLInputElement;
+    if (!target.files || target.files.length === 0) return;
+    
+    addToast('Đang tải hình ảnh lên... ⏳', 'info');
+    
+    const file = target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+        addToast('Dung lượng ảnh vượt quá 5MB. Vui lòng chọn tệp nhỏ hơn!', 'error');
+        target.value = '';
+        return;
+    }
+    
+    const folder = `barge-profiles/${type}`;
+    const url = await StorageService.uploadImage(file, folder);
+    
+    if (url) {
+        if (type === 'gcn') editGcnImages.value.push(url);
+        else if (type === 'dk') editDkImages.value.push(url);
+        else if (type === 'bh') editBhImages.value.push(url);
+        else if (type === 'crew') editCrewImages.value.push(url);
+        addToast('Tải ảnh lên thành công!', 'success');
+    } else {
+        addToast('Lỗi khi tải ảnh lên!', 'error');
+    }
+    
+    target.value = '';
+}
+
+async function removeImage(index: number, type: 'gcn' | 'dk' | 'bh' | 'crew') {
+    let urlToDelete = '';
+    if (type === 'gcn') {
+        urlToDelete = editGcnImages.value[index] || '';
+        editGcnImages.value.splice(index, 1);
+    } else if (type === 'dk') {
+        urlToDelete = editDkImages.value[index] || '';
+        editDkImages.value.splice(index, 1);
+    } else if (type === 'bh') {
+        urlToDelete = editBhImages.value[index] || '';
+        editBhImages.value.splice(index, 1);
+    } else if (type === 'crew') {
+        urlToDelete = editCrewImages.value[index] || '';
+        editCrewImages.value.splice(index, 1);
+    }
+    
+    if (urlToDelete) {
+        StorageService.deleteImage(urlToDelete).then(ok => {
+            if (ok) console.log('Deleted file from storage:', urlToDelete);
+        });
+    }
+    addToast('Đã xóa hình ảnh!', 'success');
+}
+
+function extractFileName(url: string): string {
+    if (!url) return '';
+    try {
+        const parts = url.split('/');
+        const lastPart = parts[parts.length - 1];
+        if (lastPart) {
+            const nameParts = lastPart.split('_');
+            if (nameParts.length > 1) {
+                return decodeURIComponent(nameParts.slice(1).join('_'));
+            }
+            return decodeURIComponent(lastPart);
+        }
+    } catch (e) {}
+    return 'image.png';
 }
 
 function addCustomMeta() {
@@ -435,7 +516,11 @@ async function saveProfile() {
             hasCrewBook: editHasCrewBook.value,
             arrivalTime: editArrivalTime.value,
             departureTime: editDepartureTime.value,
-            khaihethong: editKhaiHethong.value.trim()
+            khaihethong: editKhaiHethong.value.trim(),
+            gcnImages: [...editGcnImages.value],
+            dkImages: [...editDkImages.value],
+            bhImages: [...editBhImages.value],
+            crewImages: [...editCrewImages.value]
         };
         
         if (selectedBarge.value.name !== name) {
@@ -772,6 +857,41 @@ onMounted(() => {
                                         >
                                             <span class="material-symbols-outlined text-[11px]">warning</span> THIẾU
                                         </span>
+
+                                        <!-- GCN, DK, BH attachment popover -->
+                                        <div v-if="(item.barge.config?.gcnImages?.length || 0) + (item.barge.config?.dkImages?.length || 0) + (item.barge.config?.bhImages?.length || 0) > 0" class="relative group inline-block ml-1 align-middle">
+                                            <span class="material-symbols-outlined text-[13px] text-gray-400 hover:text-primary cursor-pointer select-none">attach_file</span>
+                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1 w-48 bg-white border border-primary/10 rounded-xl shadow-xl p-2.5 z-30 text-left text-[10px] pointer-events-auto">
+                                                <div class="font-black text-primary border-b border-primary/5 pb-1 mb-1.5 uppercase select-none">Tệp đính kèm</div>
+                                                
+                                                <div v-if="item.barge.config?.gcnImages?.length" class="mb-1.5">
+                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">GCN Đăng ký</div>
+                                                    <div class="space-y-0.5">
+                                                        <a v-for="(img, idx) in item.barge.config.gcnImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                            📄 {{ extractFileName(img) }}
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div v-if="item.barge.config?.dkImages?.length" class="mb-1.5">
+                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">Đăng kiểm</div>
+                                                    <div class="space-y-0.5">
+                                                        <a v-for="(img, idx) in item.barge.config.dkImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                            📄 {{ extractFileName(img) }}
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div v-if="item.barge.config?.bhImages?.length">
+                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">Bảo hiểm</div>
+                                                    <div class="space-y-0.5">
+                                                        <a v-for="(img, idx) in item.barge.config.bhImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                            📄 {{ extractFileName(img) }}
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
                                         <span 
@@ -788,6 +908,19 @@ onMounted(() => {
                                         >
                                             <span class="material-symbols-outlined text-[11px]">person_off</span> Không phù hợp
                                         </span>
+
+                                        <!-- Crew attachment popover -->
+                                        <div v-if="item.barge.config?.crewImages?.length" class="relative group inline-block ml-1 align-middle">
+                                            <span class="material-symbols-outlined text-[13px] text-gray-400 hover:text-primary cursor-pointer select-none">attach_file</span>
+                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1 w-48 bg-white border border-primary/10 rounded-xl shadow-xl p-2.5 z-30 text-left text-[10px] pointer-events-auto">
+                                                <div class="font-black text-primary border-b border-primary/5 pb-1 mb-1.5 uppercase select-none">Hồ sơ Thuyền viên</div>
+                                                <div class="space-y-1">
+                                                    <a v-for="(img, idx) in item.barge.config.crewImages" :key="idx" :href="img" target="_blank" class="block text-teal-600 hover:underline truncate font-medium">
+                                                        📄 {{ extractFileName(img) }}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
                                         <span v-if="item.barge.config?.ketluan === 'Cho phép'" class="inline-flex px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-[10px] font-black">Cho phép</span>
@@ -945,6 +1078,31 @@ onMounted(() => {
                                     Có sổ danh bạ thuyền viên
                                 </label>
                             </div>
+
+                            <!-- Crew File list and Upload -->
+                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
+                                    <label class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                        <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
+                                        Tải ảnh
+                                        <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'crew')" class="hidden" />
+                                    </label>
+                                </div>
+                                <div v-if="editCrewImages.length > 0" class="space-y-1">
+                                    <div v-for="(img, idx) in editCrewImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                        <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
+                                            </a>
+                                            <button @click="removeImage(idx, 'crew')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                                <span class="material-symbols-outlined text-[10px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Arrival / Departure movement -->
@@ -1058,6 +1216,31 @@ onMounted(() => {
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- GCN File list and Upload -->
+                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editGcnImages.length }})</span>
+                                    <label class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                        <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
+                                        Tải ảnh
+                                        <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'gcn')" class="hidden" />
+                                    </label>
+                                </div>
+                                <div v-if="editGcnImages.length > 0" class="space-y-1">
+                                    <div v-for="(img, idx) in editGcnImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                        <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
+                                            </a>
+                                            <button @click="removeImage(idx, 'gcn')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                                <span class="material-symbols-outlined text-[10px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Đăng kiểm Group -->
@@ -1080,6 +1263,31 @@ onMounted(() => {
                                     <input v-model="editDkExpiryDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
                                 </div>
                             </div>
+
+                            <!-- Đăng kiểm File list and Upload -->
+                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editDkImages.length }})</span>
+                                    <label class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                        <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
+                                        Tải ảnh
+                                        <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'dk')" class="hidden" />
+                                    </label>
+                                </div>
+                                <div v-if="editDkImages.length > 0" class="space-y-1">
+                                    <div v-for="(img, idx) in editDkImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                        <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
+                                            </a>
+                                            <button @click="removeImage(idx, 'dk')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                                <span class="material-symbols-outlined text-[10px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Bảo hiểm Group -->
@@ -1100,6 +1308,31 @@ onMounted(() => {
                                 <div class="space-y-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Hạn bảo hiểm</label>
                                     <input v-model="editBhExpiryDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+
+                            <!-- Bảo hiểm File list and Upload -->
+                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editBhImages.length }})</span>
+                                    <label class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                        <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
+                                        Tải ảnh
+                                        <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'bh')" class="hidden" />
+                                    </label>
+                                </div>
+                                <div v-if="editBhImages.length > 0" class="space-y-1">
+                                    <div v-for="(img, idx) in editBhImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                        <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <a :href="img" target="_blank" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
+                                                <span class="material-symbols-outlined text-[10px]">open_in_new</span> Xem
+                                            </a>
+                                            <button @click="removeImage(idx, 'bh')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                                <span class="material-symbols-outlined text-[10px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
