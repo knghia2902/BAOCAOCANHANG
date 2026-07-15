@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { WeighbridgeService, type Vessel, type Barge, type BargeConfig } from '@/services/excel/WeighbridgeService';
 import { useToast } from '@/composables/useToast';
 
@@ -54,6 +54,7 @@ const editSailors = ref('');
 const editHasCrewBook = ref(false);
 const editArrivalTime = ref('');
 const editDepartureTime = ref('');
+const editKhaiHethong = ref('');
 
 // Custom Metadata fields (for additional barge information)
 interface CustomMeta {
@@ -112,15 +113,141 @@ const isDocComplete = (config: BargeConfig) => {
     return !!(config.gcnNo && config.dkNo && config.bhNo);
 };
 
-const getGcnStatus = (config: BargeConfig) => {
-    if (!config.gcnExpiryDate) return '-';
-    const expiry = new Date(config.gcnExpiryDate);
-    if (isNaN(expiry.getTime())) return '-';
-    
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const today = new Date(todayStr);
-    return expiry < today ? 'HET HAN' : 'CON HAN';
+const formatDateTime = (dtStr?: string) => {
+    if (!dtStr) return '-';
+    try {
+        const parts = dtStr.split('T');
+        const firstPart = parts[0];
+        if (firstPart) {
+            const dateParts = firstPart.split('-');
+            const timeStr = parts[1] || '';
+            if (dateParts.length === 3) {
+                return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${timeStr}`;
+            }
+        }
+    } catch (e) {}
+    return dtStr.replace('T', ' ');
 };
+
+const getExpectedCaptainGrade = (tonnage: number): string => {
+    if (isNaN(tonnage) || tonnage <= 0) return '';
+    if (tonnage > 1000) return 'T1';
+    if (tonnage >= 500) return 'T2';
+    return 'T3';
+};
+
+const getExpectedChiefEngineerGrade = (hp: number): string => {
+    if (isNaN(hp) || hp <= 0) return '';
+    if (hp <= 250) return 'M3';
+    if (hp <= 1000) return 'M2';
+    return 'M1';
+};
+
+const isSailorRequired = (tonnage: number): boolean => {
+    return !isNaN(tonnage) && tonnage >= 500;
+};
+
+const isCaptainGradeSufficient = (entered: string, expected: string): boolean => {
+    if (!expected) return true;
+    if (!entered) return false;
+    const enteredNorm = entered.trim().toUpperCase();
+    const expectedNorm = expected.trim().toUpperCase();
+    
+    const grades = ['T3', 'T2', 'T1'];
+    const enteredIdx = grades.indexOf(enteredNorm);
+    const expectedIdx = grades.indexOf(expectedNorm);
+    
+    if (enteredIdx === -1) {
+        if (expectedNorm === 'T3') return true;
+        if (expectedNorm === 'T2') return enteredNorm === 'T2' || enteredNorm === 'T1' || enteredNorm.includes('T2') || enteredNorm.includes('T1') || enteredNorm.includes('HANG 2') || enteredNorm.includes('HẠNG 2') || enteredNorm.includes('HANG 1') || enteredNorm.includes('HẠNG 1');
+        if (expectedNorm === 'T1') return enteredNorm === 'T1' || enteredNorm.includes('T1') || enteredNorm.includes('HANG 1') || enteredNorm.includes('HẠNG 1');
+        return false;
+    }
+    return enteredIdx >= expectedIdx;
+};
+
+const isChiefEngineerGradeSufficient = (entered: string, expected: string): boolean => {
+    if (!expected) return true;
+    if (!entered) return false;
+    const enteredNorm = entered.trim().toUpperCase();
+    const expectedNorm = expected.trim().toUpperCase();
+    
+    const grades = ['M3', 'M2', 'M1'];
+    const enteredIdx = grades.indexOf(enteredNorm);
+    const expectedIdx = grades.indexOf(expectedNorm);
+    
+    if (enteredIdx === -1) {
+        if (expectedNorm === 'M3') return true;
+        if (expectedNorm === 'M2') return enteredNorm === 'M2' || enteredNorm === 'M1' || enteredNorm.includes('M2') || enteredNorm.includes('M1') || enteredNorm.includes('HANG 2') || enteredNorm.includes('HẠNG 2') || enteredNorm.includes('HANG 1') || enteredNorm.includes('HẠNG 1');
+        if (expectedNorm === 'M1') return enteredNorm === 'M1' || enteredNorm.includes('M1') || enteredNorm.includes('HANG 1') || enteredNorm.includes('HẠNG 1');
+        return false;
+    }
+    return enteredIdx >= expectedIdx;
+};
+
+const getCrewStatus = (config: BargeConfig): { status: 'ĐỦ' | 'THIẾU'; details: string } => {
+    const t = config.tonnage !== undefined ? Number(config.tonnage) : NaN;
+    const hp = config.hp !== undefined ? Number(config.hp) : NaN;
+    
+    if (!config.captain || !config.captain.trim()) {
+        return { status: 'THIẾU', details: 'Thiếu Thuyền trưởng' };
+    }
+    
+    const expCap = getExpectedCaptainGrade(t);
+    if (expCap) {
+        const enteredCap = config.captainGrade || '';
+        if (!isCaptainGradeSufficient(enteredCap, expCap)) {
+            return { status: 'THIẾU', details: `Hạng Thuyền trưởng < ${expCap}` };
+        }
+    }
+    
+    if (!config.chiefEngineer || !config.chiefEngineer.trim()) {
+        return { status: 'THIẾU', details: 'Thiếu Máy trưởng' };
+    }
+    
+    const expChief = getExpectedChiefEngineerGrade(hp);
+    if (expChief) {
+        const enteredChief = config.chiefEngineerGrade || '';
+        if (!isChiefEngineerGradeSufficient(enteredChief, expChief)) {
+            return { status: 'THIẾU', details: `Hạng Máy trưởng < ${expChief}` };
+        }
+    }
+    
+    if (isSailorRequired(t)) {
+        if (!config.sailors || !config.sailors.trim()) {
+            return { status: 'THIẾU', details: 'Yêu cầu có Thủy thủ' };
+        }
+    }
+    
+    return { status: 'ĐỦ', details: 'Hợp lệ' };
+};
+
+const computedExpectedCaptainGrade = computed(() => {
+    const t = Number(editTonnage.value);
+    return getExpectedCaptainGrade(t);
+});
+
+const computedExpectedChiefEngineerGrade = computed(() => {
+    const hp = Number(editHp.value);
+    return getExpectedChiefEngineerGrade(hp);
+});
+
+const isComputedSailorRequired = computed(() => {
+    const t = Number(editTonnage.value);
+    return isSailorRequired(t);
+});
+
+watch(computedExpectedCaptainGrade, (newExpected) => {
+    if (newExpected && !editCaptainGrade.value) {
+        editCaptainGrade.value = newExpected;
+    }
+});
+
+watch(computedExpectedChiefEngineerGrade, (newExpected) => {
+    if (newExpected && !editChiefEngineerGrade.value) {
+        editChiefEngineerGrade.value = newExpected;
+    }
+});
 
 async function loadData() {
     loading.value = true;
@@ -175,6 +302,7 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     editHasCrewBook.value = config.hasCrewBook || false;
     editArrivalTime.value = config.arrivalTime || '';
     editDepartureTime.value = config.departureTime || '';
+    editKhaiHethong.value = config.khaihethong || '';
     
     // Parse custom metadata
     const customObj = config.customProfileInfo || {};
@@ -250,7 +378,8 @@ async function saveProfile() {
             sailors: editSailors.value.trim(),
             hasCrewBook: editHasCrewBook.value,
             arrivalTime: editArrivalTime.value,
-            departureTime: editDepartureTime.value
+            departureTime: editDepartureTime.value,
+            khaihethong: editKhaiHethong.value.trim().toUpperCase()
         };
         
         if (selectedBarge.value.name !== name) {
@@ -286,13 +415,14 @@ async function exportToExcel() {
         worksheet.columns = [
             { header: 'STT', key: 'stt', width: 8 },
             { header: 'Tên sà lan', key: 'name', width: 20 },
-            { header: 'Mã lệnh', key: 'orderNo', width: 12 },
-            { header: 'Thuộc Tàu', key: 'vesselName', width: 25 },
+            { header: 'Số lệnh', key: 'orderNo', width: 12 },
             { header: 'Trọng tải (Tấn)', key: 'tonnage', width: 18 },
-            { header: 'Công suất (HP)', key: 'hp', width: 18 },
-            { header: 'Hồ sơ', key: 'docStatus', width: 12 },
-            { header: 'Thuyền trưởng', key: 'captain', width: 20 },
-            { header: 'Máy trưởng', key: 'chiefEngineer', width: 20 }
+            { header: 'Thời gian cập', key: 'arrivalTime', width: 20 },
+            { header: 'Thời gian rời', key: 'departureTime', width: 20 },
+            { header: 'Đủ hồ sơ', key: 'docStatus', width: 12 },
+            { header: 'Trạng thái thuyền viên', key: 'crewStatus', width: 35 },
+            { header: 'Kết quả', key: 'result', width: 15 },
+            { header: 'Khai hệ thống', key: 'systemDeclared', width: 18 }
         ];
 
         const headerRow = worksheet.getRow(1);
@@ -306,16 +436,18 @@ async function exportToExcel() {
 
         filteredBarges.value.forEach((item, index) => {
             const config = item.barge.config || {};
+            const crew = getCrewStatus(config);
             worksheet.addRow({
                 stt: index + 1,
                 name: item.barge.name,
                 orderNo: config.orderNo || '',
-                vesselName: item.vesselName,
-                tonnage: config.tonnage || '-',
-                hp: config.hp || '-',
+                tonnage: config.tonnage !== undefined ? config.tonnage : '-',
+                arrivalTime: config.arrivalTime ? config.arrivalTime.replace('T', ' ') : '-',
+                departureTime: config.departureTime ? config.departureTime.replace('T', ' ') : '-',
                 docStatus: isDocComplete(config) ? 'ĐỦ' : 'THIẾU',
-                captain: config.captain || '-',
-                chiefEngineer: config.chiefEngineer || '-'
+                crewStatus: crew.status === 'ĐỦ' ? 'ĐỦ' : `THIẾU: ${crew.details}`,
+                result: config.ketluan || '-',
+                systemDeclared: config.khaihethong || '-'
             });
         });
 
@@ -538,16 +670,18 @@ onMounted(() => {
                     <div v-else class="flex-grow overflow-auto rounded-[16px] border border-gray-100 min-h-0">
                         <table class="w-full text-left border-collapse text-xs font-semibold">
                             <thead>
-                                <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold sticky top-0 z-10">
-                                    <th class="px-3 py-2.5 w-12 text-center bg-gray-50">STT</th>
-                                    <th class="px-3 py-2.5 bg-gray-50">Tên sà lan</th>
-                                    <th class="px-3 py-2.5 bg-gray-50">Mã lệnh</th>
-                                    <th class="px-3 py-2.5 bg-gray-50">Thuộc Tàu</th>
-                                    <th class="px-3 py-2.5 text-center bg-gray-50">Trọng tải (Tấn)</th>
-                                    <th class="px-3 py-2.5 text-center bg-gray-50">Công suất (HP)</th>
-                                    <th class="px-3 py-2.5 text-center bg-gray-50">Đủ hồ sơ</th>
-                                    <th class="px-3 py-2.5 text-center bg-gray-50">Trạng thái GCN</th>
-                                    <th class="px-3 py-2.5 text-center w-28 bg-gray-50">Thao tác</th>
+                                <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
+                                    <th class="px-3 py-2.5 w-12 text-center bg-gray-50 sticky top-0 z-10">STT</th>
+                                    <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Tên sà lan</th>
+                                    <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Số lệnh</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trọng tải (Tấn)</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian cập</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian rời</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Đủ hồ sơ</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trạng thái thuyền viên</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Kết quả</th>
+                                    <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Khai hệ thống</th>
+                                    <th class="px-3 py-2.5 text-center w-28 bg-gray-50 sticky top-0 z-10">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
@@ -560,16 +694,14 @@ onMounted(() => {
                                         </span>
                                         <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                     </td>
-                                    <td class="px-3 py-2.5">
-                                        <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black whitespace-nowrap">
-                                            {{ item.vesselName }}
-                                        </span>
-                                    </td>
                                     <td class="px-3 py-2.5 text-center text-gray-700">
                                         {{ item.barge.config?.tonnage !== undefined ? item.barge.config.tonnage.toLocaleString() : '-' }}
                                     </td>
                                     <td class="px-3 py-2.5 text-center text-gray-700">
-                                        {{ item.barge.config?.hp !== undefined ? item.barge.config.hp.toLocaleString() : '-' }}
+                                        {{ formatDateTime(item.barge.config?.arrivalTime) }}
+                                    </td>
+                                    <td class="px-3 py-2.5 text-center text-gray-700">
+                                        {{ formatDateTime(item.barge.config?.departureTime) }}
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
                                         <span 
@@ -587,17 +719,31 @@ onMounted(() => {
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
                                         <span 
-                                            v-if="getGcnStatus(item.barge.config || {}) === 'CON HAN'" 
-                                            class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
+                                            v-if="getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" 
+                                            class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap cursor-help"
+                                            :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            CÒN HẠN
+                                            <span class="material-symbols-outlined text-[11px]">how_to_reg</span> ĐỦ
                                         </span>
                                         <span 
-                                            v-else-if="getGcnStatus(item.barge.config || {}) === 'HET HAN'" 
-                                            class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
+                                            v-else 
+                                            class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap cursor-help"
+                                            :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            HẾT HẠN
+                                            <span class="material-symbols-outlined text-[11px]">person_off</span> THIẾU
                                         </span>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-center">
+                                        <span v-if="item.barge.config?.ketluan === 'ĐẠT'" class="inline-flex px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-[10px] font-black">ĐẠT</span>
+                                        <span v-else-if="item.barge.config?.ketluan === 'KHÔNG ĐẠT'" class="inline-flex px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-black">KHÔNG ĐẠT</span>
+                                        <span v-else-if="item.barge.config?.ketluan === 'ĐANG CHỜ'" class="inline-flex px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[10px] font-black">ĐANG CHỜ</span>
+                                        <span v-else-if="item.barge.config?.ketluan" class="text-gray-700 font-semibold">{{ item.barge.config.ketluan }}</span>
+                                        <span v-else class="text-gray-400 italic text-[10px]">-</span>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-center">
+                                        <span v-if="item.barge.config?.khaihethong === 'ĐÃ KHAI'" class="inline-flex px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[10px] font-black">ĐÃ KHAI</span>
+                                        <span v-else-if="item.barge.config?.khaihethong === 'CHƯA KHAI'" class="inline-flex px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-[10px] font-black">CHƯA KHAI</span>
+                                        <span v-else-if="item.barge.config?.khaihethong" class="text-gray-700 font-semibold">{{ item.barge.config.khaihethong }}</span>
                                         <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
@@ -676,7 +822,7 @@ onMounted(() => {
 
                         <!-- Crew members -->
                         <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
-                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1 select-none">
                                 <span class="material-symbols-outlined text-sm text-primary">groups</span>
                                 Thông tin thuyền viên
                             </span>
@@ -687,8 +833,16 @@ onMounted(() => {
                                     <input v-model="editCaptain" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạng thuyền trưởng</label>
-                                    <input v-model="editCaptainGrade" type="text" placeholder="Ví dụ: Hạng 1" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                                        <span>Hạng thuyền trưởng</span>
+                                        <span v-if="computedExpectedCaptainGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedCaptainGrade }}</span>
+                                    </label>
+                                    <select v-model="editCaptainGrade" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer">
+                                        <option value="">- Chọn hạng -</option>
+                                        <option value="T1">T1</option>
+                                        <option value="T2">T2</option>
+                                        <option value="T3">T3</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -698,13 +852,25 @@ onMounted(() => {
                                     <input v-model="editChiefEngineer" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạng máy trưởng</label>
-                                    <input v-model="editChiefEngineerGrade" type="text" placeholder="Ví dụ: Hạng 2" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                                        <span>Hạng máy trưởng</span>
+                                        <span v-if="computedExpectedChiefEngineerGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedChiefEngineerGrade }}</span>
+                                    </label>
+                                    <select v-model="editChiefEngineerGrade" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer">
+                                        <option value="">- Chọn hạng -</option>
+                                        <option value="M1">M1</option>
+                                        <option value="M2">M2</option>
+                                        <option value="M3">M3</option>
+                                    </select>
                                 </div>
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-[8px] font-bold text-gray-400 uppercase">Thủy thủ</label>
+                                <label class="text-[8px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                                    <span>Thủy thủ</span>
+                                    <span v-if="isComputedSailorRequired" class="text-teal-600 font-bold normal-case">Bắt buộc (Trọng tải ≥ 500 tấn)</span>
+                                    <span v-else class="text-gray-400 font-normal normal-case">Không bắt buộc</span>
+                                </label>
                                 <textarea 
                                     v-model="editSailors" 
                                     rows="2" 
@@ -741,6 +907,34 @@ onMounted(() => {
                                 <div class="space-y-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Thời gian rời bến</label>
                                     <input v-model="editDepartureTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results & Declaration -->
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-3">
+                            <span class="text-[10px] font-black text-[#4a2c32] uppercase tracking-wider flex items-center gap-1 select-none">
+                                <span class="material-symbols-outlined text-sm text-primary">fact_check</span>
+                                Kết quả & Khai báo hệ thống
+                            </span>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Kết quả</label>
+                                    <select v-model="editKetluan" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer">
+                                        <option value="">- Chọn kết quả -</option>
+                                        <option value="ĐẠT">ĐẠT</option>
+                                        <option value="KHÔNG ĐẠT">KHÔNG ĐẠT</option>
+                                        <option value="ĐANG CHỜ">ĐANG CHỜ</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Khai hệ thống</label>
+                                    <select v-model="editKhaiHethong" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#4a2c32] cursor-pointer">
+                                        <option value="">- Chọn trạng thái -</option>
+                                        <option value="ĐÃ KHAI">ĐÃ KHAI</option>
+                                        <option value="CHƯA KHAI">CHƯA KHAI</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
