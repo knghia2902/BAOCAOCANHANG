@@ -135,6 +135,30 @@ const formatDateTime = (dtStr?: string) => {
     return dtStr.replace('T', ' ');
 };
 
+const parseLocalDate = (dateStr?: string): Date | null => {
+    if (!dateStr || dateStr === 'Vô thời hạn') return null;
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        const year = parseInt(parts[0] || '0', 10);
+        const month = parseInt(parts[1] || '1', 10) - 1;
+        const day = parseInt(parts[2] || '1', 10);
+        return new Date(year, month, day, 12, 0, 0);
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+};
+
+const parseLocalTime = (timeStr?: string): Date | null => {
+    if (!timeStr) return null;
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+        const hr = parseInt(parts[0] || '0', 10);
+        const min = parseInt(parts[1] || '0', 10);
+        return new Date(1899, 11, 30, hr, min, 0);
+    }
+    return null;
+};
+
 const getExpectedCaptainGrade = (tonnage: number): string => {
     if (isNaN(tonnage) || tonnage <= 0) return '';
     if (tonnage > 1000) return 'T1';
@@ -548,64 +572,148 @@ function triggerExcelUpload() {
 
 async function exportToExcel() {
     try {
-        addToast('Đang khởi tạo tệp Excel... ⏳', 'info');
+        addToast('Đang tải và khởi tạo tệp mẫu Excel... ⏳', 'info');
         const ExcelJS = (await import('exceljs')).default;
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Danh sách sà lan');
         
-        worksheet.columns = [
-            { header: 'STT', key: 'stt', width: 8 },
-            { header: 'Tên sà lan', key: 'name', width: 20 },
-            { header: 'Số lệnh', key: 'orderNo', width: 12 },
-            { header: 'Trọng tải (Tấn)', key: 'tonnage', width: 18 },
-            { header: 'Thời gian cập', key: 'arrivalTime', width: 20 },
-            { header: 'Thời gian rời', key: 'departureTime', width: 20 },
-            { header: 'TT Hồ sơ', key: 'docStatus', width: 12 },
-            { header: 'TT Thuyền viên', key: 'crewStatus', width: 35 },
-            { header: 'Kết quả', key: 'result', width: 15 },
-            { header: 'Khai hệ thống', key: 'systemDeclared', width: 18 }
-        ];
-
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'A82240' }
+        // Fetch the template excel file from public/templates
+        const response = await fetch('/templates/NNP_QL_HO_SO_PHUONG_TIEN_CANG.xlsx');
+        if (!response.ok) {
+            throw new Error('Không thể tải tệp mẫu Excel');
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        
+        const sheet1 = workbook.getWorksheet('Hồ sơ phương tiện');
+        const sheet2 = workbook.getWorksheet('Nhật ký vào, rời');
+        
+        if (!sheet1 || !sheet2) {
+            throw new Error('Tệp mẫu Excel thiếu các sheet cần thiết!');
+        }
+        
+        // Helper to extract style information from row 2
+        const getRowStyleTemplate = (row: any) => {
+            const cellStyles: any[] = [];
+            for (let c = 1; c <= 30; c++) {
+                const cell = row.getCell(c);
+                cellStyles.push({
+                    font: cell.font ? JSON.parse(JSON.stringify(cell.font)) : undefined,
+                    fill: cell.fill ? JSON.parse(JSON.stringify(cell.fill)) : undefined,
+                    border: cell.border ? JSON.parse(JSON.stringify(cell.border)) : undefined,
+                    alignment: cell.alignment ? JSON.parse(JSON.stringify(cell.alignment)) : undefined,
+                    numFmt: cell.numFmt
+                });
+            }
+            return {
+                height: row.height,
+                cellStyles
+            };
         };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        filteredBarges.value.forEach((item, index) => {
-            const config = item.barge.config || {};
-            const crew = getCrewStatus(config);
-            worksheet.addRow({
-                stt: index + 1,
-                name: item.barge.name,
-                orderNo: config.orderNo || '',
-                tonnage: config.tonnage !== undefined ? config.tonnage : '-',
-                arrivalTime: config.arrivalTime ? config.arrivalTime.replace('T', ' ') : '-',
-                departureTime: config.departureTime ? config.departureTime.replace('T', ' ') : '-',
-                docStatus: isDocComplete(config) ? 'ĐỦ' : 'THIẾU',
-                crewStatus: crew.status === 'ĐỦ' ? 'Phù hợp' : `Không phù hợp: ${crew.details}`,
-                result: config.ketluan || '-',
-                systemDeclared: config.khaihethong || '-'
+        
+        const applyRowStyleTemplate = (row: any, template: any) => {
+            if (template.height) row.height = template.height;
+            template.cellStyles.forEach((style: any, idx: number) => {
+                const cell = row.getCell(idx + 1);
+                if (style.font) cell.font = style.font;
+                if (style.fill) cell.fill = style.fill;
+                if (style.border) cell.border = style.border;
+                if (style.alignment) cell.alignment = style.alignment;
+                if (style.numFmt) cell.numFmt = style.numFmt;
             });
+        };
+        
+        // Store styles of row 2 from template
+        const styleRow1 = getRowStyleTemplate(sheet1.getRow(2));
+        const styleRow2 = getRowStyleTemplate(sheet2.getRow(2));
+        
+        // Delete all rows from row 2 down
+        const rowCount1 = sheet1.rowCount;
+        if (rowCount1 >= 2) {
+            sheet1.spliceRows(2, rowCount1 - 1);
+        }
+        
+        const rowCount2 = sheet2.rowCount;
+        if (rowCount2 >= 2) {
+            sheet2.spliceRows(2, rowCount2 - 1);
+        }
+        
+        // Populate Sheet 1 (Hồ sơ phương tiện)
+        filteredBarges.value.forEach((item, index) => {
+            const config = item.barge.config || {} as BargeConfig;
+            const rowNum = index + 2;
+            const row = sheet1.getRow(rowNum);
+            
+            row.getCell(1).value = { formula: 'ROW()-1' };
+            row.getCell(2).value = item.barge.name || '';
+            row.getCell(3).value = typeof config.tonnage === 'number' ? config.tonnage : null;
+            row.getCell(4).value = typeof config.hp === 'number' ? config.hp : null;
+            row.getCell(5).value = config.gcnNo || '';
+            row.getCell(6).value = config.gcnIssuedDate ? parseLocalDate(config.gcnIssuedDate) : null;
+            row.getCell(7).value = config.gcnExpiryDate === 'Vô thời hạn' ? 'Không thời hạn' : (config.gcnExpiryDate ? parseLocalDate(config.gcnExpiryDate) : null);
+            row.getCell(8).value = config.dkNo || '';
+            row.getCell(9).value = config.dkIssuedDate ? parseLocalDate(config.dkIssuedDate) : null;
+            row.getCell(10).value = config.dkExpiryDate ? parseLocalDate(config.dkExpiryDate) : null;
+            row.getCell(11).value = config.bhNo || '';
+            row.getCell(12).value = config.bhIssuedDate ? parseLocalDate(config.bhIssuedDate) : null;
+            row.getCell(13).value = config.bhExpiryDate ? parseLocalDate(config.bhExpiryDate) : null;
+            
+            row.getCell(14).value = { formula: `IF(AND(E${rowNum}<>"",H${rowNum}<>"",K${rowNum}<>""),"ĐỦ","THIẾU")` };
+            row.getCell(15).value = { formula: `IF(G${rowNum}="","",IF(G${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
+            row.getCell(16).value = { formula: `IF(J${rowNum}="","",IF(J${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
+            row.getCell(17).value = { formula: `IF(M${rowNum}="","",IF(M${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
+            
+            row.getCell(18).value = config.captain || '';
+            row.getCell(19).value = { formula: `IF(C${rowNum}>1000,"T1",IF(C${rowNum}>=500,"T2","T3"))` };
+            row.getCell(20).value = config.chiefEngineer || '';
+            row.getCell(21).value = { formula: `IF(D${rowNum}<=250,"M3",IF(D${rowNum}<=1000,"M2","M1"))` };
+            row.getCell(22).value = config.sailors || '';
+            row.getCell(23).value = config.hasCrewBook ? 'Có' : 'Không';
+            row.getCell(24).value = { formula: `IF(AND(R${rowNum}<>"",T${rowNum}<>"",W${rowNum}="Có"),"PHÙ HỢP","KHÔNG PHÙ HỢP")` };
+            row.getCell(25).value = config.khaihethong || '';
+            row.getCell(26).value = config.notes || '';
+            
+            applyRowStyleTemplate(row, styleRow1);
+            row.commit();
         });
-
+        
+        // Populate Sheet 2 (Nhật ký vào, rời)
+        filteredBarges.value.forEach((item, index) => {
+            const config = item.barge.config || {} as BargeConfig;
+            const rowNum = index + 2;
+            const row = sheet2.getRow(rowNum);
+            
+            row.getCell(1).value = { formula: 'ROW()-1' };
+            row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.split('T')[0]) : null;
+            row.getCell(3).value = config.arrivalTime ? parseLocalTime(config.arrivalTime.split('T')[1]) : null;
+            row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.split('T')[0]) : null;
+            row.getCell(5).value = config.departureTime ? parseLocalTime(config.departureTime.split('T')[1]) : null;
+            row.getCell(6).value = item.barge.name || '';
+            row.getCell(7).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$E:$E),"")` };
+            row.getCell(8).value = config.goods || '';
+            row.getCell(9).value = config.orderNo || '';
+            row.getCell(10).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$N:$N),"")` };
+            row.getCell(11).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$X:$X),"")` };
+            row.getCell(12).value = { formula: `IF(AND(J${rowNum}="Đủ",K${rowNum}="PHÙ HỢP"),"CHO PHÉP","KHÔNG ĐỦ HỒ SƠ")` };
+            
+            applyRowStyleTemplate(row, styleRow2);
+            row.commit();
+        });
+        
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `DANH_SACH_HO_SO_PHUONG_TIEN_${new Date().toISOString().slice(0,10)}.xlsx`;
+        a.download = `DANH_SACH_HO_SO_PHUONG_TIEN_${new Date().toISOString().slice(0, 10)}.xlsx`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        addToast('Xuất Excel thành công! 📥', 'success');
+        addToast('Xuất báo cáo Excel theo mẫu thành công! 📥', 'success');
     } catch (e) {
-        console.error('Error exporting excel:', e);
-        addToast('Gặp sự cố khi xuất Excel!', 'error');
+        console.error('Error exporting template-based excel:', e);
+        addToast('Gặp sự cố khi xuất Excel theo mẫu!', 'error');
     }
 }
 
