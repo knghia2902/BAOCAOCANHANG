@@ -593,7 +593,7 @@ async function exportToExcel() {
         const ExcelJS = (await import('exceljs')).default;
         
         // Fetch the template excel file from public/templates
-        const response = await fetch('/templates/NNP_QL_HO_SO_PHUONG_TIEN_CANG.xlsx');
+        const response = await fetch('/templates/NNP_QL_HO_SO_PHUONG_TIEN_CANG.xlsx?t=' + Date.now());
         if (!response.ok) {
             throw new Error('Không thể tải tệp mẫu Excel');
         }
