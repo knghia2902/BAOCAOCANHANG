@@ -627,78 +627,97 @@ async function exportToExcel() {
         const styleRow1 = getRowStyleTemplate(sheet1.getRow(2));
         const styleRow2 = getRowStyleTemplate(sheet2.getRow(2));
         
-        // Delete all rows from row 2 down
-        const rowCount1 = sheet1.rowCount;
-        if (rowCount1 >= 2) {
-            sheet1.spliceRows(2, rowCount1 - 1);
-        }
-        
-        const rowCount2 = sheet2.rowCount;
-        if (rowCount2 >= 2) {
-            sheet2.spliceRows(2, rowCount2 - 1);
-        }
-        
         // Populate Sheet 1 (Hồ sơ phương tiện)
-        filteredBarges.value.forEach((item, index) => {
-            const config = item.barge.config || {} as BargeConfig;
-            const rowNum = index + 2;
+        const maxRow1 = Math.max(sheet1.rowCount, filteredBarges.value.length + 1);
+        for (let rowNum = 2; rowNum <= maxRow1; rowNum++) {
             const row = sheet1.getRow(rowNum);
-            
-            row.getCell(1).value = { formula: 'ROW()-1' };
-            row.getCell(2).value = item.barge.name || '';
-            row.getCell(3).value = typeof config.tonnage === 'number' ? config.tonnage : null;
-            row.getCell(4).value = typeof config.hp === 'number' ? config.hp : null;
-            row.getCell(5).value = config.gcnNo || '';
-            row.getCell(6).value = config.gcnIssuedDate ? parseLocalDate(config.gcnIssuedDate) : null;
-            row.getCell(7).value = config.gcnExpiryDate === 'Vô thời hạn' ? 'Không thời hạn' : (config.gcnExpiryDate ? parseLocalDate(config.gcnExpiryDate) : null);
-            row.getCell(8).value = config.dkNo || '';
-            row.getCell(9).value = config.dkIssuedDate ? parseLocalDate(config.dkIssuedDate) : null;
-            row.getCell(10).value = config.dkExpiryDate ? parseLocalDate(config.dkExpiryDate) : null;
-            row.getCell(11).value = config.bhNo || '';
-            row.getCell(12).value = config.bhIssuedDate ? parseLocalDate(config.bhIssuedDate) : null;
-            row.getCell(13).value = config.bhExpiryDate ? parseLocalDate(config.bhExpiryDate) : null;
-            
-            row.getCell(14).value = { formula: `IF(AND(E${rowNum}<>"",H${rowNum}<>"",K${rowNum}<>""),"ĐỦ","THIẾU")` };
-            row.getCell(15).value = { formula: `IF(G${rowNum}="","",IF(G${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-            row.getCell(16).value = { formula: `IF(J${rowNum}="","",IF(J${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-            row.getCell(17).value = { formula: `IF(M${rowNum}="","",IF(M${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
-            
-            row.getCell(18).value = config.captain || '';
-            row.getCell(19).value = { formula: `IF(C${rowNum}>1000,"T1",IF(C${rowNum}>=500,"T2","T3"))` };
-            row.getCell(20).value = config.chiefEngineer || '';
-            row.getCell(21).value = { formula: `IF(D${rowNum}<=250,"M3",IF(D${rowNum}<=1000,"M2","M1"))` };
-            row.getCell(22).value = config.sailors || '';
-            row.getCell(23).value = config.hasCrewBook ? 'Có' : 'Không';
-            row.getCell(24).value = { formula: `IF(AND(R${rowNum}<>"",T${rowNum}<>"",W${rowNum}="Có"),"PHÙ HỢP","KHÔNG PHÙ HỢP")` };
-            row.getCell(25).value = config.khaihethong || '';
-            row.getCell(26).value = config.notes || '';
-            
-            applyRowStyleTemplate(row, styleRow1);
+            const index = rowNum - 2;
+            if (index < filteredBarges.value.length) {
+                const item = filteredBarges.value[index];
+                if (item) {
+                    const config = item.barge.config || {} as BargeConfig;
+                    
+                    row.getCell(1).value = { formula: 'ROW()-1' };
+                    row.getCell(2).value = item.barge.name || '';
+                row.getCell(3).value = typeof config.tonnage === 'number' ? config.tonnage : null;
+                row.getCell(4).value = typeof config.hp === 'number' ? config.hp : null;
+                row.getCell(5).value = config.gcnNo || '';
+                row.getCell(6).value = config.gcnIssuedDate ? parseLocalDate(config.gcnIssuedDate) : null;
+                row.getCell(7).value = config.gcnExpiryDate === 'Vô thời hạn' ? 'Không thời hạn' : (config.gcnExpiryDate ? parseLocalDate(config.gcnExpiryDate) : null);
+                row.getCell(8).value = config.dkNo || '';
+                row.getCell(9).value = config.dkIssuedDate ? parseLocalDate(config.dkIssuedDate) : null;
+                row.getCell(10).value = config.dkExpiryDate ? parseLocalDate(config.dkExpiryDate) : null;
+                row.getCell(11).value = config.bhNo || '';
+                row.getCell(12).value = config.bhIssuedDate ? parseLocalDate(config.bhIssuedDate) : null;
+                row.getCell(13).value = config.bhExpiryDate ? parseLocalDate(config.bhExpiryDate) : null;
+                
+                row.getCell(14).value = { formula: `IF(AND(E${rowNum}<>"",H${rowNum}<>"",K${rowNum}<>""),"ĐỦ","THIẾU")` };
+                row.getCell(15).value = { formula: `IF(G${rowNum}="","",IF(G${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
+                row.getCell(16).value = { formula: `IF(J${rowNum}="","",IF(J${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
+                row.getCell(17).value = { formula: `IF(M${rowNum}="","",IF(M${rowNum}<TODAY(),"HẾT HẠN","CÒN HẠN"))` };
+                
+                row.getCell(18).value = config.captain || '';
+                row.getCell(19).value = { formula: `IF(C${rowNum}>1000,"T1",IF(C${rowNum}>=500,"T2","T3"))` };
+                row.getCell(20).value = config.chiefEngineer || '';
+                row.getCell(21).value = { formula: `IF(D${rowNum}<=250,"M3",IF(D${rowNum}<=1000,"M2","M1"))` };
+                row.getCell(22).value = config.sailors || '';
+                row.getCell(23).value = config.hasCrewBook ? 'Có' : 'Không';
+                row.getCell(24).value = { formula: `IF(AND(R${rowNum}<>"",T${rowNum}<>"",W${rowNum}="Có"),"PHÙ HỢP","KHÔNG PHÙ HỢP")` };
+                row.getCell(25).value = config.khaihethong || '';
+                row.getCell(26).value = config.notes || '';
+                
+                applyRowStyleTemplate(row, styleRow1);
+                }
+            } else {
+                // Clear row values for extra template rows
+                for (let c = 1; c <= 30; c++) {
+                    row.getCell(c).value = null;
+                }
+            }
             row.commit();
-        });
+        }
         
         // Populate Sheet 2 (Nhật ký vào, rời)
-        filteredBarges.value.forEach((item, index) => {
-            const config = item.barge.config || {} as BargeConfig;
-            const rowNum = index + 2;
+        const maxRow2 = Math.max(sheet2.rowCount, filteredBarges.value.length + 1);
+        for (let rowNum = 2; rowNum <= maxRow2; rowNum++) {
             const row = sheet2.getRow(rowNum);
-            
-            row.getCell(1).value = { formula: 'ROW()-1' };
-            row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.split('T')[0]) : null;
-            row.getCell(3).value = config.arrivalTime ? parseLocalTime(config.arrivalTime.split('T')[1]) : null;
-            row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.split('T')[0]) : null;
-            row.getCell(5).value = config.departureTime ? parseLocalTime(config.departureTime.split('T')[1]) : null;
-            row.getCell(6).value = item.barge.name || '';
-            row.getCell(7).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$E:$E),"")` };
-            row.getCell(8).value = config.goods || '';
-            row.getCell(9).value = config.orderNo || '';
-            row.getCell(10).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$N:$N),"")` };
-            row.getCell(11).value = { formula: `IFERROR(XLOOKUP(F${rowNum},'Hồ sơ phương tiện'!$B:$B,'Hồ sơ phương tiện'!$X:$X),"")` };
-            row.getCell(12).value = { formula: `IF(AND(J${rowNum}="Đủ",K${rowNum}="PHÙ HỢP"),"CHO PHÉP","KHÔNG ĐỦ HỒ SƠ")` };
-            
-            applyRowStyleTemplate(row, styleRow2);
+            const index = rowNum - 2;
+            if (index < filteredBarges.value.length) {
+                const item = filteredBarges.value[index];
+                if (item) {
+                    const config = item.barge.config || {} as BargeConfig;
+                    
+                    row.getCell(1).value = { formula: 'ROW()-1' };
+                    row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.split('T')[0]) : null;
+                    row.getCell(3).value = config.arrivalTime ? parseLocalTime(config.arrivalTime.split('T')[1]) : null;
+                    row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.split('T')[0]) : null;
+                    row.getCell(5).value = config.departureTime ? parseLocalTime(config.departureTime.split('T')[1]) : null;
+                    row.getCell(6).value = item.barge.name || '';
+                    
+                    // 1. "Số đăng ký" chính là "GCN đăng ký" -> Lấy trực tiếp từ hệ thống
+                    row.getCell(7).value = config.gcnNo || '';
+                    
+                    row.getCell(8).value = config.goods || '';
+                    row.getCell(9).value = config.orderNo || '';
+                    
+                    // 2. "Hồ sơ PT", "Hồ sơ thuyền viên", "Kết quả" lấy trực tiếp từ hệ thống, không dùng công thức
+                    row.getCell(10).value = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
+                    
+                    const crew = getCrewStatus(config);
+                    row.getCell(11).value = crew.status === 'ĐỦ' ? 'PHÙ HỢP' : 'KHÔNG PHÙ HỢP';
+                    
+                    row.getCell(12).value = config.ketluan === "Cho phép" ? "CHO PHÉP" : (config.ketluan === "Không cho phép" ? "KHÔNG CHO PHÉP" : "KHÔNG ĐỦ HỒ SƠ");
+                    
+                    applyRowStyleTemplate(row, styleRow2);
+                }
+            } else {
+                // Clear row values for extra template rows
+                for (let c = 1; c <= 30; c++) {
+                    row.getCell(c).value = null;
+                }
+            }
             row.commit();
-        });
+        }
         
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
