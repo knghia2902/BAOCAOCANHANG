@@ -78,6 +78,7 @@ export interface BargeConfig {
     hasCrewBook?: boolean;
     arrivalTime?: string;
     departureTime?: string;
+    lastPort?: string;
 }
 
 export interface Barge {
