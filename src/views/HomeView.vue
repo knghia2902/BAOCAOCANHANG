@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authStore } from '../stores/auth';
 import { WeighbridgeService } from '../services/excel/WeighbridgeService';
@@ -66,14 +66,22 @@ const navigateToTool = (tab: 'allocator' | 'printer' | 'vehicles', subView?: 'al
     router.push(routeMap[tab]);
 };
 
-onMounted(async () => {
-    loadData();
+const loadToolsConfig = async () => {
+    loadingTools.value = true;
     if (authStore.role === 'staff') {
         allowedTools.value = await ContentService.loadStaffTools();
     } else {
         allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
     }
     loadingTools.value = false;
+};
+
+watch(() => [authStore.isAuthenticated, authStore.role], async () => {
+    await loadToolsConfig();
+}, { immediate: true });
+
+onMounted(async () => {
+    loadData();
 });
 </script>
 

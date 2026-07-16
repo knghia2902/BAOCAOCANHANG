@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authStore } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
@@ -8,14 +8,19 @@ const router = useRouter();
 const allowedTools = ref<string[]>([]);
 const loading = ref(true);
 
-onMounted(async () => {
+const loadTools = async () => {
+    loading.value = true;
     if (authStore.role === 'staff') {
         allowedTools.value = await ContentService.loadStaffTools();
     } else {
         allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
     }
     loading.value = false;
-});
+};
+
+watch(() => [authStore.isAuthenticated, authStore.role], async () => {
+    await loadTools();
+}, { immediate: true });
 </script>
 
 <template>

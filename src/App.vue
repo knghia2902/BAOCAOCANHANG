@@ -75,6 +75,20 @@ const handleSaveProfile = async () => {
 const allowedTools = ref<string[]>([]);
 const loadingTools = ref(true);
 
+const loadTools = async () => {
+    loadingTools.value = true;
+    if (authStore.role === 'staff') {
+        allowedTools.value = await ContentService.loadStaffTools();
+    } else {
+        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
+    }
+    loadingTools.value = false;
+};
+
+watch(() => [authStore.isAuthenticated, authStore.role], async () => {
+    await loadTools();
+}, { immediate: true });
+
 watch(() => route.path, (newPath) => {
     const isToolPage = newPath.startsWith('/tools/');
     (document.documentElement.style as any).zoom = isToolPage ? 0.9 : 0.8;
@@ -84,14 +98,6 @@ onMounted(async () => {
     // Load all content from Supabase
     await ContentService.loadAll();
     window.addEventListener('click', closeDropdown);
-    
-    // Load staff tools
-    if (authStore.role === 'staff') {
-        allowedTools.value = await ContentService.loadStaffTools();
-    } else {
-        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
-    }
-    loadingTools.value = false;
 });
 
 onUnmounted(() => {
