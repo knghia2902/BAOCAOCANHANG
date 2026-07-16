@@ -4067,34 +4067,34 @@ onUnmounted(() => {
                         <!-- TAB 1: DATA & PRINT -->
                         <div v-if="activeTab === 'data'" class="flex-1 flex flex-col gap-4 min-h-0 animate-fade-in">
                             <!-- Stats & Excel Upload Side-by-Side -->
-                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                            <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 items-stretch">
                                 <!-- Stats Grid (6 cols / 12 cols depending on role) -->
-                                <div :class="authStore.role === 'admin' ? 'lg:col-span-6' : 'lg:col-span-12'" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <div class="bg-white rounded-2xl p-3 soft-shadow border border-primary/5 flex items-center gap-3">
-                                        <div class="size-9 bg-primary/10 text-primary rounded-[12px] flex items-center justify-center flex-shrink-0">
-                                            <span class="material-symbols-outlined text-lg">local_shipping</span>
+                                <div :class="authStore.role === 'admin' ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                    <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
+                                        <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
+                                            <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>
                                         </div>
-                                        <div>
-                                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tổng số xe</p>
-                                            <h4 class="text-base font-black text-[#4a2c32]">{{ filteredTrucks.length }} <span class="text-[10px] text-gray-400 font-bold">xe</span></h4>
-                                        </div>
-                                    </div>
-                                    <div class="bg-white rounded-2xl p-3 soft-shadow border border-primary/5 flex items-center gap-3">
-                                        <div class="size-9 bg-teal-500/10 text-teal-600 rounded-[12px] flex items-center justify-center flex-shrink-0">
-                                            <span class="material-symbols-outlined text-lg">scale</span>
-                                        </div>
-                                        <div>
-                                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tổng TL tịnh (Net)</p>
-                                            <h4 class="text-base font-black text-teal-600 truncate max-w-[120px]">{{ formatNumber(totalNetWeight) }} <span class="text-[10px] font-bold">kg</span></h4>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-[7px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-wider truncate">Tổng số xe</p>
+                                            <h4 class="text-xs sm:text-base font-black text-[#4a2c32] truncate">{{ filteredTrucks.length }} <span class="text-[8px] sm:text-[10px] text-gray-400 font-bold">xe</span></h4>
                                         </div>
                                     </div>
-                                    <div class="bg-white rounded-2xl p-3 soft-shadow border border-primary/5 flex items-center gap-3">
-                                        <div class="size-9 bg-amber-500/10 text-amber-600 rounded-[12px] flex items-center justify-center flex-shrink-0">
-                                            <span class="material-symbols-outlined text-lg">monitoring</span>
+                                    <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
+                                        <div class="size-7 sm:size-9 bg-teal-500/10 text-teal-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
+                                            <span class="material-symbols-outlined text-sm sm:text-lg">scale</span>
                                         </div>
-                                        <div>
-                                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">TL Trung bình</p>
-                                            <h4 class="text-base font-black text-amber-600 truncate max-w-[120px]">{{ formatNumber(avgNetWeight) }} <span class="text-[10px] font-bold">kg</span></h4>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-[7px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-wider truncate">Tổng Net</p>
+                                            <h4 class="text-xs sm:text-base font-black text-teal-600 truncate">{{ formatNumber(totalNetWeight) }} <span class="text-[8px] sm:text-[10px] font-bold">kg</span></h4>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
+                                        <div class="size-7 sm:size-9 bg-amber-500/10 text-amber-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
+                                            <span class="material-symbols-outlined text-sm sm:text-lg">monitoring</span>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-[7px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-wider truncate">Trung bình</p>
+                                            <h4 class="text-xs sm:text-base font-black text-amber-600 truncate">{{ formatNumber(avgNetWeight) }} <span class="text-[8px] sm:text-[10px] font-bold">kg</span></h4>
                                         </div>
                                     </div>
                                 </div>
@@ -4103,7 +4103,7 @@ onUnmounted(() => {
                                 <div v-if="authStore.role === 'admin'"
                                     @dragover.prevent
                                     @drop="cfgForm.locked ? null : handleExcelDrop($event)"
-                                    :class="['lg:col-span-3 bg-white rounded-2xl p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
+                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
                                 >
                                     <input 
                                         type="file" 
@@ -4113,43 +4113,43 @@ onUnmounted(() => {
                                         accept=".xlsx, .xls" 
                                         :disabled="cfgForm.locked"
                                     />
-                                    <div class="flex items-center gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : fileInput?.click()">
-                                        <div class="size-9 bg-primary/10 text-primary rounded-[12px] flex items-center justify-center flex-shrink-0">
-                                            <span class="material-symbols-outlined text-lg">upload_file</span>
+                                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : fileInput?.click()">
+                                        <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
+                                            <span class="material-symbols-outlined text-sm sm:text-lg">upload_file</span>
                                         </div>
                                         <div class="text-left min-w-0">
-                                            <p class="text-xs font-black text-[#4a2c32] truncate">Nhập file Excel</p>
-                                            <p class="text-[9px] text-gray-400 font-bold truncate">Click chọn file</p>
+                                            <p class="text-[10px] sm:text-xs font-black text-[#4a2c32] truncate">Nhập Excel</p>
+                                            <p class="text-[8px] sm:text-[9px] text-gray-400 font-bold truncate hidden sm:block">Click chọn file</p>
                                         </div>
                                     </div>
                                     
                                     <div class="flex items-center gap-1 flex-shrink-0">
                                         <button 
                                             @click="downloadSampleExcel"
-                                            class="size-7 bg-gray-100 hover:bg-gray-200 text-[#4a2c32] rounded-[8px] flex items-center justify-center border border-gray-200 transition-colors"
+                                            class="size-6 sm:size-7 bg-gray-100 hover:bg-gray-200 text-[#4a2c32] rounded-[6px] sm:rounded-[8px] flex items-center justify-center border border-gray-200 transition-colors"
                                             title="Tải Excel mẫu"
                                         >
-                                            <span class="material-symbols-outlined text-sm">download</span>
+                                            <span class="material-symbols-outlined text-xs sm:text-sm">download</span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Direct Sync Card (3 cols) -->
                                 <div v-if="authStore.role === 'admin'"
-                                    :class="['lg:col-span-3 bg-white rounded-2xl p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
+                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-55/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
                                 >
-                                    <div class="flex items-center gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : syncFromAllocatorActiveBarge()">
-                                        <div class="size-9 bg-teal-500/10 text-teal-600 rounded-[12px] flex items-center justify-center flex-shrink-0">
-                                            <span class="material-symbols-outlined text-lg">sync_alt</span>
+                                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : syncFromAllocatorActiveBarge()">
+                                        <div class="size-7 sm:size-9 bg-teal-500/10 text-teal-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
+                                            <span class="material-symbols-outlined text-sm sm:text-lg">sync_alt</span>
                                         </div>
                                         <div class="text-left min-w-0">
-                                            <p class="text-xs font-black text-[#4a2c32] truncate">Đồng bộ từ Phân rã</p>
-                                            <p class="text-[9px] text-gray-400 font-bold truncate">Kéo từ tab Phân bổ</p>
+                                            <p class="text-[10px] sm:text-xs font-black text-[#4a2c32] truncate">Đồng bộ</p>
+                                            <p class="text-[8px] sm:text-[9px] text-gray-400 font-bold truncate hidden sm:block">Kéo từ tab Phân bổ</p>
                                         </div>
                                     </div>
                                     <button 
                                         @click="syncFromAllocatorActiveBarge"
-                                        class="px-2.5 py-1.5 bg-teal-600 text-white text-[9px] font-black rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
+                                        class="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-teal-600 text-white text-[8px] sm:text-[9px] font-black rounded-[6px] sm:rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
                                         :disabled="cfgForm.locked"
                                     >
                                         Đồng bộ
