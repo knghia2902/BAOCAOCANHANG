@@ -1,9 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
 import ToolsView from './views/ToolsView.vue'
-import AllocatorView from './views/AllocatorView.vue'
-import PrinterView from './views/PrinterView.vue'
-import VehiclesView from './views/VehiclesView.vue'
 import AdminView from './views/AdminView.vue'
 import AboutView from './views/AboutView.vue'
 import LoginView from './views/LoginView.vue'
@@ -27,21 +24,15 @@ const router = createRouter({
         },
         {
             path: '/tools/allocator',
-            name: 'tools-allocator',
-            component: AllocatorView,
-            meta: { requiresAuth: true }
+            redirect: '/tools?tool=weighbridge'
         },
         {
             path: '/tools/printer',
-            name: 'tools-printer',
-            component: PrinterView,
-            meta: { requiresAuth: true }
+            redirect: '/tools?tool=weighbridge'
         },
         {
             path: '/tools/vehicles',
-            name: 'tools-vehicles',
-            component: VehiclesView,
-            meta: { requiresAuth: true }
+            redirect: '/tools?tool=vehicles'
         },
         {
             path: '/admin',
