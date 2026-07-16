@@ -433,6 +433,26 @@ const addPhuMyBarge = async () => {
     }
 };
 
+const deletePhuMyBarge = async (barge: Barge) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa sà lan "${barge.name}"?`)) return;
+    
+    loading.value = true;
+    try {
+        const success = await WeighbridgeService.deleteBarge(barge.id);
+        if (success) {
+            addToast(`Đã xóa sà lan: ${barge.name}`, 'success');
+            await loadData();
+        } else {
+            addToast('Không thể xóa sà lan!', 'error');
+        }
+    } catch (e) {
+        console.error('Lỗi khi xóa sà lan:', e);
+        addToast('Lỗi khi xóa sà lan!', 'error');
+    } finally {
+        loading.value = false;
+    }
+};
+
 
 
 function openEdit(item: { barge: Barge; vesselName: string }) {
@@ -1344,12 +1364,19 @@ onUnmounted(() => {
                                         <span v-else-if="item.barge.config?.khaihethong" class="text-gray-700 font-semibold">{{ item.barge.config.khaihethong }}</span>
                                         <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                     </td>
-                                    <td class="px-3 py-2.5 text-center">
+                                    <td class="px-3 py-2.5 text-center flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="openEdit(item)" 
-                                            class="px-3 py-1 bg-[#fcf8f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm"
+                                            class="px-2.5 py-1 bg-[#fcf8f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm"
                                         >
                                             Chỉnh sửa
+                                        </button>
+                                        <button 
+                                            v-if="activeSite === 'PhuMy'"
+                                            @click="deletePhuMyBarge(item.barge)" 
+                                            class="px-2.5 py-1 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-600 font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5"
+                                        >
+                                            Xóa
                                         </button>
                                     </td>
                                 </tr>
