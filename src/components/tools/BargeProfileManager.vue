@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { WeighbridgeService, type Vessel, type Barge, type BargeConfig } from '@/services/excel/WeighbridgeService';
 import { StorageService } from '@/services/storage/StorageService';
 import { useToast } from '@/composables/useToast';
@@ -62,6 +62,17 @@ const editBhImages = ref<string[]>([]);
 const editCrewImages = ref<string[]>([]);
 
 const previewImageUrl = ref<string | null>(null);
+
+const activePopover = ref<{ bargeId: string; type: 'doc' | 'crew' } | null>(null);
+
+const togglePopover = (bargeId: string, type: 'doc' | 'crew', event: Event) => {
+    event.stopPropagation();
+    if (activePopover.value && activePopover.value.bargeId === bargeId && activePopover.value.type === type) {
+        activePopover.value = null;
+    } else {
+        activePopover.value = { bargeId, type };
+    }
+};
 
 // Custom Metadata fields (for additional barge information)
 interface CustomMeta {
@@ -952,9 +963,19 @@ async function handleExcelImport(event: Event) {
     }
 }
 
+const handleOutsideClick = () => {
+    activePopover.value = null;
+};
+
 onMounted(() => {
     loadData();
     window.addEventListener('barge-config-updated', loadData);
+    window.addEventListener('click', handleOutsideClick);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('barge-config-updated', loadData);
+    window.removeEventListener('click', handleOutsideClick);
 });
 </script>
 
@@ -1068,9 +1089,19 @@ onMounted(() => {
                                         </span>
 
                                         <!-- GCN, DK, BH attachment popover -->
-                                        <div v-if="(item.barge.config?.gcnImages?.length || 0) + (item.barge.config?.dkImages?.length || 0) + (item.barge.config?.bhImages?.length || 0) > 0" class="relative group inline-block ml-1 align-middle">
-                                            <span class="material-symbols-outlined text-[13px] text-gray-400 hover:text-primary cursor-pointer select-none">attach_file</span>
-                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-xl shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto">
+                                        <div v-if="(item.barge.config?.gcnImages?.length || 0) + (item.barge.config?.dkImages?.length || 0) + (item.barge.config?.bhImages?.length || 0) > 0" class="relative inline-block ml-1 align-middle">
+                                             <span 
+                                                 class="material-symbols-outlined text-[13px] hover:text-primary cursor-pointer select-none transition-colors"
+                                                 :class="activePopover?.bargeId === item.barge.id && activePopover?.type === 'doc' ? 'text-primary font-bold' : 'text-gray-400'"
+                                                 @click="togglePopover(item.barge.id, 'doc', $event)"
+                                             >
+                                                 attach_file
+                                             </span>
+                                             <div 
+                                                 v-if="activePopover?.bargeId === item.barge.id && activePopover?.type === 'doc'"
+                                                 class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-lg shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto"
+                                                 @click.stop
+                                             >
                                                 <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Tệp đính kèm</div>
                                                 
                                                 <div v-if="item.barge.config?.gcnImages?.length" class="mb-2">
