@@ -2489,7 +2489,7 @@ async function triggerManualSyncToPrinter() {
     }
     await saveTicketsToSupabase();
     syncChannel.postMessage({ type: 'manual_sync_request' });
-    addToast('Đồng bộ dữ liệu thành công! Bản phân bổ đã được lưu lên đám mây và sẽ tự động cập nhật khi bạn mở trang In phiếu nhanh.', 'success');
+    addToast('Đồng bộ dữ liệu thành công! Bản phân bổ đã được lưu lên đám mây và sẽ tự động cập nhật khi bạn mở trang DASHBOARD.', 'success');
 }
 
 // Save generated temporary trips into history

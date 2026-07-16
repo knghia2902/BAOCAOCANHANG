@@ -188,7 +188,7 @@ onMounted(async () => {
                         <span class="material-symbols-outlined text-xl font-black">print</span>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-primary transition-colors">In phiếu nhanh</h4>
+                        <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-primary transition-colors">DASHBOARD</h4>
                         <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.</p>
                     </div>
                 </div>
