@@ -1098,7 +1098,7 @@ onUnmounted(() => {
                                              </span>
                                              <div 
                                                  v-if="activePopover?.bargeId === item.barge.id && activePopover?.type === 'doc'"
-                                                 class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-lg shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto"
+                                                 class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-md shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto"
                                                  @click.stop
                                              >
                                                 <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Tệp đính kèm</div>
@@ -1186,7 +1186,7 @@ onUnmounted(() => {
                                             </span>
                                             <div 
                                                 v-if="activePopover?.bargeId === item.barge.id && activePopover?.type === 'crew'"
-                                                class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-lg shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto"
+                                                class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-md shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto"
                                                 @click.stop
                                             >
                                                 <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Hồ sơ Thuyền viên</div>
