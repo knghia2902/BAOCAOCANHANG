@@ -1078,7 +1078,6 @@ onUnmounted(() => {
                                     <th class="px-3 py-2.5 w-12 text-center bg-gray-50 sticky top-0 z-10">STT</th>
                                     <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Tên sà lan</th>
                                     <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Số lệnh</th>
-                                    <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Rời bến cuối</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trọng tải (Tấn)</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian cập</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian rời</th>
@@ -1096,12 +1095,6 @@ onUnmounted(() => {
                                     <td class="px-3 py-2.5">
                                         <span v-if="item.barge.config?.orderNo" class="px-2 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-black whitespace-nowrap">
                                             {{ item.barge.config.orderNo }}
-                                        </span>
-                                        <span v-else class="text-gray-400 italic text-[10px]">-</span>
-                                    </td>
-                                    <td class="px-3 py-2.5 text-left text-gray-700">
-                                        <span v-if="item.barge.config?.lastPort" class="font-bold text-teal-700 text-[10px] bg-teal-50 px-2 py-0.5 border border-teal-100 rounded-lg whitespace-nowrap">
-                                            {{ item.barge.config.lastPort }}
                                         </span>
                                         <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                     </td>
