@@ -68,6 +68,11 @@ const activePopover = ref<{ bargeId: number; type: 'doc' | 'crew' } | null>(null
 const activeVesselId = ref<number | null>(null);
 const expandedVesselIds = ref<Record<number, boolean>>({});
 
+const isOnline = ref(navigator.onLine);
+const updateOnlineStatus = () => {
+    isOnline.value = navigator.onLine;
+};
+
 const togglePopover = (bargeId: number, type: 'doc' | 'crew') => {
     if (activePopover.value && activePopover.value.bargeId === bargeId && activePopover.value.type === type) {
         activePopover.value = null;
@@ -987,11 +992,15 @@ onMounted(() => {
     loadData();
     window.addEventListener('barge-config-updated', loadData);
     window.addEventListener('click', handleOutsideClick);
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
 });
 
 onUnmounted(() => {
     window.removeEventListener('barge-config-updated', loadData);
     window.removeEventListener('click', handleOutsideClick);
+    window.removeEventListener('online', updateOnlineStatus);
+    window.removeEventListener('offline', updateOnlineStatus);
 });
 </script>
 
@@ -1053,11 +1062,62 @@ onUnmounted(() => {
         </aside>
 
         <!-- Details or Master Overview List (right pane) -->
-        <div class="flex-grow flex flex-col h-full min-w-0 max-w-[1500px] mx-auto bg-white rounded-[24px] border border-primary/5 overflow-hidden shadow-sm">
+        <div class="flex-grow flex flex-col h-full min-w-0 max-w-[1500px] mx-auto gap-4 overflow-hidden">
             
             <!-- CASE A: Overview Mode (activeBargeId === null) -->
-            <div v-if="activeBargeId === null" class="flex-grow flex flex-col min-h-0">
-                <!-- Control Bar -->
+            <div v-if="activeBargeId === null" class="flex-grow flex flex-col gap-4 min-h-0">
+                <!-- Welcome Header banner -->
+                <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3 shrink-0">
+                    <div>
+                        <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống quản lý hồ sơ phương tiện</div>
+                        <h1 class="text-base font-black text-[#4a2c32] flex items-center gap-1.5 select-none">
+                            Báo cáo tổng quan hệ thống hồ sơ phương tiện sà lan
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+                    <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
+                        <div class="size-11 bg-primary/10 text-primary rounded-[12px] flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-xl">directions_boat</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số tàu</p>
+                            <h4 class="text-lg font-black text-[#4a2c32]">{{ vessels.length }} <span class="text-xs text-gray-400 font-bold">tàu</span></h4>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
+                        <div class="size-11 bg-teal-500/10 text-teal-600 rounded-[12px] flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-xl">layers</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số sà lan</p>
+                            <h4 class="text-lg font-black text-teal-600">{{ allBarges.length }} <span class="text-xs text-gray-400 font-bold">sà lan</span></h4>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
+                        <div 
+                            class="size-11 rounded-[12px] flex items-center justify-center flex-shrink-0 transition-all"
+                            :class="isOnline ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'"
+                        >
+                            <span class="material-symbols-outlined text-xl">{{ isOnline ? 'cloud' : 'cloud_off' }}</span>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Đồng bộ đám mây</p>
+                            <h4 
+                                class="text-lg font-black transition-colors"
+                                :class="isOnline ? 'text-emerald-600' : 'text-amber-600'"
+                            >
+                                {{ isOnline ? 'Đã kết nối' : 'Ngoại tuyến' }}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Card Container -->
+                <div class="flex-grow flex flex-col bg-white rounded-[24px] border border-primary/5 overflow-hidden shadow-sm min-h-0">
+                    <!-- Control Bar -->
                 <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between gap-4 shrink-0">
                     <!-- Left: Search input -->
                     <div class="relative w-full max-w-xs">
@@ -1305,9 +1365,10 @@ onUnmounted(() => {
                     </div>
                 </div>
             </div>
+        </div>
 
             <!-- CASE B: Edit Form Mode (activeBargeId !== null) -->
-            <div v-else class="flex-grow flex flex-col min-h-0 bg-white">
+            <div v-else class="flex-grow flex flex-col min-h-0 bg-white rounded-[24px] border border-primary/5 overflow-hidden shadow-sm">
                 <!-- Header of Edit Panel -->
                 <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between bg-slate-50 shrink-0">
                     <div>
