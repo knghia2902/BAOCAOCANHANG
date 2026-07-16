@@ -13,9 +13,8 @@ import { ContentService } from '../services/ContentService';
 
 const route = useRoute();
 
-// Active tool and sub-views
+// Active tool
 const activeToolId = ref<string | null>(null);
-const activeTab = ref<'allocator' | 'printer'>('allocator');
 const allowedStaffTools = ref<string[]>([]);
 const loading = ref(true);
 
@@ -40,9 +39,8 @@ onMounted(async () => {
     if (typeof toolParam === 'string' && toolParam) {
         openTool(toolParam);
     } else if (authStore.role === 'staff') {
-        // If staff, go directly to "Phần mềm in phiếu cân xe"
+        // If staff, go directly to "In Phiếu Nhanh" (weighbridge)
         activeToolId.value = 'weighbridge';
-        activeTab.value = 'printer';
     }
 });
 
@@ -80,12 +78,20 @@ const allTools = [
     tags: ['Excel', 'Merge', 'Automate']
   },
   {
+    id: 'allocator',
+    name: 'Phân Bổ Tải Trọng Sà Lan 🚢',
+    desc: 'Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.',
+    icon: 'shuffle',
+    bgIcon: 'bg-primary/10 text-primary',
+    tags: ['Phân bổ', 'Sà lan', 'Excel']
+  },
+  {
     id: 'weighbridge',
-    name: 'Báo Cáo & In Phiếu Cân Xe 🚢',
-    desc: 'Hệ thống gộp quản lý trạm cân: Phân bổ sà lan, in ấn phiếu cân A5 chuyên nghiệp và danh sách xe quản lý.',
+    name: 'In Phiếu Nhanh 🚢',
+    desc: 'Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.',
     icon: 'print',
     bgIcon: 'bg-primary/10 text-primary',
-    tags: ['Báo Cáo', 'In A5', 'Supabase Cloud', 'Phân bổ']
+    tags: ['In A5', 'Supabase Cloud', 'Trạm cân']
   },
   {
     id: 'ocr',
@@ -117,9 +123,7 @@ const toolsList = computed(() => {
   if (authStore.role === 'admin') {
     return allTools;
   }
-  const hasWeighbridgeAccess = allowedStaffTools.value.includes('weighbridge') || allowedStaffTools.value.includes('allocator');
   return allTools.filter(t => {
-      if (t.id === 'weighbridge') return hasWeighbridgeAccess;
       if (t.id === 'vehicles') return allowedStaffTools.value.includes('vehicles') || allowedStaffTools.value.includes('barge-profile');
       return allowedStaffTools.value.includes(t.id);
   });
@@ -130,21 +134,11 @@ const activeToolMetadata = computed(() => {
 });
 
 const openTool = (id: string) => {
-  if (id === 'weighbridge' || id === 'allocator') {
-    activeToolId.value = 'weighbridge';
-    activeTab.value = 'allocator';
-  } else {
-    activeToolId.value = id;
-  }
+  activeToolId.value = id;
 };
 
 const handleSidebarSwitch = (id: string) => {
-  if (id === 'weighbridge' || id === 'allocator') {
-    activeToolId.value = 'weighbridge';
-    activeTab.value = 'allocator';
-  } else {
-    activeToolId.value = id;
-  }
+  activeToolId.value = id;
 };
 </script>
 
@@ -235,7 +229,7 @@ const handleSidebarSwitch = (id: string) => {
     <div 
       v-if="activeToolId && activeToolMetadata" 
       :class="[
-        (activeToolId === 'weighbridge' || activeToolId === 'vehicles')
+        (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
           ? 'fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display' 
           : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-hidden no-print animate-fade-in font-display'
       ]"
@@ -244,36 +238,18 @@ const handleSidebarSwitch = (id: string) => {
       <!-- Workspace Header bar -->
       <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
         <div class="flex items-center gap-2.5">
-          <div :class="['size-9 rounded-full flex items-center justify-center text-white shadow-soft', (activeToolId === 'weighbridge' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
-            <span class="material-symbols-outlined text-lg">{{ activeToolId === 'weighbridge' ? 'print' : activeToolMetadata.icon }}</span>
+          <div :class="['size-9 rounded-full flex items-center justify-center text-white shadow-soft', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
+            <span class="material-symbols-outlined text-lg">{{ activeToolMetadata.icon }}</span>
           </div>
           <div>
             <h2 class="text-sm font-black text-primary leading-tight">
-              {{ activeToolId === 'weighbridge' ? 'PHẦN MỀM IN PHIẾU CÂN XE' : activeToolMetadata.name }}
+              {{ activeToolMetadata.name.toUpperCase() }}
             </h2>
             <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">
-              {{ (activeToolId === 'weighbridge' || activeToolId === 'vehicles') ? 'Cảng Nguyên Ngọc - Đồng bộ đám mây' : 'Công cụ tiện ích - Xử lý offline an toàn' }}
+              {{ (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'Cảng Nguyên Ngọc - Đồng bộ đám mây' : 'Công cụ tiện ích - Xử lý offline an toàn' }}
             </p>
           </div>
         </div>
-
-        <!-- 3 Tab Main Navigation for Weighbridge App on Header -->
-        <nav v-if="activeToolId === 'weighbridge'" class="flex gap-1 bg-slate-50 border border-primary/5 p-1 rounded-xl">
-          <button 
-            @click="activeTab = 'allocator'"
-            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'allocator' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
-          >
-            <span class="material-symbols-outlined text-sm">shuffle</span>
-            Báo cáo cân hàng
-          </button>
-          <button 
-            @click="activeTab = 'printer'"
-            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5', activeTab === 'printer' ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
-          >
-            <span class="material-symbols-outlined text-sm">print</span>
-            In Phiếu Cân Xe
-          </button>
-        </nav>
         
         <button 
           @click="activeToolId = null" 
@@ -288,7 +264,7 @@ const handleSidebarSwitch = (id: string) => {
       <div class="flex-1 flex overflow-hidden">
         
         <!-- Left Sidebar: Vessel / Barge hierarchy selection for Weighbridge, standard list for other tools -->
-        <aside v-if="activeToolId !== 'weighbridge' && activeToolId !== 'vehicles'" class="w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
+        <aside v-if="activeToolId !== 'weighbridge' && activeToolId !== 'allocator' && activeToolId !== 'vehicles'" class="w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
           <div class="p-3 border-b border-primary/5 flex items-center justify-between">
             <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">
               Danh sách công cụ
@@ -322,14 +298,14 @@ const handleSidebarSwitch = (id: string) => {
         <!-- Main Content Area -->
         <main 
           :class="[
-            (activeToolId === 'weighbridge' || activeToolId === 'vehicles')
+            (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
               ? 'flex-1 overflow-hidden flex flex-col bg-cute-gradient' 
               : 'flex-1 overflow-y-auto p-6 bg-cute-gradient flex flex-col items-center'
           ]"
         >
           <div 
             :class="[
-              (activeToolId === 'weighbridge' || activeToolId === 'vehicles')
+              (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
                 ? 'w-full h-full flex flex-col overflow-hidden' 
                 : 'w-full max-w-[1200px] h-full flex flex-col mx-auto'
             ]"
@@ -339,20 +315,8 @@ const handleSidebarSwitch = (id: string) => {
             <PdfOcrTools v-else-if="activeToolId === 'ocr'" />
             <BargeMinutes v-else-if="activeToolId === 'minutes'" />
             <BargeProfileManager v-else-if="activeToolId === 'vehicles'" />
-            
-            <!-- Weighbridge Unified App components -->
-            <template v-else-if="activeToolId === 'weighbridge'">
-              <!-- Cargo Allocator Tab -->
-              <CargoAllocator 
-                v-show="activeTab === 'allocator'" 
-              />
-              
-              <!-- Weighbridge Printer Tab -->
-              <WeighbridgePrinter 
-                v-show="activeTab === 'printer'" 
-                :hide-card="true"
-              />
-            </template>
+            <CargoAllocator v-else-if="activeToolId === 'allocator'" />
+            <WeighbridgePrinter v-else-if="activeToolId === 'weighbridge'" :hide-card="true" />
           </div>
         </main>
 

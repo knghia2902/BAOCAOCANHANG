@@ -24,7 +24,7 @@ const router = createRouter({
         },
         {
             path: '/tools/allocator',
-            redirect: '/tools?tool=weighbridge'
+            redirect: '/tools?tool=allocator'
         },
         {
             path: '/tools/printer',
