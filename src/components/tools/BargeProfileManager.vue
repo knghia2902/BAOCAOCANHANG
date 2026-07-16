@@ -63,10 +63,9 @@ const editCrewImages = ref<string[]>([]);
 
 const previewImageUrl = ref<string | null>(null);
 
-const activePopover = ref<{ bargeId: string; type: 'doc' | 'crew' } | null>(null);
+const activePopover = ref<{ bargeId: number; type: 'doc' | 'crew' } | null>(null);
 
-const togglePopover = (bargeId: string, type: 'doc' | 'crew', event: Event) => {
-    event.stopPropagation();
+const togglePopover = (bargeId: number, type: 'doc' | 'crew') => {
     if (activePopover.value && activePopover.value.bargeId === bargeId && activePopover.value.type === type) {
         activePopover.value = null;
     } else {
@@ -1093,7 +1092,7 @@ onUnmounted(() => {
                                              <span 
                                                  class="material-symbols-outlined text-[13px] hover:text-primary cursor-pointer select-none transition-colors"
                                                  :class="activePopover?.bargeId === item.barge.id && activePopover?.type === 'doc' ? 'text-primary font-bold' : 'text-gray-400'"
-                                                 @click="togglePopover(item.barge.id, 'doc', $event)"
+                                                 @click.stop="togglePopover(item.barge.id, 'doc')"
                                              >
                                                  attach_file
                                              </span>
@@ -1177,9 +1176,19 @@ onUnmounted(() => {
                                         </span>
 
                                         <!-- Crew attachment popover -->
-                                        <div v-if="item.barge.config?.crewImages?.length" class="relative group inline-block ml-1 align-middle">
-                                            <span class="material-symbols-outlined text-[13px] text-gray-400 hover:text-primary cursor-pointer select-none">attach_file</span>
-                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-xl shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto">
+                                        <div v-if="item.barge.config?.crewImages?.length" class="relative inline-block ml-1 align-middle">
+                                            <span 
+                                                class="material-symbols-outlined text-[13px] hover:text-primary cursor-pointer select-none transition-colors"
+                                                :class="activePopover?.bargeId === item.barge.id && activePopover?.type === 'crew' ? 'text-primary font-bold' : 'text-gray-400'"
+                                                @click.stop="togglePopover(item.barge.id, 'crew')"
+                                            >
+                                                attach_file
+                                            </span>
+                                            <div 
+                                                v-if="activePopover?.bargeId === item.barge.id && activePopover?.type === 'crew'"
+                                                class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-lg shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto"
+                                                @click.stop
+                                            >
                                                 <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Hồ sơ Thuyền viên</div>
                                                 <div class="grid grid-cols-4 gap-1.5">
                                                     <div 
