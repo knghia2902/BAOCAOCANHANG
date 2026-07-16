@@ -3857,26 +3857,27 @@ async function compileAndDownload() {
                                     <span class="whitespace-nowrap">{{ formatPlate(trip.plateNumber) }}</span>
                                     <span v-if="!formatPlate(trip.plateNumber).includes('/')" class="material-symbols-outlined text-[14px] text-red-500 font-bold animate-pulse" title="Thiếu số moóc!">warning</span>
                                 </td>
-                                <td class="py-1 px-3 text-center">{{ trip.tttp.toFixed(1) }}</td>
-                                <td class="py-1 px-3 text-center">{{ trip.limit.toFixed(1) }}</td>
+                                <td class="py-1 px-3 text-center">{{ typeof trip.tttp === 'number' ? trip.tttp.toFixed(1) : (trip.tttp || '-') }}</td>
+                                <td class="py-1 px-3 text-center">{{ typeof trip.limit === 'number' ? trip.limit.toFixed(1) : (trip.limit || '-') }}</td>
                                 <td class="py-1 px-3 font-semibold text-gray-500">{{ trip.ticketNo }}</td>
                                 <td class="py-1 px-3 truncate max-w-[120px]" :title="trip.cargoType">{{ trip.cargoType }}</td>
-                                <td class="py-1 px-3 text-right font-black text-primary">{{ trip.weightTons.toFixed(2) }}</td>
+                                <td class="py-1 px-3 text-right font-black text-primary">{{ typeof trip.weightTons === 'number' ? trip.weightTons.toFixed(2) : (trip.weightTons || '-') }}</td>
                                 <td class="py-1 px-3 text-center">
                                     <span 
-                                        v-if="trip.weightTons <= trip.limit" 
+                                        v-if="typeof trip.weightTons === 'number' && typeof trip.limit === 'number' && trip.weightTons <= trip.limit" 
                                         class="size-5 rounded-full bg-teal-50 text-teal-655 border border-teal-200 flex items-center justify-center mx-auto"
                                         title="Hợp lệ - Dưới hạn mức"
                                     >
                                         <span class="material-symbols-outlined text-[13px] font-black">check</span>
                                     </span>
                                     <span 
-                                        v-else 
+                                        v-else-if="typeof trip.weightTons === 'number' && typeof trip.limit === 'number'" 
                                         class="size-5 rounded-full bg-red-50 text-red-600 border border-red-200 flex items-center justify-center mx-auto"
                                         title="Quá tải!"
                                     >
                                         <span class="material-symbols-outlined text-[13px] font-black">close</span>
                                     </span>
+                                    <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                 </td>
                                 <td v-if="authStore.role === 'admin'" class="py-1 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
