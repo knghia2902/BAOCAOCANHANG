@@ -65,7 +65,6 @@ const previewImageUrl = ref<string | null>(null);
 
 const activePopover = ref<{ bargeId: number; type: 'doc' | 'crew' } | null>(null);
 
-const activeVesselId = ref<number | null>(null);
 const expandedVesselIds = ref<Record<number, boolean>>({});
 
 const isOnline = ref(navigator.onLine);
@@ -370,14 +369,7 @@ async function loadData() {
     }
 }
 
-function selectBarge(vesselId: number, bargeId: number) {
-    const vessel = vessels.value.find(v => v.id === vesselId);
-    if (!vessel) return;
-    const barge = vessel.barges?.find(b => b.id === bargeId);
-    if (!barge) return;
-    activeVesselId.value = vesselId;
-    openEdit({ barge, vesselName: vessel.name });
-}
+
 
 function openEdit(item: { barge: Barge; vesselName: string }) {
     selectedBarge.value = item.barge;
@@ -1006,62 +998,7 @@ onUnmounted(() => {
 
 <template>
     <div class="flex-grow flex overflow-hidden gap-4 p-4 h-full bg-transparent font-display text-left justify-center">
-        <!-- Sidebar (left): Vessels -> Barges tree -->
-        <aside class="w-72 h-full bg-white rounded-[24px] shadow-sm border border-primary/5 flex flex-col shrink-0 overflow-hidden">
-            <div class="p-3 border-b border-primary/5 flex items-center justify-between">
-                <span 
-                    @click="activeVesselId = null; activeBargeId = null" 
-                    class="text-xs font-black text-gray-500 hover:text-primary cursor-pointer uppercase tracking-wider transition-colors flex items-center gap-1 select-none"
-                    title="Quay lại Trang tổng quan"
-                >
-                    <span class="material-symbols-outlined text-sm">home</span>
-                    Tổng quan
-                </span>
-                <button @click="loadData" class="size-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Tải lại danh sách">
-                    <span class="material-symbols-outlined text-lg" :class="{'animate-spin': loading}">refresh</span>
-                </button>
-            </div>
-
-            <!-- Tree list -->
-            <div class="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
-                <div v-if="vessels.length === 0" class="text-center py-6 text-gray-400 text-xs">
-                    Chưa có dữ liệu tàu.
-                </div>
-
-                <div v-for="vessel in vessels" :key="vessel.id" class="border border-primary/5 rounded-[16px] overflow-hidden bg-gray-50">
-                    <!-- Vessel Header -->
-                    <div 
-                        @click="activeVesselId = vessel.id; expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
-                        :class="['flex items-center justify-between p-2.5 hover:bg-primary/5 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
-                    >
-                        <div class="flex items-center gap-1.5 font-bold text-xs text-[#4a2c32]">
-                            <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
-                            <span class="truncate max-w-[150px]">{{ vessel.name }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Barges List (under Vessel) -->
-                    <div v-if="expandedVesselIds[vessel.id]" class="bg-white px-1.5 py-1 border-t border-primary/5 flex flex-col gap-0.5">
-                        <div v-if="!vessel.barges || vessel.barges.length === 0" class="text-[10px] text-gray-400 py-1.5 px-2.5 italic">
-                            Không có sà lan nào
-                        </div>
-                        <div 
-                            v-for="barge in vessel.barges" 
-                            :key="barge.id"
-                            @click="selectBarge(vessel.id, barge.id)"
-                            :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-[11px] font-bold', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft font-black' : 'text-gray-600 hover:bg-gray-100']"
-                        >
-                            <div class="flex items-center gap-1.5 truncate">
-                                <span class="material-symbols-outlined text-sm">layers</span>
-                                <span class="truncate">{{ barge.name }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Details or Master Overview List (right pane) -->
+        <!-- Details or Master Overview List -->
         <div class="flex-grow flex flex-col h-full min-w-0 max-w-[1500px] mx-auto gap-4 overflow-hidden">
             
             <!-- CASE A: Overview Mode (activeBargeId === null) -->
