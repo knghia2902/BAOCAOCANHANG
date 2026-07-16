@@ -161,6 +161,35 @@ onUnmounted(() => {
                 </div>
               </div>
  
+              <!-- Mobile-only Navigation Links -->
+              <div class="md:hidden flex flex-col border-b border-primary/5 pb-2 mb-2">
+                <router-link 
+                  to="/" 
+                  @click="closeDropdown"
+                  class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors"
+                >
+                  <span class="material-symbols-outlined text-base text-primary/60">home</span>
+                  Home
+                </router-link>
+                <router-link 
+                  v-if="allowedTools.length > 0"
+                  to="/tools" 
+                  @click="closeDropdown"
+                  class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
+                >
+                  <span class="material-symbols-outlined text-base text-primary/60">widgets</span>
+                  Tools
+                </router-link>
+                <router-link 
+                  to="/about" 
+                  @click="closeDropdown"
+                  class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
+                >
+                  <span class="material-symbols-outlined text-base text-primary/60">info</span>
+                  About
+                </router-link>
+              </div>
+ 
               <!-- Menu Options -->
               <button 
                 @click="openProfileModal"
