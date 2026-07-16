@@ -60,7 +60,6 @@ const editLastPort = ref('');
 const activeSite = ref<'NguyenNgoc' | 'PhuMy'>('NguyenNgoc');
 const showAddBargeModal = ref(false);
 const newBargeName = ref('');
-const newBargeOrderNo = ref('');
 const editGcnImages = ref<string[]>([]);
 const editDkImages = ref<string[]>([]);
 const editBhImages = ref<string[]>([]);
@@ -407,39 +406,19 @@ const addPhuMyBarge = async () => {
             }
         }
         
-        // Generate next order number if orderNo is not specified
-        let orderNo = newBargeOrderNo.value.trim();
-        if (!orderNo) {
-            // Find max order number across all barges
-            let maxNum = 0;
-            vessels.value.forEach(v => {
-                if (v.barges) {
-                    v.barges.forEach(b => {
-                        const oVal = b.config?.orderNo || '';
-                        const match = oVal.match(/(\d+)$/);
-                        if (match && match[1]) {
-                            const n = parseInt(match[1], 10);
-                            if (n > maxNum) maxNum = n;
-                        }
-                    });
-                }
-            });
-            orderNo = String(maxNum + 1);
-        }
-        
-        // Create the sà lan
-        const data = await WeighbridgeService.createBarge(vesselId, name, orderNo);
+        // Create the sà lan without an order number
+        const data = await WeighbridgeService.createBarge(vesselId, name, '');
         if (data) {
-            // Update config site to 'PhuMy'
+            // Update config site to 'PhuMy' and ensure orderNo is empty
             const updatedConfig = {
                 ...(data.config || {}),
-                site: 'PhuMy'
+                site: 'PhuMy',
+                orderNo: ''
             };
             await WeighbridgeService.updateBargeConfig(data.id, updatedConfig);
             
             showAddBargeModal.value = false;
             newBargeName.value = '';
-            newBargeOrderNo.value = '';
             
             await loadData();
             addToast(`Đã thêm sà lan Phú Mỹ: ${name}`, 'success');
@@ -1147,7 +1126,7 @@ onUnmounted(() => {
                         <!-- Add Barge (Only for Phu My area) -->
                         <button 
                             v-if="activeSite === 'PhuMy'"
-                            @click="newBargeName = ''; newBargeOrderNo = ''; showAddBargeModal = true"
+                            @click="newBargeName = ''; showAddBargeModal = true"
                             class="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10 shrink-0"
                             title="Tạo sà lan mới thuộc khu vực Phú Mỹ"
                         >
@@ -1189,7 +1168,7 @@ onUnmounted(() => {
                                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                     <th class="px-3 py-2.5 w-12 text-center bg-gray-50 sticky top-0 z-10">STT</th>
                                     <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Tên sà lan</th>
-                                    <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Số lệnh</th>
+                                    <th v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Số lệnh</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trọng tải (Tấn)</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian cập</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian rời</th>
@@ -1204,7 +1183,7 @@ onUnmounted(() => {
                                 <tr v-for="(item, idx) in filteredBarges" :key="item.barge.id" class="hover:bg-gray-50 transition-colors">
                                     <td class="px-3 py-2.5 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                     <td class="px-3 py-2.5 font-bold text-gray-900">{{ item.barge.name }}</td>
-                                    <td class="px-3 py-2.5">
+                                    <td v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5">
                                         <span v-if="item.barge.config?.orderNo" class="px-2 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-black whitespace-nowrap">
                                             {{ item.barge.config.orderNo }}
                                         </span>
@@ -1412,7 +1391,7 @@ onUnmounted(() => {
                             Thông tin hành chính & Hành trình
                         </h4>
                         
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-4" :class="activeSite === 'NguyenNgoc' ? 'grid-cols-2' : 'grid-cols-1'">
                             <div class="space-y-1">
                                 <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
                                 <input 
@@ -1421,7 +1400,7 @@ onUnmounted(() => {
                                     class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-black"
                                 />
                             </div>
-                            <div class="space-y-1">
+                            <div v-if="activeSite === 'NguyenNgoc'" class="space-y-1">
                                 <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mã lệnh</label>
                                 <input 
                                     v-model="editOrderNo" 
@@ -1863,16 +1842,6 @@ onUnmounted(() => {
                             type="text" 
                             placeholder="Nhập tên sà lan..." 
                             class="w-full h-9 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-black placeholder:font-normal"
-                            @keyup.enter="addPhuMyBarge"
-                        />
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Số lệnh (Không bắt buộc)</label>
-                        <input 
-                            v-model="newBargeOrderNo" 
-                            type="text" 
-                            placeholder="Tự động sinh nếu để trống..." 
-                            class="w-full h-9 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
                             @keyup.enter="addPhuMyBarge"
                         />
                     </div>
