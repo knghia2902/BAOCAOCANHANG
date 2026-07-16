@@ -3604,7 +3604,7 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'source'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Source Tickets Table -->
-                <div :class="['border border-gray-100 rounded-[16px] bg-white flex-1 overflow-y-auto', filteredSourceTickets.length > 0 ? 'overflow-x-auto' : 'overflow-hidden']">
+                <div :class="['border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 overflow-y-auto', filteredSourceTickets.length > 0 ? 'overflow-x-auto' : 'overflow-hidden']">
                     <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px]">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
@@ -3769,7 +3769,7 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'generated'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div :class="['border border-gray-100 rounded-[16px] bg-white flex-1 overflow-y-auto', existingTrips.length > 0 ? 'overflow-x-auto' : 'overflow-hidden']">
+                <div :class="['border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 overflow-y-auto', existingTrips.length > 0 ? 'overflow-x-auto' : 'overflow-hidden']">
                     <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px]">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
@@ -3955,7 +3955,7 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'template'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div :class="['border border-gray-100 rounded-[16px] bg-white flex-1 overflow-y-auto', generatedTrips.length > 0 ? 'overflow-x-auto' : 'overflow-hidden']">
+                <div :class="['border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 overflow-y-auto', generatedTrips.length > 0 ? 'overflow-x-auto' : 'overflow-hidden']">
                     <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px]">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
