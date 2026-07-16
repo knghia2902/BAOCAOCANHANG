@@ -3125,9 +3125,34 @@ async function compileAndDownload() {
 <template>
     <div class="cargo-allocator-wrapper flex-1 flex flex-col min-h-0 overflow-hidden h-full w-full">
         <!-- Main area -->
-        <div class="flex-1 flex overflow-hidden gap-4 p-4">
-            <!-- Sidebar (left) -->
-            <aside class="w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden no-print">
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden gap-4 p-4">
+            <!-- Top Navigation (Mobile Only) -->
+            <div class="flex md:hidden bg-white border border-primary/5 rounded-[20px] p-2 overflow-x-auto gap-2 shrink-0 scrollbar-none whitespace-nowrap mb-1">
+                <button 
+                    @click="activeSubViewMode = 'allocator'"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'allocator' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-600 border-gray-150']"
+                >
+                    <span class="material-symbols-outlined text-sm">analytics</span>
+                    <span>Phân bổ tải trọng</span>
+                </button>
+                <button 
+                    @click="activeSubViewMode = 'vehicles'"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'vehicles' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-600 border-gray-150']"
+                >
+                    <span class="material-symbols-outlined text-sm">local_shipping</span>
+                    <span>Danh sách xe</span>
+                </button>
+                <button 
+                    @click="activeSubViewMode = 'goods'"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'goods' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-600 border-gray-150']"
+                >
+                    <span class="material-symbols-outlined text-sm">inventory_2</span>
+                    <span>Danh sách hàng hóa</span>
+                </button>
+            </div>
+
+            <!-- Sidebar (left) (Desktop Only) -->
+            <aside class="hidden md:flex w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex-col shrink-0 overflow-hidden no-print">
                 <!-- Sidebar header -->
                 <div class="p-4 border-b border-primary/5">
                     <div class="text-[10px] uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích quản lý</div>
