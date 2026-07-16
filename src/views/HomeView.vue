@@ -15,7 +15,13 @@ const loadingTools = ref(true);
 const loadData = async () => {
     try {
         loading.value = true;
-        vessels.value = await WeighbridgeService.getVessels() || [];
+        const data = await WeighbridgeService.getVessels() || [];
+        vessels.value = data
+            .filter(v => v.name !== 'KHU VỰC PHÚ MỸ')
+            .map(v => ({
+                ...v,
+                barges: (v.barges || []).filter((b: any) => b.config?.site !== 'PhuMy')
+            }));
     } catch (e) {
         console.error('Error loading home data:', e);
     } finally {

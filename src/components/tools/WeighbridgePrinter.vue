@@ -746,10 +746,15 @@ const loadVessels = async () => {
     loading.value = true;
     try {
         const data = await WeighbridgeService.getVessels();
-        vessels.value = data;
+        vessels.value = (data || [])
+            .filter(v => v.name !== 'KHU VỰC PHÚ MỸ')
+            .map(v => ({
+                ...v,
+                barges: (v.barges || []).filter(b => b.config?.site !== 'PhuMy')
+            }));
         
         // Expand all vessels by default
-        data.forEach(v => {
+        vessels.value.forEach(v => {
             if (expandedVesselIds.value[v.id] === undefined) {
                 expandedVesselIds.value[v.id] = true;
             }

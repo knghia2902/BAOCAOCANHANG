@@ -57,6 +57,10 @@ const editArrivalTime = ref('');
 const editDepartureTime = ref('');
 const editKhaiHethong = ref('');
 const editLastPort = ref('');
+const activeSite = ref<'NguyenNgoc' | 'PhuMy'>('NguyenNgoc');
+const showAddBargeModal = ref(false);
+const newBargeName = ref('');
+const newBargeOrderNo = ref('');
 const editGcnImages = ref<string[]>([]);
 const editDkImages = ref<string[]>([]);
 const editBhImages = ref<string[]>([]);
@@ -94,10 +98,20 @@ const allBarges = computed(() => {
     vessels.value.forEach(v => {
         if (v.barges) {
             v.barges.forEach(b => {
-                list.push({
-                    barge: b,
-                    vesselName: v.name
-                });
+                const bSite = b.config?.site || 'NguyenNgoc';
+                const isPhuMy = bSite === 'PhuMy' || v.name === 'KHU VỰC PHÚ MỸ';
+                
+                if (activeSite.value === 'PhuMy' && isPhuMy) {
+                    list.push({
+                        barge: b,
+                        vesselName: v.name
+                    });
+                } else if (activeSite.value === 'NguyenNgoc' && !isPhuMy) {
+                    list.push({
+                        barge: b,
+                        vesselName: v.name
+                    });
+                }
             });
         }
     });
@@ -369,6 +383,76 @@ async function loadData() {
         loading.value = false;
     }
 }
+
+const addPhuMyBarge = async () => {
+    const name = newBargeName.value.trim().toUpperCase();
+    if (!name) {
+        addToast('Vui lòng nhập tên sà lan!', 'info');
+        return;
+    }
+    
+    loading.value = true;
+    try {
+        // Find or create the 'KHU VỰC PHÚ MỸ' vessel
+        let pmVessel = vessels.value.find(v => v.name === 'KHU VỰC PHÚ MỸ');
+        let vesselId: number;
+        if (pmVessel) {
+            vesselId = pmVessel.id;
+        } else {
+            const newV = await WeighbridgeService.createVessel('KHU VỰC PHÚ MỸ');
+            if (newV) {
+                vesselId = newV.id;
+            } else {
+                throw new Error('Không thể tạo tàu KHU VỰC PHÚ MỸ');
+            }
+        }
+        
+        // Generate next order number if orderNo is not specified
+        let orderNo = newBargeOrderNo.value.trim();
+        if (!orderNo) {
+            // Find max order number across all barges
+            let maxNum = 0;
+            vessels.value.forEach(v => {
+                if (v.barges) {
+                    v.barges.forEach(b => {
+                        const oVal = b.config?.orderNo || '';
+                        const match = oVal.match(/(\d+)$/);
+                        if (match && match[1]) {
+                            const n = parseInt(match[1], 10);
+                            if (n > maxNum) maxNum = n;
+                        }
+                    });
+                }
+            });
+            orderNo = String(maxNum + 1);
+        }
+        
+        // Create the sà lan
+        const data = await WeighbridgeService.createBarge(vesselId, name, orderNo);
+        if (data) {
+            // Update config site to 'PhuMy'
+            const updatedConfig = {
+                ...(data.config || {}),
+                site: 'PhuMy'
+            };
+            await WeighbridgeService.updateBargeConfig(data.id, updatedConfig);
+            
+            showAddBargeModal.value = false;
+            newBargeName.value = '';
+            newBargeOrderNo.value = '';
+            
+            await loadData();
+            addToast(`Đã thêm sà lan Phú Mỹ: ${name}`, 'success');
+        } else {
+            addToast('Không thể tạo sà lan mới!', 'error');
+        }
+    } catch (e) {
+        console.error('Lỗi khi tạo sà lan Phú Mỹ:', e);
+        addToast('Lỗi khi thêm sà lan Phú Mỹ!', 'error');
+    } finally {
+        loading.value = false;
+    }
+};
 
 
 
@@ -1007,12 +1091,30 @@ onUnmounted(() => {
             <!-- CASE A: Overview Mode (activeBargeId === null) -->
             <div v-if="activeBargeId === null" class="flex-grow flex flex-col gap-4 min-h-0">
                 <!-- Welcome Header banner -->
-                <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3 shrink-0">
+                <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-4 shrink-0">
                     <div>
                         <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống quản lý hồ sơ phương tiện</div>
                         <h1 class="text-base font-black text-[#4a2c32] flex items-center gap-1.5 select-none">
                             Báo cáo tổng quan hệ thống hồ sơ phương tiện sà lan
                         </h1>
+                    </div>
+                    
+                    <!-- Tabs site switcher -->
+                    <div class="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 shadow-inner">
+                        <button 
+                            @click="activeSite = 'NguyenNgoc'; activeBargeId = null"
+                            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 select-none', activeSite === 'NguyenNgoc' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-[#4a2c32]']"
+                        >
+                            <span class="material-symbols-outlined text-sm">sailing</span>
+                            Cảng Nguyên Ngọc
+                        </button>
+                        <button 
+                            @click="activeSite = 'PhuMy'; activeBargeId = null"
+                            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 select-none', activeSite === 'PhuMy' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-[#4a2c32]']"
+                        >
+                            <span class="material-symbols-outlined text-sm">location_on</span>
+                            Khu vực Phú Mỹ
+                        </button>
                     </div>
                 </div>
 
@@ -1042,6 +1144,16 @@ onUnmounted(() => {
                             accept=".xlsx" 
                             class="hidden" 
                         />
+                        <!-- Add Barge (Only for Phu My area) -->
+                        <button 
+                            v-if="activeSite === 'PhuMy'"
+                            @click="newBargeName = ''; newBargeOrderNo = ''; showAddBargeModal = true"
+                            class="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10 shrink-0"
+                            title="Tạo sà lan mới thuộc khu vực Phú Mỹ"
+                        >
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            Thêm sà lan mới
+                        </button>
                         <button 
                             @click="triggerExcelUpload"
                             class="h-8 px-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-600/10 shrink-0"
@@ -1726,6 +1838,62 @@ onUnmounted(() => {
                 <img :src="previewImageUrl" class="max-w-full max-h-[80vh] object-contain rounded-2xl" />
                 <div class="mt-2 text-center text-xs font-black text-gray-700 truncate max-w-xs uppercase tracking-wider select-none">
                     {{ extractFileName(previewImageUrl) }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Barge Modal -->
+        <div v-if="showAddBargeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div class="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
+                <div class="flex items-center justify-between border-b border-gray-150 pb-3">
+                    <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
+                        <span class="material-symbols-outlined text-lg">add_box</span>
+                        Thêm sà lan Phú Mỹ mới
+                    </h3>
+                    <button @click="showAddBargeModal = false" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên sà lan *</label>
+                        <input 
+                            v-model="newBargeName" 
+                            type="text" 
+                            placeholder="Nhập tên sà lan..." 
+                            class="w-full h-9 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-black placeholder:font-normal"
+                            @keyup.enter="addPhuMyBarge"
+                        />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Số lệnh (Không bắt buộc)</label>
+                        <input 
+                            v-model="newBargeOrderNo" 
+                            type="text" 
+                            placeholder="Tự động sinh nếu để trống..." 
+                            class="w-full h-9 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#4a2c32] font-semibold"
+                            @keyup.enter="addPhuMyBarge"
+                        />
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end gap-2 border-t border-gray-150 pt-4 mt-2">
+                    <button 
+                        @click="showAddBargeModal = false"
+                        class="px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs transition-all"
+                    >
+                        Hủy
+                    </button>
+                    <button 
+                        @click="addPhuMyBarge"
+                        :disabled="loading"
+                        class="px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span v-if="loading" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                        <span v-else class="material-symbols-outlined text-sm">add</span>
+                        Thêm mới
+                    </button>
                 </div>
             </div>
         </div>
