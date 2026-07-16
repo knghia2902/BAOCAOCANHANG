@@ -2502,28 +2502,57 @@ async function autoSyncAllBarges(isManual = false) {
                 });
 
                 const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
+                
+                // Merge importedTrucks into currentTrucks instead of overwriting
+                const mergedTrucks = currentTrucks.map(ct => ({ ...ct }));
+                let addedCount = 0;
+                importedTrucks.forEach((tr, idx) => {
+                    const matchIdx = mergedTrucks.findIndex(ct => {
+                        if (tr.ticketNo && ct.ticketNo) {
+                            return tr.ticketNo === ct.ticketNo;
+                        }
+                        const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '') === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '');
+                        const sameWeight = Math.abs(ct.weightNet - tr.weightNet) < 0.1;
+                        const sameDate = ct.dateIn.slice(0, 10) === tr.dateIn.slice(0, 10);
+                        return samePlate && sameWeight && sameDate;
+                    });
+                    if (matchIdx !== -1) {
+                        mergedTrucks[matchIdx]!.weight1 = tr.weight1;
+                        mergedTrucks[matchIdx]!.weight2 = tr.weight2;
+                        mergedTrucks[matchIdx]!.weightNet = tr.weightNet;
+                        mergedTrucks[matchIdx]!.dateIn = tr.dateIn;
+                        mergedTrucks[matchIdx]!.dateOut = tr.dateOut;
+                        mergedTrucks[matchIdx]!.note = tr.note;
+                        if (tr.ticketNo) mergedTrucks[matchIdx]!.ticketNo = tr.ticketNo;
+                    } else {
+                        tr.id = Date.now() + idx + addedCount;
+                        mergedTrucks.push(tr);
+                        addedCount++;
+                    }
+                });
+
                 let currentSeed = barge.config?.ticketSeed || '1';
-                for (const tr of importedTrucks) {
+                for (const tr of mergedTrucks) {
                     if (!tr.ticketNo) {
-                        tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, [...currentTrucks, ...importedTrucks], currentSeed, tr.id);
+                        tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, mergedTrucks, currentSeed, tr.id);
                         const serialPart = tr.ticketNo.split('/')[0];
                         currentSeed = (parseInt(serialPart || '0', 10) || 1) + 1;
                     }
                 }
 
-                // Compare importedTrucks and currentTrucks to prevent redundant saves/toasts
-                let isIdentical = importedTrucks.length === currentTrucks.length;
+                // Compare mergedTrucks and currentTrucks to prevent redundant saves/toasts
+                let isIdentical = mergedTrucks.length === currentTrucks.length;
                 if (isIdentical) {
-                    for (let i = 0; i < importedTrucks.length; i++) {
-                        const it = importedTrucks[i]!;
+                    for (let i = 0; i < mergedTrucks.length; i++) {
+                        const mt = mergedTrucks[i]!;
                         const ct = currentTrucks[i]!;
                         if (
-                            it.ticketNo !== ct.ticketNo ||
-                            it.plateNumber !== ct.plateNumber ||
-                            it.weight1 !== ct.weight1 ||
-                            it.weight2 !== ct.weight2 ||
-                            it.weightNet !== ct.weightNet ||
-                            it.note !== ct.note
+                            mt.ticketNo !== ct.ticketNo ||
+                            mt.plateNumber !== ct.plateNumber ||
+                            mt.weight1 !== ct.weight1 ||
+                            mt.weight2 !== ct.weight2 ||
+                            mt.weightNet !== ct.weightNet ||
+                            mt.note !== ct.note
                         ) {
                             isIdentical = false;
                             break;
@@ -2533,8 +2562,8 @@ async function autoSyncAllBarges(isManual = false) {
 
                 if (isIdentical) continue;
 
-                // Auto-sync overwrites the trucks list with matchedTrips
-                const success = await WeighbridgeService.saveTrucks(barge.id, importedTrucks);
+                // Auto-sync merges/updates the trucks list with matchedTrips
+                const success = await WeighbridgeService.saveTrucks(barge.id, mergedTrucks);
                 if (success) {
                     hasUpdates = true;
                     barge.config.ticketSeed = String(currentSeed).padStart(6, '0');
@@ -2542,7 +2571,7 @@ async function autoSyncAllBarges(isManual = false) {
                     
                     // If this is the currently active barge, reload trucks ref
                     if (activeBargeId.value === barge.id) {
-                        trucks.value = importedTrucks;
+                        trucks.value = mergedTrucks;
                         cfgForm.ticketSeed = barge.config.ticketSeed;
                     }
                 }
@@ -2697,20 +2726,51 @@ const syncFromAllocatorActiveBarge = async () => {
         });
 
         let currentSeed = cfgForm.ticketSeed || '1';
-        for (const tr of importedTrucks) {
-            if (!tr.ticketNo) {
-                const tempAll = (action === 'overwrite') ? importedTrucks : [...currentTrucks, ...importedTrucks];
-                tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, tempAll, currentSeed, tr.id);
-                const serialPart = tr.ticketNo.split('/')[0];
-                currentSeed = (parseInt(serialPart || '0', 10) || 1) + 1;
-            }
-        }
-
-        let allTrucks = [];
+        let allTrucks: Truck[] = [];
         if (action === 'overwrite') {
+            for (const tr of importedTrucks) {
+                if (!tr.ticketNo) {
+                    tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, importedTrucks, currentSeed, tr.id);
+                    const serialPart = tr.ticketNo.split('/')[0];
+                    currentSeed = (parseInt(serialPart || '0', 10) || 1) + 1;
+                }
+            }
             allTrucks = importedTrucks;
         } else {
-            allTrucks = [...currentTrucks, ...importedTrucks];
+            // Smart append/merge to prevent duplicate ticket generation and keep older days' tickets intact
+            allTrucks = currentTrucks.map(ct => ({ ...ct }));
+            let addedCount = 0;
+            importedTrucks.forEach((tr, idx) => {
+                const matchIdx = allTrucks.findIndex(ct => {
+                    if (tr.ticketNo && ct.ticketNo) {
+                        return tr.ticketNo === ct.ticketNo;
+                    }
+                    const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '') === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '');
+                    const sameWeight = Math.abs(ct.weightNet - tr.weightNet) < 0.1;
+                    const sameDate = ct.dateIn.slice(0, 10) === tr.dateIn.slice(0, 10);
+                    return samePlate && sameWeight && sameDate;
+                });
+                if (matchIdx !== -1) {
+                    allTrucks[matchIdx]!.weight1 = tr.weight1;
+                    allTrucks[matchIdx]!.weight2 = tr.weight2;
+                    allTrucks[matchIdx]!.weightNet = tr.weightNet;
+                    allTrucks[matchIdx]!.dateIn = tr.dateIn;
+                    allTrucks[matchIdx]!.dateOut = tr.dateOut;
+                    allTrucks[matchIdx]!.note = tr.note;
+                    if (tr.ticketNo) allTrucks[matchIdx]!.ticketNo = tr.ticketNo;
+                } else {
+                    tr.id = Date.now() + idx + addedCount;
+                    allTrucks.push(tr);
+                    addedCount++;
+                }
+            });
+            for (const tr of allTrucks) {
+                if (!tr.ticketNo) {
+                    tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, allTrucks, currentSeed, tr.id);
+                    const serialPart = tr.ticketNo.split('/')[0];
+                    currentSeed = (parseInt(serialPart || '0', 10) || 1) + 1;
+                }
+            }
         }
 
         const success = await WeighbridgeService.saveTrucks(bargeId, allTrucks);
