@@ -35,6 +35,18 @@ const router = createRouter({
             redirect: '/tools?tool=vehicles'
         },
         {
+            path: '/tools/converter',
+            redirect: '/tools?tool=converter'
+        },
+        {
+            path: '/tools/merger',
+            redirect: '/tools?tool=merger'
+        },
+        {
+            path: '/tools/ocr',
+            redirect: '/tools?tool=ocr'
+        },
+        {
             path: '/admin',
             name: 'admin',
             component: AdminView,

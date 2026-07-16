@@ -13,8 +13,9 @@ import { ContentService } from '../services/ContentService';
 
 const route = useRoute();
 
-// Active tool
+// Active tool and utility tabs
 const activeToolId = ref<string | null>(null);
+const activeUtilityTab = ref<'converter' | 'merger' | 'ocr'>('converter');
 const allowedStaffTools = ref<string[]>([]);
 const loading = ref(true);
 
@@ -62,22 +63,6 @@ onUnmounted(() => {
 
 const allTools = [
   {
-    id: 'converter',
-    name: 'Chuyển Đổi Định Dạng File',
-    desc: 'Hỗ trợ chuyển đổi nhanh chóng qua lại giữa các định dạng Excel (.xlsx), CSV và JSON mà không làm mất dữ liệu gốc.',
-    icon: 'swap_horiz',
-    bgIcon: 'bg-rose-500/10 text-rose-500',
-    tags: ['Excel', 'CSV', 'JSON', 'Local Only']
-  },
-  {
-    id: 'merger',
-    name: 'Gộp Excel Thông Minh',
-    desc: 'Trộn và hợp nhất nhiều tệp bảng tính dựa trên cột khóa chung, giữ nguyên định dạng của tệp chính.',
-    icon: 'layers',
-    bgIcon: 'bg-sky-500/10 text-sky-500',
-    tags: ['Excel', 'Merge', 'Automate']
-  },
-  {
     id: 'allocator',
     name: 'Phân Bổ Tải Trọng Sà Lan 🚢',
     desc: 'Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.',
@@ -94,12 +79,12 @@ const allTools = [
     tags: ['In A5', 'Supabase Cloud', 'Trạm cân']
   },
   {
-    id: 'ocr',
-    name: 'Trích Xuất PDF & OCR',
-    desc: 'Quét và nhận diện văn bản (OCR) từ các file ảnh và tệp PDF trực tiếp trong trình duyệt bằng Tesseract.js.',
-    icon: 'document_scanner',
+    id: 'utilities',
+    name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️',
+    desc: 'Tập hợp các tiện ích văn phòng: Chuyển đổi định dạng file (XLSX, CSV, JSON), gộp bảng tính Excel và nhận diện ký tự OCR từ tệp PDF.',
+    icon: 'construction',
     bgIcon: 'bg-teal-500/10 text-teal-600',
-    tags: ['PDF Quét', 'Image OCR', 'Browser Only']
+    tags: ['Excel', 'PDF OCR', 'Chuyển đổi', 'Gộp bảng tính']
   },
   {
     id: 'minutes',
@@ -119,14 +104,44 @@ const allTools = [
   }
 ];
 
+const utilitySubTools = [
+  {
+    id: 'converter',
+    name: 'Chuyển Đổi Định Dạng',
+    icon: 'swap_horiz'
+  },
+  {
+    id: 'merger',
+    name: 'Gộp Excel Thông Minh',
+    icon: 'layers'
+  },
+  {
+    id: 'ocr',
+    name: 'Trích Xuất PDF & OCR',
+    icon: 'document_scanner'
+  }
+] as const;
+
 const toolsList = computed(() => {
   if (authStore.role === 'admin') {
     return allTools;
   }
   return allTools.filter(t => {
+      if (t.id === 'utilities') {
+          return allowedStaffTools.value.includes('converter') || 
+                 allowedStaffTools.value.includes('merger') || 
+                 allowedStaffTools.value.includes('ocr');
+      }
       if (t.id === 'vehicles') return allowedStaffTools.value.includes('vehicles') || allowedStaffTools.value.includes('barge-profile');
       return allowedStaffTools.value.includes(t.id);
   });
+});
+
+const utilitySubToolsList = computed(() => {
+  if (authStore.role === 'admin') {
+    return utilitySubTools;
+  }
+  return utilitySubTools.filter(sub => allowedStaffTools.value.includes(sub.id));
 });
 
 const activeToolMetadata = computed(() => {
@@ -134,12 +149,23 @@ const activeToolMetadata = computed(() => {
 });
 
 const openTool = (id: string) => {
-  activeToolId.value = id;
+  if (id === 'converter' || id === 'merger' || id === 'ocr') {
+    activeToolId.value = 'utilities';
+    activeUtilityTab.value = id as 'converter' | 'merger' | 'ocr';
+  } else {
+    activeToolId.value = id;
+  }
 };
 
-const handleSidebarSwitch = (id: string) => {
-  activeToolId.value = id;
-};
+
+watch(allowedStaffTools, (newVal) => {
+    if (activeToolId.value === 'utilities' && !newVal.includes(activeUtilityTab.value)) {
+        const firstAllowed = utilitySubToolsList.value[0]?.id;
+        if (firstAllowed) {
+            activeUtilityTab.value = firstAllowed;
+        }
+    }
+});
 </script>
 
 <template>
@@ -239,11 +265,19 @@ const handleSidebarSwitch = (id: string) => {
       <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
         <div class="flex items-center gap-2.5">
           <div :class="['size-9 rounded-full flex items-center justify-center text-white shadow-soft', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
-            <span class="material-symbols-outlined text-lg">{{ activeToolMetadata.icon }}</span>
+            <span class="material-symbols-outlined text-lg">
+              {{ activeToolId === 'utilities' 
+                 ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.icon || 'construction')
+                 : activeToolMetadata.icon 
+              }}
+            </span>
           </div>
           <div>
             <h2 class="text-sm font-black text-primary leading-tight">
-              {{ activeToolMetadata.name.toUpperCase() }}
+              {{ activeToolId === 'utilities'
+                 ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.name || 'CÔNG CỤ TIỆN ÍCH').toUpperCase()
+                 : activeToolMetadata.name.toUpperCase() 
+              }}
             </h2>
             <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">
               {{ (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'Cảng Nguyên Ngọc - Đồng bộ đám mây' : 'Công cụ tiện ích - Xử lý offline an toàn' }}
@@ -263,23 +297,23 @@ const handleSidebarSwitch = (id: string) => {
       <!-- Workspace Body -->
       <div class="flex-1 flex overflow-hidden">
         
-        <!-- Left Sidebar: Vessel / Barge hierarchy selection for Weighbridge, standard list for other tools -->
-        <aside v-if="activeToolId !== 'weighbridge' && activeToolId !== 'allocator' && activeToolId !== 'vehicles'" class="w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
+        <!-- Left Sidebar: Utility sub-tools list -->
+        <aside v-if="activeToolId === 'utilities'" class="w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
           <div class="p-3 border-b border-primary/5 flex items-center justify-between">
             <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-              Danh sách công cụ
+              Danh sách tiện ích
             </span>
           </div>
 
           <div class="flex-1 overflow-y-auto p-2 space-y-1">
             <button 
-              v-for="tool in toolsList" 
-              :key="tool.id"
-              @click="handleSidebarSwitch(tool.id)"
-              :class="['w-full flex items-center gap-2 p-2 rounded-lg text-left text-xs font-bold transition-all', activeToolId === tool.id ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
+              v-for="sub in utilitySubToolsList" 
+              :key="sub.id"
+              @click="activeUtilityTab = sub.id"
+              :class="['w-full flex items-center gap-2 p-2 rounded-lg text-left text-xs font-bold transition-all', activeUtilityTab === sub.id ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
             >
-              <span class="material-symbols-outlined text-sm">{{ tool.icon }}</span>
-              <span class="truncate">{{ tool.name }}</span>
+              <span class="material-symbols-outlined text-sm">{{ sub.icon }}</span>
+              <span class="truncate">{{ sub.name }}</span>
             </button>
           </div>
 
@@ -290,7 +324,7 @@ const handleSidebarSwitch = (id: string) => {
               class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 hover:bg-primary/5 transition-all shadow-sm"
             >
               <span class="material-symbols-outlined text-xs">arrow_back</span>
-              Về Trang Chủ
+              Về Danh Mục
             </button>
           </div>
         </aside>
@@ -310,9 +344,9 @@ const handleSidebarSwitch = (id: string) => {
                 : 'w-full max-w-[1200px] h-full flex flex-col mx-auto'
             ]"
           >
-            <FormatConverter v-if="activeToolId === 'converter'" />
-            <ExcelMerger v-else-if="activeToolId === 'merger'" />
-            <PdfOcrTools v-else-if="activeToolId === 'ocr'" />
+            <FormatConverter v-if="activeToolId === 'utilities' && activeUtilityTab === 'converter'" />
+            <ExcelMerger v-else-if="activeToolId === 'utilities' && activeUtilityTab === 'merger'" />
+            <PdfOcrTools v-else-if="activeToolId === 'utilities' && activeUtilityTab === 'ocr'" />
             <BargeMinutes v-else-if="activeToolId === 'minutes'" />
             <BargeProfileManager v-else-if="activeToolId === 'vehicles'" />
             <CargoAllocator v-else-if="activeToolId === 'allocator'" />
