@@ -758,6 +758,14 @@ async function exportToExcel() {
             const ketluanVal = config.ketluan === "Cho phép" ? "CHO PHÉP" : (config.ketluan === "Không cho phép" ? "KHÔNG CHO PHÉP" : "KHÔNG ĐỦ HỒ SƠ");
             row.getCell(12).value = ketluanVal;
             
+            if (docStatus === 'THIẾU') {
+                setCellFill(row.getCell(10), 'FFFF00');
+            } else {
+                clearCellFill(row.getCell(10));
+            }
+            
+            clearCellFill(row.getCell(11));
+
             if (ketluanVal === 'KHÔNG ĐỦ HỒ SƠ') {
                 setCellFill(row.getCell(12), 'FFFF00');
             } else {
