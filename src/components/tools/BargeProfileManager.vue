@@ -1120,10 +1120,9 @@ onUnmounted(() => {
 
                 <!-- Table Card Container -->
                 <div class="flex-grow flex flex-col bg-white rounded-[24px] border border-primary/5 overflow-hidden shadow-sm min-h-0">
-                    <!-- Control Bar -->
-                <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between gap-4 shrink-0">
+                <div class="border-b border-primary/10 px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
                     <!-- Left: Search input -->
-                    <div class="relative w-full max-w-xs">
+                    <div class="relative w-full sm:max-w-xs">
                         <span class="material-symbols-outlined text-gray-400 text-sm absolute left-3 top-1/2 -translate-y-1/2 select-none">search</span>
                         <input 
                             v-model="searchQuery" 
@@ -1633,7 +1632,7 @@ onUnmounted(() => {
                                 <span class="material-symbols-outlined text-sm text-primary">feed</span>
                                 Giấy chứng nhận (GCN) đăng ký
                             </span>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Số hiệu GCN</label>
                                     <input v-model="editGcnNo" type="text" placeholder="Nhập số hiệu" class="w-full h-7 px-2 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
@@ -1697,7 +1696,7 @@ onUnmounted(() => {
                                 <span class="material-symbols-outlined text-sm text-primary">gavel</span>
                                 Hồ sơ Đăng kiểm phương tiện
                             </span>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Số Đăng kiểm</label>
                                     <input v-model="editDkNo" type="text" placeholder="Nhập số DK" class="w-full h-7 px-2 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />
@@ -1744,7 +1743,7 @@ onUnmounted(() => {
                                 <span class="material-symbols-outlined text-sm text-primary">verified_user</span>
                                 Bảo hiểm trách nhiệm dân sự
                             </span>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
                                     <label class="text-[8px] font-bold text-gray-400 uppercase">Số bảo hiểm</label>
                                     <input v-model="editBhNo" type="text" placeholder="Nhập số BH" class="w-full h-7 px-2 text-[10px] bg-white border border-gray-200 rounded-lg text-[#4a2c32]" />

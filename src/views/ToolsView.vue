@@ -295,10 +295,10 @@ watch(allowedStaffTools, (newVal) => {
       </header>
 
       <!-- Workspace Body -->
-      <div class="flex-1 flex overflow-hidden">
+      <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        <!-- Left Sidebar: Utility sub-tools list -->
-        <aside v-if="activeToolId === 'utilities'" class="w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
+        <!-- Left Sidebar: Utility sub-tools list (Desktop Only) -->
+        <aside v-if="activeToolId === 'utilities'" class="hidden md:flex w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
           <div class="p-3 border-b border-primary/5 flex items-center justify-between">
             <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">
               Danh sách tiện ích
@@ -328,6 +328,19 @@ watch(allowedStaffTools, (newVal) => {
             </button>
           </div>
         </aside>
+
+        <!-- Top Navigation Bar (Mobile Only) -->
+        <div v-if="activeToolId === 'utilities'" class="flex md:hidden bg-white border-b border-primary/10 p-2 overflow-x-auto gap-2 shrink-0 scrollbar-none whitespace-nowrap">
+            <button 
+              v-for="sub in utilitySubToolsList" 
+              :key="sub.id"
+              @click="activeUtilityTab = sub.id"
+              :class="['flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0', activeUtilityTab === sub.id ? 'bg-primary text-white shadow-soft' : 'bg-slate-50 text-gray-600 border border-gray-150']"
+            >
+              <span class="material-symbols-outlined text-sm">{{ sub.icon }}</span>
+              <span>{{ sub.name }}</span>
+            </button>
+        </div>
 
         <!-- Main Content Area -->
         <main 

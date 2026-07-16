@@ -3577,7 +3577,12 @@ onUnmounted(() => {
             <!-- Main area -->
             <div :class="['flex-1 flex overflow-hidden gap-4', hideCard ? 'p-4' : 'p-4 bg-cute-gradient']">
                 <!-- Sidebar (left): Vessels -> Barges tree -->
-                <aside class="w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden">
+                <aside 
+                    :class="[
+                        'w-full md:w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden',
+                        (activeVesselId || activeBargeId) ? 'hidden md:flex' : 'flex'
+                    ]"
+                >
                     <div class="p-3 border-b border-primary/5 flex items-center justify-between">
                         <span 
                             @click="activeVesselId = null; activeBargeId = null" 
@@ -3669,7 +3674,12 @@ onUnmounted(() => {
                 </aside>
 
                 <!-- Workspace (right) -->
-                <main class="flex-1 h-full min-h-0 flex flex-col gap-4 p-0 overflow-hidden">
+                <main 
+                    :class="[
+                        'flex-1 h-full min-h-0 flex flex-col gap-4 p-0 overflow-hidden',
+                        (!activeVesselId && !activeBargeId) ? 'hidden md:flex' : 'flex'
+                    ]"
+                >
                     <!-- Global Dashboard (Empty State replaced by All Barges Overview) -->
                     <div v-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 animate-fade-in min-h-0">
                         <!-- Welcome Header banner -->
