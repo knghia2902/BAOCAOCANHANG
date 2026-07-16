@@ -641,17 +641,23 @@ async function exportToExcel() {
         };
         
         const setCellFill = (cell: any, hexColor: string) => {
-            cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: hexColor }
+            cell.style = {
+                ...cell.style,
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: hexColor }
+                }
             };
         };
 
         const clearCellFill = (cell: any) => {
-            cell.fill = {
-                type: 'pattern',
-                pattern: 'none'
+            cell.style = {
+                ...cell.style,
+                fill: {
+                    type: 'pattern',
+                    pattern: 'none'
+                }
             };
         };
 
