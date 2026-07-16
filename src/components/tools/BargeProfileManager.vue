@@ -1070,33 +1070,60 @@ onMounted(() => {
                                         <!-- GCN, DK, BH attachment popover -->
                                         <div v-if="(item.barge.config?.gcnImages?.length || 0) + (item.barge.config?.dkImages?.length || 0) + (item.barge.config?.bhImages?.length || 0) > 0" class="relative group inline-block ml-1 align-middle">
                                             <span class="material-symbols-outlined text-[13px] text-gray-400 hover:text-primary cursor-pointer select-none">attach_file</span>
-                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1 w-48 bg-white border border-primary/10 rounded-xl shadow-xl p-2.5 z-30 text-left text-[10px] pointer-events-auto">
-                                                <div class="font-black text-primary border-b border-primary/5 pb-1 mb-1.5 uppercase select-none">Tệp đính kèm</div>
+                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-xl shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto">
+                                                <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Tệp đính kèm</div>
                                                 
-                                                <div v-if="item.barge.config?.gcnImages?.length" class="mb-1.5">
-                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">GCN Đăng ký</div>
-                                                    <div class="space-y-0.5">
-                                                        <button v-for="(img, idx) in item.barge.config.gcnImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
-                                                            📄 {{ extractFileName(img) }}
-                                                        </button>
+                                                <div v-if="item.barge.config?.gcnImages?.length" class="mb-2">
+                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-1 select-none">GCN Đăng ký</div>
+                                                    <div class="grid grid-cols-4 gap-1.5">
+                                                        <div 
+                                                            v-for="(img, idx) in item.barge.config.gcnImages" 
+                                                            :key="idx"
+                                                            class="relative aspect-square rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow hover:border-teal-500 transition-all duration-200 cursor-pointer group/thumb"
+                                                            @click="previewImageUrl = img"
+                                                            :title="extractFileName(img)"
+                                                        >
+                                                            <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
+                                                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 
-                                                <div v-if="item.barge.config?.dkImages?.length" class="mb-1.5">
-                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">Đăng kiểm</div>
-                                                    <div class="space-y-0.5">
-                                                        <button v-for="(img, idx) in item.barge.config.dkImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
-                                                            📄 {{ extractFileName(img) }}
-                                                        </button>
+                                                <div v-if="item.barge.config?.dkImages?.length" class="mb-2">
+                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-1 select-none">Đăng kiểm</div>
+                                                    <div class="grid grid-cols-4 gap-1.5">
+                                                        <div 
+                                                            v-for="(img, idx) in item.barge.config.dkImages" 
+                                                            :key="idx"
+                                                            class="relative aspect-square rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow hover:border-teal-500 transition-all duration-200 cursor-pointer group/thumb"
+                                                            @click="previewImageUrl = img"
+                                                            :title="extractFileName(img)"
+                                                        >
+                                                            <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
+                                                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 
                                                 <div v-if="item.barge.config?.bhImages?.length">
-                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-0.5 select-none">Bảo hiểm</div>
-                                                    <div class="space-y-0.5">
-                                                        <button v-for="(img, idx) in item.barge.config.bhImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
-                                                            📄 {{ extractFileName(img) }}
-                                                        </button>
+                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-1 select-none">Bảo hiểm</div>
+                                                    <div class="grid grid-cols-4 gap-1.5">
+                                                        <div 
+                                                            v-for="(img, idx) in item.barge.config.bhImages" 
+                                                            :key="idx"
+                                                            class="relative aspect-square rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow hover:border-teal-500 transition-all duration-200 cursor-pointer group/thumb"
+                                                            @click="previewImageUrl = img"
+                                                            :title="extractFileName(img)"
+                                                        >
+                                                            <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
+                                                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1121,12 +1148,21 @@ onMounted(() => {
                                         <!-- Crew attachment popover -->
                                         <div v-if="item.barge.config?.crewImages?.length" class="relative group inline-block ml-1 align-middle">
                                             <span class="material-symbols-outlined text-[13px] text-gray-400 hover:text-primary cursor-pointer select-none">attach_file</span>
-                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1 w-48 bg-white border border-primary/10 rounded-xl shadow-xl p-2.5 z-30 text-left text-[10px] pointer-events-auto">
-                                                <div class="font-black text-primary border-b border-primary/5 pb-1 mb-1.5 uppercase select-none">Hồ sơ Thuyền viên</div>
-                                                <div class="space-y-1">
-                                                    <button v-for="(img, idx) in item.barge.config.crewImages" :key="idx" @click="previewImageUrl = img" class="block w-full text-left text-teal-600 hover:underline truncate font-medium">
-                                                        📄 {{ extractFileName(img) }}
-                                                    </button>
+                                            <div class="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-60 bg-white border border-primary/10 rounded-xl shadow-xl p-3 z-30 text-left text-[10px] pointer-events-auto">
+                                                <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Hồ sơ Thuyền viên</div>
+                                                <div class="grid grid-cols-4 gap-1.5">
+                                                    <div 
+                                                        v-for="(img, idx) in item.barge.config.crewImages" 
+                                                        :key="idx"
+                                                        class="relative aspect-square rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow hover:border-teal-500 transition-all duration-200 cursor-pointer group/thumb"
+                                                        @click="previewImageUrl = img"
+                                                        :title="extractFileName(img)"
+                                                    >
+                                                        <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
+                                                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
