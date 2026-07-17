@@ -506,8 +506,23 @@ const actionPermissionsMapping = {
 const isActionPermChecked = (role: string, subsystem: string, permId: string, actionType: 'read' | 'create' | 'update' | 'delete') => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return false;
+    
+    // If parent subsystem is not enabled, child permissions must be false
+    if (!roleConfig.tools.includes(subsystem)) {
+        return false;
+    }
+    
     if (!roleConfig.detailPermissions) return true;
-    const perms = roleConfig.detailPermissions[subsystem] || [];
+    
+    if (!roleConfig.detailPermissions[subsystem]) {
+        if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
+            return actionType === 'read';
+        }
+        if (actionType === 'read') return true;
+        return true;
+    }
+    
+    const perms = roleConfig.detailPermissions[subsystem];
     
     if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
         if (actionType === 'read') return perms.includes(permId);
@@ -515,6 +530,33 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
     }
     if (actionType === 'read') return true;
     return perms.includes(permId);
+};
+
+const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig) return;
+    
+    const isEnabled = roleConfig.tools.includes(subsystem);
+    if (!isEnabled) {
+        // Clear all sub-permissions when subsystem is disabled
+        if (roleConfig.detailPermissions) {
+            roleConfig.detailPermissions[subsystem] = [];
+        }
+    } else {
+        // Populate default sub-permissions when subsystem is enabled
+        if (!roleConfig.detailPermissions) {
+            roleConfig.detailPermissions = {};
+        }
+        if (subsystem === 'weighbridge') {
+            roleConfig.detailPermissions.weighbridge = ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'];
+        } else if (subsystem === 'allocator') {
+            roleConfig.detailPermissions.allocator = ['al_barge_manage', 'al_rules_manage', 'al_export'];
+        } else if (subsystem === 'vehicles') {
+            roleConfig.detailPermissions.vehicles = ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'];
+        } else if (subsystem === 'minutes') {
+            roleConfig.detailPermissions.minutes = ['min_create', 'min_export'];
+        }
+    }
 };
 
 const toggleActionPerm = (role: string, subsystem: string, permId: string, _actionType: 'read' | 'create' | 'update' | 'delete') => {
@@ -1176,6 +1218,7 @@ onMounted(async () => {
                                                 type="checkbox" 
                                                 :value="t.id" 
                                                 v-model="rolePermissions[selectedRoleToConfigure]!.tools" 
+                                                @change="handleSubsystemCheckboxChange(selectedRoleToConfigure, t.id)"
                                                 class="sr-only peer"
                                             />
                                             <div class="size-6 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
