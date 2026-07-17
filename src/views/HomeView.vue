@@ -110,22 +110,7 @@ onMounted(async () => {
                 </p>
             </div>
             
-            <div class="flex gap-3 relative z-10 shrink-0">
-                <button 
-                    @click="navigateToTool('allocator')" 
-                    class="h-10 px-5 bg-white text-primary border border-soft-pink font-bold rounded-2xl text-xs hover:bg-soft-rose/10 active:scale-95 transition-all flex items-center gap-2 shadow-sm"
-                >
-                    <span class="material-symbols-outlined text-base">shuffle</span>
-                    Phân bổ chuyến
-                </button>
-                <button 
-                    @click="navigateToTool('printer')" 
-                    class="h-10 px-5 bg-primary text-white font-bold rounded-2xl text-xs hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 shadow-md shadow-primary/10"
-                >
-                    <span class="material-symbols-outlined text-base">print</span>
-                    In phiếu cân xe
-                </button>
-            </div>
+            <!-- Buttons removed as requested -->
         </div>
 
         <!-- Quick Stats Row -->
@@ -203,7 +188,7 @@ onMounted(async () => {
                         <span class="material-symbols-outlined text-xl font-black">shuffle</span>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">Phân bổ tải trọng sà lan</h4>
+                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">Dữ liệu cân hàng</h4>
                         <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.</p>
                     </div>
                 </div>

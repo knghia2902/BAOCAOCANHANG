@@ -75,7 +75,7 @@ onUnmounted(() => {
 const allTools = [
   {
     id: 'allocator',
-    name: 'Phân Bổ Tải Trọng Sà Lan 🚢',
+    name: 'Dữ Liệu Cân Hàng 🚢',
     desc: 'Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.',
     icon: 'shuffle',
     bgIcon: 'bg-primary/10 text-primary',

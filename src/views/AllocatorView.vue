@@ -36,7 +36,7 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
         </div>
         <div>
           <h2 class="text-sm font-black text-primary leading-tight">
-            PHÂN BỔ TẢI TRỌNG SÀ LAN
+            DỮ LIỆU CÂN HÀNG
           </h2>
           <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">
             Cảng Nguyên Ngọc - Đồng bộ đám mây
