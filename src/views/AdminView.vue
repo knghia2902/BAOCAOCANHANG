@@ -831,7 +831,7 @@ onMounted(async () => {
                 
                 <div class="bg-white rounded-[3rem] p-8 card-shadow border border-white/40 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead>
                                 <tr class="border-b border-primary/10 text-gray-400 text-xs font-black uppercase tracking-wider">
                                     <th class="pb-4 pl-4">Tên hiển thị</th>

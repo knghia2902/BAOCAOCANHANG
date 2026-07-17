@@ -3370,7 +3370,7 @@ async function compileAndDownload() {
         </div>
 
         <!-- Tabbed Data Panel -->
-        <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in flex-1 min-h-0">
+        <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full">
             <!-- Tabs Header -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <!-- Tabs Navigation Strip -->
@@ -3413,47 +3413,47 @@ async function compileAndDownload() {
                 <!-- Controls, Search, and Action Buttons (Aligned Row) -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 xl:justify-end min-w-0">
                     <!-- Search Input container -->
-                    <div class="flex-1 sm:flex-initial min-w-0">
+                    <div class="flex-grow sm:flex-initial min-w-0 flex items-center h-7">
                         <!-- Tab 1 Search -->
-                        <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[180px] flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
+                        <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[180px] h-7 flex items-center">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                             <input 
                                 type="text" 
                                 v-model="sourceSearchQuery" 
                                 placeholder="Tìm kiếm..." 
-                                class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-[11px] font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
                             >
                             <button 
                                 v-if="sourceSearchQuery" 
                                 @click="sourceSearchQuery = ''" 
-                                class="absolute right-3 text-gray-400 hover:text-primary flex items-center"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
                             >
                                 <span class="material-symbols-outlined text-xs">close</span>
                             </button>
                         </div>
 
                         <!-- Tab 2 Search & Filter -->
-                        <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto">
-                            <div class="relative w-full sm:w-[160px] flex items-center">
-                                <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
+                        <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto h-7">
+                            <div class="relative w-full sm:w-[160px] h-7 flex items-center">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                                 <input 
                                     type="text" 
                                     v-model="searchQuery" 
                                     placeholder="Tìm kiếm..." 
-                                    class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-[11px] font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
                                 >
                                 <button 
                                     v-if="searchQuery" 
                                     @click="searchQuery = ''" 
-                                    class="absolute right-3 text-gray-400 hover:text-primary flex items-center"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
                                 >
                                     <span class="material-symbols-outlined text-xs">close</span>
                                 </button>
                             </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
+                            <div class="flex items-center gap-1.5 shrink-0 h-7">
                                 <select 
                                     v-model="selectedCustomer"
-                                    class="px-2 py-1.5 bg-white border border-gray-200 rounded-[12px] text-[10px] sm:text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[120px] max-w-[150px] shadow-sm text-gray-700"
+                                    class="px-2.5 h-7 bg-white border border-gray-200 rounded-[8px] text-[11px] font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[120px] max-w-[150px] shadow-sm text-gray-700"
                                 >
                                     <option value="">Tất cả khách hàng</option>
                                     <option v-for="customer in uniqueCustomers" :key="customer" :value="customer">
@@ -3463,7 +3463,7 @@ async function compileAndDownload() {
                                 <button 
                                     v-if="selectedCustomer"
                                     @click="selectedCustomer = ''"
-                                    class="size-6 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-primary flex items-center justify-center transition-colors border border-gray-100"
+                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
                                     title="Xóa lọc khách hàng"
                                 >
                                     <span class="material-symbols-outlined text-xs">close</span>
@@ -3472,18 +3472,18 @@ async function compileAndDownload() {
                         </div>
 
                         <!-- Tab 3 Search -->
-                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[180px] flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
+                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[180px] h-7 flex items-center">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                             <input 
                                 type="text" 
                                 v-model="historySearchQuery" 
                                 placeholder="Tìm kiếm..." 
-                                class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-[11px] font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
                             >
                             <button 
                                 v-if="historySearchQuery" 
                                 @click="historySearchQuery = ''" 
-                                class="absolute right-3 text-gray-400 hover:text-primary flex items-center"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
                             >
                                 <span class="material-symbols-outlined text-xs">close</span>
                             </button>
@@ -3491,7 +3491,7 @@ async function compileAndDownload() {
                     </div>
 
                     <!-- Right Side: Action Buttons -->
-                    <div class="flex items-center gap-1.5 flex-wrap shrink-0">
+                    <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
                     <!-- Tab 1 Actions -->
                     <template v-if="activeDataTab === 'source'">
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-[10px]">
@@ -3606,8 +3606,8 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'source'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Source Tickets Table -->
-                <div v-if="filteredSourceTickets.length > 0" class="border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px]">
+                <div v-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-1 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
@@ -3717,8 +3717,8 @@ async function compileAndDownload() {
                         </tbody>
                     </table>
                 </div>
-                <div v-else class="border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
-                    <span class="material-symbols-outlined text-4xl text-gray-300">inbox</span>
+                <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
+                    <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
                     <p class="text-xs font-semibold max-w-[320px] leading-relaxed">
                         {{ csvRecords.length === 0 ? 'Chưa có phiếu cân nào. Vui lòng bấm "Import" hoặc "Thêm" để bắt đầu.' : 'Không tìm thấy phiếu cân nào khớp bộ lọc!' }}
                     </p>
@@ -3772,8 +3772,8 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'generated'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div v-if="filteredHistoryTrips.length > 0" class="border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px]">
+                <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-1 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
@@ -3904,8 +3904,8 @@ async function compileAndDownload() {
                         </tbody>
                     </table>
                 </div>
-                <div v-else class="border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
-                    <span class="material-symbols-outlined text-4xl text-gray-300">inbox</span>
+                <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
+                    <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
                     <p class="text-xs font-semibold max-w-[320px] leading-relaxed">
                         Không tìm thấy bản ghi nào khớp bộ lọc!
                     </p>
@@ -3959,8 +3959,8 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'template'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div v-if="filteredTrips.length > 0" class="border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px]">
+                <div v-if="filteredTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-[11px] font-semibold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-1 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
@@ -4119,8 +4119,8 @@ async function compileAndDownload() {
                         </tbody>
                     </table>
                 </div>
-                <div v-else class="border border-gray-100 rounded-[16px] bg-white flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
-                    <span class="material-symbols-outlined text-4xl text-gray-300">inbox</span>
+                <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
+                    <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
                     <p class="text-xs font-semibold max-w-[320px] leading-relaxed">
                         Không tìm thấy bản ghi nào khớp bộ lọc!
                     </p>

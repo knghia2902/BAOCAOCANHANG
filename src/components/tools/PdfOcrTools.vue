@@ -173,7 +173,7 @@ const onFileSelected = async (file: File) => {
               Trang {{ pageIdx + 1 }}
             </div>
             
-            <table class="border-collapse text-[11px] font-display min-w-full bg-white shadow-sm rounded-xl overflow-hidden border border-primary/5">
+            <table class="border-collapse text-[11px] font-display min-w-full bg-white shadow-sm rounded-xl overflow-hidden border border-primary/5 whitespace-nowrap">
               <tbody>
                 <tr 
                   v-for="(row, rowIdx) in grid" 

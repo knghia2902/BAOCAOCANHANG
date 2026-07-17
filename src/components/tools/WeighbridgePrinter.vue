@@ -3797,7 +3797,7 @@ onUnmounted(() => {
                                 Không tìm thấy sà lan phù hợp với từ khóa tìm kiếm hoặc bộ lọc.
                             </div>
                             <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                <table class="w-full text-left border-collapse text-xs font-semibold">
+                                <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
@@ -3964,7 +3964,7 @@ onUnmounted(() => {
                                 Không có sà lan nào hoạt động trong thời gian được lọc.
                             </div>
                             <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                <table class="w-full text-left border-collapse text-xs font-semibold">
+                                <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
@@ -4202,7 +4202,7 @@ onUnmounted(() => {
 
                                 <!-- Table -->
                                 <div class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                    <table class="w-full text-left border-collapse text-[11px] font-semibold">
+                                    <table class="w-full text-left border-collapse text-[11px] font-semibold whitespace-nowrap">
                                         <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
                                             <tr class="text-gray-500 border-b border-gray-100 font-bold select-none">
                                                 <th class="p-2.5 w-10 text-center bg-gray-50">STT</th>

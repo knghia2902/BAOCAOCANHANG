@@ -1182,7 +1182,7 @@ onUnmounted(() => {
                         <span>Không tìm thấy sà lan nào. Vui lòng thêm sà lan mới bên tab "In Phiếu Cân Xe".</span>
                     </div>
                     <div v-else class="flex-grow overflow-auto rounded-[16px] border border-gray-100 min-h-0">
-                        <table class="w-full text-left border-collapse text-xs font-semibold">
+                        <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                     <th class="px-3 py-2.5 w-12 text-center bg-gray-50 sticky top-0 z-10">STT</th>

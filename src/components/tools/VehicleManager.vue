@@ -533,7 +533,7 @@ const handleExportExcel = async () => {
                 <!-- Vehicles Table -->
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto max-h-[400px]">
-                        <table class="w-full text-left border-collapse text-xs font-semibold">
+                        <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-[10px] text-gray-500 uppercase tracking-wider select-none">
                                 <tr>
                                     <th class="px-4 py-3 text-center w-14">STT</th>

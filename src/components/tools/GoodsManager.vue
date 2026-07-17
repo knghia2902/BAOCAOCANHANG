@@ -377,7 +377,7 @@ const clearAll = async () => {
 
                 <!-- Table Container -->
                 <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[300px] border border-gray-100 rounded-[16px]">
-                    <table class="w-full text-left border-collapse text-xs font-semibold">
+                    <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2.5 px-4 w-16 text-center">STT</th>
