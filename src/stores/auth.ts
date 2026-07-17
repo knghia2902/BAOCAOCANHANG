@@ -10,6 +10,8 @@ interface AuthState {
     isFirstLogin: boolean;
 }
 
+import { LogService } from '../services/storage/LogService';
+
 const STORAGE_KEY = 'auth_session';
 
 const savedState = localStorage.getItem(STORAGE_KEY);
@@ -39,12 +41,18 @@ export const login = async (username: string, pass: string) => {
         authStore.displayName = res.user.displayName || res.user.username;
         authStore.avatar = res.user.avatar || null;
         authStore.isFirstLogin = res.isFirstLogin || false;
+        
+        // Log login action
+        await LogService.logAction('Đăng nhập', 'Đăng nhập thành công vào hệ thống');
         return true;
     }
     return false;
 };
 
 export const logout = () => {
+    if (authStore.user) {
+        LogService.logAction('Đăng xuất', 'Đăng xuất khỏi hệ thống');
+    }
     authStore.isAuthenticated = false;
     authStore.user = null;
     authStore.role = null;

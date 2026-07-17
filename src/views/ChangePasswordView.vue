@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/storage/AuthService';
 import { authStore } from '../stores/auth';
+import { LogService } from '../services/storage/LogService';
 
 const router = useRouter();
 const newPassword = ref('');
@@ -24,6 +25,7 @@ const handleChangePassword = async () => {
         await authService.changePassword(newPassword.value);
         authStore.isFirstLogin = false; // Update local state immediately
         success.value = true;
+        await LogService.logAction('Đổi mật khẩu', 'Đổi mật khẩu lần đăng nhập đầu tiên');
         setTimeout(() => {
             if (authStore.role === 'admin') {
                 router.push('/admin');

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { contentStore } from '../stores/content';
 import { authStore, logout, updateStoreProfile } from '../stores/auth';
@@ -7,6 +7,7 @@ import { ContentService } from '../services/ContentService';
 import { StorageService } from '../services/storage/StorageService';
 import { authService, sha256 } from '../services/storage/AuthService';
 import { supabase } from '../supabase';
+import { LogService } from '../services/storage/LogService';
 
 
 const router = useRouter();
@@ -367,6 +368,7 @@ const handleCreateAccount = async () => {
         accountsList.value = updatedAccounts;
         showAccountModal.value = false;
         triggerToast('Tạo tài khoản thành công! ✨');
+        await LogService.logAction('Tạo tài khoản', 'Tạo tài khoản mới: ' + usernameClean);
     } else {
         triggerToast('Có lỗi xảy ra khi lưu tài khoản.');
     }
@@ -407,6 +409,7 @@ const handleEditAccount = async () => {
         accountsList.value = updatedAccounts;
         showEditAccountModal.value = false;
         triggerToast('Cập nhật tài khoản thành công! ✨');
+        await LogService.logAction('Sửa tài khoản', 'Cập nhật thông tin tài khoản: ' + editAccountForm.value.username);
     } else {
         triggerToast('Có lỗi xảy ra khi lưu tài khoản.');
     }
@@ -419,6 +422,7 @@ const deleteAccount = async (username: string) => {
         if (success) {
             accountsList.value = updatedAccounts;
             triggerToast('Xóa tài khoản thành công! 🗑️');
+            await LogService.logAction('Xóa tài khoản', 'Xóa tài khoản: ' + username);
         } else {
             triggerToast('Có lỗi xảy ra khi xóa tài khoản.');
         }
@@ -455,6 +459,7 @@ const handleResetPassword = async () => {
         accountsList.value = updatedAccounts;
         showResetPasswordModal.value = false;
         triggerToast('Đặt lại mật khẩu thành công! ✨');
+        await LogService.logAction('Đổi mật khẩu', 'Đặt lại mật khẩu cho tài khoản: ' + resetPasswordForm.value.username);
     } else {
         triggerToast('Có lỗi xảy ra khi đặt lại mật khẩu.');
     }
@@ -479,10 +484,79 @@ const handleSaveStaffTools = async () => {
     const success = await ContentService.saveStaffTools(staffToolsConfig.value);
     if (success) {
         triggerToast('Cập nhật phân quyền hiển thị công cụ thành công! 🛠️');
+        await LogService.logAction('Phân quyền', 'Cập nhật phân quyền công cụ cho nhân viên');
     } else {
         triggerToast('Có lỗi xảy ra khi lưu cấu hình.');
     }
 };
+
+// === Activity Logs Tab ===
+import type { ActivityLog } from '../services/storage/LogService';
+const activityLogs = ref<ActivityLog[]>([]);
+const logsLoading = ref(false);
+const logsSearchQuery = ref('');
+const logsFilterAction = ref('all');
+
+const loadLogs = async () => {
+    logsLoading.value = true;
+    activityLogs.value = await LogService.getLogs();
+    logsLoading.value = false;
+};
+
+const filteredLogs = computed(() => {
+    let logs = activityLogs.value;
+    if (logsFilterAction.value !== 'all') {
+        logs = logs.filter(l => l.action === logsFilterAction.value);
+    }
+    if (logsSearchQuery.value.trim()) {
+        const q = logsSearchQuery.value.toLowerCase();
+        logs = logs.filter(l =>
+            l.username.toLowerCase().includes(q) ||
+            l.displayName.toLowerCase().includes(q) ||
+            l.details.toLowerCase().includes(q) ||
+            l.action.toLowerCase().includes(q)
+        );
+    }
+    return logs;
+});
+
+const uniqueActions = computed(() => {
+    const actions = new Set(activityLogs.value.map(l => l.action));
+    return Array.from(actions).sort();
+});
+
+const formatLogTime = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
+const getActionColor = (action: string) => {
+    if (action.includes('Đăng nhập')) return 'bg-green-50 text-green-600';
+    if (action.includes('Đăng xuất')) return 'bg-gray-100 text-gray-500';
+    if (action.includes('Xóa')) return 'bg-red-50 text-red-500';
+    if (action.includes('Tạo')) return 'bg-blue-50 text-blue-600';
+    if (action.includes('Sửa') || action.includes('Cập nhật') || action.includes('Lưu')) return 'bg-amber-50 text-amber-600';
+    if (action.includes('mật khẩu') || action.includes('Đổi')) return 'bg-purple-50 text-purple-600';
+    if (action.includes('Phân quyền')) return 'bg-indigo-50 text-indigo-600';
+    return 'bg-primary/10 text-primary';
+};
+
+const getActionIcon = (action: string) => {
+    if (action.includes('Đăng nhập')) return 'login';
+    if (action.includes('Đăng xuất')) return 'logout';
+    if (action.includes('Xóa')) return 'delete';
+    if (action.includes('Tạo')) return 'person_add';
+    if (action.includes('Sửa') || action.includes('Cập nhật') || action.includes('Lưu')) return 'edit';
+    if (action.includes('mật khẩu') || action.includes('Đổi')) return 'lock_reset';
+    if (action.includes('Phân quyền')) return 'admin_panel_settings';
+    return 'history';
+};
+
+// Load logs when switching to the logs tab
+watch(currentTab, (val) => {
+    if (val === 'logs') loadLogs();
+});
 
 onMounted(async () => {
     await ContentService.loadAll();
@@ -511,15 +585,15 @@ onMounted(async () => {
             </div>
             <div class="h-px bg-gray-100 my-0.5"></div>
             <div class="flex overflow-x-auto gap-2 scrollbar-none whitespace-nowrap pb-0.5">
-                <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts']" :key="tab"
+                <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts', 'logs']" :key="tab"
                     @click="currentTab = tab"
                     :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shrink-0', currentTab === tab ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150']"
                 >
                     <span class="material-symbols-outlined text-sm">
-                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : 'group' }}
+                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : tab === 'logs' ? 'history' : 'group' }}
                     </span>
                     <span>
-                        {{ tab === 'dashboard' ? 'Dashboard' : tab === 'about' ? 'About Me' : tab === 'messages' ? 'Messages' : 'Admin' }}
+                        {{ tab === 'dashboard' ? 'Dashboard' : tab === 'about' ? 'About Me' : tab === 'messages' ? 'Messages' : tab === 'logs' ? 'Logs' : 'Admin' }}
                     </span>
                 </button>
             </div>
@@ -538,15 +612,15 @@ onMounted(async () => {
             </div>
 
             <nav class="flex-1 space-y-2">
-                <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts']" :key="tab"
+                <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts', 'logs']" :key="tab"
                     @click="currentTab = tab"
                     :class="['w-full text-left px-5 py-3 rounded-2xl font-bold transition-all flex items-center gap-3', currentTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:bg-soft-pink/10 hover:text-primary']"
                 >
                     <span class="material-symbols-outlined text-xl">
-                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : 'group' }}
+                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : tab === 'logs' ? 'history' : 'group' }}
                     </span>
                     <span class="capitalize">
-                        {{ tab === 'about' ? 'About Me' : tab === 'accounts' ? 'Admin' : tab }}
+                        {{ tab === 'about' ? 'About Me' : tab === 'accounts' ? 'Admin' : tab === 'logs' ? 'Logs' : tab }}
                     </span>
                 </button>
             </nav>
@@ -897,6 +971,107 @@ onMounted(async () => {
 
                     <div class="flex justify-end pt-2 border-t border-dashed border-primary/10">
                         <button @click="handleSaveStaffTools" class="bg-primary text-white px-8 py-2.5 rounded-full font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">Lưu phân quyền công cụ</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab Content -->
+            <div v-else-if="currentTab === 'logs'" class="max-w-6xl mx-auto space-y-6 animate-fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="text-2xl font-black text-primary flex items-center gap-2">
+                            <span class="material-symbols-outlined text-2xl">history</span>
+                            Lịch Sử Hoạt Động
+                        </h3>
+                        <p class="text-xs font-bold text-gray-400 mt-1">Theo dõi lịch sử thao tác, truy cập của người dùng trên hệ thống.</p>
+                    </div>
+                    <button @click="loadLogs" :disabled="logsLoading" class="bg-primary text-white px-6 py-2.5 rounded-full font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50">
+                        <span class="material-symbols-outlined text-sm" :class="logsLoading ? 'animate-spin' : ''">refresh</span>
+                        Làm mới
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-white rounded-[2rem] p-5 card-shadow border border-white/40 flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-1">
+                        <span class="material-symbols-outlined text-gray-300 absolute left-4 top-1/2 -translate-y-1/2 text-lg">search</span>
+                        <input v-model="logsSearchQuery" type="text" placeholder="Tìm kiếm theo tên, hành động, chi tiết..." class="w-full bg-[#fcf8f9] pl-11 pr-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <select v-model="logsFilterAction" class="bg-[#fcf8f9] px-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[180px]">
+                        <option value="all">Tất cả hành động</option>
+                        <option v-for="action in uniqueActions" :key="action" :value="action">{{ action }}</option>
+                    </select>
+                </div>
+
+                <!-- Logs Table -->
+                <div class="bg-white rounded-[3rem] p-6 sm:p-8 card-shadow border border-white/40 overflow-hidden">
+                    <!-- Loading State -->
+                    <div v-if="logsLoading" class="flex flex-col items-center justify-center py-16 gap-4">
+                        <div class="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                        <p class="text-xs font-bold text-gray-400">Đang tải lịch sử...</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else-if="filteredLogs.length === 0" class="flex flex-col items-center justify-center py-16 gap-4">
+                        <div class="size-20 bg-gray-50 rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl text-gray-200">receipt_long</span>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-black text-gray-400">Chưa có lịch sử hoạt động</p>
+                            <p class="text-[10px] font-bold text-gray-300 mt-1">Các thao tác trên hệ thống sẽ được ghi nhận tại đây.</p>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div v-else class="overflow-x-auto">
+                        <div class="text-right mb-3">
+                            <span class="text-[10px] font-bold text-gray-300">Hiển thị {{ filteredLogs.length }} / {{ activityLogs.length }} bản ghi</span>
+                        </div>
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr class="border-b border-primary/10 text-gray-400 text-[10px] font-black uppercase tracking-wider">
+                                    <th class="pb-4 pl-4">Thời gian</th>
+                                    <th class="pb-4">Người dùng</th>
+                                    <th class="pb-4">Vai trò</th>
+                                    <th class="pb-4">Hành động</th>
+                                    <th class="pb-4 pr-4">Chi tiết</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-primary/5">
+                                <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-soft-pink/5 transition-colors">
+                                    <td class="py-3.5 pl-4 text-[11px] font-bold text-gray-400">
+                                        {{ formatLogTime(log.timestamp) }}
+                                    </td>
+                                    <td class="py-3.5">
+                                        <div class="flex items-center gap-2">
+                                            <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <span class="text-[10px] font-black text-primary">{{ (log.displayName || log.username || '?').charAt(0).toUpperCase() }}</span>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-black text-[#4a2c32]">{{ log.displayName }}</p>
+                                                <p class="text-[9px] font-bold text-gray-300">@{{ log.username }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3.5">
+                                        <span class="px-2.5 py-1 text-[9px] font-black uppercase rounded-full"
+                                            :class="log.role === 'admin' ? 'bg-red-50 text-red-500' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-600'"
+                                        >
+                                            {{ log.role }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3.5">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black" :class="getActionColor(log.action)">
+                                            <span class="material-symbols-outlined text-xs">{{ getActionIcon(log.action) }}</span>
+                                            {{ log.action }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3.5 pr-4 text-xs font-bold text-gray-500 max-w-xs truncate">
+                                        {{ log.details }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
