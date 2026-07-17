@@ -519,7 +519,7 @@ onMounted(async () => {
                         {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : 'group' }}
                     </span>
                     <span>
-                        {{ tab === 'about' ? 'Giới thiệu' : tab === 'accounts' ? 'Quyền Hạn' : tab === 'messages' ? 'Tin nhắn' : 'Thống kê' }}
+                        {{ tab === 'dashboard' ? 'Dashboard' : tab === 'about' ? 'About Me' : tab === 'messages' ? 'Messages' : 'Admin' }}
                     </span>
                 </button>
             </div>
@@ -598,11 +598,11 @@ onMounted(async () => {
             </header>
 
             <!-- Dashboard Content -->
-            <div v-if="currentTab === 'dashboard'" class="grid grid-cols-12 gap-8">
+            <div v-if="currentTab === 'dashboard'" class="grid grid-cols-12 gap-6 lg:gap-8">
                 <!-- Left Column -->
-                <div class="col-span-8 flex flex-col">
+                <div class="col-span-12 lg:col-span-8 flex flex-col">
                     <!-- Edit Content Card -->
-                    <div class="bg-white rounded-[2.5rem] p-10 card-shadow border border-white/50 relative overflow-hidden flex-1">
+                    <div class="bg-white rounded-[2.5rem] p-6 lg:p-10 card-shadow border border-white/50 relative overflow-hidden flex-1">
                         <div class="flex items-center justify-between mb-8">
                             <h3 class="text-lg font-black flex items-center gap-3">
                                 <span class="material-symbols-outlined text-primary">home</span> Edit 'Trang chủ' Content
@@ -633,7 +633,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Right Column -->
-                <div class="col-span-4 space-y-8">
+                <div class="col-span-12 lg:col-span-4 space-y-6 lg:space-y-8">
                     <!-- Stats -->
                     <div class="bg-white rounded-[2.5rem] p-8 card-shadow text-center">
                         <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Portfolio Visitors</p>
@@ -660,7 +660,7 @@ onMounted(async () => {
             </div>
 
             <!-- Bottom Dashboard Row (Perfectly Aligned) -->
-            <div v-if="currentTab === 'dashboard'" class="mt-8 grid grid-cols-3 gap-8 items-stretch pb-8">
+            <div v-if="currentTab === 'dashboard'" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch pb-8">
                 <!-- Visibility -->
                 <div class="bg-white rounded-[2.5rem] p-10 card-shadow border border-white/50 flex flex-col h-full">
                     <h3 class="text-xl font-display font-black mb-8 flex items-center gap-3">
