@@ -3561,7 +3561,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="weighbridge-printer-wrapper flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div class="weighbridge-printer-wrapper flex-1 flex flex-col min-h-0 overflow-hidden font-display">
         <div v-if="!hideCard" class="bg-white rounded-[24px] p-8 md:p-10 soft-shadow border border-primary/5 relative overflow-hidden flex flex-col justify-between h-full group">
             <div class="absolute -top-6 -right-6 p-8 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all pointer-events-none">
                 <span class="material-symbols-outlined text-[120px] text-primary">print</span>
@@ -3588,7 +3588,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Fullscreen Workspace Overlay -->
-        <div v-if="isOpen" :class="[hideCard ? 'flex-1 flex flex-col overflow-hidden' : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-hidden no-print animate-fade-in font-display']">
+        <div v-if="isOpen" :class="[hideCard ? 'flex-1 flex flex-col overflow-hidden font-display' : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-hidden no-print animate-fade-in font-display']">
             <!-- Header bar of Workspace -->
             <header v-if="!hideCard" class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm">
                 <div class="flex items-center gap-2.5">

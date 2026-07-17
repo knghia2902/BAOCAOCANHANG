@@ -3145,7 +3145,7 @@ async function compileAndDownload() {
 </script>
 
 <template>
-    <div class="cargo-allocator-wrapper flex-1 flex flex-col min-h-0 overflow-hidden h-full w-full">
+    <div class="cargo-allocator-wrapper flex-1 flex flex-col min-h-0 overflow-hidden h-full w-full font-display">
         <!-- Main area -->
         <div class="flex-1 flex flex-col md:flex-row overflow-hidden gap-4 p-4">
             <!-- Top Navigation (Mobile Only) -->
