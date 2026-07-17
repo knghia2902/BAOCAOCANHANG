@@ -299,24 +299,24 @@ watch(allowedStaffTools, (newVal) => {
     >
       
       <!-- Workspace Header bar -->
-      <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
-        <div class="flex items-center gap-2.5">
-          <div :class="['size-9 rounded-full flex items-center justify-center text-white shadow-soft', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
-            <span class="material-symbols-outlined text-base">
+      <header class="bg-white px-6 py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
+        <div class="flex items-center gap-3">
+          <div :class="['size-11 rounded-full flex items-center justify-center text-white shadow-soft shrink-0', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
+            <span class="material-symbols-outlined text-[20px]">
               {{ activeToolId === 'utilities' 
                  ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.icon || 'construction')
                  : activeToolMetadata.icon 
               }}
             </span>
           </div>
-          <div>
-            <h2 class="text-sm font-black text-primary leading-tight">
+          <div class="flex flex-col gap-0.5">
+            <h2 class="text-base font-black text-primary leading-tight">
               {{ activeToolId === 'utilities'
                  ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.name || 'CÔNG CỤ TIỆN ÍCH').toUpperCase()
                  : activeToolMetadata.name.toUpperCase() 
               }}
             </h2>
-            <p class="text-xs font-medium text-[#1b0d11]/60 leading-none">
+            <p class="text-xs font-semibold text-[#1b0d11]/50 leading-none">
               {{ (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'Cảng Nguyên Ngọc - Đồng bộ đám mây' : 'Công cụ tiện ích - Xử lý offline an toàn' }}
             </p>
           </div>
@@ -324,9 +324,9 @@ watch(allowedStaffTools, (newVal) => {
         
         <button 
           @click="activeToolId = null" 
-          class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-full text-xs flex items-center gap-1 transition-all"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-full text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          <span class="material-symbols-outlined text-sm">close</span>
+          <span class="material-symbols-outlined text-sm font-black">close</span>
           Đóng
         </button>
       </header>

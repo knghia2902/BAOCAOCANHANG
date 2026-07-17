@@ -29,16 +29,16 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
 
 <template>
   <main v-if="!loading && allowed" class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
-    <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
-      <div class="flex items-center gap-2.5">
-        <div class="size-9 rounded-full bg-primary flex items-center justify-center text-white shadow-soft">
-          <span class="material-symbols-outlined text-base">shuffle</span>
+    <header class="bg-white px-6 py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
+      <div class="flex items-center gap-3">
+        <div class="size-11 rounded-full bg-primary flex items-center justify-center text-white shadow-soft shrink-0">
+          <span class="material-symbols-outlined text-[20px]">shuffle</span>
         </div>
-        <div>
-          <h2 class="text-sm font-black text-primary leading-tight">
+        <div class="flex flex-col gap-0.5">
+          <h2 class="text-base font-black text-primary leading-tight">
             DỮ LIỆU CÂN HÀNG
           </h2>
-          <p class="text-xs font-medium text-[#1b0d11]/60 leading-none">
+          <p class="text-xs font-semibold text-[#1b0d11]/50 leading-none">
             Cảng Nguyên Ngọc - Đồng bộ đám mây
           </p>
         </div>
@@ -50,10 +50,11 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
         </span>
         <button 
           @click="router.push('/tools')" 
-          class="size-9 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/10 transition-all shadow-inner"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-full text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98]"
           title="Quay lại danh sách công cụ"
         >
-          <span class="material-symbols-outlined text-base">close</span>
+          <span class="material-symbols-outlined text-sm font-black">close</span>
+          Đóng
         </button>
       </div>
     </header>
