@@ -203,7 +203,7 @@ watch(allowedStaffTools, (newVal) => {
       <div 
         v-for="tool in toolsList" 
         :key="tool.id"
-        class="bg-white rounded-2xl p-6 soft-shadow border border-primary/5 flex flex-col justify-between h-full group hover:border-primary/20 hover:scale-[1.01] transition-all relative overflow-hidden"
+        class="bg-white rounded-2xl p-5 soft-shadow border border-primary/5 flex flex-col justify-between h-full group hover:border-primary/20 hover:scale-[1.01] transition-all relative overflow-hidden"
       >
         <!-- Background Icon decoration -->
         <div class="absolute -top-6 -right-6 p-6 opacity-[0.03] group-hover:opacity-[0.07] group-hover:scale-110 transition-all pointer-events-none">
@@ -212,7 +212,7 @@ watch(allowedStaffTools, (newVal) => {
 
         <div>
           <!-- Tool Header -->
-          <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center gap-3 mb-3">
             <div :class="['size-10 rounded-xl flex items-center justify-center shadow-soft', tool.bgIcon]">
               <span class="material-symbols-outlined text-base">{{ tool.icon }}</span>
             </div>
@@ -222,12 +222,12 @@ watch(allowedStaffTools, (newVal) => {
           </div>
 
           <!-- Tool Desc -->
-          <p class="text-xs font-medium text-[#1b0d11]/60 leading-relaxed mb-6 min-h-[48px]">
+          <p class="text-xs font-medium text-[#1b0d11]/60 leading-relaxed mb-4 min-h-[40px]">
             {{ tool.desc }}
           </p>
 
           <!-- Tool Tags -->
-          <div class="flex flex-wrap gap-1.5 mb-6">
+          <div class="flex flex-wrap gap-1.5 mb-4">
             <span 
               v-for="tag in tool.tags" 
               :key="tag" 
@@ -241,7 +241,7 @@ watch(allowedStaffTools, (newVal) => {
         <!-- Open Button -->
         <button 
           @click="openTool(tool.id)" 
-          class="w-full py-3 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
+          class="w-full py-2.5 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
         >
           <span class="material-symbols-outlined text-base">open_in_new</span>
           Sử dụng công cụ
