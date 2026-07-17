@@ -1185,7 +1185,7 @@ onUnmounted(() => {
                         <!-- Dropdown list -->
                         <div 
                             v-if="isSiteDropdownOpen"
-                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded-[12px] shadow-lg py-1 z-50 overflow-hidden"
+                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                         >
                             <div 
                                 @click="selectSite('NguyenNgoc')"
@@ -1576,7 +1576,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isCaptainGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-lg shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectCaptainGrade('')"
@@ -1623,7 +1623,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isChiefEngineerGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-lg shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectChiefEngineerGrade('')"
@@ -1725,10 +1725,11 @@ onUnmounted(() => {
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Kết quả</label>
-                                    <select v-model="editKetluan" disabled class="w-full h-8 px-2 text-xs bg-gray-100 border border-gray-200 rounded-lg text-[#1e293b] cursor-not-allowed font-black">
-                                        <option value="Cho phép">Cho phép</option>
-                                        <option value="Không cho phép">Không cho phép</option>
-                                    </select>
+                                    <div 
+                                        class="w-full h-8 px-2.5 bg-gray-100 border border-gray-200 rounded-lg text-xs font-black flex items-center text-gray-500 cursor-not-allowed select-none"
+                                    >
+                                        {{ editKetluan || 'Không cho phép' }}
+                                    </div>
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Khai hệ thống</label>
@@ -1748,7 +1749,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isKhaiHethongDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-lg shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectKhaiHethong('')"
