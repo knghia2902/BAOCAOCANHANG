@@ -486,6 +486,7 @@ const loadStaffToolsConfig = async () => {
 const rolePermissions = ref<Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>>({});
 const selectedRoleToConfigure = ref<string>('staff');
 const customRoleName = ref<string>('');
+const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
 
 const loadRolePermissionsConfig = async () => {
     try {
@@ -1027,7 +1028,7 @@ onMounted(async () => {
 
                     <!-- Role Selector Tabs -->
                     <div class="flex flex-wrap gap-2">
-                        <button v-for="r in Object.keys(rolePermissions).filter(role => role !== 'admin')" :key="r"
+                        <button v-for="r in roleNames" :key="r"
                             @click="selectedRoleToConfigure = r"
                             class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border"
                             :class="selectedRoleToConfigure === r ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150'"
@@ -1331,8 +1332,10 @@ onMounted(async () => {
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
                             <select v-model="accountForm.role" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
-                                <option value="staff">Staff (Nhân viên)</option>
                                 <option value="admin">Admin (Quản trị viên)</option>
+                                <option v-for="r in roleNames" :key="r" :value="r">
+                                    {{ r.toUpperCase() }} ({{ r === 'staff' ? 'Nhân viên' : r === 'operator' ? 'Điều hành' : r === 'viewer' ? 'Xem báo cáo' : 'Vai trò tùy chỉnh' }})
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -1374,8 +1377,10 @@ onMounted(async () => {
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
                             <select v-model="editAccountForm.role" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
-                                <option value="staff">Staff (Nhân viên)</option>
                                 <option value="admin">Admin (Quản trị viên)</option>
+                                <option v-for="r in roleNames" :key="r" :value="r">
+                                    {{ r.toUpperCase() }} ({{ r === 'staff' ? 'Nhân viên' : r === 'operator' ? 'Điều hành' : r === 'viewer' ? 'Xem báo cáo' : 'Vai trò tùy chỉnh' }})
+                                </option>
                             </select>
                         </div>
                     </div>
