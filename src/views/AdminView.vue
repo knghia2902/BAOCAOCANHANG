@@ -532,6 +532,19 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
     return perms.includes(permId);
 };
 
+const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
+    if (subsystem === 'weighbridge') {
+        return ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'];
+    } else if (subsystem === 'allocator') {
+        return ['al_barge_manage', 'al_rules_manage', 'al_export'];
+    } else if (subsystem === 'vehicles') {
+        return ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'];
+    } else if (subsystem === 'minutes') {
+        return ['min_create', 'min_export'];
+    }
+    return [];
+};
+
 const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
@@ -555,15 +568,7 @@ const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
         if (!roleConfig.detailPermissions) {
             roleConfig.detailPermissions = {};
         }
-        if (subsystem === 'weighbridge') {
-            roleConfig.detailPermissions.weighbridge = ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'];
-        } else if (subsystem === 'allocator') {
-            roleConfig.detailPermissions.allocator = ['al_barge_manage', 'al_rules_manage', 'al_export'];
-        } else if (subsystem === 'vehicles') {
-            roleConfig.detailPermissions.vehicles = ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'];
-        } else if (subsystem === 'minutes') {
-            roleConfig.detailPermissions.minutes = ['min_create', 'min_export'];
-        }
+        roleConfig.detailPermissions[subsystem] = getDefaultPermissionsForSubsystem(subsystem);
     }
 };
 
@@ -577,16 +582,11 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, _acti
     }
     
     if (!roleConfig.detailPermissions) {
-        roleConfig.detailPermissions = {
-            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
-            allocator: ['al_barge_manage', 'al_rules_manage', 'al_export'],
-            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-            minutes: ['min_create', 'min_export']
-        };
+        roleConfig.detailPermissions = {};
     }
     
     if (!roleConfig.detailPermissions[subsystem]) {
-        roleConfig.detailPermissions[subsystem] = [];
+        roleConfig.detailPermissions[subsystem] = getDefaultPermissionsForSubsystem(subsystem);
     }
     
     const perms = [...roleConfig.detailPermissions[subsystem]];
@@ -602,6 +602,19 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, _acti
 };
 const customRoleName = ref<string>('');
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
+
+const enabledActionSubsystems = computed(() => {
+    const config = rolePermissions.value[selectedRoleToConfigure.value];
+    if (!config || !config.tools) return [];
+    return allToolsWithMinutes
+        .map(t => t.id)
+        .filter(id => config.tools.includes(id) && (id in actionPermissionsMapping));
+});
+
+const getSubsystemName = (id: string) => {
+    const t = allToolsWithMinutes.find(tool => tool.id === id);
+    return t ? t.name : id;
+};
 
 watch([selectedRoleToConfigure, () => rolePermissions.value], ([newRole, permissions]) => {
     if (!permissions) return;
@@ -1264,94 +1277,105 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Actions Permissions Table -->
-                        <div v-if="rolePermissions[selectedRoleToConfigure]!.tools.includes(activeSubsystem) && actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" class="space-y-3.5 text-left animate-fade-in">
+                        <!-- Actions Permissions Table List -->
+                        <div v-if="enabledActionSubsystems.length > 0" class="space-y-6">
                             <h4 class="text-xs font-black text-gray-500 uppercase tracking-wider">Chi tiết quyền hạn thao tác (Actions Permissions)</h4>
                             
-                            <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                                <table class="w-full border-collapse">
-                                    <thead>
-                                        <tr class="bg-slate-50 border-b border-gray-150 text-left">
-                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider w-[40%]">Chức năng</th>
-                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Xem</th>
-                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Thêm</th>
-                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Sửa</th>
-                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Xóa</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-100">
-                                        <tr v-for="act in actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" :key="act.permId" class="hover:bg-slate-50/50 transition-colors">
-                                            <!-- Chức năng -->
-                                            <td class="py-3.5 px-5 text-xs font-black text-[#1e293b]">
-                                                {{ act.name }}
-                                            </td>
-                                            
-                                            <!-- Xem -->
-                                            <td class="py-3.5 px-5 text-center">
-                                                <label v-if="act.showView" class="relative inline-flex items-center justify-center cursor-pointer">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'read')" 
-                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'read')"
-                                                        class="sr-only peer"
-                                                    />
-                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
-                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
-                                                    </div>
-                                                </label>
-                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
-                                            </td>
-                                            
-                                            <!-- Thêm -->
-                                            <td class="py-3.5 px-5 text-center">
-                                                <label v-if="act.showCreate" class="relative inline-flex items-center justify-center cursor-pointer">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'create')" 
-                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'create')"
-                                                        class="sr-only peer"
-                                                    />
-                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
-                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
-                                                    </div>
-                                                </label>
-                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
-                                            </td>
-                                            
-                                            <!-- Sửa -->
-                                            <td class="py-3.5 px-5 text-center">
-                                                <label v-if="act.showUpdate" class="relative inline-flex items-center justify-center cursor-pointer">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'update')" 
-                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'update')"
-                                                        class="sr-only peer"
-                                                    />
-                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
-                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
-                                                    </div>
-                                                </label>
-                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
-                                            </td>
-                                            
-                                            <!-- Xóa -->
-                                            <td class="py-3.5 px-5 text-center">
-                                                <label v-if="act.showDelete" class="relative inline-flex items-center justify-center cursor-pointer">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'delete')" 
-                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'delete')"
-                                                        class="sr-only peer"
-                                                    />
-                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
-                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
-                                                    </div>
-                                                </label>
-                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div v-for="subsystem in enabledActionSubsystems" :key="subsystem" class="space-y-2.5 text-left animate-fade-in">
+                                <div class="flex items-center gap-2 px-1">
+                                    <span class="material-symbols-outlined text-base text-primary">
+                                        {{ subsystem === 'weighbridge' ? 'print' : subsystem === 'allocator' ? 'shuffle' : subsystem === 'vehicles' ? 'local_shipping' : 'description' }}
+                                    </span>
+                                    <span class="text-xs font-black text-slate-700 uppercase tracking-wide">
+                                        {{ getSubsystemName(subsystem) }}
+                                    </span>
+                                </div>
+                                
+                                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                                    <table class="w-full border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-gray-150 text-left">
+                                                <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider w-[40%]">Chức năng</th>
+                                                <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Xem</th>
+                                                <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Thêm</th>
+                                                <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Sửa</th>
+                                                <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Xóa</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            <tr v-for="act in actionPermissionsMapping[subsystem as keyof typeof actionPermissionsMapping]" :key="act.permId" class="hover:bg-slate-50/50 transition-colors">
+                                                <!-- Chức năng -->
+                                                <td class="py-3.5 px-5 text-xs font-black text-[#1e293b]">
+                                                    {{ act.name }}
+                                                </td>
+                                                
+                                                <!-- Xem -->
+                                                <td class="py-3.5 px-5 text-center">
+                                                    <label v-if="act.showView" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'read')" 
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'read')"
+                                                            class="sr-only peer"
+                                                        />
+                                                        <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                            <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                        </div>
+                                                    </label>
+                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                                
+                                                <!-- Thêm -->
+                                                <td class="py-3.5 px-5 text-center">
+                                                    <label v-if="act.showCreate" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'create')" 
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'create')"
+                                                            class="sr-only peer"
+                                                        />
+                                                        <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                            <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                        </div>
+                                                    </label>
+                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                                
+                                                <!-- Sửa -->
+                                                <td class="py-3.5 px-5 text-center">
+                                                    <label v-if="act.showUpdate" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'update')" 
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'update')"
+                                                            class="sr-only peer"
+                                                        />
+                                                        <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                            <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                        </div>
+                                                    </label>
+                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                                
+                                                <!-- Xóa -->
+                                                <td class="py-3.5 px-5 text-center">
+                                                    <label v-if="act.showDelete" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'delete')" 
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'delete')"
+                                                            class="sr-only peer"
+                                                        />
+                                                        <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                            <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                        </div>
+                                                    </label>
+                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
