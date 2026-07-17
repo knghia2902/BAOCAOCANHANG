@@ -38,7 +38,7 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
           <span class="material-symbols-outlined text-lg">local_shipping</span>
         </div>
         <div>
-          <h2 class="text-sm font-black text-primary leading-tight">
+          <h2 class="text-base font-black text-primary leading-tight">
             QUẢN LÝ HỒ SƠ PHƯƠNG TIỆN
           </h2>
           <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">

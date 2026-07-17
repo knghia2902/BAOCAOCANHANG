@@ -1391,7 +1391,7 @@ onUnmounted(() => {
                 <!-- Header of Edit Panel -->
                 <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between bg-slate-50 shrink-0">
                     <div>
-                        <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-2 select-none">
+                        <h3 class="text-base font-black text-primary uppercase tracking-wider flex items-center gap-2 select-none">
                             <span class="material-symbols-outlined text-lg">edit_note</span>
                             Hồ sơ sà lan: {{ selectedBarge?.name }}
                         </h3>
