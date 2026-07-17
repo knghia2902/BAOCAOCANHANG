@@ -466,7 +466,7 @@ const loadStaffToolsConfig = async () => {
 
 
 
-const rolePermissions = ref<Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>>({});
+const rolePermissions = ref<Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>>({});
 const selectedRoleToConfigure = ref<string>('staff');
 const customRoleName = ref<string>('');
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
@@ -514,7 +514,8 @@ const handleCreateCustomRole = () => {
     
     rolePermissions.value[name] = {
         tools: ['converter', 'merger', 'ocr'],
-        canWrite: true,
+        canCreate: true,
+        canUpdate: true,
         canDelete: false
     };
     
@@ -1023,20 +1024,27 @@ onMounted(async () => {
 
                     <!-- Configure Permissions for Selected Role -->
                     <div v-if="rolePermissions[selectedRoleToConfigure]" class="space-y-6">
-                        <!-- Switch Actions/Write/Delete permissions -->
-                        <div class="p-4 bg-[#fcf8f9] rounded-2xl border border-primary/5 flex flex-col sm:flex-row gap-6">
+                        <!-- Switch Actions/Create/Update/Delete permissions -->
+                        <div class="p-4 bg-[#fcf8f9] rounded-2xl border border-primary/5 flex flex-col md:flex-row gap-6">
                             <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canWrite" class="accent-primary size-4" />
+                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canCreate" class="accent-primary size-4" />
                                 <div>
-                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Thêm / Sửa dữ liệu</p>
-                                    <p class="text-[10px] text-gray-400 font-bold">Người dùng thuộc vai trò này có thể tạo mới hoặc cập nhật thông tin.</p>
+                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Thêm dữ liệu</p>
+                                    <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền tạo mới dữ liệu.</p>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canUpdate" class="accent-primary size-4" />
+                                <div>
+                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Sửa dữ liệu</p>
+                                    <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền chỉnh sửa thông tin.</p>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canDelete" class="accent-primary size-4" />
                                 <div>
                                     <p class="text-xs font-black text-[#4a2c32]">Cho phép Xóa dữ liệu</p>
-                                    <p class="text-[10px] text-gray-400 font-bold">Người dùng thuộc vai trò này có thể xóa thông tin/dữ liệu trên hệ thống.</p>
+                                    <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền xóa vĩnh viễn dữ liệu.</p>
                                 </div>
                             </label>
                         </div>

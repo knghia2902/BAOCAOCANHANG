@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
-import { authStore, canWrite, canDelete } from '@/stores/auth';
+import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
 import VehicleManager from '@/components/tools/VehicleManager.vue';
 import GoodsManager from '@/components/tools/GoodsManager.vue';
 import { LogService } from '@/services/storage/LogService';
@@ -974,7 +974,8 @@ function openEditTicketDialog(ticket: CSVRecord) {
 }
 
 async function saveTicket() {
-    if (authStore.role !== 'admin' && !canWrite()) {
+    const isNew = !editingTicket.value || !editingTicket.value.id;
+    if (authStore.role !== 'admin' && ((isNew && !canCreate()) || (!isNew && !canUpdate()))) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2634,7 +2635,7 @@ async function deleteGeneratedTrip(trip: SplitTrip) {
 }
 
 async function editHistoryTripOrderNo(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !canWrite()) {
+    if (authStore.role !== 'admin' && !canUpdate()) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3863,7 +3864,7 @@ async function compileAndDownload() {
                                     </div>
                                 </th>
                                 <th class="py-1 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Hành động</th>
+                                <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Hành động</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
@@ -3903,7 +3904,7 @@ async function compileAndDownload() {
                                     </span>
                                     <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                 </td>
-                                <td v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="py-1 px-3 text-center">
+                                <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-1 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="editHistoryTripOrderNo(trip)"

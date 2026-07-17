@@ -8,7 +8,7 @@ interface AuthState {
     displayName: string | null;
     avatar: string | null;
     isFirstLogin: boolean;
-    rolePermissions: Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>;
+    rolePermissions: Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>;
 }
 
 import { LogService } from '../services/storage/LogService';
@@ -25,10 +25,10 @@ const initialState: AuthState = {
     avatar: saved?.avatar ?? null,
     isFirstLogin: saved?.isFirstLogin ?? false,
     rolePermissions: saved?.rolePermissions ?? {
-        admin: { tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], canWrite: true, canDelete: true },
-        staff: { tools: ['converter', 'merger', 'ocr'], canWrite: true, canDelete: false },
-        operator: { tools: ['weighbridge', 'allocator', 'vehicles'], canWrite: true, canDelete: false },
-        viewer: { tools: ['weighbridge', 'allocator', 'vehicles'], canWrite: false, canDelete: false }
+        admin: { tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], canCreate: true, canUpdate: true, canDelete: true },
+        staff: { tools: ['converter', 'merger', 'ocr'], canCreate: true, canUpdate: true, canDelete: false },
+        operator: { tools: ['weighbridge', 'allocator', 'vehicles'], canCreate: true, canUpdate: true, canDelete: false },
+        viewer: { tools: ['weighbridge', 'allocator', 'vehicles'], canCreate: false, canUpdate: false, canDelete: false }
     }
 };
 
@@ -91,11 +91,22 @@ export const hasPermission = (toolId: string) => {
     return perm ? perm.tools.includes(toolId) : false;
 };
 
-export const canWrite = () => {
+export const canCreate = () => {
     if (!authStore.isAuthenticated) return false;
     if (authStore.role === 'admin') return true;
     const perm = authStore.rolePermissions?.[authStore.role || ''];
-    return perm ? perm.canWrite : false;
+    return perm ? perm.canCreate : false;
+};
+
+export const canUpdate = () => {
+    if (!authStore.isAuthenticated) return false;
+    if (authStore.role === 'admin') return true;
+    const perm = authStore.rolePermissions?.[authStore.role || ''];
+    return perm ? perm.canUpdate : false;
+};
+
+export const canWrite = () => {
+    return canCreate() || canUpdate();
 };
 
 export const canDelete = () => {

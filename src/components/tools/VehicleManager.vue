@@ -4,7 +4,7 @@ import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
 import { LogService } from '@/services/storage/LogService';
-import { authStore, canWrite, canDelete } from '@/stores/auth';
+import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
 
 const { addToast } = useToast();
 
@@ -208,7 +208,8 @@ const filteredVehicles = computed(() => {
 
 // Add or edit vehicle
 const handleSubmit = async () => {
-    if (authStore.role !== 'admin' && !canWrite()) {
+    const isNew = editingIndex.value === null;
+    if (authStore.role !== 'admin' && ((isNew && !canCreate()) || (!isNew && !canUpdate()))) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -330,7 +331,7 @@ const triggerImport = () => {
 };
 
 const handleImportExcel = async (e: Event) => {
-    if (authStore.role !== 'admin' && !canWrite()) {
+    if (authStore.role !== 'admin' && !canCreate()) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -493,7 +494,7 @@ const handleExportExcel = async () => {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             <!-- Form Card -->
-            <div v-if="authStore.role === 'admin' || canWrite()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+            <div v-if="authStore.role === 'admin' || canCreate() || canUpdate()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">{{ editingIndex !== null ? 'edit_note' : 'add_circle' }}</span>
                     {{ editingIndex !== null ? 'Cập nhật thông tin xe' : 'Thêm xe mới' }}
@@ -542,7 +543,7 @@ const handleExportExcel = async () => {
             </div>
 
             <!-- Table & Search Card -->
-            <div :class="(authStore.role === 'admin' || canWrite()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
+            <div :class="(authStore.role === 'admin' || canCreate() || canUpdate()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
                 <!-- Search bar -->
                 <div class="relative w-full">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
@@ -563,7 +564,7 @@ const handleExportExcel = async () => {
                                     <th class="px-4 py-3 text-center w-14">STT</th>
                                     <th class="px-4 py-3">Biển số xe</th>
                                     <th class="px-4 py-3">Số mooc</th>
-                                    <th v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="px-4 py-3 text-center w-24">Thao tác</th>
+                                    <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -578,9 +579,9 @@ const handleExportExcel = async () => {
                                         <span v-if="v.moocNumber" class="text-primary font-bold">{{ v.moocNumber }}</span>
                                         <span v-else class="text-gray-400 italic font-normal text-[11px]">Chưa cấu hình</span>
                                     </td>
-                                    <td v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="px-4 py-3 text-center">
+                                    <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
-                                            <button v-if="authStore.role === 'admin' || canWrite()"
+                                            <button v-if="authStore.role === 'admin' || canUpdate()"
                                                 @click="startEdit(index)"
                                                 class="size-7 rounded-lg text-primary hover:bg-primary/10 flex items-center justify-center transition-all"
                                                 title="Sửa thông tin"

@@ -227,7 +227,7 @@ export const ContentService = {
         }
     },
 
-    async loadRolePermissions(): Promise<Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>> {
+    async loadRolePermissions(): Promise<Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>> {
         try {
             const { data, error } = await supabase
                 .from('content')
@@ -242,7 +242,7 @@ export const ContentService = {
         }
     },
 
-    async saveRolePermissions(rolePermissions: Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>): Promise<boolean> {
+    async saveRolePermissions(rolePermissions: Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>): Promise<boolean> {
         try {
             const { data: current, error: fetchError } = await supabase
                 .from('content')
@@ -267,25 +267,29 @@ export const ContentService = {
     }
 };
 
-export const DEFAULT_ROLE_PERMISSIONS: Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = {
     admin: {
         tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'],
-        canWrite: true,
+        canCreate: true,
+        canUpdate: true,
         canDelete: true
     },
     staff: {
         tools: ['converter', 'merger', 'ocr'],
-        canWrite: true,
+        canCreate: true,
+        canUpdate: true,
         canDelete: false
     },
     operator: {
         tools: ['weighbridge', 'allocator', 'vehicles'],
-        canWrite: true,
+        canCreate: true,
+        canUpdate: true,
         canDelete: false
     },
     viewer: {
         tools: ['weighbridge', 'allocator', 'vehicles'],
-        canWrite: false,
+        canCreate: false,
+        canUpdate: false,
         canDelete: false
     }
 };
