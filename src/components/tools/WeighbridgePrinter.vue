@@ -416,6 +416,25 @@ const dialogTruck = reactive({
     note: ''
 });
 
+// Split date/time computed for 24h time input
+const dialogDateInDate = computed({
+    get: () => dialogTruck.dateIn?.includes('T') ? dialogTruck.dateIn.split('T')[0] : dialogTruck.dateIn || '',
+    set: (v: string) => { dialogTruck.dateIn = v ? `${v}T${dialogTimeInTime.value || '00:00'}` : ''; }
+});
+const dialogTimeInTime = computed({
+    get: () => dialogTruck.dateIn?.includes('T') ? dialogTruck.dateIn.split('T')[1]?.substring(0, 5) || '' : '',
+    set: (v: string) => { if (dialogDateInDate.value) dialogTruck.dateIn = `${dialogDateInDate.value}T${v || '00:00'}`; }
+});
+const dialogDateOutDate = computed({
+    get: () => dialogTruck.dateOut?.includes('T') ? dialogTruck.dateOut.split('T')[0] : dialogTruck.dateOut || '',
+    set: (v: string) => { dialogTruck.dateOut = v ? `${v}T${dialogTimeOutTime.value || '00:00'}` : ''; }
+});
+const dialogTimeOutTime = computed({
+    get: () => dialogTruck.dateOut?.includes('T') ? dialogTruck.dateOut.split('T')[1]?.substring(0, 5) || '' : '',
+    set: (v: string) => { if (dialogDateOutDate.value) dialogTruck.dateOut = `${dialogDateOutDate.value}T${v || '00:00'}`; }
+});
+
+
 // Helper functions for filtering and sorting
 const removeAccents = (str: string): string => {
     return str
@@ -4985,11 +5004,17 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày giờ vào</label>
-                        <input v-model="dialogTruck.dateIn" type="datetime-local" class="px-4 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
+                        <div class="flex gap-2">
+                            <input v-model="dialogDateInDate" type="date" class="flex-[3] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
+                            <input v-model="dialogTimeInTime" type="time" class="flex-[2] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
+                        </div>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày giờ ra</label>
-                        <input v-model="dialogTruck.dateOut" type="datetime-local" class="px-4 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
+                        <div class="flex gap-2">
+                            <input v-model="dialogDateOutDate" type="date" class="flex-[3] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
+                            <input v-model="dialogTimeOutTime" type="time" class="flex-[2] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
+                        </div>
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
                         <label>Ghi chú</label>

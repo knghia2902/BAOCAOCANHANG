@@ -876,11 +876,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ đến</label>
-                                    <input type="time" v-model="timeIn" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeIn" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày đến</label>
-                                    <input type="date" v-model="dateIn" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateIn" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">1. Đến cảng nhận</span>
                             </div>
@@ -889,11 +889,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ KT</label>
-                                    <input type="time" v-model="timeInspection" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeInspection" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày KT</label>
-                                    <input type="date" v-model="dateInspection" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateInspection" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">2. Kiểm tra hầm hàng</span>
                             </div>
@@ -902,11 +902,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ BĐ</label>
-                                    <input type="time" v-model="timeCommenced" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeCommenced" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày BĐ</label>
-                                    <input type="date" v-model="dateCommenced" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateCommenced" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">3. Bắt đầu xếp hàng (Chuyến đầu)</span>
                             </div>
@@ -915,11 +915,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ KT</label>
-                                    <input type="time" v-model="timeCompleted" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeCompleted" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày KT</label>
-                                    <input type="date" v-model="dateCompleted" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateCompleted" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">4. Hoàn thành xếp hàng (Chuyến cuối)</span>
                             </div>
@@ -928,11 +928,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ rời</label>
-                                    <input type="time" v-model="timeDepart" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeDepart" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày rời</label>
-                                    <input type="date" v-model="dateDepart" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateDepart" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">5. Rời cảng giao nhận</span>
                             </div>

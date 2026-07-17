@@ -57,6 +57,30 @@ const editSailors = ref('');
 const editHasCrewBook = ref(false);
 const editArrivalTime = ref('');
 const editDepartureTime = ref('');
+
+// Split date/time refs for 24h time input
+const editArrivalDate = ref('');
+const editArrivalTimeStr = ref('');
+const editDepartureDate = ref('');
+const editDepartureTimeStr = ref('');
+
+// Sync split refs -> combined ISO string
+watch([editArrivalDate, editArrivalTimeStr], () => {
+    if (editArrivalDate.value) {
+        const t = editArrivalTimeStr.value.trim() || '00:00';
+        editArrivalTime.value = `${editArrivalDate.value}T${t}`;
+    } else {
+        editArrivalTime.value = '';
+    }
+});
+watch([editDepartureDate, editDepartureTimeStr], () => {
+    if (editDepartureDate.value) {
+        const t = editDepartureTimeStr.value.trim() || '00:00';
+        editDepartureTime.value = `${editDepartureDate.value}T${t}`;
+    } else {
+        editDepartureTime.value = '';
+    }
+});
 const editKhaiHethong = ref('');
 const editLastPort = ref('');
 const activeSite = ref<'NguyenNgoc' | 'PhuMy'>('NguyenNgoc');
@@ -536,6 +560,23 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     editHasCrewBook.value = config.hasCrewBook || false;
     editArrivalTime.value = config.arrivalTime || '';
     editDepartureTime.value = config.departureTime || '';
+    // Populate split date/time refs from combined ISO strings
+    if (editArrivalTime.value && editArrivalTime.value.includes('T')) {
+        const parts = editArrivalTime.value.split('T');
+        editArrivalDate.value = parts[0] || '';
+        editArrivalTimeStr.value = parts[1] ? parts[1].substring(0, 5) : '';
+    } else {
+        editArrivalDate.value = '';
+        editArrivalTimeStr.value = '';
+    }
+    if (editDepartureTime.value && editDepartureTime.value.includes('T')) {
+        const parts2 = editDepartureTime.value.split('T');
+        editDepartureDate.value = parts2[0] || '';
+        editDepartureTimeStr.value = parts2[1] ? parts2[1].substring(0, 5) : '';
+    } else {
+        editDepartureDate.value = '';
+        editDepartureTimeStr.value = '';
+    }
     editLastPort.value = config.lastPort || '';
     const rawKhai = config.khaihethong || '';
     if (rawKhai.toUpperCase() === 'CÓ' || rawKhai.toUpperCase() === 'ĐÃ KHAI') {
@@ -1706,11 +1747,17 @@ onUnmounted(() => {
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian cập bến</label>
-                                    <input v-model="editArrivalTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <div class="flex gap-1.5">
+                                        <input v-model="editArrivalDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
+                                        <input v-model="editArrivalTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                    </div>
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian rời bến</label>
-                                    <input v-model="editDepartureTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <div class="flex gap-1.5">
+                                        <input v-model="editDepartureDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
+                                        <input v-model="editDepartureTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1817,7 +1864,7 @@ onUnmounted(() => {
                                     <div class="h-4 flex items-center">
                                         <label class="text-xs font-bold text-gray-400 uppercase leading-none">Ngày cấp</label>
                                     </div>
-                                    <input v-model="editGcnIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <input v-model="editGcnIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
                                     <div class="flex items-center justify-between h-4">
@@ -1831,7 +1878,7 @@ onUnmounted(() => {
                                         v-if="editGcnExpiryDate !== 'Vô thời hạn'"
                                         v-model="editGcnExpiryDate" 
                                         type="date" 
-                                        class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" 
+                                        class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded text-[#1e293b]" 
                                     />
                                     <div 
                                         v-else 
@@ -1881,11 +1928,11 @@ onUnmounted(() => {
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Ngày kiểm</label>
-                                    <input v-model="editDkIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <input v-model="editDkIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Hạn hết hiệu lực</label>
-                                    <input v-model="editDkExpiryDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <input v-model="editDkExpiryDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded text-[#1e293b]" />
                                 </div>
                             </div>
 
@@ -1928,11 +1975,11 @@ onUnmounted(() => {
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Ngày cấp</label>
-                                    <input v-model="editBhIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <input v-model="editBhIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Hạn bảo hiểm</label>
-                                    <input v-model="editBhExpiryDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                    <input v-model="editBhExpiryDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded text-[#1e293b]" />
                                 </div>
                             </div>
 
