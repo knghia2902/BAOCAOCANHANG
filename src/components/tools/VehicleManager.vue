@@ -465,7 +465,7 @@ const handleExportExcel = async () => {
                 
                 <button 
                     @click="triggerImport"
-                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/5 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
+                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">upload_file</span>
                     Nhập Excel
@@ -473,7 +473,7 @@ const handleExportExcel = async () => {
                 
                 <button 
                     @click="handleExportExcel"
-                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/5 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
+                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">download</span>
                     Xuất Excel
@@ -623,7 +623,7 @@ const handleExportExcel = async () => {
         >
             <div 
                 v-if="confirmDialog.show" 
-                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4"
+                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
                 @click.self="handleConfirmCancel"
             >
                 <div 

@@ -8,20 +8,20 @@ export default {
     theme: {
         extend: {
             colors: {
-                "primary": "#f0426e", // Consolidated primary pink
-                "strawberry-cream": "#ffb3c1",
-                "background-light": "#fff9fa",
-                "background-dark": "#1a0b0e",
-                "soft-pink": "#ffe5ec",
-                "white-pink": "#fff9fb",
-                "pastel-pink": "#ffe5ec",
-                "pastel-peach": "#fff1e6",
-                "pastel-lavender": "#f2e9fb",
-                "soft-rose": "#fb6f92",
-                "cute-peach": "#ffe5d9",
-                "cute-lavender": "#f2e9fb",
+                "primary": "#4a78c2", // Professional Pastel Blue
+                "strawberry-cream": "#b0c4de", // Light Steel Blue
+                "background-light": "#f0f4f8", // Very light blue-gray
+                "background-dark": "#1e293b", // Dark Slate
+                "soft-pink": "#e2ecfc", // Soft ice blue
+                "white-pink": "#f8fafc",
+                "pastel-pink": "#dbeafe",
+                "pastel-peach": "#e0f2fe",
+                "pastel-lavender": "#f1f5f9",
+                "soft-rose": "#6495ed", // Cornflower Blue
+                "cute-peach": "#e2e8f0",
+                "cute-lavender": "#f1f5f9",
                 "cloud-white": "#ffffff",
-                "cream": "#fffcf5",
+                "cream": "#f8fafc",
             },
             fontFamily: {
                 "display": ["Space Grotesk", "Fredoka", "sans-serif"],

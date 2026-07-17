@@ -102,11 +102,11 @@ onMounted(async () => {
             
             <div class="relative z-10 space-y-2">
                 <span class="text-[10px] font-black text-primary uppercase tracking-widest bg-white/60 px-3 py-1 rounded-full border border-soft-pink/30">HỆ THỐNG VẬN HÀNH</span>
-                <h2 class="text-2xl md:text-3xl font-display font-black text-[#4a2c32] mt-2">
+                <h2 class="text-2xl md:text-3xl font-display font-black text-[#1e293b] mt-2">
                     Chào buổi sáng, {{ authStore.displayName }}! ✨
                 </h2>
                 <p class="text-xs md:text-sm font-medium text-[#1b0d11]/60">
-                    Chào mừng bạn quay trở lại. Hôm nay là <span class="font-bold text-[#4a2c32]">{{ formattedDate }}</span>.
+                    Chào mừng bạn quay trở lại. Hôm nay là <span class="font-bold text-[#1e293b]">{{ formattedDate }}</span>.
                 </p>
             </div>
             
@@ -136,7 +136,7 @@ onMounted(async () => {
                 </div>
                 <div>
                     <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Quản lý tàu</p>
-                    <h4 class="text-xl font-black text-[#4a2c32] mt-0.5">
+                    <h4 class="text-xl font-black text-[#1e293b] mt-0.5">
                         {{ loading ? '...' : vessels.length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">tàu đang làm hàng</span>
                     </h4>
@@ -172,7 +172,7 @@ onMounted(async () => {
 
         <!-- Main Dashboard Section: Utilities Grid -->
         <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-150 flex flex-col text-left">
-            <h3 class="text-sm font-black text-[#4a2c32] flex items-center gap-2 mb-6">
+            <h3 class="text-sm font-black text-[#1e293b] flex items-center gap-2 mb-6">
                 <span class="material-symbols-outlined text-primary text-lg font-black">dashboard_customize</span>
                 Tiện ích hệ thống
             </h3>
@@ -182,13 +182,13 @@ onMounted(async () => {
                 <div 
                     v-if="allowedTools.includes('weighbridge')"
                     @click="navigateToTool('printer')"
-                    class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
                     <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-soft shrink-0">
                         <span class="material-symbols-outlined text-xl font-black">print</span>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-primary transition-colors">DASHBOARD</h4>
+                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">DASHBOARD</h4>
                         <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.</p>
                     </div>
                 </div>
@@ -197,13 +197,13 @@ onMounted(async () => {
                 <div 
                     v-if="allowedTools.includes('allocator')"
                     @click="navigateToTool('allocator')"
-                    class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
                     <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-soft shrink-0">
                         <span class="material-symbols-outlined text-xl font-black">shuffle</span>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-primary transition-colors">Phân bổ tải trọng sà lan</h4>
+                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">Phân bổ tải trọng sà lan</h4>
                         <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.</p>
                     </div>
                 </div>
@@ -212,13 +212,13 @@ onMounted(async () => {
                 <div 
                     v-if="allowedTools.includes('vehicles')"
                     @click="navigateToTool('vehicles')"
-                    class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
                     <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-soft shrink-0 border border-amber-100">
                         <span class="material-symbols-outlined text-xl font-black">local_shipping</span>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-[#b27218] transition-colors">Quản lý hồ sơ phương tiện</h4>
+                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-[#b27218] transition-colors">Quản lý hồ sơ phương tiện</h4>
                         <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Quản lý và đồng bộ danh sách biển số xe và số moóc.</p>
                     </div>
                 </div>
@@ -227,13 +227,13 @@ onMounted(async () => {
                 <div 
                     v-if="authStore.role === 'admin'"
                     @click="router.push('/admin')"
-                    class="p-6 bg-[#fcf8f9] hover:bg-[#faebee] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
+                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
                 >
                     <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-soft shrink-0 border border-amber-100">
                         <span class="material-symbols-outlined text-xl font-black">settings_applications</span>
                     </div>
                     <div>
-                        <h4 class="font-black text-xs text-[#4a2c32] group-hover:text-[#b27218] transition-colors">Quản trị tài khoản</h4>
+                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-[#b27218] transition-colors">Quản trị tài khoản</h4>
                         <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tạo mới, đổi mật khẩu và quản lý tài khoản nhân viên.</p>
                     </div>
                 </div>

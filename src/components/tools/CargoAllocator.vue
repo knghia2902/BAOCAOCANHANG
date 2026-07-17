@@ -3178,7 +3178,7 @@ async function compileAndDownload() {
                 <!-- Sidebar header -->
                 <div class="p-4 border-b border-primary/5">
                     <div class="text-[10px] uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích quản lý</div>
-                    <h2 class="text-sm font-black text-[#4a2c32] flex items-center gap-1.5">
+                    <h2 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-base">balance</span>
                         Báo cáo cân hàng
                     </h2>
@@ -3231,7 +3231,7 @@ async function compileAndDownload() {
         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3 px-5 soft-shadow border border-primary/5 gap-4 shrink-0">
             <div>
                 <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Công cụ thông minh</div>
-                <h1 class="text-base font-black text-[#4a2c32] flex items-center gap-1.5">
+                <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-primary text-lg">balance</span>
                     Phân bổ tải trọng xếp hàng lên phương tiện
                 </h1>
@@ -3700,7 +3700,7 @@ async function compileAndDownload() {
                                 <th class="py-1 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                        <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                             <tr 
                                 v-for="(ticket, idx) in pagedSourceTickets" 
                                 :key="ticket.id || idx"
@@ -3867,7 +3867,7 @@ async function compileAndDownload() {
                                 <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Hành động</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                        <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                             <tr 
                                 v-for="(trip, idx) in pagedHistoryTrips" 
                                 :key="trip.stt"
@@ -4085,7 +4085,7 @@ async function compileAndDownload() {
                                 <th class="py-1 px-3 text-center bg-gray-50 font-bold w-[80px] select-none">Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                        <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                             <tr 
                                 v-for="(trip, idx) in pagedTrips" 
                                 :key="trip.stt"
@@ -4202,7 +4202,7 @@ async function compileAndDownload() {
                 <!-- Dialog Header -->
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
-                        <h3 class="text-sm font-black text-[#4a2c32] flex items-center gap-1.5">
+                        <h3 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-primary text-base">receipt_long</span>
                             {{ editingTicket ? 'Chỉnh sửa phiếu cân' : 'Thêm phiếu cân thủ công' }}
                         </h3>
@@ -4393,7 +4393,7 @@ async function compileAndDownload() {
                 <div class="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
                     <button 
                         @click="showTicketDialog = false"
-                        class="px-4 py-2 border border-gray-200 rounded-[12px] text-xs font-bold text-[#4a2c32] hover:bg-gray-100 active:scale-[0.98] transition-all"
+                        class="px-4 py-2 border border-gray-200 rounded-[12px] text-xs font-bold text-[#1e293b] hover:bg-gray-100 active:scale-[0.98] transition-all"
                     >
                         Hủy
                     </button>
@@ -4425,7 +4425,7 @@ async function compileAndDownload() {
         >
             <div 
                 v-if="addBargeDialog.show" 
-                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4"
+                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
                 @click.self="addBargeDialog.show = false"
             >
                 <div 
@@ -4510,7 +4510,7 @@ async function compileAndDownload() {
         >
             <div 
                 v-if="inputDialog.show" 
-                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4"
+                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
                 @click.self="handleInputCancel"
             >
                 <div 
@@ -4562,7 +4562,7 @@ async function compileAndDownload() {
         >
             <div 
                 v-if="confirmDialog.show" 
-                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4"
+                class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
                 @click.self="handleConfirmCancel"
             >
                 <div 

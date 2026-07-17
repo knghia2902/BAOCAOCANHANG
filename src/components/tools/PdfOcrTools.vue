@@ -181,14 +181,14 @@ const onFileSelected = async (file: File) => {
                 <tr 
                   v-for="(row, rowIdx) in grid" 
                   :key="rowIdx"
-                  class="hover:bg-primary/5 transition-colors border-b border-gray-100 last:border-b-0"
+                  class="hover:bg-primary/10 transition-colors border-b border-gray-100 last:border-b-0"
                 >
                   <td 
                     v-for="(cell, cellIdx) in row" 
                     :key="cellIdx"
                     class="px-4 py-2.5 border-r border-gray-100 last:border-r-0 whitespace-nowrap min-w-[80px]"
                     :class="[
-                      rowIdx === 0 && row.length > 2 ? 'bg-gray-50 font-bold text-[#4a2c32] text-center' : 'text-[#1b0d11]/70',
+                      rowIdx === 0 && row.length > 2 ? 'bg-gray-50 font-bold text-[#1e293b] text-center' : 'text-[#1b0d11]/70',
                       row.length === 1 && rowIdx <= 2 ? 'text-center font-bold text-sm text-primary bg-primary/5 py-3' : ''
                     ]"
                   >
@@ -212,7 +212,7 @@ const onFileSelected = async (file: File) => {
               class="mb-3"
               :class="[
                 row.length === 1 && rowIdx <= 2 ? 'text-center font-bold text-base text-primary my-5 font-sans' : '',
-                row.length > 1 && rowIdx === 0 ? 'font-sans font-bold text-[#4a2c32]' : ''
+                row.length > 1 && rowIdx === 0 ? 'font-sans font-bold text-[#1e293b]' : ''
               ]"
             >
               {{ row.join('   ') }}

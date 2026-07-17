@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-    --soft-rose: #fdf2f4;
-    --primary-pink: #ff6b81;
-    --text-main: #4a2c32;
+    --soft-rose: #f0f4f8;
+    --primary-pink: #4a78c2;
+    --text-main: #1e293b;
 }
 
 body {
@@ -16,11 +16,11 @@ body {
 
 @layer components {
     .glow-primary {
-        box-shadow: 0 0 20px rgba(240, 66, 110, 0.4);
+        box-shadow: 0 0 20px rgba(74, 120, 194, 0.4);
     }
 
     .glow-primary:hover {
-        box-shadow: 0 0 30px rgba(240, 66, 110, 0.6);
+        box-shadow: 0 0 30px rgba(74, 120, 194, 0.6);
     }
 
     .glass-nav {
@@ -70,11 +70,11 @@ body {
     }
 
     .gradient-bg {
-        background: linear-gradient(135deg, #FFF0F5 0%, #ffffff 100%);
+        background: linear-gradient(135deg, #e8f0fe 0%, #ffffff 100%);
     }
 
     .soft-shadow {
-        box-shadow: 0 10px 25px -5px rgba(240, 66, 110, 0.08);
+        box-shadow: 0 10px 25px -5px rgba(74, 120, 194, 0.08);
     }
 
     .sidebar-item-active {
@@ -82,32 +82,32 @@ body {
     }
 
     .love-letter-shadow {
-        box-shadow: 0 20px 50px -10px rgba(240, 66, 110, 0.15);
+        box-shadow: 0 20px 50px -10px rgba(74, 120, 194, 0.15);
     }
 
     .heart-seal {
-        background: #f0426e;
-        box-shadow: 0 4px 10px rgba(240, 66, 110, 0.3);
+        background: #4a78c2;
+        box-shadow: 0 4px 10px rgba(74, 120, 194, 0.3);
     }
 
     .bg-cute-gradient {
-        background: linear-gradient(180deg, #ffe5ec 0%, #fffcf5 100%);
+        background: linear-gradient(180deg, #e2ecfc 0%, #f0f4f8 100%);
     }
 
     .floating-heart {
         position: absolute;
         pointer-events: none;
-        color: #f0426e;
+        color: #4a78c2;
         opacity: 0.2;
     }
 
     .puffy-button {
-        @apply bg-primary text-white font-bold rounded-full transition-all shadow-[0_4px_0_0_#fb6f92] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#fb6f92] active:translate-y-[4px] active:shadow-none;
+        @apply bg-primary text-white font-bold rounded-full transition-all shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none;
     }
 
     .dashed-cloud {
-        border: 3px dashed #ff8fab;
-        background-image: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 240, 243, 0.8) 90%);
+        border: 3px dashed #b0c4de;
+        background-image: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, rgba(226, 236, 252, 0.8) 90%);
     }
 
     .sticker-rotate-1 {

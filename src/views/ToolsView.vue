@@ -186,7 +186,7 @@ watch(allowedStaffTools, (newVal) => {
       <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-primary/5 select-none pointer-events-none">
         <span class="material-symbols-outlined text-[130px]">widgets</span>
       </div>
-      <h2 class="text-3xl md:text-4xl font-display font-black text-[#4a2c32] mb-3 relative z-10">Làm việc thật vui! ✨</h2>
+      <h2 class="text-3xl md:text-4xl font-display font-black text-[#1e293b] mb-3 relative z-10">Làm việc thật vui! ✨</h2>
       <p class="text-sm font-medium text-[#1b0d11]/60 max-w-xl mx-auto leading-relaxed text-center">
         Chọn một công cụ nhỏ để giúp cậu xử lý công việc nhanh hơn nhé. Mọi dữ liệu đều được bảo mật và đồng bộ an toàn!
       </p>
@@ -216,7 +216,7 @@ watch(allowedStaffTools, (newVal) => {
             <div :class="['size-10 rounded-xl flex items-center justify-center shadow-soft', tool.bgIcon]">
               <span class="material-symbols-outlined text-lg">{{ tool.icon }}</span>
             </div>
-            <h3 class="text-base font-display font-black text-[#4a2c32] group-hover:text-primary transition-colors">
+            <h3 class="text-base font-display font-black text-[#1e293b] group-hover:text-primary transition-colors">
               {{ tool.name }}
             </h3>
           </div>
@@ -241,7 +241,7 @@ watch(allowedStaffTools, (newVal) => {
         <!-- Open Button -->
         <button 
           @click="openTool(tool.id)" 
-          class="w-full py-3 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 hover:bg-primary/5 transition-all shadow-sm"
+          class="w-full py-3 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
         >
           <span class="material-symbols-outlined text-base">open_in_new</span>
           Sử dụng công cụ
@@ -253,7 +253,7 @@ watch(allowedStaffTools, (newVal) => {
         <div class="size-11 bg-primary/5 text-primary/30 rounded-full flex items-center justify-center mb-3">
           <span class="material-symbols-outlined text-lg">add_circle</span>
         </div>
-        <h3 class="text-xs font-black text-[#4a2c32]/50 mb-1">
+        <h3 class="text-xs font-black text-[#1e293b]/50 mb-1">
           Nhiều công cụ khác sắp ra mắt...
         </h3>
         <p class="text-[10px] text-[#1b0d11]/40 max-w-[190px] mx-auto">
@@ -332,7 +332,7 @@ watch(allowedStaffTools, (newVal) => {
           <div class="p-3 border-t border-primary/10 bg-gray-50">
             <button 
               @click="activeToolId = null" 
-              class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 hover:bg-primary/5 transition-all shadow-sm"
+              class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
             >
               <span class="material-symbols-outlined text-xs">arrow_back</span>
               Về Danh Mục

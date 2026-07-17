@@ -128,16 +128,16 @@ onUnmounted(() => {
       </div>
       
       <nav class="hidden md:flex items-center gap-8">
-        <router-link to="/" class="flex items-center gap-2 text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors" active-class="text-primary">
+        <router-link to="/" class="flex items-center gap-2 text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors" active-class="text-primary">
             <span class="material-symbols-outlined text-lg">home</span>
             Home
         </router-link>
-        <router-link v-if="allowedTools.length > 0" to="/tools" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
-        <router-link to="/about" class="text-sm font-bold text-[#4a2c32]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">About</router-link>
+        <router-link v-if="allowedTools.length > 0" to="/tools" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
+        <router-link to="/about" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">About</router-link>
       </nav>
 
       <div class="flex items-center gap-3">
-        <span class="text-xs font-bold text-[#4a2c32]/60 hidden sm:inline">
+        <span class="text-xs font-bold text-[#1e293b]/60 hidden sm:inline">
             Chào, {{ authStore.displayName }}
         </span>
         
@@ -159,7 +159,7 @@ onUnmounted(() => {
               class="absolute right-0 top-14 w-60 bg-white rounded-3xl shadow-xl border border-primary/10 py-3 z-50 overflow-hidden font-display flex flex-col"
             >
               <!-- User Info Header inside Dropdown -->
-              <div class="px-4 py-3 border-b border-primary/5 bg-[#fcf8f9]/50 flex items-center gap-3 mb-2">
+              <div class="px-4 py-3 border-b border-primary/5 bg-[#f1f5f9]/50 flex items-center gap-3 mb-2">
                 <div 
                   class="size-9 bg-center bg-no-repeat bg-cover rounded-full border border-primary/10 shrink-0"
                   :style="{ backgroundImage: `url(${authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))})` }"
@@ -177,7 +177,7 @@ onUnmounted(() => {
                 <router-link 
                   to="/" 
                   @click="closeDropdown"
-                  class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors"
+                  class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors"
                 >
                   <span class="material-symbols-outlined text-base text-primary/60">home</span>
                   Home
@@ -186,7 +186,7 @@ onUnmounted(() => {
                   v-if="allowedTools.length > 0"
                   to="/tools" 
                   @click="closeDropdown"
-                  class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
+                  class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
                 >
                   <span class="material-symbols-outlined text-base text-primary/60">widgets</span>
                   Tools
@@ -194,7 +194,7 @@ onUnmounted(() => {
                 <router-link 
                   to="/about" 
                   @click="closeDropdown"
-                  class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
+                  class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
                 >
                   <span class="material-symbols-outlined text-base text-primary/60">info</span>
                   About
@@ -204,7 +204,7 @@ onUnmounted(() => {
               <!-- Menu Options -->
               <button 
                 @click="openProfileModal"
-                class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors text-left"
+                class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors text-left"
               >
                 <span class="material-symbols-outlined text-base text-primary/60">person</span>
                 Chỉnh sửa hồ sơ
@@ -213,7 +213,7 @@ onUnmounted(() => {
               <router-link 
                 to="/change-password" 
                 @click="closeDropdown"
-                class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
+                class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
               >
                 <span class="material-symbols-outlined text-base text-primary/60">lock_reset</span>
                 Đổi mật khẩu
@@ -223,7 +223,7 @@ onUnmounted(() => {
                 v-if="authStore.role === 'admin'"
                 to="/admin" 
                 @click="closeDropdown"
-                class="px-4 py-2.5 hover:bg-primary/5 text-[#4a2c32]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
+                class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
               >
                 <span class="material-symbols-outlined text-base text-amber-500">settings_applications</span>
                 Trang quản trị (Admin)
@@ -258,7 +258,7 @@ onUnmounted(() => {
                     <h3 class="text-2xl font-black text-primary">Chỉnh Sửa Hồ Sơ</h3>
                     <p class="text-[10px] font-bold text-gray-400">Cập nhật tên hiển thị và ảnh đại diện của bạn ✨</p>
                 </div>
-                <button @click="showProfileModal = false" class="size-10 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                <button @click="showProfileModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                      <span class="material-symbols-outlined">close</span>
                 </button>
             </header>
@@ -276,7 +276,7 @@ onUnmounted(() => {
 
                 <div class="space-y-1">
                     <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Tên hiển thị</label>
-                    <input v-model="profileForm.displayName" placeholder="Tên hiển thị" class="w-full bg-[#fcf8f9] p-4 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                    <input v-model="profileForm.displayName" placeholder="Tên hiển thị" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                 </div>
 
                 <button @click="handleSaveProfile" class="w-full py-4 bg-primary text-white rounded-[2rem] font-black shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all text-xs">Lưu Thay Đổi ✨</button>

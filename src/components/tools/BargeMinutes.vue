@@ -659,7 +659,7 @@ async function generateMinutes() {
         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-5 soft-shadow border border-primary/5 gap-4">
             <div>
                 <div class="text-[9px] uppercase font-black tracking-widest text-emerald-600 mb-0.5">Tiện ích cảng biển</div>
-                <h1 class="text-base font-black text-[#4a2c32] flex items-center gap-1.5">
+                <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-emerald-600 text-lg">description</span>
                     Tạo Biên Bản Giao Nhận Sà Lan Tự Động
                 </h1>
@@ -674,15 +674,15 @@ async function generateMinutes() {
             <div class="lg:col-span-4 flex flex-col gap-6">
                 <!-- Weight List Card -->
                 <div class="bg-white rounded-[24px] p-5 border border-primary/5 soft-shadow flex flex-col gap-4">
-                    <h3 class="text-xs font-black text-[#4a2c32] border-b border-primary/5 pb-2 flex items-center gap-1.5">
+                    <h3 class="text-xs font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-sm font-bold">upload_file</span>
                         1. Tải lên tệp Weight List
                     </h3>
                     
                     <div class="flex flex-col gap-3">
-                        <label class="border-2 border-dashed border-gray-200 hover:border-primary/50 transition-all rounded-[16px] p-4 text-center cursor-pointer bg-gray-50/50 hover:bg-primary/5 flex flex-col items-center gap-2">
+                        <label class="border-2 border-dashed border-gray-200 hover:border-primary/50 transition-all rounded-[16px] p-4 text-center cursor-pointer bg-gray-50/50 hover:bg-primary/10 flex flex-col items-center gap-2">
                             <span class="material-symbols-outlined text-gray-400 text-3xl">table_chart</span>
-                            <span class="text-[11px] font-black text-[#4a2c32]">{{ wlFile ? wlFile.name : 'Chọn file Weight List (.xlsx)' }}</span>
+                            <span class="text-[11px] font-black text-[#1e293b]">{{ wlFile ? wlFile.name : 'Chọn file Weight List (.xlsx)' }}</span>
                             <span class="text-[9px] opacity-60">Sử dụng 4 sheet xuất hàng</span>
                             <input type="file" accept=".xlsx" @change="handleWlUpload" class="hidden" />
                         </label>
@@ -696,14 +696,14 @@ async function generateMinutes() {
 
                 <!-- Template Upload (Optional) -->
                 <div class="bg-white rounded-[24px] p-5 border border-primary/5 soft-shadow flex flex-col gap-4">
-                    <h3 class="text-xs font-black text-[#4a2c32] border-b border-primary/5 pb-2 flex items-center gap-1.5">
+                    <h3 class="text-xs font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-emerald-600 text-sm font-bold">settings</span>
                         Biên bản mẫu (Template)
                     </h3>
                     <div class="flex flex-col gap-3">
                         <label class="border border-dashed border-gray-200 hover:border-primary/30 transition-all rounded-[16px] p-3 text-center cursor-pointer bg-gray-50/30 flex flex-col items-center gap-1">
                             <span class="material-symbols-outlined text-gray-400 text-xl">description</span>
-                            <span class="text-[10px] font-bold text-[#4a2c32] truncate max-w-xs">{{ templateFile ? templateFile.name : 'Tải lên mẫu riêng (.xlsx)' }}</span>
+                            <span class="text-[10px] font-bold text-[#1e293b] truncate max-w-xs">{{ templateFile ? templateFile.name : 'Tải lên mẫu riêng (.xlsx)' }}</span>
                             <span class="text-[8px] opacity-50">Mặc định: 2 BỘ BIÊN BẢN GIAO NHẬN</span>
                             <input type="file" accept=".xlsx" @change="handleTemplateUpload" class="hidden" />
                         </label>
@@ -712,7 +712,7 @@ async function generateMinutes() {
 
                 <!-- Voyage Selector Card -->
                 <div v-if="detectedVoyages.length > 0" class="bg-white rounded-[24px] p-5 border border-primary/5 soft-shadow flex flex-col gap-4">
-                    <h3 class="text-xs font-black text-[#4a2c32] border-b border-primary/5 pb-2 flex items-center gap-1.5">
+                    <h3 class="text-xs font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-sm font-bold">directions_boat</span>
                         2. Chọn chuyến sà lan
                     </h3>
@@ -722,7 +722,7 @@ async function generateMinutes() {
                         <select 
                             v-model="selectedVoyage" 
                             @change="handleVoyageChange"
-                            class="w-full bg-[#fcedf0]/40 border border-primary/10 rounded-[12px] p-2 text-xs font-bold text-[#4a2c32] focus:outline-none focus:border-primary"
+                            class="w-full bg-[#fcedf0]/40 border border-primary/10 rounded-[12px] p-2 text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary"
                         >
                             <option v-for="voy in detectedVoyages" :key="voy.rawName" :value="voy.rawName">
                                 {{ voy.rawName }}
@@ -734,7 +734,7 @@ async function generateMinutes() {
                     <div v-if="currentVoyageDetails" class="bg-gray-50 rounded-[16px] p-3.5 flex flex-col gap-2 border border-gray-100 text-[11px]">
                         <div class="flex justify-between font-bold text-gray-500">
                             <span>Tổng số xe:</span>
-                            <span class="text-[#4a2c32]">{{ currentVoyageDetails.totalXe }} xe</span>
+                            <span class="text-[#1e293b]">{{ currentVoyageDetails.totalXe }} xe</span>
                         </div>
                         <div class="flex justify-between font-bold text-gray-500">
                             <span>Tổng trọng lượng:</span>
@@ -756,7 +756,7 @@ async function generateMinutes() {
             <!-- Right Side: BB Parameters Form (8 Cols) -->
             <div class="lg:col-span-8 flex flex-col gap-6">
                 <div class="bg-white rounded-[24px] p-6 border border-primary/5 soft-shadow flex flex-col gap-5">
-                    <h3 class="text-sm font-black text-[#4a2c32] border-b border-primary/5 pb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-black text-[#1e293b] border-b border-primary/5 pb-3 flex items-center justify-between">
                         <span class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-primary">edit_note</span>
                             3. Thông tin Biên Bản và Làm Hàng

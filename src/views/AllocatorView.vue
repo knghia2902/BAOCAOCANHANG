@@ -45,12 +45,12 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
       </div>
       
       <div class="flex items-center gap-4">
-        <span class="text-xs font-bold text-[#4a2c32]/60 hidden sm:inline">
+        <span class="text-xs font-bold text-[#1e293b]/60 hidden sm:inline">
           {{ authStore.displayName }} ({{ authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên' }})
         </span>
         <button 
           @click="router.push('/tools')" 
-          class="size-9 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all shadow-inner"
+          class="size-9 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/10 transition-all shadow-inner"
           title="Quay lại danh sách công cụ"
         >
           <span class="material-symbols-outlined text-base">close</span>

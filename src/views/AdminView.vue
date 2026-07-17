@@ -616,7 +616,7 @@ onMounted(async () => {
 
 
 <template>
-    <div class="min-h-screen bg-[#FDF2F5] flex flex-col lg:flex-row font-display text-[#1b0d11] p-4 lg:p-6 gap-4 lg:gap-6">
+    <div class="min-h-screen bg-background-light flex flex-col lg:flex-row font-display text-[#1e293b] p-4 lg:p-6 gap-4 lg:gap-6">
         <!-- Top Navigation (Mobile Only) -->
         <div class="flex lg:hidden flex-col gap-3 bg-white rounded-[2rem] p-4 shadow-md border border-white/50 shrink-0">
             <div class="flex items-center justify-between">
@@ -734,20 +734,20 @@ onMounted(async () => {
                         <div class="space-y-6">
                             <div class="space-y-2">
                                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Hero Title</label>
-                                <input v-model="contentStore.hero.title" class="w-full bg-[#fcf8f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                                <input v-model="contentStore.hero.title" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
                             </div>
                             <div class="space-y-2">
                                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Hero Subtitle</label>
-                                <textarea v-model="contentStore.hero.subtitle" class="w-full bg-[#fcf8f9] p-5 rounded-2xl font-medium text-sm border-none h-32 resize-none outline-none leading-relaxed focus:ring-2 focus:ring-primary/20"></textarea>
+                                <textarea v-model="contentStore.hero.subtitle" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-medium text-sm border-none h-32 resize-none outline-none leading-relaxed focus:ring-2 focus:ring-primary/20"></textarea>
                             </div>
                             <div class="grid grid-cols-2 gap-6">
                                 <div class="space-y-2">
                                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Button 1</label>
-                                    <input v-model="contentStore.hero.primaryButton" class="w-full bg-[#fcf8f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                                    <input v-model="contentStore.hero.primaryButton" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Button 2</label>
-                                    <input v-model="contentStore.hero.secondaryButton" class="w-full bg-[#fcf8f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                                    <input v-model="contentStore.hero.secondaryButton" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
                                 </div>
                             </div>
                         </div>
@@ -872,7 +872,7 @@ onMounted(async () => {
                     <h3 class="text-lg font-black mb-6 flex items-center gap-3">
                         <span class="material-symbols-outlined text-primary">mail</span> Primary Email
                     </h3>
-                    <input v-model="contentStore.about.email" class="w-full bg-[#fcf8f9] p-5 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                    <input v-model="contentStore.about.email" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
                 </div>
 
                 <div class="bg-white rounded-[2.5rem] p-8 card-shadow space-y-6">
@@ -883,7 +883,7 @@ onMounted(async () => {
                         <button @click="addSocialLink" class="text-[10px] font-black text-primary uppercase bg-soft-pink/10 px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all">+ Add Link</button>
                     </div>
                     <div class="space-y-4">
-                         <div v-for="(l, idx) in contentStore.about.social" :key="l.id" class="p-6 bg-[#fcf8f9] rounded-[2rem] relative group border border-transparent hover:border-primary/10 transition-all">
+                         <div v-for="(l, idx) in contentStore.about.social" :key="l.id" class="p-6 bg-[#f1f5f9] rounded-[2rem] relative group border border-transparent hover:border-primary/10 transition-all">
                              <button @click="contentStore.about.social.splice(idx, 1)" class="absolute top-4 right-4 text-red-100 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
                                 <span class="material-symbols-outlined text-xl">delete</span>
                              </button>
@@ -939,7 +939,7 @@ onMounted(async () => {
                             </button>
                         </div>
                     </div>
-                    <p class="text-[15px] font-medium leading-relaxed italic text-gray-600 bg-[#fcf8f9] p-8 rounded-[2rem] border border-white/40 shadow-inner">"{{ m.content }}"</p>
+                    <p class="text-[15px] font-medium leading-relaxed italic text-gray-600 bg-[#f1f5f9] p-8 rounded-[2rem] border border-white/40 shadow-inner">"{{ m.content }}"</p>
                 </div>
             </div>
 
@@ -971,7 +971,7 @@ onMounted(async () => {
                                         <img :src="acc.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(acc.displayName || 'User'))" class="size-8 rounded-full border border-primary/10 object-cover" />
                                         <span>{{ acc.displayName }}</span>
                                     </td>
-                                    <td class="py-4 font-bold text-sm text-[#4a2c32]">{{ acc.username }}</td>
+                                    <td class="py-4 font-bold text-sm text-[#1e293b]">{{ acc.username }}</td>
                                     <td class="py-4">
                                         <span class="px-3 py-1 text-[9px] font-black uppercase rounded-full"
                                             :class="acc.role === 'admin' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'"
@@ -994,7 +994,7 @@ onMounted(async () => {
                 <div class="bg-white rounded-[3rem] p-8 card-shadow border border-white/40 flex flex-col gap-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-primary/10 pb-6">
                         <div>
-                            <h4 class="text-lg font-black text-[#4a2c32] flex items-center gap-2">
+                            <h4 class="text-lg font-black text-[#1e293b] flex items-center gap-2">
                                 <span class="material-symbols-outlined text-primary">settings_accessibility</span>
                                 Quản Lý & Phân Quyền Vai Trò
                             </h4>
@@ -1003,7 +1003,7 @@ onMounted(async () => {
                         
                         <!-- Add Custom Role Form -->
                         <div class="flex items-center gap-2 w-full md:w-auto">
-                            <input v-model="customRoleName" type="text" placeholder="Tên vai trò mới (vd: manager)" class="bg-[#fcf8f9] px-4 py-2.5 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shrink-0 w-44" />
+                            <input v-model="customRoleName" type="text" placeholder="Tên vai trò mới (vd: manager)" class="bg-[#f1f5f9] px-4 py-2.5 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shrink-0 w-44" />
                             <button @click="handleCreateCustomRole" class="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
                                 <span class="material-symbols-outlined text-xs">add</span> Tạo vai trò
                             </button>
@@ -1025,25 +1025,25 @@ onMounted(async () => {
                     <!-- Configure Permissions for Selected Role -->
                     <div v-if="rolePermissions[selectedRoleToConfigure]" class="space-y-6">
                         <!-- Switch Actions/Create/Update/Delete permissions -->
-                        <div class="p-4 bg-[#fcf8f9] rounded-2xl border border-primary/5 flex flex-col md:flex-row gap-6">
+                        <div class="p-4 bg-[#f1f5f9] rounded-2xl border border-primary/5 flex flex-col md:flex-row gap-6">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canCreate" class="accent-primary size-4" />
                                 <div>
-                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Thêm dữ liệu</p>
+                                    <p class="text-xs font-black text-[#1e293b]">Cho phép Thêm dữ liệu</p>
                                     <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền tạo mới dữ liệu.</p>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canUpdate" class="accent-primary size-4" />
                                 <div>
-                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Sửa dữ liệu</p>
+                                    <p class="text-xs font-black text-[#1e293b]">Cho phép Sửa dữ liệu</p>
                                     <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền chỉnh sửa thông tin.</p>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canDelete" class="accent-primary size-4" />
                                 <div>
-                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Xóa dữ liệu</p>
+                                    <p class="text-xs font-black text-[#1e293b]">Cho phép Xóa dữ liệu</p>
                                     <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền xóa vĩnh viễn dữ liệu.</p>
                                 </div>
                             </label>
@@ -1051,16 +1051,16 @@ onMounted(async () => {
 
                         <!-- Checkboxes for permitted tools -->
                         <div>
-                            <p class="text-xs font-black text-[#4a2c32] mb-3">Các công cụ được phép hiển thị & truy cập:</p>
+                            <p class="text-xs font-black text-[#1e293b] mb-3">Các công cụ được phép hiển thị & truy cập:</p>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#fcf8f9] rounded-2xl flex items-center justify-between border border-transparent hover:border-primary/10 transition-all group">
+                                <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#f1f5f9] rounded-2xl flex items-center justify-between border border-transparent hover:border-primary/10 transition-all group">
                                     <div class="flex items-center gap-3">
                                         <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
                                             <span class="material-symbols-outlined text-sm">
                                                 {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
                                             </span>
                                         </div>
-                                        <span class="font-bold text-xs text-[#4a2c32] group-hover:text-primary transition-colors">{{ t.name }}</span>
+                                        <span class="font-bold text-xs text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
                                     </div>
                                     <label class="relative inline-flex items-center cursor-pointer scale-90">
                                         <input type="checkbox" :value="t.id" v-model="rolePermissions[selectedRoleToConfigure]!.tools" class="sr-only peer">
@@ -1097,9 +1097,9 @@ onMounted(async () => {
                 <div class="bg-white rounded-[2rem] p-5 card-shadow border border-white/40 flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
                         <span class="material-symbols-outlined text-gray-300 absolute left-4 top-1/2 -translate-y-1/2 text-lg">search</span>
-                        <input v-model="logsSearchQuery" type="text" placeholder="Tìm kiếm theo tên, hành động, chi tiết..." class="w-full bg-[#fcf8f9] pl-11 pr-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                        <input v-model="logsSearchQuery" type="text" placeholder="Tìm kiếm theo tên, hành động, chi tiết..." class="w-full bg-[#f1f5f9] pl-11 pr-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
-                    <select v-model="logsFilterAction" class="bg-[#fcf8f9] px-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[180px]">
+                    <select v-model="logsFilterAction" class="bg-[#f1f5f9] px-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[180px]">
                         <option value="all">Tất cả hành động</option>
                         <option v-for="action in uniqueActions" :key="action" :value="action">{{ action }}</option>
                     </select>
@@ -1150,7 +1150,7 @@ onMounted(async () => {
                                                 <span class="text-[10px] font-black text-primary">{{ (log.displayName || log.username || '?').charAt(0).toUpperCase() }}</span>
                                             </div>
                                             <div>
-                                                <p class="text-xs font-black text-[#4a2c32]">{{ log.displayName }}</p>
+                                                <p class="text-xs font-black text-[#1e293b]">{{ log.displayName }}</p>
                                                 <p class="text-[9px] font-bold text-gray-300">@{{ log.username }}</p>
                                             </div>
                                         </div>
@@ -1197,7 +1197,7 @@ onMounted(async () => {
                 
                 <!-- Tool List in Modal -->
                 <div class="max-h-60 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                    <div v-for="(tool, idx) in contentStore.toolkit" :key="idx" class="flex items-center justify-between p-4 bg-[#fcf8f9] rounded-2xl border border-transparent hover:border-primary/10 transition-all">
+                    <div v-for="(tool, idx) in contentStore.toolkit" :key="idx" class="flex items-center justify-between p-4 bg-[#f1f5f9] rounded-2xl border border-transparent hover:border-primary/10 transition-all">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-primary">{{ tool.icon }}</span>
                             <span class="font-black text-xs">{{ tool.label }}</span>
@@ -1248,7 +1248,7 @@ onMounted(async () => {
                         <h3 class="text-3xl font-black text-primary">{{ isEditingProject ? 'Edit Project' : 'New Creation' }}</h3>
                         <p class="text-[10px] font-bold text-gray-400">Tweak your magic showcase ✨</p>
                     </div>
-                    <button @click="showProjectModal = false" class="size-12 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showProjectModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
@@ -1266,16 +1266,16 @@ onMounted(async () => {
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Title</label>
-                            <input v-model="newProject.title" placeholder="Project name" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <input v-model="newProject.title" placeholder="Project name" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Type / Tag</label>
-                            <input v-model="newProject.tag" placeholder="e.g. Mobile Design" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <input v-model="newProject.tag" placeholder="e.g. Mobile Design" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Description</label>
-                        <textarea v-model="newProject.description" placeholder="Share the story behind this magic..." class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-bold border-none h-28 resize-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm leading-relaxed"></textarea>
+                        <textarea v-model="newProject.description" placeholder="Share the story behind this magic..." class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-bold border-none h-28 resize-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm leading-relaxed"></textarea>
                     </div>
                     <button @click="addProject" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Confirm Changes ✨</button>
                 </div>
@@ -1285,7 +1285,7 @@ onMounted(async () => {
         <!-- Icon Picker -->
         <div v-if="showIconPickerFor" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[250] flex items-center justify-center p-6" @click="showIconPickerFor = null">
             <div class="bg-white rounded-[3rem] p-10 max-w-sm w-full grid grid-cols-4 gap-4 shadow-2xl animate-fade-in" @click.stop>
-                <button v-for="icon in iconPresets" :key="icon.name" @click="selectIcon(icon.icon, icon.isSvg)" class="size-16 rounded-2xl bg-[#fcf8f9] flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm border border-gray-100">
+                <button v-for="icon in iconPresets" :key="icon.name" @click="selectIcon(icon.icon, icon.isSvg)" class="size-16 rounded-2xl bg-[#f1f5f9] flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm border border-gray-100">
                     <div v-if="icon.isSvg && getIconHtml(icon.icon)" v-html="getIconHtml(icon.icon)" class="size-8"></div>
                     <span v-else class="material-symbols-outlined">{{ icon.icon }}</span>
                 </button>
@@ -1300,7 +1300,7 @@ onMounted(async () => {
                         <h3 class="text-3xl font-black text-primary">Tạo Tài Khoản</h3>
                         <p class="text-[10px] font-bold text-gray-400">Tạo thêm tài khoản mới cho nhân viên ✨</p>
                     </div>
-                    <button @click="showAccountModal = false" class="size-12 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showAccountModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
@@ -1308,21 +1308,21 @@ onMounted(async () => {
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên đăng nhập</label>
-                            <input v-model="accountForm.username" placeholder="Ví dụ: nguyenvana" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <input v-model="accountForm.username" placeholder="Ví dụ: nguyenvana" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
-                            <input v-model="accountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <input v-model="accountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu</label>
-                            <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
-                            <select v-model="accountForm.role" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
+                            <select v-model="accountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">Admin (Quản trị viên)</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
                                     {{ r.toUpperCase() }} ({{ r === 'staff' ? 'Nhân viên' : r === 'operator' ? 'Điều hành' : r === 'viewer' ? 'Xem báo cáo' : 'Vai trò tùy chỉnh' }})
@@ -1346,7 +1346,7 @@ onMounted(async () => {
                         <h3 class="text-3xl font-black text-primary">Chỉnh Sửa Tài Khoản</h3>
                         <p class="text-[10px] font-bold text-gray-400">Thay đổi thông tin tài khoản: <span class="text-primary font-black">{{ editAccountForm.username }}</span> ✨</p>
                     </div>
-                    <button @click="showEditAccountModal = false" class="size-12 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showEditAccountModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
@@ -1354,11 +1354,11 @@ onMounted(async () => {
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
-                            <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
                             <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
-                            <select v-model="editAccountForm.role" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
+                            <select v-model="editAccountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">Admin (Quản trị viên)</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
                                     {{ r.toUpperCase() }} ({{ r === 'staff' ? 'Nhân viên' : r === 'operator' ? 'Điều hành' : r === 'viewer' ? 'Xem báo cáo' : 'Vai trò tùy chỉnh' }})
@@ -1382,14 +1382,14 @@ onMounted(async () => {
                         <h3 class="text-3xl font-black text-primary">Đặt Lại Mật Khẩu</h3>
                         <p class="text-[10px] font-bold text-gray-400">Đặt lại mật khẩu cho tài khoản: <span class="text-primary font-black">{{ resetPasswordForm.username }}</span></p>
                     </div>
-                    <button @click="showResetPasswordModal = false" class="size-12 bg-[#fcf8f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showResetPasswordModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
                 <div class="space-y-6">
                     <div class="space-y-1">
                         <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu mới</label>
-                        <input v-model="resetPasswordForm.newPassword" type="password" placeholder="••••••••" class="w-full bg-[#fcf8f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                        <input v-model="resetPasswordForm.newPassword" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                     </div>
                     <button @click="handleResetPassword" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Đặt Lại Mật Khẩu ✨</button>
                 </div>

@@ -32,7 +32,7 @@ const aboutData = computed(() => {
             
             <div class="space-y-4 flex-1">
                 <span class="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/5 px-3 py-1 rounded-full border border-primary/10">DEVELOPER & CREATOR</span>
-                <h2 class="text-2xl md:text-3xl font-display font-black text-[#4a2c32]">
+                <h2 class="text-2xl md:text-3xl font-display font-black text-[#1e293b]">
                     {{ aboutData.name }} ✨
                 </h2>
                 <p class="text-xs md:text-sm font-semibold text-[#1b0d11]/70 leading-relaxed">
@@ -65,7 +65,7 @@ const aboutData = computed(() => {
 
         <!-- Software Features Grid -->
         <div class="space-y-4">
-            <h3 class="text-sm font-black text-[#4a2c32] flex items-center gap-2 ml-2">
+            <h3 class="text-sm font-black text-[#1e293b] flex items-center gap-2 ml-2">
                 <span class="material-symbols-outlined text-primary text-lg font-black">verified</span>
                 Về Hệ Thống Báo Cáo & In Phiếu Cân Xe
             </h3>
@@ -76,7 +76,7 @@ const aboutData = computed(() => {
                     <div class="size-10 bg-primary/5 text-primary rounded-xl flex items-center justify-center border border-primary/10 shadow-inner">
                         <span class="material-symbols-outlined text-lg font-black">security</span>
                     </div>
-                    <h4 class="font-bold text-xs text-[#4a2c32]">Bảo Mật Tuyệt Đối</h4>
+                    <h4 class="font-bold text-xs text-[#1e293b]">Bảo Mật Tuyệt Đối</h4>
                     <p class="text-[10px] text-gray-400 font-bold leading-relaxed">
                         Toàn bộ dữ liệu xử lý trực tiếp tại trình duyệt client-side. Tập tin Excel và tài liệu cân hàng của cảng không bao giờ được gửi lên máy chủ của bên thứ ba, bảo vệ thông tin nội bộ hoàn toàn.
                     </p>
@@ -87,7 +87,7 @@ const aboutData = computed(() => {
                     <div class="size-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center border border-teal-100 shadow-inner">
                         <span class="material-symbols-outlined text-lg font-black">offline_bolt</span>
                     </div>
-                    <h4 class="font-bold text-xs text-[#4a2c32]">Đồng Bộ Thông Minh</h4>
+                    <h4 class="font-bold text-xs text-[#1e293b]">Đồng Bộ Thông Minh</h4>
                     <p class="text-[10px] text-gray-400 font-bold leading-relaxed">
                         Chuyển đổi dữ liệu phân bổ xe sang biểu mẫu phiếu cân A5 chỉ với một chạm. Hệ thống tự động kiểm tra trạng thái khóa của sà lan để ngăn chặn việc ghi đè sai lệch dữ liệu.
                     </p>
@@ -98,7 +98,7 @@ const aboutData = computed(() => {
                     <div class="size-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100 shadow-inner">
                         <span class="material-symbols-outlined text-lg font-black">update</span>
                     </div>
-                    <h4 class="font-bold text-xs text-[#4a2c32]">Tối Ưu Vận Hành</h4>
+                    <h4 class="font-bold text-xs text-[#1e293b]">Tối Ưu Vận Hành</h4>
                     <p class="text-[10px] text-gray-400 font-bold leading-relaxed">
                         Thuật toán tự động tăng số phiếu cân theo chu kỳ tháng và reset tự động vào ngày đầu tháng theo định dạng tiêu chuẩn `xxxxxx/mmyy`, hạn chế tối đa sai sót thủ công.
                     </p>

@@ -3651,9 +3651,9 @@ onUnmounted(() => {
                             <!-- Vessel Header -->
                             <div 
                                 @click="selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
-                                :class="['flex items-center justify-between p-2.5 hover:bg-primary/5 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
+                                :class="['flex items-center justify-between p-2.5 hover:bg-primary/10 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
                             >
-                                <div class="flex items-center gap-1.5 font-bold text-xs text-[#4a2c32]">
+                                <div class="flex items-center gap-1.5 font-bold text-xs text-[#1e293b]">
                                     <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
                                     <span class="truncate max-w-[120px]">{{ vessel.name }}</span>
                                 </div>
@@ -3708,7 +3708,7 @@ onUnmounted(() => {
                     <div v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="p-3 border-t border-primary/10 bg-gray-50">
                         <button 
                             @click="addVessel" 
-                            class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-[12px] text-xs flex items-center justify-center gap-1.5 hover:bg-primary/5 transition-all shadow-sm"
+                            class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-[12px] text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
                         >
                             <span class="material-symbols-outlined text-xs">add</span>
                             Thêm tàu mới
@@ -3730,7 +3730,7 @@ onUnmounted(() => {
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div>
                                 <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống in phiếu cân xe</div>
-                                <h1 class="text-base font-black text-[#4a2c32] flex items-center gap-1.5">
+                                <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                                     Báo cáo tổng quan hệ thống
                                 </h1>
                             </div>
@@ -3744,7 +3744,7 @@ onUnmounted(() => {
                                 </div>
                                 <div>
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số tàu</p>
-                                    <h4 class="text-lg font-black text-[#4a2c32]">{{ vessels.length }} <span class="text-xs text-gray-400 font-bold">tàu</span></h4>
+                                    <h4 class="text-lg font-black text-[#1e293b]">{{ vessels.length }} <span class="text-xs text-gray-400 font-bold">tàu</span></h4>
                                 </div>
                             </div>
                             <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
@@ -3854,7 +3854,7 @@ onUnmounted(() => {
                                             <th class="px-3 py-2 text-center w-28 bg-gray-50">Thao tác</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                                    <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                                         <tr v-for="(b, idx) in filteredAllBarges" :key="b.id" class="hover:bg-gray-50 transition-colors">
                                             <td class="px-3 py-2 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                             <td class="px-3 py-2 font-bold text-gray-900">{{ b.name }}</td>
@@ -3901,7 +3901,7 @@ onUnmounted(() => {
                             <div class="flex items-center gap-3">
                                 <div>
                                     <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Báo cáo tổng hợp tàu</div>
-                                    <h1 class="text-base font-black text-[#4a2c32] flex items-center gap-1.5">
+                                    <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                                         <span @click="activeVesselId = null; activeBargeId = null" class="text-gray-400 hover:text-primary cursor-pointer transition-colors flex items-center gap-0.5" title="Quay lại Tổng quan"><span class="material-symbols-outlined text-base">home</span>Tổng quan</span>
                                         <span class="text-gray-300">&rsaquo;</span>
                                         Tàu: <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black">{{ activeVessel?.name }}</span>
@@ -3929,7 +3929,7 @@ onUnmounted(() => {
                                 </div>
                                 <div>
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số sà lan</p>
-                                    <h4 class="text-lg font-black text-[#4a2c32]">{{ filteredVesselBarges.length }} <span class="text-xs text-gray-400 font-bold">sà lan</span></h4>
+                                    <h4 class="text-lg font-black text-[#1e293b]">{{ filteredVesselBarges.length }} <span class="text-xs text-gray-400 font-bold">sà lan</span></h4>
                                 </div>
                             </div>
                             <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
@@ -4021,7 +4021,7 @@ onUnmounted(() => {
                                             <th class="px-3 py-2 text-center w-28 bg-gray-50">Thao tác</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                                    <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                                         <tr v-for="(b, idx) in filteredVesselBarges" :key="b.id" class="hover:bg-gray-50 transition-colors">
                                             <td class="px-3 py-2 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                             <td class="px-3 py-2 font-bold text-gray-900">{{ b.name }}</td>
@@ -4058,7 +4058,7 @@ onUnmounted(() => {
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-3 px-4 soft-shadow border border-primary/5 gap-3">
                             <div>
                                 <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Đang chọn hoạt động</div>
-                                <h1 class="text-sm font-black text-[#4a2c32] flex items-center gap-1.5">
+                                <h1 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                                     <span @click="activeVesselId = null; activeBargeId = null" class="text-gray-400 hover:text-primary cursor-pointer transition-colors flex items-center gap-0.5" title="Quay lại Tổng quan"><span class="material-symbols-outlined text-base">home</span>Tổng quan</span>
                                     <span class="text-gray-300">&rsaquo;</span>
                                     Tàu: <span @click="activeBargeId = null" class="px-2 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer rounded-full text-[10px] font-black" title="Xem báo cáo tổng hợp tàu">{{ activeVessel?.name }}</span>
@@ -4092,14 +4092,14 @@ onUnmounted(() => {
                         <div class="flex gap-1.5 border-b border-primary/15 pb-1.5">
                             <button 
                                 @click="activeTab = 'data'"
-                                :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'data' ? 'bg-primary text-white shadow-soft' : 'text-[#4a2c32]/60 hover:bg-white/50']"
+                                :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'data' ? 'bg-primary text-white shadow-soft' : 'text-[#1e293b]/60 hover:bg-white/50']"
                             >
                                 <span class="material-symbols-outlined text-sm">local_shipping</span>
                                 Danh sách xe & In ấn
                             </button>
                             <button v-if="authStore.role === 'admin' || canUpdate()"
                                 @click="activeTab = 'config'"
-                                :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'config' ? 'bg-primary text-white shadow-soft' : 'text-[#4a2c32]/60 hover:bg-white/50']"
+                                :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'config' ? 'bg-primary text-white shadow-soft' : 'text-[#1e293b]/60 hover:bg-white/50']"
                             >
                                 <span class="material-symbols-outlined text-sm">settings</span>
                                 Cấu hình mẫu phiếu
@@ -4120,7 +4120,7 @@ onUnmounted(() => {
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <p class="text-[7px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-wider truncate">Tổng số xe</p>
-                                            <h4 class="text-xs sm:text-base font-black text-[#4a2c32] truncate">{{ filteredTrucks.length }} <span class="text-[8px] sm:text-[10px] text-gray-400 font-bold">xe</span></h4>
+                                            <h4 class="text-xs sm:text-base font-black text-[#1e293b] truncate">{{ filteredTrucks.length }} <span class="text-[8px] sm:text-[10px] text-gray-400 font-bold">xe</span></h4>
                                         </div>
                                     </div>
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
@@ -4162,7 +4162,7 @@ onUnmounted(() => {
                                             <span class="material-symbols-outlined text-sm sm:text-lg">upload_file</span>
                                         </div>
                                         <div class="text-left min-w-0">
-                                            <p class="text-[10px] sm:text-xs font-black text-[#4a2c32] truncate">Nhập Excel</p>
+                                            <p class="text-[10px] sm:text-xs font-black text-[#1e293b] truncate">Nhập Excel</p>
                                             <p class="text-[8px] sm:text-[9px] text-gray-400 font-bold truncate hidden sm:block">Click chọn file</p>
                                         </div>
                                     </div>
@@ -4170,7 +4170,7 @@ onUnmounted(() => {
                                     <div class="flex items-center gap-1 flex-shrink-0">
                                         <button 
                                             @click="downloadSampleExcel"
-                                            class="size-6 sm:size-7 bg-gray-100 hover:bg-gray-200 text-[#4a2c32] rounded-[6px] sm:rounded-[8px] flex items-center justify-center border border-gray-200 transition-colors"
+                                            class="size-6 sm:size-7 bg-gray-100 hover:bg-gray-200 text-[#1e293b] rounded-[6px] sm:rounded-[8px] flex items-center justify-center border border-gray-200 transition-colors"
                                             title="Tải Excel mẫu"
                                         >
                                             <span class="material-symbols-outlined text-xs sm:text-sm">download</span>
@@ -4187,7 +4187,7 @@ onUnmounted(() => {
                                             <span class="material-symbols-outlined text-sm sm:text-lg">sync_alt</span>
                                         </div>
                                         <div class="text-left min-w-0">
-                                            <p class="text-[10px] sm:text-xs font-black text-[#4a2c32] truncate">Đồng bộ</p>
+                                            <p class="text-[10px] sm:text-xs font-black text-[#1e293b] truncate">Đồng bộ</p>
                                             <p class="text-[8px] sm:text-[9px] text-gray-400 font-bold truncate hidden sm:block">Kéo từ tab Phân bổ</p>
                                         </div>
                                     </div>
@@ -4307,7 +4307,7 @@ onUnmounted(() => {
                                                 <th class="p-2.5 text-center w-28 bg-gray-50">Thao tác</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                                        <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                                             <tr v-if="filteredTrucks.length === 0">
                                                 <td colspan="11" class="p-6 text-center text-gray-400 italic">
                                                     Chưa có dữ liệu xe. Hãy tải file Excel hoặc thêm xe thủ công để hiển thị.
@@ -4315,7 +4315,7 @@ onUnmounted(() => {
                                             </tr>
                                             <tr v-for="(truck, index) in filteredTrucks" :key="truck.id" class="hover:bg-gray-50 transition-colors">
                                                 <td class="p-2 text-center text-gray-400 font-bold">{{ index + 1 }}</td>
-                                                <td class="p-2 font-mono text-[#4a2c32] font-bold">{{ truck.ticketNo }}</td>
+                                                <td class="p-2 font-mono text-[#1e293b] font-bold">{{ truck.ticketNo }}</td>
                                                 <td class="p-2 font-bold text-gray-900">{{ truck.plateNumber }}</td>
                                                 <td class="p-2 text-gray-600">{{ truck.driver || '-' }}</td>
                                                 <td class="p-2 text-right font-medium">{{ formatNumber(truck.weight1) }}</td>
@@ -4492,7 +4492,7 @@ onUnmounted(() => {
                                     <div class="lg:col-span-4 flex flex-col gap-4">
                                         <!-- Add elements toolbar -->
                                         <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-3">
-                                            <h4 class="text-xs font-black text-[#4a2c32] uppercase tracking-wider select-none">Thanh công cụ thiết kế</h4>
+                                            <h4 class="text-xs font-black text-[#1e293b] uppercase tracking-wider select-none">Thanh công cụ thiết kế</h4>
                                             
                                             <div class="grid grid-cols-2 gap-2">
                                                 <button 
@@ -4783,7 +4783,7 @@ onUnmounted(() => {
                                     <!-- Right Panel: A5 Blueprint Canvas -->
                                     <div class="lg:col-span-8 flex flex-col gap-3">
                                         <div class="flex items-center justify-between">
-                                            <span class="text-xs font-bold text-[#4a2c32] flex items-center gap-1 select-none">
+                                            <span class="text-xs font-bold text-[#1e293b] flex items-center gap-1 select-none">
                                                 <span class="material-symbols-outlined text-sm">square_foot</span>
                                                 Khổ giấy in A5 (210mm x 148mm) - Kéo thả để bố trí layout
                                             </span>
@@ -5066,7 +5066,7 @@ onUnmounted(() => {
     >
         <div 
             v-if="confirmDialog.show" 
-            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4"
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
             @click.self="handleConfirmCancel"
         >
             <div 
@@ -5140,7 +5140,7 @@ onUnmounted(() => {
     >
         <div 
             v-if="inputDialog.show" 
-            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4 no-print"
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4 no-print"
             @click.self="handleInputCancel"
         >
             <div 
@@ -5200,7 +5200,7 @@ onUnmounted(() => {
     >
         <div 
             v-if="bargeDialog.show" 
-            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4 no-print"
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4 no-print"
             @click.self="handleBargeCancel"
         >
             <div 

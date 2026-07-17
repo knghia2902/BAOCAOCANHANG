@@ -404,7 +404,7 @@ const clearAll = async () => {
                                 <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2.5 px-4 w-28 text-center">Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
+                        <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                             <tr 
                                 v-for="(item, idx) in filteredGoods" 
                                 :key="idx"
@@ -452,7 +452,7 @@ const clearAll = async () => {
             >
                 <div 
                     v-if="confirmDialog.show" 
-                    class="fixed inset-0 z-[999] flex items-center justify-center bg-[#4a2c32]/40 backdrop-blur-sm p-4"
+                    class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
                     @click.self="handleConfirmCancel"
                 >
                     <div class="w-full max-w-[420px] bg-white rounded-[24px] border border-gray-100 shadow-2xl p-6 flex flex-col gap-4 transform transition-all scale-100 animate-scale-up text-xs">
