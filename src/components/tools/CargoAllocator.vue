@@ -3721,17 +3721,17 @@ async function compileAndDownload() {
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="openEditTicketDialog(ticket)" 
-                                            class="size-6 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all"
+                                            class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa"
                                         >
-                                            <span class="material-symbols-outlined text-[13px]">edit</span>
+                                            <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
                                             @click="deleteTicket(ticket)" 
-                                            class="size-6 rounded-full bg-red-50 hover:bg-red-100 text-red-655 flex items-center justify-center transition-all"
+                                            class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"
                                         >
-                                            <span class="material-symbols-outlined text-[13px]">delete</span>
+                                            <span class="material-symbols-outlined text-[12px]">delete</span>
                                         </button>
                                     </div>
                                 </td>
@@ -3908,14 +3908,14 @@ async function compileAndDownload() {
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="editHistoryTripOrderNo(trip)"
-                                            class="size-6 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all"
+                                            class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa Mã lệnh"
                                         >
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
                                             @click="deleteHistoryTrip(trip)"
-                                            class="size-6 rounded-full bg-red-50 hover:bg-red-100 text-red-655 flex items-center justify-center transition-all"
+                                            class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"
                                         >
                                             <span class="material-symbols-outlined text-[12px]">delete</span>
@@ -4123,17 +4123,17 @@ async function compileAndDownload() {
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="editGeneratedTripOrderNo(trip)"
-                                            class="size-6 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all"
+                                            class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa Mã lệnh"
                                         >
-                                            <span class="material-symbols-outlined text-[13px]">edit</span>
+                                            <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
                                             @click="deleteGeneratedTrip(trip)"
-                                            class="size-6 rounded-full bg-red-50 hover:bg-red-100 text-red-655 flex items-center justify-center transition-all"
+                                            class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa chuyến xe này"
                                         >
-                                            <span class="material-symbols-outlined text-[13px]">delete</span>
+                                            <span class="material-symbols-outlined text-[12px]">delete</span>
                                         </button>
                                     </div>
                                 </td>

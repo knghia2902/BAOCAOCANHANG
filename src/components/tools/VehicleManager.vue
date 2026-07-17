@@ -583,17 +583,17 @@ const handleExportExcel = async () => {
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button v-if="authStore.role === 'admin' || canUpdate()"
                                                 @click="startEdit(index)"
-                                                class="size-7 rounded-lg text-primary hover:bg-primary/10 flex items-center justify-center transition-all"
+                                                class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
                                                 title="Sửa thông tin"
                                             >
-                                                <span class="material-symbols-outlined text-base">edit</span>
+                                                <span class="material-symbols-outlined text-[12px]">edit</span>
                                             </button>
                                             <button v-if="authStore.role === 'admin' || canDelete()"
                                                 @click="deleteVehicle(index)"
-                                                class="size-7 rounded-lg text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
+                                                class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
                                                 title="Xóa xe"
                                             >
-                                                <span class="material-symbols-outlined text-base">delete</span>
+                                                <span class="material-symbols-outlined text-[12px]">delete</span>
                                             </button>
                                         </div>
                                     </td>
