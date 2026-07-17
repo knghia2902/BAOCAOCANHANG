@@ -6,6 +6,7 @@ import { authStore, logout, updateStoreProfile } from './stores/auth';
 import { authService } from './services/storage/AuthService';
 import { StorageService } from './services/storage/StorageService';
 import ToastNotification from './components/ui/ToastNotification.vue';
+import DesignDebugger from './components/DesignDebugger.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -285,6 +286,7 @@ onUnmounted(() => {
     </div>
  
     <ToastNotification />
+    <DesignDebugger />
   </div>
 </template>
 
