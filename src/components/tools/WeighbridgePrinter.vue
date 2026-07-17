@@ -3756,7 +3756,7 @@ onUnmounted(() => {
                     ]"
                 >
                     <!-- Global Dashboard (Empty State replaced by All Barges Overview) -->
-                    <div v-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full pb-0 animate-fade-in min-h-0">
+                    <div v-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 animate-fade-in min-h-0">
                         <!-- Welcome Header banner -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div>
@@ -3926,7 +3926,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Vessel Summary Dashboard -->
-                    <div v-else-if="activeVesselId && !activeBargeId" class="flex-1 flex flex-col gap-4 w-full pb-0 animate-fade-in min-h-0">
+                    <div v-else-if="activeVesselId && !activeBargeId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 animate-fade-in min-h-0">
                         <!-- Vessel header breadcrumbs -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div class="flex items-center gap-3">
@@ -4084,7 +4084,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Active Barge Workspace -->
-                    <div v-else class="flex-1 flex flex-col gap-4 w-full pb-0 min-h-0">
+                    <div v-else class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 min-h-0">
                         <!-- Header with breadcrumbs -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-3 px-4 soft-shadow border border-primary/5 gap-3">
                             <div>

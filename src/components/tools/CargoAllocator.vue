@@ -2621,10 +2621,6 @@ async function saveToHistory() {
 }
 
 async function deleteGeneratedTrip(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
-        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
-        return;
-    }
     const confirmDelete = await showConfirm({
         title: 'Xóa chuyến xe phân bổ',
         message: `Bạn có chắc muốn xóa chuyến xe của xe ${trip.plateNumber} này khỏi danh sách phân bổ không?`,
@@ -2682,10 +2678,6 @@ async function deleteHistoryTrip(trip: SplitTrip) {
 }
 
 async function editGeneratedTripOrderNo(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'update')) {
-        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
-        return;
-    }
     const currentOrderNo = trip.orderNo || '';
     const newOrderNo = prompt(`Nhập Mã lệnh mới cho xe "${trip.plateNumber}" rời bến lúc ${trip.timeStr || ''}:`, currentOrderNo);
     if (newOrderNo === null) return; // Cancelled
@@ -3234,19 +3226,19 @@ async function compileAndDownload() {
 
             <main class="flex-1 min-h-0 flex flex-col overflow-hidden">
                 <!-- Chế độ 1: Quản lý danh sách xe -->
-                <div v-if="activeSubViewMode === 'vehicles'" class="w-full flex-1 flex flex-col min-h-0">
+                <div v-if="activeSubViewMode === 'vehicles'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
                     <VehicleManager />
                 </div>
 
                 <!-- Chế độ 3: Quản lý danh sách hàng hóa -->
-                <div v-else-if="activeSubViewMode === 'goods'" class="w-full flex-1 flex flex-col min-h-0">
+                <div v-else-if="activeSubViewMode === 'goods'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
                     <GoodsManager />
                 </div>
 
                 <!-- Chế độ 2: Giao diện Phân bổ tải trọng xếp hàng (Chạy toàn cục) -->
-                <div v-else class="flex flex-col gap-4 w-full overflow-hidden flex-1 min-h-0">
+                <div v-else class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto overflow-hidden flex-1 min-h-0">
 
-                    <div class="flex flex-col gap-4 w-full pb-0 fade-in flex-1 min-h-0">
+                    <div class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 fade-in flex-1 min-h-0">
         <!-- Header Banner -->
         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3 px-5 soft-shadow border border-primary/5 gap-4 shrink-0">
             <div>
@@ -3718,7 +3710,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'update') || hasDetailPermission('allocator', 'al_barge_manage', 'delete')" class="py-2 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th class="py-2 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -3738,10 +3730,9 @@ async function compileAndDownload() {
                                 <td class="py-2 px-3 text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
                                 <td class="py-2 px-3 text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
                                 <td class="py-2 px-3 text-gray-500 truncate max-w-[100px]" :title="ticket.driverName">{{ ticket.driverName || '-' }}</td>
-                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'update') || hasDetailPermission('allocator', 'al_barge_manage', 'delete')" class="py-2 px-3 text-center">
+                                <td class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'update')"
                                             @click="openEditTicketDialog(ticket)" 
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa"
@@ -3749,7 +3740,6 @@ async function compileAndDownload() {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'delete')"
                                             @click="deleteTicket(ticket)" 
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"

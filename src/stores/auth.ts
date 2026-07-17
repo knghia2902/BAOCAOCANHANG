@@ -172,32 +172,18 @@ export const hasDetailPermission = (toolId: string, permissionId: string, action
     const perm = authStore.rolePermissions?.[authStore.role || ''];
     if (!perm) return false;
     if (!perm.tools.includes(toolId)) return false;
-
-    const mappedAction = action 
-        ? (action === 'read' ? 'read' : action === 'create' ? 'create' : (action === 'update' || action === 'edit') ? 'update' : action === 'delete' ? 'delete' : action)
-        : undefined;
-
-    if (!perm.detailPermissions || !perm.detailPermissions[toolId]) {
-        if (mappedAction === 'delete') return perm.canDelete ?? false;
-        if (mappedAction === 'update') return perm.canUpdate ?? false;
-        if (mappedAction === 'create') return perm.canCreate ?? false;
-        return true;
-    }
+    if (!perm.detailPermissions) return true;
     const toolPerms = perm.detailPermissions[toolId];
-    if (!toolPerms) {
-        if (mappedAction === 'delete') return perm.canDelete ?? false;
-        if (mappedAction === 'update') return perm.canUpdate ?? false;
-        if (mappedAction === 'create') return perm.canCreate ?? false;
-        return true;
-    }
+    if (!toolPerms) return true;
     
     // Backwards compatibility: if bare permissionId is present, all actions are allowed
     if (toolPerms.includes(permissionId)) {
         return true;
     }
     
-    if (mappedAction) {
-        return toolPerms.includes(`${permissionId}:${mappedAction}`);
+    if (action) {
+        const act = action === 'read' ? 'read' : action === 'create' ? 'create' : action === 'update' ? 'update' : action === 'delete' ? 'delete' : action;
+        return toolPerms.includes(`${permissionId}:${act}`);
     }
     
     return toolPerms.some(p => p.startsWith(`${permissionId}:`));

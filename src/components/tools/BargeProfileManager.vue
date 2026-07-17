@@ -1190,9 +1190,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="flex-grow flex overflow-hidden gap-4 p-4 h-full bg-transparent font-display text-left">
+    <div class="flex-grow flex overflow-hidden gap-4 p-4 h-full bg-transparent font-display text-left justify-center">
         <!-- Details or Master Overview List -->
-        <div class="flex-grow flex flex-col h-full min-w-0 w-full gap-4 overflow-hidden">
+        <div class="flex-grow flex flex-col h-full min-w-0 max-w-[1500px] mx-auto gap-4 overflow-hidden">
             
             <!-- CASE A: Overview Mode (activeBargeId === null) -->
             <div v-if="activeBargeId === null" class="flex-grow flex flex-col gap-4 min-h-0">
