@@ -1749,14 +1749,14 @@ onUnmounted(() => {
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian cập bến</label>
                                     <div class="flex gap-1.5">
                                         <input v-model="editArrivalDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
-                                        <input v-model="editArrivalTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                        <input v-model="editArrivalTimeStr" type="text" placeholder="HH:mm" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
                                     </div>
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian rời bến</label>
                                     <div class="flex gap-1.5">
                                         <input v-model="editDepartureDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
-                                        <input v-model="editDepartureTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                        <input v-model="editDepartureTimeStr" type="text" placeholder="HH:mm" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
                                     </div>
                                 </div>
                             </div>
