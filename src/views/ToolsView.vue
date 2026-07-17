@@ -231,7 +231,7 @@ watch(allowedStaffTools, (newVal) => {
             <span 
               v-for="tag in tool.tags" 
               :key="tag" 
-              class="text-[10px] font-black px-2.5 py-1 bg-gray-50 text-gray-500 rounded-full border border-gray-100"
+              class="text-xs font-black px-2.5 py-1 bg-gray-50 text-gray-500 rounded-full border border-gray-100"
             >
               {{ tag }}
             </span>
@@ -256,7 +256,7 @@ watch(allowedStaffTools, (newVal) => {
         <h3 class="text-xs font-black text-[#1e293b]/50 mb-1">
           Nhiều công cụ khác sắp ra mắt...
         </h3>
-        <p class="text-[10px] text-[#1b0d11]/40 max-w-[190px] mx-auto">
+        <p class="text-xs text-[#1b0d11]/40 max-w-[190px] mx-auto">
           Chúng mình đang thiết kế thêm nhiều tiện ích văn phòng miễn phí để giúp bạn làm việc thảnh thơi hơn!
         </p>
       </div>
@@ -290,7 +290,7 @@ watch(allowedStaffTools, (newVal) => {
                  : activeToolMetadata.name.toUpperCase() 
               }}
             </h2>
-            <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">
+            <p class="text-xs font-medium text-[#1b0d11]/60 leading-none">
               {{ (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'Cảng Nguyên Ngọc - Đồng bộ đám mây' : 'Công cụ tiện ích - Xử lý offline an toàn' }}
             </p>
           </div>
@@ -311,7 +311,7 @@ watch(allowedStaffTools, (newVal) => {
         <!-- Left Sidebar: Utility sub-tools list (Desktop Only) -->
         <aside v-if="activeToolId === 'utilities'" class="hidden md:flex w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
           <div class="p-3 border-b border-primary/5 flex items-center justify-between">
-            <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+            <span class="text-xs font-black text-gray-400 uppercase tracking-wider">
               Danh sách tiện ích
             </span>
           </div>

@@ -344,7 +344,7 @@ const clearAll = async () => {
                 
                 <form @submit.prevent="handleSubmit" class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tên hàng hóa *</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên hàng hóa *</label>
                         <input 
                             type="text" 
                             v-model="goodsInput"

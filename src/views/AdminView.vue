@@ -624,7 +624,7 @@ onMounted(async () => {
                     <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-10 rounded-full border border-soft-pink object-cover" />
                     <div class="text-left">
                         <h2 class="text-sm font-black text-primary leading-tight">{{ authStore.displayName }}</h2>
-                        <span class="text-[10px] font-black uppercase text-gray-400 tracking-wider">ADMIN MODE</span>
+                        <span class="text-xs font-black uppercase text-gray-400 tracking-wider">ADMIN MODE</span>
                     </div>
                 </div>
                 <button @click="logout(); router.push('/login')" class="px-3 py-1.5 rounded-xl font-bold text-xs text-red-500 hover:bg-red-50 flex items-center gap-1.5 transition-all">
@@ -653,7 +653,7 @@ onMounted(async () => {
                 <div class="relative mb-4 group">
                     <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-24 rounded-full border-4 border-white shadow-xl object-cover transition-transform" />
                     <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white px-4 py-1.5 rounded-full border border-soft-pink shadow-[0_5px_15px_-5px_rgba(255,133,162,0.4)] animate-bounce-short whitespace-nowrap z-10">
-                        <span class="text-[10px] font-black text-primary uppercase tracking-widest">ADMIN MODE</span>
+                        <span class="text-xs font-black text-primary uppercase tracking-widest">ADMIN MODE</span>
                     </div>
                 </div>
                 <h1 class="font-display font-black text-xl text-primary">{{ authStore.displayName }}</h1>
@@ -691,7 +691,7 @@ onMounted(async () => {
                     <div class="relative">
                         <button @click="showNotifications = !showNotifications" class="size-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 relative group">
                             <span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors">notifications</span>
-                            <div v-if="unreadCount > 0" class="absolute -top-1 -right-1 size-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">{{ unreadCount }}</div>
+                            <div v-if="unreadCount > 0" class="absolute -top-1 -right-1 size-5 bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white">{{ unreadCount }}</div>
                         </button>
                         
                         <!-- Notifications Popup -->
@@ -706,9 +706,9 @@ onMounted(async () => {
                                 >
                                     <div class="flex items-center gap-2 mb-1">
                                         <div class="size-2 rounded-full" :class="msg.isRead ? 'bg-gray-300' : 'bg-primary shadow-[0_0_5px_rgba(255,133,162,0.5)]'"></div>
-                                        <p class="text-[10px] font-black text-primary">{{ msg.name }}</p>
+                                        <p class="text-xs font-black text-primary">{{ msg.name }}</p>
                                     </div>
-                                    <p class="text-[10px] text-gray-500 line-clamp-2">{{ msg.content }}</p>
+                                    <p class="text-xs text-gray-500 line-clamp-2">{{ msg.content }}</p>
                                 </div>
                             </div>
                         </div>
@@ -733,20 +733,20 @@ onMounted(async () => {
                         </div>
                         <div class="space-y-6">
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Hero Title</label>
+                                <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Hero Title</label>
                                 <input v-model="contentStore.hero.title" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
                             </div>
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Hero Subtitle</label>
+                                <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Hero Subtitle</label>
                                 <textarea v-model="contentStore.hero.subtitle" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-medium text-sm border-none h-32 resize-none outline-none leading-relaxed focus:ring-2 focus:ring-primary/20"></textarea>
                             </div>
                             <div class="grid grid-cols-2 gap-6">
                                 <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Button 1</label>
+                                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Button 1</label>
                                     <input v-model="contentStore.hero.primaryButton" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
                                 </div>
                                 <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Button 2</label>
+                                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Button 2</label>
                                     <input v-model="contentStore.hero.secondaryButton" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold text-sm border-none outline-none focus:ring-2 focus:ring-primary/20" />
                                 </div>
                             </div>
@@ -758,9 +758,9 @@ onMounted(async () => {
                 <div class="col-span-12 lg:col-span-4 space-y-6 lg:space-y-8">
                     <!-- Stats -->
                     <div class="bg-white rounded-[2.5rem] p-8 card-shadow text-center">
-                        <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Portfolio Visitors</p>
+                        <p class="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">Portfolio Visitors</p>
                         <h4 class="text-6xl font-black text-primary">{{ contentStore.stats.visitors }}</h4>
-                        <p class="text-[10px] font-bold text-gray-300 mt-2">All time views</p>
+                        <p class="text-xs font-bold text-gray-300 mt-2">All time views</p>
                     </div>
 
                     <!-- Image Preview -->
@@ -807,7 +807,7 @@ onMounted(async () => {
                             <span class="material-symbols-outlined text-primary">magic_button</span>
                             Toolkit
                         </h3>
-                        <button @click="showToolkitManager = true" class="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">Edit</button>
+                        <button @click="showToolkitManager = true" class="text-xs font-black text-primary hover:underline uppercase tracking-widest">Edit</button>
                     </div>
                     <div class="flex-1 flex items-center justify-center">
                         <div class="flex flex-wrap justify-center gap-4">
@@ -815,7 +815,7 @@ onMounted(async () => {
                                 <div class="size-12 bg-soft-pink/10 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors shadow-sm">
                                     <span class="material-symbols-outlined text-primary text-xl">{{ skill.icon }}</span>
                                 </div>
-                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ skill.label }}</span>
+                                <span class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ skill.label }}</span>
                             </div>
                         </div>
                     </div>
@@ -834,7 +834,7 @@ onMounted(async () => {
                             Drag the image box above to adjust pixel-perfect centering for the homepage circle frame. Changes here will sync instantly to your Navbar and Sidebar! ✨
                         </p>
                         <div class="mt-4 pt-4 border-t border-yellow-200/50">
-                            <p class="text-[10px] font-black text-yellow-600/50 uppercase tracking-widest line-clamp-1">Pro Tip: Use high-res portraits</p>
+                            <p class="text-xs font-black text-yellow-600/50 uppercase tracking-widest line-clamp-1">Pro Tip: Use high-res portraits</p>
                         </div>
                     </div>
                     <!-- Decorative Icon -->
@@ -856,7 +856,7 @@ onMounted(async () => {
                         <div class="flex-1 flex flex-col justify-between py-1">
                              <div>
                                 <h4 class="font-black text-xl text-primary truncate">{{ p.title }}</h4>
-                                <span class="px-4 py-1 bg-soft-pink/10 text-primary text-[10px] font-black uppercase rounded-full mt-2 inline-block">{{ p.tag }}</span>
+                                <span class="px-4 py-1 bg-soft-pink/10 text-primary text-xs font-black uppercase rounded-full mt-2 inline-block">{{ p.tag }}</span>
                              </div>
                              <div class="flex gap-4">
                                 <button @click="isEditingProject = true; newProject = { ...p }; showProjectModal = true" class="text-xs font-black text-gray-400 hover:text-primary transition-colors">Edit Details</button>
@@ -880,7 +880,7 @@ onMounted(async () => {
                         <h3 class="text-base font-black flex items-center gap-3">
                             <span class="material-symbols-outlined text-primary">share</span> Social Presence
                         </h3>
-                        <button @click="addSocialLink" class="text-[10px] font-black text-primary uppercase bg-soft-pink/10 px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all">+ Add Link</button>
+                        <button @click="addSocialLink" class="text-xs font-black text-primary uppercase bg-soft-pink/10 px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all">+ Add Link</button>
                     </div>
                     <div class="space-y-4">
                          <div v-for="(l, idx) in contentStore.about.social" :key="l.id" class="p-6 bg-[#f1f5f9] rounded-[2rem] relative group border border-transparent hover:border-primary/10 transition-all">
@@ -889,11 +889,11 @@ onMounted(async () => {
                              </button>
                              <div class="grid grid-cols-2 gap-4 mb-4">
                                  <div class="space-y-1">
-                                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Platform</label>
+                                     <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Platform</label>
                                      <input v-model="l.platform" class="w-full bg-white p-4 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/10" />
                                  </div>
                                  <div class="space-y-1">
-                                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Icon Style</label>
+                                     <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Icon Style</label>
                                      <button @click="showIconPickerFor = l" class="w-full bg-white p-4 rounded-xl text-xs font-black flex items-center justify-between hover:bg-gray-50 transition-colors">
                                          <div class="flex items-center gap-2">
                                              <div v-if="l.isSvg" v-html="getIconHtml(l.icon)" class="size-4"></div>
@@ -905,7 +905,7 @@ onMounted(async () => {
                                  </div>
                              </div>
                              <div class="space-y-1">
-                                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Profile URL</label>
+                                 <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Profile URL</label>
                                  <input v-model="l.url" class="w-full bg-white p-4 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/10" placeholder="https://..." />
                              </div>
                          </div>
@@ -927,7 +927,7 @@ onMounted(async () => {
                             <div class="size-3 rounded-full" :class="m.isRead ? 'bg-gray-200' : 'bg-primary shadow-[0_0_15px_rgba(255,133,162,0.6)]'"></div>
                             <div>
                                 <h4 class="font-black text-xl text-primary">{{ m.name }}</h4>
-                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ m.email }} • {{ m.date }}</p>
+                                <p class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ m.email }} • {{ m.date }}</p>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -973,7 +973,7 @@ onMounted(async () => {
                                     </td>
                                     <td class="py-4 font-bold text-sm text-[#1e293b]">{{ acc.username }}</td>
                                     <td class="py-4">
-                                        <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full"
+                                        <span class="px-3 py-1 text-xs font-black uppercase rounded-full"
                                             :class="acc.role === 'admin' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'"
                                         >
                                             {{ acc.role || 'staff' }}
@@ -1030,21 +1030,21 @@ onMounted(async () => {
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canCreate" class="accent-primary size-4" />
                                 <div>
                                     <p class="text-xs font-black text-[#1e293b]">Cho phép Thêm dữ liệu</p>
-                                    <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền tạo mới dữ liệu.</p>
+                                    <p class="text-xs text-gray-400 font-bold">Thành viên vai trò này được quyền tạo mới dữ liệu.</p>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canUpdate" class="accent-primary size-4" />
                                 <div>
                                     <p class="text-xs font-black text-[#1e293b]">Cho phép Sửa dữ liệu</p>
-                                    <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền chỉnh sửa thông tin.</p>
+                                    <p class="text-xs text-gray-400 font-bold">Thành viên vai trò này được quyền chỉnh sửa thông tin.</p>
                                 </div>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canDelete" class="accent-primary size-4" />
                                 <div>
                                     <p class="text-xs font-black text-[#1e293b]">Cho phép Xóa dữ liệu</p>
-                                    <p class="text-[10px] text-gray-400 font-bold">Thành viên vai trò này được quyền xóa vĩnh viễn dữ liệu.</p>
+                                    <p class="text-xs text-gray-400 font-bold">Thành viên vai trò này được quyền xóa vĩnh viễn dữ liệu.</p>
                                 </div>
                             </label>
                         </div>
@@ -1120,18 +1120,18 @@ onMounted(async () => {
                         </div>
                         <div class="text-center">
                             <p class="text-sm font-black text-gray-400">Chưa có lịch sử hoạt động</p>
-                            <p class="text-[10px] font-bold text-gray-300 mt-1">Các thao tác trên hệ thống sẽ được ghi nhận tại đây.</p>
+                            <p class="text-xs font-bold text-gray-300 mt-1">Các thao tác trên hệ thống sẽ được ghi nhận tại đây.</p>
                         </div>
                     </div>
 
                     <!-- Table -->
                     <div v-else class="overflow-x-auto">
                         <div class="text-right mb-3">
-                            <span class="text-[10px] font-bold text-gray-300">Hiển thị {{ filteredLogs.length }} / {{ activityLogs.length }} bản ghi</span>
+                            <span class="text-xs font-bold text-gray-300">Hiển thị {{ filteredLogs.length }} / {{ activityLogs.length }} bản ghi</span>
                         </div>
                         <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead>
-                                <tr class="border-b border-primary/10 text-gray-400 text-[10px] font-black uppercase tracking-wider">
+                                <tr class="border-b border-primary/10 text-gray-400 text-xs font-black uppercase tracking-wider">
                                     <th class="pb-4 pl-4">Thời gian</th>
                                     <th class="pb-4">Người dùng</th>
                                     <th class="pb-4">Vai trò</th>
@@ -1147,23 +1147,23 @@ onMounted(async () => {
                                     <td class="py-3.5">
                                         <div class="flex items-center gap-2">
                                             <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <span class="text-[10px] font-black text-primary">{{ (log.displayName || log.username || '?').charAt(0).toUpperCase() }}</span>
+                                                <span class="text-xs font-black text-primary">{{ (log.displayName || log.username || '?').charAt(0).toUpperCase() }}</span>
                                             </div>
                                             <div>
                                                 <p class="text-xs font-black text-[#1e293b]">{{ log.displayName }}</p>
-                                                <p class="text-[10px] font-bold text-gray-300">@{{ log.username }}</p>
+                                                <p class="text-xs font-bold text-gray-300">@{{ log.username }}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="py-3.5">
-                                        <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-full"
+                                        <span class="px-2.5 py-1 text-xs font-black uppercase rounded-full"
                                             :class="log.role === 'admin' ? 'bg-red-50 text-red-500' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-600'"
                                         >
                                             {{ log.role }}
                                         </span>
                                     </td>
                                     <td class="py-3.5">
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black" :class="getActionColor(log.action)">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black" :class="getActionColor(log.action)">
                                             <span class="material-symbols-outlined text-xs">{{ getActionIcon(log.action) }}</span>
                                             {{ log.action }}
                                         </span>
@@ -1190,7 +1190,7 @@ onMounted(async () => {
                 <h2 class="text-xl font-display font-black text-primary mb-2">Toolkit Manager</h2>
                 <p class="text-xs font-bold text-gray-400 mb-8">Add or manage your magic skills ✨</p>
                 <div class="mb-6">
-                    <a href="https://fonts.google.com/icons?selected=Material+Symbols+Outlined" target="_blank" class="text-[10px] font-black text-primary hover:underline uppercase tracking-widest flex items-center gap-1">
+                    <a href="https://fonts.google.com/icons?selected=Material+Symbols+Outlined" target="_blank" class="text-xs font-black text-primary hover:underline uppercase tracking-widest flex items-center gap-1">
                         <span class="material-symbols-outlined text-xs">open_in_new</span> Find Icon Names Here
                     </a>
                 </div>
@@ -1203,17 +1203,17 @@ onMounted(async () => {
                             <span class="font-black text-xs">{{ tool.label }}</span>
                         </div>
                         <div class="flex gap-4">
-                            <button @click="editTool(idx)" class="text-[10px] font-black text-primary hover:underline">Edit</button>
-                            <button @click="removeTool(idx)" class="text-[10px] font-black text-red-300 hover:text-red-500">Remove</button>
+                            <button @click="editTool(idx)" class="text-xs font-black text-primary hover:underline">Edit</button>
+                            <button @click="removeTool(idx)" class="text-xs font-black text-red-300 hover:text-red-500">Remove</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-4 pt-6 border-t border-dashed border-primary/10">
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{{ isEditingTool ? 'Editing Skill' : 'New Magic Skill' }}</p>
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest text-center">{{ isEditingTool ? 'Editing Skill' : 'New Magic Skill' }}</p>
                     
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider text-left">Chọn liên kết nhanh công cụ</label>
+                        <label class="text-xs font-black text-gray-400 uppercase tracking-wider text-left">Chọn liên kết nhanh công cụ</label>
                         <select 
                             :value="['/tools?tool=weighbridge', '/tools?tool=merger', '/tools?tool=converter', '/tools?tool=ocr'].includes(newTool.tool) ? newTool.tool : ''"
                             @change="handleToolSelect"
@@ -1235,7 +1235,7 @@ onMounted(async () => {
                     <button @click="addTool" class="w-full py-5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm">
                         {{ isEditingTool ? 'Update Magic Skill ✨' : 'Add Magic Skill ✨' }}
                     </button>
-                    <button v-if="isEditingTool" @click="cancelEditTool" class="w-full py-2 text-gray-400 text-[10px] font-black uppercase tracking-widest">Cancel Editing</button>
+                    <button v-if="isEditingTool" @click="cancelEditTool" class="w-full py-2 text-gray-400 text-xs font-black uppercase tracking-widest">Cancel Editing</button>
                 </div>
             </div>
         </div>
@@ -1246,7 +1246,7 @@ onMounted(async () => {
                 <header class="flex justify-between items-center">
                     <div>
                         <h3 class="text-3xl font-black text-primary">{{ isEditingProject ? 'Edit Project' : 'New Creation' }}</h3>
-                        <p class="text-[10px] font-bold text-gray-400">Tweak your magic showcase ✨</p>
+                        <p class="text-xs font-bold text-gray-400">Tweak your magic showcase ✨</p>
                     </div>
                     <button @click="showProjectModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
@@ -1258,23 +1258,23 @@ onMounted(async () => {
                             <div v-if="newProject.image" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${newProject.image})` }"></div>
                             <div class="text-center group-hover:scale-110 transition-transform">
                                 <span class="material-symbols-outlined text-4xl text-primary/30">add_photo_alternate</span>
-                                <p class="text-[10px] font-black text-primary/30 uppercase mt-2">Upload Artwork</p>
+                                <p class="text-xs font-black text-primary/30 uppercase mt-2">Upload Artwork</p>
                             </div>
                             <input type="file" ref="projectInput" class="hidden" @change="handleProjectImageUpload" accept="image/*" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Title</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Title</label>
                             <input v-model="newProject.title" placeholder="Project name" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Type / Tag</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Type / Tag</label>
                             <input v-model="newProject.tag" placeholder="e.g. Mobile Design" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Description</label>
+                        <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Description</label>
                         <textarea v-model="newProject.description" placeholder="Share the story behind this magic..." class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-bold border-none h-28 resize-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm leading-relaxed"></textarea>
                     </div>
                     <button @click="addProject" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Confirm Changes ✨</button>
@@ -1298,7 +1298,7 @@ onMounted(async () => {
                 <header class="flex justify-between items-center">
                     <div>
                         <h3 class="text-3xl font-black text-primary">Tạo Tài Khoản</h3>
-                        <p class="text-[10px] font-bold text-gray-400">Tạo thêm tài khoản mới cho nhân viên ✨</p>
+                        <p class="text-xs font-bold text-gray-400">Tạo thêm tài khoản mới cho nhân viên ✨</p>
                     </div>
                     <button @click="showAccountModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
@@ -1307,21 +1307,21 @@ onMounted(async () => {
                 <div class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên đăng nhập</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Tên đăng nhập</label>
                             <input v-model="accountForm.username" placeholder="Ví dụ: nguyenvana" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
                             <input v-model="accountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu</label>
                             <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
                             <select v-model="accountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">Admin (Quản trị viên)</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
@@ -1344,7 +1344,7 @@ onMounted(async () => {
                 <header class="flex justify-between items-center">
                     <div>
                         <h3 class="text-3xl font-black text-primary">Chỉnh Sửa Tài Khoản</h3>
-                        <p class="text-[10px] font-bold text-gray-400">Thay đổi thông tin tài khoản: <span class="text-primary font-black">{{ editAccountForm.username }}</span> ✨</p>
+                        <p class="text-xs font-bold text-gray-400">Thay đổi thông tin tài khoản: <span class="text-primary font-black">{{ editAccountForm.username }}</span> ✨</p>
                     </div>
                     <button @click="showEditAccountModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
@@ -1353,11 +1353,11 @@ onMounted(async () => {
                 <div class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
                             <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
                             <select v-model="editAccountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">Admin (Quản trị viên)</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
@@ -1380,7 +1380,7 @@ onMounted(async () => {
                 <header class="flex justify-between items-center">
                     <div>
                         <h3 class="text-3xl font-black text-primary">Đặt Lại Mật Khẩu</h3>
-                        <p class="text-[10px] font-bold text-gray-400">Đặt lại mật khẩu cho tài khoản: <span class="text-primary font-black">{{ resetPasswordForm.username }}</span></p>
+                        <p class="text-xs font-bold text-gray-400">Đặt lại mật khẩu cho tài khoản: <span class="text-primary font-black">{{ resetPasswordForm.username }}</span></p>
                     </div>
                     <button @click="showResetPasswordModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                          <span class="material-symbols-outlined">close</span>
@@ -1388,7 +1388,7 @@ onMounted(async () => {
                 </header>
                 <div class="space-y-6">
                     <div class="space-y-1">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu mới</label>
+                        <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu mới</label>
                         <input v-model="resetPasswordForm.newPassword" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                     </div>
                     <button @click="handleResetPassword" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Đặt Lại Mật Khẩu ✨</button>

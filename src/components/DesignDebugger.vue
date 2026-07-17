@@ -139,7 +139,7 @@ onUnmounted(() => {
                 <button 
                     @click="isInspecting = !isInspecting; hoveredElement = null"
                     :class="[
-                        'w-full py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all border',
+                        'w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all border',
                         isInspecting 
                             ? 'bg-primary text-white border-primary shadow-md shadow-primary/20' 
                             : 'bg-[#f1f5f9] text-[#1e293b] border-transparent hover:bg-primary/5'
@@ -153,7 +153,7 @@ onUnmounted(() => {
                 <button 
                     @click="toggleOutlines"
                     :class="[
-                        'w-full py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all border',
+                        'w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all border',
                         showOutlines 
                             ? 'bg-primary text-white border-primary shadow-md' 
                             : 'bg-[#f1f5f9] text-[#1e293b] border-transparent hover:bg-primary/5'
@@ -167,7 +167,7 @@ onUnmounted(() => {
                 <button 
                     @click="showGrid = !showGrid"
                     :class="[
-                        'w-full py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all border',
+                        'w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all border',
                         showGrid 
                             ? 'bg-primary text-white border-primary shadow-md' 
                             : 'bg-[#f1f5f9] text-[#1e293b] border-transparent hover:bg-primary/5'
@@ -179,7 +179,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Muted guide text -->
-            <div class="text-[10px] text-gray-400 font-medium border-t border-primary/5 pt-2 select-none">
+            <div class="text-xs text-gray-400 font-medium border-t border-primary/5 pt-2 select-none">
                 * Soi chi tiết (Hover): Di chuột vào bất cứ phần tử nào để đo đạc kích thước và khoảng cách. Bấm ESC để tắt.
             </div>
         </div>
@@ -200,7 +200,7 @@ onUnmounted(() => {
     <!-- HOVER TOOLTIP -->
     <div 
         v-if="isInspecting && hoveredElement"
-        class="fixed z-[9999] bg-[#1e293b]/90 backdrop-blur-md text-white text-[10px] p-3 rounded-xl border border-white/10 shadow-2xl pointer-events-none leading-relaxed text-left animate-fade-in"
+        class="fixed z-[9999] bg-[#1e293b]/90 backdrop-blur-md text-white text-xs p-3 rounded-xl border border-white/10 shadow-2xl pointer-events-none leading-relaxed text-left animate-fade-in"
         :style="{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }"
         v-html="tooltipText"
     ></div>

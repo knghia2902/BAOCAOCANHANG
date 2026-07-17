@@ -167,7 +167,7 @@ onUnmounted(() => {
                 ></div>
                 <div class="truncate">
                   <p class="text-xs font-black text-primary truncate leading-tight">{{ authStore.displayName }}</p>
-                  <p class="text-[10px] font-black uppercase text-gray-400 mt-0.5 tracking-wider">
+                  <p class="text-xs font-black uppercase text-gray-400 mt-0.5 tracking-wider">
                     {{ authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên' }}
                   </p>
                 </div>
@@ -257,7 +257,7 @@ onUnmounted(() => {
             <header class="flex justify-between items-center">
                 <div>
                     <h3 class="text-xl font-black text-primary">Chỉnh Sửa Hồ Sơ</h3>
-                    <p class="text-[10px] font-bold text-gray-400">Cập nhật tên hiển thị và ảnh đại diện của bạn ✨</p>
+                    <p class="text-xs font-bold text-gray-400">Cập nhật tên hiển thị và ảnh đại diện của bạn ✨</p>
                 </div>
                 <button @click="showProfileModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
                      <span class="material-symbols-outlined">close</span>
@@ -272,11 +272,11 @@ onUnmounted(() => {
                         Tải ảnh lên
                         <input type="file" accept="image/*" @change="handleProfileAvatarUpload" class="hidden" />
                     </label>
-                    <span v-if="uploadingAvatar" class="text-[10px] font-bold text-primary animate-pulse">Đang tải lên...</span>
+                    <span v-if="uploadingAvatar" class="text-xs font-bold text-primary animate-pulse">Đang tải lên...</span>
                 </div>
 
                 <div class="space-y-1">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tên hiển thị</label>
+                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Tên hiển thị</label>
                     <input v-model="profileForm.displayName" placeholder="Tên hiển thị" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                 </div>
 

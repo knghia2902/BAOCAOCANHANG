@@ -31,7 +31,7 @@ const aboutData = computed(() => {
             ></div>
             
             <div class="space-y-4 flex-1">
-                <span class="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-3 py-1 rounded-full border border-primary/10">DEVELOPER & CREATOR</span>
+                <span class="text-xs font-black text-primary uppercase tracking-widest bg-primary/5 px-3 py-1 rounded-full border border-primary/10">DEVELOPER & CREATOR</span>
                 <h2 class="text-xl md:text-3xl font-display font-black text-[#1e293b]">
                     {{ aboutData.name }} ✨
                 </h2>
@@ -45,7 +45,7 @@ const aboutData = computed(() => {
                         v-if="aboutData.facebook"
                         :href="aboutData.facebook" 
                         target="_blank" 
-                        class="h-9 px-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl text-[10px] flex items-center gap-1.5 transition-colors shadow-sm"
+                        class="h-9 px-4 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-sm"
                     >
                         <span class="material-symbols-outlined text-xs">share</span>
                         Facebook
@@ -54,7 +54,7 @@ const aboutData = computed(() => {
                         v-if="aboutData.instagram"
                         :href="aboutData.instagram" 
                         target="_blank" 
-                        class="h-9 px-4 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:scale-[1.02] text-white font-bold rounded-xl text-[10px] flex items-center gap-1.5 transition-all shadow-sm"
+                        class="h-9 px-4 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] hover:scale-[1.02] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
                     >
                         <span class="material-symbols-outlined text-xs">photo_camera</span>
                         Instagram
@@ -77,7 +77,7 @@ const aboutData = computed(() => {
                         <span class="material-symbols-outlined text-base font-black">security</span>
                     </div>
                     <h4 class="font-bold text-xs text-[#1e293b]">Bảo Mật Tuyệt Đối</h4>
-                    <p class="text-[10px] text-gray-400 font-bold leading-relaxed">
+                    <p class="text-xs text-gray-400 font-bold leading-relaxed">
                         Toàn bộ dữ liệu xử lý trực tiếp tại trình duyệt client-side. Tập tin Excel và tài liệu cân hàng của cảng không bao giờ được gửi lên máy chủ của bên thứ ba, bảo vệ thông tin nội bộ hoàn toàn.
                     </p>
                 </div>
@@ -88,7 +88,7 @@ const aboutData = computed(() => {
                         <span class="material-symbols-outlined text-base font-black">offline_bolt</span>
                     </div>
                     <h4 class="font-bold text-xs text-[#1e293b]">Đồng Bộ Thông Minh</h4>
-                    <p class="text-[10px] text-gray-400 font-bold leading-relaxed">
+                    <p class="text-xs text-gray-400 font-bold leading-relaxed">
                         Chuyển đổi dữ liệu phân bổ xe sang biểu mẫu phiếu cân A5 chỉ với một chạm. Hệ thống tự động kiểm tra trạng thái khóa của sà lan để ngăn chặn việc ghi đè sai lệch dữ liệu.
                     </p>
                 </div>
@@ -99,7 +99,7 @@ const aboutData = computed(() => {
                         <span class="material-symbols-outlined text-base font-black">update</span>
                     </div>
                     <h4 class="font-bold text-xs text-[#1e293b]">Tối Ưu Vận Hành</h4>
-                    <p class="text-[10px] text-gray-400 font-bold leading-relaxed">
+                    <p class="text-xs text-gray-400 font-bold leading-relaxed">
                         Thuật toán tự động tăng số phiếu cân theo chu kỳ tháng và reset tự động vào ngày đầu tháng theo định dạng tiêu chuẩn `xxxxxx/mmyy`, hạn chế tối đa sai sót thủ công.
                     </p>
                 </div>

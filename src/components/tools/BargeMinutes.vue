@@ -658,12 +658,12 @@ async function generateMinutes() {
         <!-- Header Banner -->
         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-5 soft-shadow border border-primary/5 gap-4">
             <div>
-                <div class="text-[10px] uppercase font-black tracking-widest text-emerald-600 mb-0.5">Tiện ích cảng biển</div>
+                <div class="text-xs uppercase font-black tracking-widest text-emerald-600 mb-0.5">Tiện ích cảng biển</div>
                 <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-emerald-600 text-base">description</span>
                     Tạo Biên Bản Giao Nhận Sà Lan Tự Động
                 </h1>
-                <p class="text-[10px] opacity-60 mt-0.5">Tự động tính toán số liệu xuất kho, xá thẳng và lập bộ 4 biên bản làm hàng.</p>
+                <p class="text-xs opacity-60 mt-0.5">Tự động tính toán số liệu xuất kho, xá thẳng và lập bộ 4 biên bản làm hàng.</p>
             </div>
         </div>
 
@@ -683,13 +683,13 @@ async function generateMinutes() {
                         <label class="border-2 border-dashed border-gray-200 hover:border-primary/50 transition-all rounded-[16px] p-4 text-center cursor-pointer bg-gray-50/50 hover:bg-primary/10 flex flex-col items-center gap-2">
                             <span class="material-symbols-outlined text-gray-400 text-3xl">table_chart</span>
                             <span class="text-xs font-black text-[#1e293b]">{{ wlFile ? wlFile.name : 'Chọn file Weight List (.xlsx)' }}</span>
-                            <span class="text-[10px] opacity-60">Sử dụng 4 sheet xuất hàng</span>
+                            <span class="text-xs opacity-60">Sử dụng 4 sheet xuất hàng</span>
                             <input type="file" accept=".xlsx" @change="handleWlUpload" class="hidden" />
                         </label>
                         
                         <div v-if="loading" class="flex items-center justify-center gap-2 py-4">
                             <div class="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-                            <span class="text-[10px] font-bold text-primary">Đang phân tích Weight List...</span>
+                            <span class="text-xs font-bold text-primary">Đang phân tích Weight List...</span>
                         </div>
                     </div>
                 </div>
@@ -703,8 +703,8 @@ async function generateMinutes() {
                     <div class="flex flex-col gap-3">
                         <label class="border border-dashed border-gray-200 hover:border-primary/30 transition-all rounded-[16px] p-3 text-center cursor-pointer bg-gray-50/30 flex flex-col items-center gap-1">
                             <span class="material-symbols-outlined text-gray-400 text-xl">description</span>
-                            <span class="text-[10px] font-bold text-[#1e293b] truncate max-w-xs">{{ templateFile ? templateFile.name : 'Tải lên mẫu riêng (.xlsx)' }}</span>
-                            <span class="text-[10px] opacity-50">Mặc định: 2 BỘ BIÊN BẢN GIAO NHẬN</span>
+                            <span class="text-xs font-bold text-[#1e293b] truncate max-w-xs">{{ templateFile ? templateFile.name : 'Tải lên mẫu riêng (.xlsx)' }}</span>
+                            <span class="text-xs opacity-50">Mặc định: 2 BỘ BIÊN BẢN GIAO NHẬN</span>
                             <input type="file" accept=".xlsx" @change="handleTemplateUpload" class="hidden" />
                         </label>
                     </div>
@@ -718,7 +718,7 @@ async function generateMinutes() {
                     </h3>
                     
                     <div class="flex flex-col gap-2">
-                        <label class="text-[10px] font-bold text-gray-400">Danh sách chuyến trong Weight List</label>
+                        <label class="text-xs font-bold text-gray-400">Danh sách chuyến trong Weight List</label>
                         <select 
                             v-model="selectedVoyage" 
                             @change="handleVoyageChange"
@@ -766,7 +766,7 @@ async function generateMinutes() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Số biên bản -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Số biên bản</label>
+                            <label class="text-xs font-bold text-gray-400">Số biên bản</label>
                             <input 
                                 type="text" 
                                 v-model="soBienBan" 
@@ -777,7 +777,7 @@ async function generateMinutes() {
 
                         <!-- Tên sà lan -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Tên sà lan nhận hàng</label>
+                            <label class="text-xs font-bold text-gray-400">Tên sà lan nhận hàng</label>
                             <input 
                                 type="text" 
                                 v-model="tenSaLan" 
@@ -787,7 +787,7 @@ async function generateMinutes() {
 
                         <!-- Chủ hàng -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Chủ hàng (Consignee)</label>
+                            <label class="text-xs font-bold text-gray-400">Chủ hàng (Consignee)</label>
                             <input 
                                 type="text" 
                                 v-model="chuHang" 
@@ -797,7 +797,7 @@ async function generateMinutes() {
 
                         <!-- Tên hàng -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Tên hàng (loại hàng)</label>
+                            <label class="text-xs font-bold text-gray-400">Tên hàng (loại hàng)</label>
                             <input 
                                 type="text" 
                                 v-model="tenHang" 
@@ -807,7 +807,7 @@ async function generateMinutes() {
 
                         <!-- Tàu quốc tế -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Tàu quốc tế (Vessel)</label>
+                            <label class="text-xs font-bold text-gray-400">Tàu quốc tế (Vessel)</label>
                             <input 
                                 type="text" 
                                 v-model="tauQuocTe" 
@@ -817,7 +817,7 @@ async function generateMinutes() {
 
                         <!-- Quốc tịch -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Quốc tịch sà lan</label>
+                            <label class="text-xs font-bold text-gray-400">Quốc tịch sà lan</label>
                             <input 
                                 type="text" 
                                 v-model="quocTich" 
@@ -827,7 +827,7 @@ async function generateMinutes() {
 
                         <!-- Cảng nhận hàng -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Cảng nhận hàng (Port of loading)</label>
+                            <label class="text-xs font-bold text-gray-400">Cảng nhận hàng (Port of loading)</label>
                             <input 
                                 type="text" 
                                 v-model="cangNhan" 
@@ -837,7 +837,7 @@ async function generateMinutes() {
 
                         <!-- Cảng giao hàng -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Cảng giao hàng (Port of discharging)</label>
+                            <label class="text-xs font-bold text-gray-400">Cảng giao hàng (Port of discharging)</label>
                             <input 
                                 type="text" 
                                 v-model="cangGiao" 
@@ -847,7 +847,7 @@ async function generateMinutes() {
 
                         <!-- Số lượng seal -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Số lượng seal chì</label>
+                            <label class="text-xs font-bold text-gray-400">Số lượng seal chì</label>
                             <input 
                                 type="number" 
                                 v-model="soSeal" 
@@ -857,7 +857,7 @@ async function generateMinutes() {
 
                         <!-- Số hầm sà lan -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-400">Số hầm sà lan (Hầm)</label>
+                            <label class="text-xs font-bold text-gray-400">Số hầm sà lan (Hầm)</label>
                             <input 
                                 type="text" 
                                 v-model="soHam" 
@@ -875,66 +875,66 @@ async function generateMinutes() {
                             <!-- Đến cảng nhận hàng -->
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Giờ đến</label>
-                                    <input type="time" v-model="timeIn" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold" />
+                                    <label class="text-xs font-bold text-gray-400">Giờ đến</label>
+                                    <input type="time" v-model="timeIn" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Ngày đến</label>
-                                    <input type="date" v-model="dateIn" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold w-full" />
+                                    <label class="text-xs font-bold text-gray-400">Ngày đến</label>
+                                    <input type="date" v-model="dateIn" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
                                 </div>
-                                <span class="text-[10px] text-gray-400 col-span-3 -mt-1 font-semibold">1. Đến cảng nhận</span>
+                                <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">1. Đến cảng nhận</span>
                             </div>
 
                             <!-- Kiểm tra hầm hàng -->
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Giờ KT</label>
-                                    <input type="time" v-model="timeInspection" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold" />
+                                    <label class="text-xs font-bold text-gray-400">Giờ KT</label>
+                                    <input type="time" v-model="timeInspection" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Ngày KT</label>
-                                    <input type="date" v-model="dateInspection" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold w-full" />
+                                    <label class="text-xs font-bold text-gray-400">Ngày KT</label>
+                                    <input type="date" v-model="dateInspection" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
                                 </div>
-                                <span class="text-[10px] text-gray-400 col-span-3 -mt-1 font-semibold">2. Kiểm tra hầm hàng</span>
+                                <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">2. Kiểm tra hầm hàng</span>
                             </div>
 
                             <!-- Bắt đầu làm hàng -->
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Giờ BĐ</label>
-                                    <input type="time" v-model="timeCommenced" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold" />
+                                    <label class="text-xs font-bold text-gray-400">Giờ BĐ</label>
+                                    <input type="time" v-model="timeCommenced" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Ngày BĐ</label>
-                                    <input type="date" v-model="dateCommenced" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold w-full" />
+                                    <label class="text-xs font-bold text-gray-400">Ngày BĐ</label>
+                                    <input type="date" v-model="dateCommenced" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
                                 </div>
-                                <span class="text-[10px] text-gray-400 col-span-3 -mt-1 font-semibold">3. Bắt đầu xếp hàng (Chuyến đầu)</span>
+                                <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">3. Bắt đầu xếp hàng (Chuyến đầu)</span>
                             </div>
 
                             <!-- Kết thúc làm hàng -->
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Giờ KT</label>
-                                    <input type="time" v-model="timeCompleted" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold" />
+                                    <label class="text-xs font-bold text-gray-400">Giờ KT</label>
+                                    <input type="time" v-model="timeCompleted" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Ngày KT</label>
-                                    <input type="date" v-model="dateCompleted" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold w-full" />
+                                    <label class="text-xs font-bold text-gray-400">Ngày KT</label>
+                                    <input type="date" v-model="dateCompleted" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
                                 </div>
-                                <span class="text-[10px] text-gray-400 col-span-3 -mt-1 font-semibold">4. Hoàn thành xếp hàng (Chuyến cuối)</span>
+                                <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">4. Hoàn thành xếp hàng (Chuyến cuối)</span>
                             </div>
 
                             <!-- Rời cảng -->
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Giờ rời</label>
-                                    <input type="time" v-model="timeDepart" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold" />
+                                    <label class="text-xs font-bold text-gray-400">Giờ rời</label>
+                                    <input type="time" v-model="timeDepart" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-400">Ngày rời</label>
-                                    <input type="date" v-model="dateDepart" class="border border-gray-200 rounded-[8px] p-1.5 text-[10px] font-semibold w-full" />
+                                    <label class="text-xs font-bold text-gray-400">Ngày rời</label>
+                                    <input type="date" v-model="dateDepart" class="border border-gray-200 rounded-[8px] p-1.5 text-xs font-semibold w-full" />
                                 </div>
-                                <span class="text-[10px] text-gray-400 col-span-3 -mt-1 font-semibold">5. Rời cảng giao nhận</span>
+                                <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">5. Rời cảng giao nhận</span>
                             </div>
                         </div>
                     </div>

@@ -29,7 +29,7 @@ Font chữ áp dụng:
 *   **Font Tiêu Đề/Nhấn Mạnh**: `Space Grotesk` hoặc `Fredoka` (Font bo tròn tạo nét thân thiện, dễ thương).
 *   **Font Nội Dung/Bảng Biểu**: `Noto Sans` hoặc `Quicksand` (Font không chân, sạch sẽ, dễ đọc số liệu).
 
-Giao diện web được tối ưu hóa đồng bộ về **6 cỡ chữ cốt lõi** dưới đây (đã lược bỏ các kích thước nhỡ không cần thiết và loại trừ phôi in):
+Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt lõi** dưới đây (đảm bảo cỡ chữ nhỏ nhất hiển thị trên màn hình là 12px để tăng độ đọc hiểu và bảo vệ an toàn cho phôi in):
 
 | Cấp Bậc (Typography Level) | Cỡ Chữ (Size) | Trọng Số (Weight) | Ứng Dụng Thực Tế | Lớp Tailwind Mẫu |
 | :--- | :--- | :--- | :--- | :--- |
@@ -37,8 +37,7 @@ Giao diện web được tối ưu hóa đồng bộ về **6 cỡ chữ cốt l
 | **Section / Modal Title**| `xl` (20px) | `font-black` (900) | Tiêu đề của từng phân khu, tiêu đề các popup hộp thoại. | `text-xl font-display font-black` |
 | **Card Title / Menu** | `base` (16px) | `font-bold` (700) | Tên các công cụ chính, nút bấm lớn, tiêu đề phụ. | `text-base font-bold` |
 | **Body text / Form Input**| `sm` (14px) | `font-bold` / `semibold`| Chữ nội dung form nhập liệu, nhãn dữ liệu chính. | `text-sm font-bold` |
-| **Table Detail / Desc** | `xs` (12px) | `font-semibold` (600) | Số liệu trong bảng, thời gian cập/rời bến, mô tả phụ. | `text-xs font-semibold` |
-| **Micro Label / Badge** | `[10px]` (10px) | `font-black` (900) | Thẻ trạng thái, nhãn in hoa siêu nhỏ trên đầu các input. | `text-[10px] font-black uppercase tracking-widest` |
+| **Table Detail / Desc / Label** | `xs` (12px) | `font-semibold` / `bold`| Cỡ chữ nhỏ nhất trên UI: số liệu bảng, nhãn phụ, thẻ trạng thái. | `text-xs font-semibold` |
 
 ---
 

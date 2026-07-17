@@ -3177,7 +3177,7 @@ async function compileAndDownload() {
             <aside class="hidden md:flex w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex-col shrink-0 overflow-hidden no-print">
                 <!-- Sidebar header -->
                 <div class="p-4 border-b border-primary/5">
-                    <div class="text-[10px] uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích quản lý</div>
+                    <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích quản lý</div>
                     <h2 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-base">balance</span>
                         Báo cáo cân hàng
@@ -3230,7 +3230,7 @@ async function compileAndDownload() {
         <!-- Header Banner -->
         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3 px-5 soft-shadow border border-primary/5 gap-4 shrink-0">
             <div>
-                <div class="text-[10px] uppercase font-black tracking-widest text-primary mb-0.5">Công cụ thông minh</div>
+                <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Công cụ thông minh</div>
                 <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-primary text-base">balance</span>
                     Phân bổ tải trọng xếp hàng lên phương tiện
@@ -3251,13 +3251,13 @@ async function compileAndDownload() {
             <div class="lg:col-span-2 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <!-- Col 1: Số phiếu tự động (Phần 1) -->
                 <div class="flex flex-col gap-2 pr-2 lg:pl-1">
-                    <h4 class="text-[10px] font-black text-primary flex items-center gap-1.5 select-none">
+                    <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                         <span class="material-symbols-outlined text-[13px]">tag</span>
                         Số phiếu tự động
                     </h4>
                     <div class="space-y-2">
                         <div class="flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Tiền tố số phiếu</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tiền tố số phiếu</span>
                             <input 
                                 type="text" 
                                 v-model="ticketPrefix" 
@@ -3266,7 +3266,7 @@ async function compileAndDownload() {
                             >
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Số phiếu bắt đầu</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số phiếu bắt đầu</span>
                             <input 
                                 type="number" 
                                 v-model.number="ticketStart" 
@@ -3274,7 +3274,7 @@ async function compileAndDownload() {
                                 class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
                             >
                         </div>
-                        <div class="text-[10px] text-gray-400 font-semibold italic flex items-center gap-1 pt-1 select-none text-left">
+                        <div class="text-xs text-gray-400 font-semibold italic flex items-center gap-1 pt-1 select-none text-left">
                             <span class="material-symbols-outlined text-xs">visibility</span>
                             Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewTicketNo }}</span>
                         </div>
@@ -3284,9 +3284,9 @@ async function compileAndDownload() {
                 <!-- Col 2: Số phiếu tự động (Phần 2) -->
                 <div class="flex flex-col gap-2 h-full lg:pl-1">
                     <div class="space-y-2 text-left">
-                        <h4 class="text-[10px] font-black text-transparent select-none hidden md:block">Cấu hình định dạng</h4>
+                        <h4 class="text-xs font-black text-transparent select-none hidden md:block">Cấu hình định dạng</h4>
                         <div class="flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Số chữ số (Padding)</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số chữ số (Padding)</span>
                             <input 
                                 type="number" 
                                 v-model.number="ticketPadding" 
@@ -3296,7 +3296,7 @@ async function compileAndDownload() {
                             >
                         </div>
                         <div class="flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Hậu tố số phiếu</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Hậu tố số phiếu</span>
                             <input 
                                 type="text" 
                                 v-model="ticketSuffix" 
@@ -3310,13 +3310,13 @@ async function compileAndDownload() {
 
             <!-- Thẻ 2: Quy tắc phân bổ (1/4 width) -->
             <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
-                <h4 class="text-[10px] font-black text-primary flex items-center gap-1.5 select-none">
+                <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                     <span class="material-symbols-outlined text-[13px]">tune</span>
                     Quy tắc phân bổ
                 </h4>
                 <div class="space-y-2">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Chiến lược chia</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Chiến lược chia</span>
                         <select v-model="distStrategy" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer">
                             <option value="random">Phân bổ ngẫu nhiên</option>
                             <option value="even">Chia đều</option>
@@ -3324,7 +3324,7 @@ async function compileAndDownload() {
                         </select>
                     </div>
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Định thời gian</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Định thời gian</span>
                         <select v-model="spacingStrategy" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer">
                             <option value="even">Phân đều chu kỳ</option>
                             <option value="forward">Tịnh tiến (+ Phút)</option>
@@ -3332,28 +3332,28 @@ async function compileAndDownload() {
                         </select>
                     </div>
                     <div v-if="spacingStrategy !== 'even'" class="flex items-center gap-1.5 bg-primary/5 p-1 rounded-lg border border-primary/10">
-                        <span class="text-[10px] font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
+                        <span class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
                         <input 
                             type="number" 
                             v-model.number="timeIntervalMinutes" 
                             min="10" 
                             max="720"
-                            class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-[10px] font-bold focus:outline-none focus:border-primary transition-all font-mono text-center"
+                            class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center"
                         >
-                        <span class="text-[10px] text-gray-400 font-bold">phút</span>
+                        <span class="text-xs text-gray-400 font-bold">phút</span>
                     </div>
                 </div>
             </div>
 
             <!-- Thẻ 3: Hạn mức tải trọng (1/4 width) -->
             <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
-                <h4 class="text-[10px] font-black text-primary flex items-center gap-1.5 select-none">
+                <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                     <span class="material-symbols-outlined text-[13px]">shield</span>
                     Hạn mức tải trọng
                 </h4>
                 <div class="space-y-2">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
                         <input 
                             type="number" 
                             v-model.number="standardTTTPLimit" 
@@ -3362,7 +3362,7 @@ async function compileAndDownload() {
                         >
                     </div>
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
                         <div class="flex items-center gap-1.5">
                             <input 
                                 type="number" 
@@ -3381,7 +3381,7 @@ async function compileAndDownload() {
                             >
                         </div>
                     </div>
-                    <div class="text-[10px] text-gray-400 font-bold flex items-center justify-between mt-1">
+                    <div class="text-xs text-gray-400 font-bold flex items-center justify-between mt-1">
                         <span>Hạn mức hàng:</span>
                         <span class="text-primary font-mono bg-primary/5 px-2 py-0.5 rounded">
                             {{ Math.max(0, standardTTTPLimit - standardCurbMax).toFixed(1) }} - {{ Math.max(0, standardTTTPLimit - standardCurbMin).toFixed(1) }} tấn
@@ -3516,7 +3516,7 @@ async function compileAndDownload() {
                     <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
                     <!-- Tab 1 Actions -->
                     <template v-if="activeDataTab === 'source'">
-                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-[10px]">
+                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ totalCsvWeightTons.toFixed(2) }}t
                         </div>
                         <input 
@@ -3528,7 +3528,7 @@ async function compileAndDownload() {
                         >
                         <button 
                             @click="triggerTicketFileInput"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
+                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
                             :disabled="loadingCSV"
                         >
                             <span class="material-symbols-outlined text-[14px]">upload_file</span>
@@ -3536,14 +3536,14 @@ async function compileAndDownload() {
                         </button>
                         <button 
                             @click="openAddTicketDialog"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
+                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
                         >
                             <span class="material-symbols-outlined text-[14px]">add</span>
                             Thêm
                         </button>
                         <button 
                             @click="clearAllTickets"
-                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
+                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
                         >
                             <span class="material-symbols-outlined text-[14px]">delete</span>
                             Xóa hết
@@ -3551,7 +3551,7 @@ async function compileAndDownload() {
                         <button 
                             @click="exportSourceTickets"
                             :disabled="csvRecords.length === 0 || compiling"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-[10px] font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <span class="material-symbols-outlined text-[14px]">download</span>
                             Xuất Excel
@@ -3560,13 +3560,13 @@ async function compileAndDownload() {
 
                     <!-- Tab 2 Actions -->
                     <template v-if="activeDataTab === 'template'">
-                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-[10px]">
+                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ totalSplitWeightTons.toFixed(2) }}t
                         </div>
                         <button 
                             @click="triggerManualSyncToPrinter"
                             :disabled="generatedTrips.length === 0 || compiling"
-                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-[10px] font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed animate-fade-in"
+                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed animate-fade-in"
                         >
                             <span class="material-symbols-outlined text-[14px]">sync</span>
                             Update
@@ -3574,7 +3574,7 @@ async function compileAndDownload() {
                         <button 
                             @click="saveToHistory"
                             :disabled="generatedTrips.length === 0 || isAlreadySaved"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-[10px] font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <span class="material-symbols-outlined text-[14px]">save</span>
                             {{ isAlreadySaved ? 'Đã lưu' : 'Lưu' }}
@@ -3582,7 +3582,7 @@ async function compileAndDownload() {
                         <button 
                             @click="clearAllGeneratedTrips"
                             :disabled="generatedTrips.length === 0"
-                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <span class="material-symbols-outlined text-[14px]">delete</span>
                             Xóa tất cả
@@ -3590,7 +3590,7 @@ async function compileAndDownload() {
                         <button 
                             @click="compileAndDownload"
                             :disabled="generatedTrips.length === 0 || compiling"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-[10px] font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <span v-if="compiling" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
                             <span v-else class="material-symbols-outlined text-[14px]">download</span>
@@ -3600,13 +3600,13 @@ async function compileAndDownload() {
 
                     <!-- Tab 3 Actions -->
                     <template v-if="activeDataTab === 'generated'">
-                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-[10px]">
+                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ historyTotalWeightTons.toFixed(2) }}t
                         </div>
                         <button v-if="authStore.role === 'admin'"
                             @click="clearHistory"
                             :disabled="existingTrips.length === 0"
-                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <span class="material-symbols-outlined text-[14px]">delete_forever</span>
                             Xóa lịch sử
@@ -3614,7 +3614,7 @@ async function compileAndDownload() {
                         <button 
                             @click="compileAndDownload"
                             :disabled="existingTrips.length === 0 || compiling"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-[10px] font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <span v-if="compiling" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
                             <span v-else class="material-symbols-outlined text-[14px]">download</span>
@@ -3714,8 +3714,8 @@ async function compileAndDownload() {
                                 <td class="py-1 px-3 font-bold text-gray-900 whitespace-nowrap">{{ formatPlate(ticket.plateNumber) }}</td>
                                 <td class="py-1 px-3 truncate max-w-[120px]" :title="ticket.cargoType">{{ ticket.cargoType }}</td>
                                 <td class="py-1 px-3 text-right font-black text-primary whitespace-nowrap">{{ ticket.weightNet.toLocaleString() }}</td>
-                                <td class="py-1 px-3 text-[10px] text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
-                                <td class="py-1 px-3 text-[10px] text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
+                                <td class="py-1 px-3 text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
+                                <td class="py-1 px-3 text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
                                 <td class="py-1 px-3 text-gray-500 truncate max-w-[100px]" :title="ticket.driverName">{{ ticket.driverName || '-' }}</td>
                                 <td class="py-1 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
@@ -3877,7 +3877,7 @@ async function compileAndDownload() {
                                     {{ (historyCurrentPage - 1) * itemsPerPage + idx + 1 }}
                                 </td>
                                 <td class="py-1 px-3 font-semibold text-teal-600 font-mono">{{ trip.orderNo || '-' }}</td>
-                                <td class="py-1 px-3 whitespace-pre-line font-mono text-[10px] leading-tight text-gray-500">{{ trip.timeStr }}</td>
+                                <td class="py-1 px-3 whitespace-pre-line font-mono text-xs leading-tight text-gray-500">{{ trip.timeStr }}</td>
                                 <td class="py-1 px-3 font-bold text-gray-900 flex items-center gap-1.5">
                                     <span class="whitespace-nowrap">{{ formatPlate(trip.plateNumber) }}</span>
                                     <span v-if="!formatPlate(trip.plateNumber).includes('/')" class="material-symbols-outlined text-[14px] text-red-500 font-bold animate-pulse" title="Thiếu số moóc!">warning</span>
@@ -3902,7 +3902,7 @@ async function compileAndDownload() {
                                     >
                                         <span class="material-symbols-outlined text-[13px] font-black">close</span>
                                     </span>
-                                    <span v-else class="text-gray-400 italic text-[10px]">-</span>
+                                    <span v-else class="text-gray-400 italic text-xs">-</span>
                                 </td>
                                 <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-1 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
@@ -4108,12 +4108,12 @@ async function compileAndDownload() {
                                 <td class="py-1 px-3 text-right font-black text-primary font-mono whitespace-nowrap">{{ trip.weightNet.toLocaleString() }}</td>
                                 <td class="py-1 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelDate(trip.date1Obj) }}</td>
                                 <td class="py-1 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelTime(trip.date1Obj) }}</td>
-                                <td class="py-1 px-3 text-gray-400 text-[10px] font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date1Obj) }}</td>
+                                <td class="py-1 px-3 text-gray-400 text-xs font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date1Obj) }}</td>
                                 <td class="py-1 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelDate(trip.date2Obj) }}</td>
                                 <td class="py-1 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelTime(trip.date2Obj) }}</td>
-                                <td class="py-1 px-3 text-gray-400 text-[10px] font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date2Obj) }}</td>
+                                <td class="py-1 px-3 text-gray-400 text-xs font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date2Obj) }}</td>
                                 <td class="py-1 px-3 text-center">
-                                    <span :class="['px-1.5 py-0.5 rounded text-[10px] font-black whitespace-nowrap', trip.direction.toUpperCase().includes('XUẤT') || trip.direction.toUpperCase().includes('XUAT') ? 'bg-primary/10 text-primary' : 'bg-teal-50 text-teal-600']">
+                                    <span :class="['px-1.5 py-0.5 rounded text-xs font-black whitespace-nowrap', trip.direction.toUpperCase().includes('XUẤT') || trip.direction.toUpperCase().includes('XUAT') ? 'bg-primary/10 text-primary' : 'bg-teal-50 text-teal-600']">
                                         {{ trip.direction.toUpperCase().includes('XUẤT') || trip.direction.toUpperCase().includes('XUAT') ? 'XUẤT' : 'NHẬP' }}
                                     </span>
                                 </td>
@@ -4206,7 +4206,7 @@ async function compileAndDownload() {
                             <span class="material-symbols-outlined text-primary text-base">receipt_long</span>
                             {{ editingTicket ? 'Chỉnh sửa phiếu cân' : 'Thêm phiếu cân thủ công' }}
                         </h3>
-                        <p class="text-[10px] text-gray-400">Nhập thông tin chi tiết của xe cân thực tế</p>
+                        <p class="text-xs text-gray-400">Nhập thông tin chi tiết của xe cân thực tế</p>
                     </div>
                     <button 
                         @click="showTicketDialog = false"
@@ -4221,7 +4221,7 @@ async function compileAndDownload() {
                     <div class="grid grid-cols-2 gap-4">
                         <!-- Plate Number -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Số đăng ký xe (Biển số) *</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Số đăng ký xe (Biển số) *</label>
                             <input 
                                 v-model="dialogTicket.plateNumber" 
                                 type="text" 
@@ -4232,7 +4232,7 @@ async function compileAndDownload() {
                         
                         <!-- Ticket Number -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Số phiếu cân</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Số phiếu cân</label>
                             <input 
                                 v-model="dialogTicket.ticketNo" 
                                 type="text" 
@@ -4243,7 +4243,7 @@ async function compileAndDownload() {
 
                         <!-- Weight 1 -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Khối lượng cân lần 1 (kg)</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Khối lượng cân lần 1 (kg)</label>
                             <input 
                                 v-model.number="dialogTicket.weight1" 
                                 type="number" 
@@ -4253,7 +4253,7 @@ async function compileAndDownload() {
 
                         <!-- Weight 2 -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Khối lượng cân lần 2 (kg)</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Khối lượng cân lần 2 (kg)</label>
                             <input 
                                 v-model.number="dialogTicket.weight2" 
                                 type="number" 
@@ -4263,21 +4263,21 @@ async function compileAndDownload() {
 
                         <!-- Weight Net -->
                         <div class="flex flex-col gap-1.5 col-span-2">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Khối lượng hàng thực tế (Net - kg) *</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Khối lượng hàng thực tế (Net - kg) *</label>
                             <input 
                                 v-model.number="dialogTicket.weightNet" 
                                 type="number" 
                                 placeholder="Khối lượng net thực tế chở" 
                                 class="px-3.5 py-2.5 rounded-[12px] border border-gray-200 text-xs font-bold text-primary focus:outline-none focus:border-primary"
                             >
-                            <span class="text-[10px] text-gray-400">
+                            <span class="text-xs text-gray-400">
                                 Nếu nhập Lần 1 & Lần 2, khối lượng Net sẽ tự động được tính bằng hiệu của hai lần cân khi bấm Lưu.
                             </span>
                         </div>
 
                         <!-- Cargo Type -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Loại hàng hóa</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Loại hàng hóa</label>
                             <input 
                                 v-model="dialogTicket.cargoType" 
                                 type="text" 
@@ -4288,7 +4288,7 @@ async function compileAndDownload() {
 
                         <!-- Driver Name -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tên tài xế</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên tài xế</label>
                             <input 
                                 v-model="dialogTicket.driverName" 
                                 type="text" 
@@ -4299,7 +4299,7 @@ async function compileAndDownload() {
 
                         <!-- Date In -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Ngày cân vào (DD/MM/YYYY)</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ngày cân vào (DD/MM/YYYY)</label>
                             <input 
                                 v-model="dialogTicket.dateInStr" 
                                 type="text" 
@@ -4310,7 +4310,7 @@ async function compileAndDownload() {
 
                         <!-- Time In -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Giờ cân vào (HH:mm:ss)</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Giờ cân vào (HH:mm:ss)</label>
                             <input 
                                 v-model="dialogTicket.timeInStr" 
                                 type="text" 
@@ -4321,7 +4321,7 @@ async function compileAndDownload() {
 
                         <!-- Date Out -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Ngày cân ra (DD/MM/YYYY)</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ngày cân ra (DD/MM/YYYY)</label>
                             <input 
                                 v-model="dialogTicket.dateOutStr" 
                                 type="text" 
@@ -4332,7 +4332,7 @@ async function compileAndDownload() {
 
                         <!-- Time Out -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Giờ cân ra (HH:mm:ss)</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Giờ cân ra (HH:mm:ss)</label>
                             <input 
                                 v-model="dialogTicket.timeOutStr" 
                                 type="text" 
@@ -4343,7 +4343,7 @@ async function compileAndDownload() {
 
                         <!-- Direction -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hình thức</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Hình thức</label>
                             <select 
                                 v-model="dialogTicket.direction" 
                                 class="px-3.5 py-2.5 rounded-[12px] border border-gray-200 text-xs font-semibold focus:outline-none focus:border-primary bg-white cursor-pointer"
@@ -4356,7 +4356,7 @@ async function compileAndDownload() {
 
                         <!-- Customer -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Khách hàng</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Khách hàng</label>
                             <input 
                                 v-model="dialogTicket.customer" 
                                 type="text" 
@@ -4367,7 +4367,7 @@ async function compileAndDownload() {
 
                         <!-- Order Number (Số lệnh) -->
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Số lệnh xuất / nhận</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Số lệnh xuất / nhận</label>
                             <input 
                                 v-model="dialogTicket.orderNo" 
                                 type="text" 
@@ -4378,7 +4378,7 @@ async function compileAndDownload() {
 
                         <!-- Notes -->
                         <div class="flex flex-col gap-1.5 col-span-2">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Ghi chú</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ghi chú</label>
                             <textarea 
                                 v-model="dialogTicket.notes" 
                                 rows="2"
@@ -4437,7 +4437,7 @@ async function compileAndDownload() {
                     
                     <!-- Barge Name Input -->
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tên sà lan mới</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên sà lan mới</label>
                         <input 
                             v-model="addBargeDialog.bargeName"
                             type="text"
@@ -4449,10 +4449,10 @@ async function compileAndDownload() {
                     <!-- Vessel Selection -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tàu chủ quản</label>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tàu chủ quản</label>
                             <button 
                                 @click="addBargeDialog.showNewVesselInput = !addBargeDialog.showNewVesselInput"
-                                class="text-[10px] font-bold text-primary hover:underline"
+                                class="text-xs font-bold text-primary hover:underline"
                             >
                                 {{ addBargeDialog.showNewVesselInput ? 'Chọn tàu có sẵn' : '+ Tạo tàu mới' }}
                             </button>

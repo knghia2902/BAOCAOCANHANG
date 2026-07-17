@@ -216,7 +216,7 @@ const reset = () => {
       <div v-if="logs.length > 0" class="mt-4 pt-4 border-t border-soft-pink/20">
         <div class="max-h-24 overflow-y-auto space-y-1 pr-2">
           <div v-for="(log, idx) in logs" :key="idx" 
-            class="text-[10px] font-bold flex items-center gap-1.5"
+            class="text-xs font-bold flex items-center gap-1.5"
             :class="{ 'text-green-500': log.type === 'success', 'text-red-500': log.type === 'error', 'text-primary/60': log.type === 'info' }"
           >
             <span class="material-symbols-outlined text-[12px]">{{ log.type === 'success' ? 'check_circle' : log.type === 'error' ? 'error' : 'info' }}</span>

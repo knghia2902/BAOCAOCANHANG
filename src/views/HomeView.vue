@@ -101,7 +101,7 @@ onMounted(async () => {
             </div>
             
             <div class="relative z-10 space-y-2">
-                <span class="text-[10px] font-black text-primary uppercase tracking-widest bg-white/60 px-3 py-1 rounded-full border border-soft-pink/30">HỆ THỐNG VẬN HÀNH</span>
+                <span class="text-xs font-black text-primary uppercase tracking-widest bg-white/60 px-3 py-1 rounded-full border border-soft-pink/30">HỆ THỐNG VẬN HÀNH</span>
                 <h2 class="text-xl md:text-3xl font-display font-black text-[#1e293b] mt-2">
                     Chào buổi sáng, {{ authStore.displayName }}! ✨
                 </h2>
@@ -120,7 +120,7 @@ onMounted(async () => {
                     <span class="material-symbols-outlined text-xl">directions_boat</span>
                 </div>
                 <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quản lý tàu</p>
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Quản lý tàu</p>
                     <h4 class="text-xl font-black text-[#1e293b] mt-0.5">
                         {{ loading ? '...' : vessels.length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">tàu đang làm hàng</span>
@@ -133,7 +133,7 @@ onMounted(async () => {
                     <span class="material-symbols-outlined text-xl">layers</span>
                 </div>
                 <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng số sà lan</p>
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Tổng số sà lan</p>
                     <h4 class="text-xl font-black text-teal-600 mt-0.5">
                         {{ loading ? '...' : allBarges.length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">sà lan được lập</span>
@@ -146,7 +146,7 @@ onMounted(async () => {
                     <span class="material-symbols-outlined text-xl">lock_open</span>
                 </div>
                 <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đang mở khóa</p>
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Đang mở khóa</p>
                     <h4 class="text-xl font-black text-amber-600 mt-0.5">
                         {{ loading ? '...' : allBarges.filter(b => !b.locked).length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">sà lan nhận đồng bộ</span>
@@ -174,7 +174,7 @@ onMounted(async () => {
                     </div>
                     <div>
                         <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">DASHBOARD</h4>
-                        <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.</p>
+                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.</p>
                     </div>
                 </div>
 
@@ -189,7 +189,7 @@ onMounted(async () => {
                     </div>
                     <div>
                         <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">Dữ liệu cân hàng</h4>
-                        <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.</p>
+                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.</p>
                     </div>
                 </div>
 
@@ -204,7 +204,7 @@ onMounted(async () => {
                     </div>
                     <div>
                         <h4 class="font-black text-xs text-[#1e293b] group-hover:text-[#b27218] transition-colors">Quản lý hồ sơ phương tiện</h4>
-                        <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Quản lý và đồng bộ danh sách biển số xe và số moóc.</p>
+                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Quản lý và đồng bộ danh sách biển số xe và số moóc.</p>
                     </div>
                 </div>
                 
@@ -219,12 +219,12 @@ onMounted(async () => {
                     </div>
                     <div>
                         <h4 class="font-black text-xs text-[#1e293b] group-hover:text-[#b27218] transition-colors">Quản trị tài khoản</h4>
-                        <p class="text-[10px] text-gray-400 font-bold mt-1 leading-normal">Tạo mới, đổi mật khẩu và quản lý tài khoản nhân viên.</p>
+                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Tạo mới, đổi mật khẩu và quản lý tài khoản nhân viên.</p>
                     </div>
                 </div>
             </div>
             
-            <div class="border-t border-dashed border-primary/10 pt-4 mt-8 text-[10px] text-gray-400 font-bold flex items-center justify-between">
+            <div class="border-t border-dashed border-primary/10 pt-4 mt-8 text-xs text-gray-400 font-bold flex items-center justify-between">
                 <span>Đám mây kết nối: <span class="text-emerald-500">Đã đồng bộ</span></span>
                 <span>Phiên bản v1.2.0</span>
             </div>

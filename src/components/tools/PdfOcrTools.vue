@@ -172,7 +172,7 @@ const onFileSelected = async (file: File) => {
         <!-- Excel Preview -->
         <div v-if="targetFormat === 'xlsx' && previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto flex-1 max-w-full select-text scrollbar-thin">
           <div v-for="(grid, pageIdx) in previewResult.pagesGrids" :key="pageIdx" class="mb-8 last:mb-0">
-            <div v-if="previewResult.pagesGrids.length > 1" class="text-[10px] font-black text-primary/60 uppercase tracking-wider mb-3">
+            <div v-if="previewResult.pagesGrids.length > 1" class="text-xs font-black text-primary/60 uppercase tracking-wider mb-3">
               Trang {{ pageIdx + 1 }}
             </div>
             
@@ -203,7 +203,7 @@ const onFileSelected = async (file: File) => {
         <!-- Word Preview -->
         <div v-else-if="previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto flex-1 p-6 bg-white rounded-2xl border border-primary/5 text-xs text-[#1b0d11]/80 font-serif leading-relaxed select-text text-left max-w-full scrollbar-thin">
           <div v-for="(grid, pageIdx) in previewResult.pagesGrids" :key="pageIdx" class="mb-8 last:mb-0">
-            <div v-if="previewResult.pagesGrids.length > 1" class="text-[10px] font-sans font-black text-primary/60 uppercase tracking-wider mb-4 border-b border-primary/10 pb-1.5">
+            <div v-if="previewResult.pagesGrids.length > 1" class="text-xs font-sans font-black text-primary/60 uppercase tracking-wider mb-4 border-b border-primary/10 pb-1.5">
               Trang {{ pageIdx + 1 }}
             </div>
             <div 

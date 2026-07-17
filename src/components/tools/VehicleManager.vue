@@ -502,7 +502,7 @@ const handleExportExcel = async () => {
                 
                 <form @submit.prevent="handleSubmit" class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Biển số xe *</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Biển số xe *</label>
                         <input 
                             type="text" 
                             v-model="plateInput"
@@ -513,7 +513,7 @@ const handleExportExcel = async () => {
                     </div>
                     
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Số mooc</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Số mooc</label>
                         <input 
                             type="text" 
                             v-model="moocInput"
@@ -559,7 +559,7 @@ const handleExportExcel = async () => {
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto max-h-[400px]">
                         <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
-                            <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-[10px] text-gray-500 uppercase tracking-wider select-none">
+                            <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-xs text-gray-500 uppercase tracking-wider select-none">
                                 <tr>
                                     <th class="px-4 py-3 text-center w-14">STT</th>
                                     <th class="px-4 py-3">Biển số xe</th>

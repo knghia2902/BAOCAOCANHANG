@@ -142,11 +142,11 @@ const downloadResult = () => {
                         <span class="material-symbols-outlined text-primary">{{ masterFileIndex === idx ? 'stars' : 'description' }}</span>
                         <div>
                             <p class="text-sm font-bold truncate max-w-xs">{{ file.name }}</p>
-                            <p class="text-[10px] text-gray-400 uppercase font-black tracking-widest">{{ (file.size / 1024).toFixed(1) }} KB</p>
+                            <p class="text-xs text-gray-400 uppercase font-black tracking-widest">{{ (file.size / 1024).toFixed(1) }} KB</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button v-if="masterFileIndex !== idx" @click="masterFileIndex = idx; extractHeaders(file)" class="text-[10px] font-black uppercase text-primary hover:underline px-3 py-1">Đặt làm gốc</button>
+                        <button v-if="masterFileIndex !== idx" @click="masterFileIndex = idx; extractHeaders(file)" class="text-xs font-black uppercase text-primary hover:underline px-3 py-1">Đặt làm gốc</button>
                         <button @click="removeFile(idx)" class="size-8 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all">
                             <span class="material-symbols-outlined text-xl">close</span>
                         </button>
@@ -171,13 +171,13 @@ const downloadResult = () => {
                         </select>
                         <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none">expand_more</span>
                     </div>
-                    <p class="text-[10px] text-gray-400 italic ml-2">* Dữ liệu sẽ được gộp dựa trên cột ID chung này.</p>
+                    <p class="text-xs text-gray-400 italic ml-2">* Dữ liệu sẽ được gộp dựa trên cột ID chung này.</p>
                 </div>
 
                 <div class="space-y-4">
                     <label class="text-xs font-bold text-gray-400 uppercase ml-2 tracking-widest">Dòng tiêu đề (Header Row)</label>
                     <input type="number" v-model="headerRow" min="1" class="w-full bg-soft-pink/5 p-4 rounded-2xl font-bold text-sm border-none ring-1 ring-primary/10 focus:ring-primary/40 outline-none" @change="updateMasterHeader" />
-                    <p class="text-[10px] text-gray-400 italic ml-2">* Vị trí dòng chứa tên các cột (thường là 1).</p>
+                    <p class="text-xs text-gray-400 italic ml-2">* Vị trí dòng chứa tên các cột (thường là 1).</p>
                 </div>
             </div>
 
