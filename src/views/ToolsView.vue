@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import FormatConverter from '../components/tools/FormatConverter.vue';
 import PdfOcrTools from '../components/tools/PdfOcrTools.vue';
 import ExcelMerger from '../components/tools/ExcelMerger.vue';
@@ -12,6 +12,7 @@ import { authStore } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
 
 const route = useRoute();
+const router = useRouter();
 
 // Active tool and utility tabs
 const activeToolId = ref<string | null>(null);
@@ -176,6 +177,19 @@ watch(allowedStaffTools, (newVal) => {
             activeUtilityTab.value = firstAllowed;
         }
     }
+});
+
+// Synchronize state to URL query parameter
+watch([activeToolId, activeUtilityTab], ([newTool, newUtil]) => {
+    const query: any = {};
+    if (newTool) {
+        if (newTool === 'utilities' && newUtil) {
+            query.tool = newUtil;
+        } else {
+            query.tool = newTool;
+        }
+    }
+    router.replace({ path: '/tools', query });
 });
 </script>
 
