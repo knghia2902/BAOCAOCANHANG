@@ -60,6 +60,13 @@ const editDepartureTime = ref('');
 const editKhaiHethong = ref('');
 const editLastPort = ref('');
 const activeSite = ref<'NguyenNgoc' | 'PhuMy'>('NguyenNgoc');
+const isSiteDropdownOpen = ref(false);
+const siteDropdownRef = ref<HTMLElement | null>(null);
+const selectSite = (site: 'NguyenNgoc' | 'PhuMy') => {
+    activeSite.value = site;
+    activeBargeId.value = null;
+    isSiteDropdownOpen.value = false;
+};
 const showAddBargeModal = ref(false);
 const newBargeName = ref('');
 const editGcnImages = ref<string[]>([]);
@@ -1087,8 +1094,11 @@ async function handleExcelImport(event: Event) {
     }
 }
 
-const handleOutsideClick = () => {
+const handleOutsideClick = (event: MouseEvent) => {
     activePopover.value = null;
+    if (isSiteDropdownOpen.value && siteDropdownRef.value && !siteDropdownRef.value.contains(event.target as Node)) {
+        isSiteDropdownOpen.value = false;
+    }
 };
 
 onMounted(() => {
@@ -1123,20 +1133,44 @@ onUnmounted(() => {
                         </h1>
                     </div>
                     
-                    <!-- Tabs site switcher (Dropdown) -->
-                    <div class="relative min-w-[180px] flex items-center">
-                        <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm pointer-events-none">
-                            {{ activeSite === 'NguyenNgoc' ? 'sailing' : 'location_on' }}
-                        </span>
-                        <select 
-                            v-model="activeSite"
-                            @change="activeBargeId = null"
-                            class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-black focus:outline-none focus:border-primary cursor-pointer appearance-none shadow-sm text-gray-700"
+                    <!-- Tabs site switcher (Custom Dropdown) -->
+                    <div ref="siteDropdownRef" class="relative min-w-[190px]">
+                        <button 
+                            @click="isSiteDropdownOpen = !isSiteDropdownOpen"
+                            class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-black focus:outline-none text-left flex items-center text-gray-700 shadow-sm hover:border-gray-300 transition-colors select-none"
                         >
-                            <option value="NguyenNgoc">Cảng Nguyên Ngọc</option>
-                            <option value="PhuMy">Khu vực Phú Mỹ</option>
-                        </select>
-                        <span class="material-symbols-outlined absolute right-3 text-gray-400 text-sm pointer-events-none">expand_more</span>
+                            <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">
+                                {{ activeSite === 'NguyenNgoc' ? 'sailing' : 'location_on' }}
+                            </span>
+                            <span>{{ activeSite === 'NguyenNgoc' ? 'Cảng Nguyên Ngọc' : 'Khu vực Phú Mỹ' }}</span>
+                            <span 
+                                class="material-symbols-outlined absolute right-3 text-gray-400 text-sm transition-transform duration-200"
+                                :class="{ 'rotate-180': isSiteDropdownOpen }"
+                            >
+                                expand_more
+                            </span>
+                        </button>
+                        
+                        <!-- Dropdown list -->
+                        <div 
+                            v-if="isSiteDropdownOpen"
+                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded-[12px] shadow-lg py-1 z-50 overflow-hidden"
+                        >
+                            <div 
+                                @click="selectSite('NguyenNgoc')"
+                                :class="['px-3 py-2 text-xs font-black flex items-center gap-2 cursor-pointer transition-colors select-none', activeSite === 'NguyenNgoc' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                            >
+                                <span class="material-symbols-outlined text-sm">sailing</span>
+                                Cảng Nguyên Ngọc
+                            </div>
+                            <div 
+                                @click="selectSite('PhuMy')"
+                                :class="['px-3 py-2 text-xs font-black flex items-center gap-2 cursor-pointer transition-colors select-none', activeSite === 'PhuMy' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                            >
+                                <span class="material-symbols-outlined text-sm">location_on</span>
+                                Khu vực Phú Mỹ
+                            </div>
+                        </div>
                     </div>
                 </div>
 
