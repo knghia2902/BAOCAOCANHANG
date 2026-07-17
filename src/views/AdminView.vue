@@ -494,9 +494,39 @@ onMounted(async () => {
 
 
 <template>
-    <div class="min-h-screen bg-[#FDF2F5] flex font-display text-[#1b0d11] p-6 gap-6">
-        <!-- Sidebar -->
-        <aside class="w-72 bg-white rounded-[3rem] shadow-xl flex flex-col p-8 z-30 border border-white/50 relative overflow-hidden">
+    <div class="min-h-screen bg-[#FDF2F5] flex flex-col lg:flex-row font-display text-[#1b0d11] p-4 lg:p-6 gap-4 lg:gap-6">
+        <!-- Top Navigation (Mobile Only) -->
+        <div class="flex lg:hidden flex-col gap-3 bg-white rounded-[2rem] p-4 shadow-md border border-white/50 shrink-0">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-10 rounded-full border border-soft-pink object-cover" />
+                    <div class="text-left">
+                        <h2 class="text-sm font-black text-primary leading-tight">{{ authStore.displayName }}</h2>
+                        <span class="text-[8px] font-black uppercase text-gray-400 tracking-wider">ADMIN MODE</span>
+                    </div>
+                </div>
+                <button @click="logout(); router.push('/login')" class="px-3 py-1.5 rounded-xl font-bold text-xs text-red-500 hover:bg-red-50 flex items-center gap-1.5 transition-all">
+                    <span class="material-symbols-outlined text-sm">logout</span> Đăng xuất
+                </button>
+            </div>
+            <div class="h-px bg-gray-100 my-0.5"></div>
+            <div class="flex overflow-x-auto gap-2 scrollbar-none whitespace-nowrap pb-0.5">
+                <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts']" :key="tab"
+                    @click="currentTab = tab"
+                    :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shrink-0', currentTab === tab ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150']"
+                >
+                    <span class="material-symbols-outlined text-sm">
+                        {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : 'group' }}
+                    </span>
+                    <span>
+                        {{ tab === 'about' ? 'Giới thiệu' : tab === 'accounts' ? 'Quyền Hạn' : tab === 'messages' ? 'Tin nhắn' : 'Thống kê' }}
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar (Desktop Only) -->
+        <aside class="hidden lg:flex w-72 bg-white rounded-[3rem] shadow-xl flex-col p-8 z-30 border border-white/50 relative overflow-hidden shrink-0">
             <div class="flex flex-col items-center mb-12">
                 <div class="relative mb-4 group">
                     <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-24 rounded-full border-4 border-white shadow-xl object-cover transition-transform" />
@@ -528,10 +558,10 @@ onMounted(async () => {
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-10 overflow-y-auto">
-            <header class="flex justify-between items-center mb-10">
-                <div>
-                    <h2 class="text-3xl font-display font-black">Welcome back, Admin!</h2>
+        <main class="flex-1 p-2 lg:p-10 overflow-y-auto min-w-0">
+            <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 lg:mb-10 gap-4">
+                <div class="text-left">
+                    <h2 class="text-2xl lg:text-3xl font-display font-black">Welcome back, Admin!</h2>
                     <p class="text-gray-400 font-medium">Ready to sprinkle some more magic today? ✨</p>
                 </div>
 
