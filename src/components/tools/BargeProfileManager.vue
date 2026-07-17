@@ -1388,17 +1388,19 @@ onUnmounted(() => {
                                     </td>
                                     <td class="px-3 py-2.5 text-center flex items-center justify-center gap-1.5">
                                         <button 
-                                            @click="openEdit(item)" 
-                                            class="px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm"
+                                            @click="openEdit(item)"
+                                            class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
+                                            title="Chỉnh sửa hồ sơ"
                                         >
-                                            Chỉnh sửa
+                                            <span class="material-symbols-outlined text-base">edit</span>
                                         </button>
                                         <button 
                                             v-if="activeSite === 'PhuMy'"
-                                            @click="deletePhuMyBarge(item.barge)" 
-                                            class="px-2.5 py-1 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-600 font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5"
+                                            @click="deletePhuMyBarge(item.barge)"
+                                            class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
+                                            title="Xóa sà lan"
                                         >
-                                            Xóa
+                                            <span class="material-symbols-outlined text-base">delete</span>
                                         </button>
                                     </td>
                                 </tr>
