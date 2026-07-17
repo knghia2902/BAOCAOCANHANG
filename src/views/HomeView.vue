@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+
 import { authStore } from '../stores/auth';
+
 import { WeighbridgeService } from '../services/excel/WeighbridgeService';
 import { ContentService } from '../services/ContentService';
 
-const router = useRouter();
+
 
 const vessels = ref<any[]>([]);
 const loading = ref(true);
@@ -47,30 +48,7 @@ const allBarges = computed(() => {
     return list;
 });
 
-// Format current date
-const formattedDate = computed(() => {
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date().toLocaleDateString('vi-VN', options);
-});
 
-const navigateToTool = (tab: 'allocator' | 'printer' | 'vehicles', subView?: 'allocator' | 'vehicles' | 'goods', bargeId?: number, vesselId?: number) => {
-    if (subView) {
-        localStorage.setItem('home_redirect_subview', subView);
-    } else {
-        localStorage.removeItem('home_redirect_subview');
-    }
-    if (bargeId && vesselId) {
-        localStorage.setItem('home_redirect_barge_id', String(bargeId));
-        localStorage.setItem('home_redirect_vessel_id', String(vesselId));
-    }
-    
-    const routeMap = {
-        allocator: '/tools/allocator',
-        printer: '/tools/printer',
-        vehicles: '/tools/vehicles'
-    };
-    router.push(routeMap[tab]);
-};
 
 const loadToolsConfig = async () => {
     loadingTools.value = true;
@@ -82,6 +60,20 @@ const loadToolsConfig = async () => {
     loadingTools.value = false;
 };
 
+// Format current date
+const formattedDate = computed(() => {
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date().toLocaleDateString('vi-VN', options);
+});
+
+// Greeting based on time of day
+const greeting = computed(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Chào buổi sáng';
+    if (hour < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
+});
+
 watch(() => [authStore.isAuthenticated, authStore.role], async () => {
     await loadToolsConfig();
 }, { immediate: true });
@@ -92,142 +84,230 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="flex-1 w-[95%] max-w-[1200px] mx-auto py-8 flex flex-col gap-6 no-print">
-        <!-- Welcome Banner -->
-        <div class="bg-gradient-to-r from-soft-rose to-primary/10 rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-soft-pink/40 text-left relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <!-- Decorative bg -->
-            <div class="absolute -right-10 -bottom-10 text-primary/5 select-none pointer-events-none">
-                <span class="material-symbols-outlined text-[200px]">directions_boat</span>
-            </div>
-            
-            <div class="relative z-10 space-y-2">
-                <span class="text-xs font-black text-primary uppercase tracking-widest bg-white/60 px-3 py-1 rounded-full border border-soft-pink/30">HỆ THỐNG VẬN HÀNH</span>
-                <h2 class="text-xl md:text-3xl font-display font-black text-[#1e293b] mt-2">
-                    Chào buổi sáng, {{ authStore.displayName }}! ✨
-                </h2>
-                <p class="text-xs md:text-sm font-medium text-[#1b0d11]/60">
-                    Chào mừng bạn quay trở lại. Hôm nay là <span class="font-bold text-[#1e293b]">{{ formattedDate }}</span>.
-                </p>
-            </div>
-            
-            <!-- Buttons removed as requested -->
+    <!-- Floating decorations -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div class="absolute top-[15%] left-[10%] text-strawberry-cream floating-1 twinkle opacity-40">
+            <span class="material-symbols-outlined text-4xl">colors_spark</span>
         </div>
-
-        <!-- Quick Stats Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 flex items-center gap-4 text-left">
-                <div class="size-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center flex-shrink-0 border border-primary/10">
-                    <span class="material-symbols-outlined text-xl">directions_boat</span>
-                </div>
-                <div>
-                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Quản lý tàu</p>
-                    <h4 class="text-xl font-black text-[#1e293b] mt-0.5">
-                        {{ loading ? '...' : vessels.length }}
-                        <span class="text-xs text-gray-400 font-bold ml-0.5">tàu đang làm hàng</span>
-                    </h4>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 flex items-center gap-4 text-left">
-                <div class="size-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center flex-shrink-0 border border-teal-100">
-                    <span class="material-symbols-outlined text-xl">layers</span>
-                </div>
-                <div>
-                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Tổng số sà lan</p>
-                    <h4 class="text-xl font-black text-teal-600 mt-0.5">
-                        {{ loading ? '...' : allBarges.length }}
-                        <span class="text-xs text-gray-400 font-bold ml-0.5">sà lan được lập</span>
-                    </h4>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 flex items-center gap-4 text-left">
-                <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center flex-shrink-0 border border-amber-100">
-                    <span class="material-symbols-outlined text-xl">lock_open</span>
-                </div>
-                <div>
-                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Đang mở khóa</p>
-                    <h4 class="text-xl font-black text-amber-600 mt-0.5">
-                        {{ loading ? '...' : allBarges.filter(b => !b.locked).length }}
-                        <span class="text-xs text-gray-400 font-bold ml-0.5">sà lan nhận đồng bộ</span>
-                    </h4>
-                </div>
-            </div>
+        <div class="absolute bottom-[20%] right-[15%] text-strawberry-cream floating-2 twinkle opacity-40">
+            <span class="material-symbols-outlined text-5xl">anchor</span>
         </div>
-
-        <!-- Main Dashboard Section: Utilities Grid -->
-        <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-150 flex flex-col text-left">
-            <h3 class="text-sm font-black text-[#1e293b] flex items-center gap-2 mb-6">
-                <span class="material-symbols-outlined text-primary text-base font-black">dashboard_customize</span>
-                Tiện ích hệ thống
-            </h3>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6" v-if="!loadingTools">
-                <!-- Utility 1: In phiếu nhanh -->
-                <div 
-                    v-if="allowedTools.includes('weighbridge')"
-                    @click="navigateToTool('printer')"
-                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
-                >
-                    <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-soft shrink-0">
-                        <span class="material-symbols-outlined text-xl font-black">print</span>
-                    </div>
-                    <div>
-                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">DASHBOARD</h4>
-                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.</p>
-                    </div>
-                </div>
-
-                <!-- Utility 2: Phân bổ tải trọng sà lan -->
-                <div 
-                    v-if="allowedTools.includes('allocator')"
-                    @click="navigateToTool('allocator')"
-                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-primary/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
-                >
-                    <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-soft shrink-0">
-                        <span class="material-symbols-outlined text-xl font-black">shuffle</span>
-                    </div>
-                    <div>
-                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">Dữ liệu cân hàng</h4>
-                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.</p>
-                    </div>
-                </div>
-
-                <!-- Utility 3: Quản lý hồ sơ phương tiện -->
-                <div 
-                    v-if="allowedTools.includes('vehicles')"
-                    @click="navigateToTool('vehicles')"
-                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
-                >
-                    <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-soft shrink-0 border border-amber-100">
-                        <span class="material-symbols-outlined text-xl font-black">local_shipping</span>
-                    </div>
-                    <div>
-                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-[#b27218] transition-colors">Quản lý hồ sơ phương tiện</h4>
-                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Quản lý và đồng bộ danh sách biển số xe và số moóc.</p>
-                    </div>
-                </div>
-                
-                <!-- Utility 4: Quản trị tài khoản -->
-                <div 
-                    v-if="authStore.role === 'admin'"
-                    @click="router.push('/admin')"
-                    class="p-6 bg-[#f1f5f9] hover:bg-[#e2ecfc] rounded-[2rem] border border-transparent hover:border-amber-600/15 transition-all cursor-pointer flex flex-col justify-between h-[185px] group relative overflow-hidden"
-                >
-                    <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-soft shrink-0 border border-amber-100">
-                        <span class="material-symbols-outlined text-xl font-black">settings_applications</span>
-                    </div>
-                    <div>
-                        <h4 class="font-black text-xs text-[#1e293b] group-hover:text-[#b27218] transition-colors">Quản trị tài khoản</h4>
-                        <p class="text-xs text-gray-400 font-bold mt-1 leading-normal">Tạo mới, đổi mật khẩu và quản lý tài khoản nhân viên.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="border-t border-dashed border-primary/10 pt-4 mt-8 text-xs text-gray-400 font-bold flex items-center justify-between">
-                <span>Đám mây kết nối: <span class="text-emerald-500">Đã đồng bộ</span></span>
-                <span>Phiên bản v1.2.0</span>
-            </div>
+        <div class="absolute top-[60%] left-[5%] text-strawberry-cream floating-1 twinkle opacity-20" style="animation-delay: 2s">
+            <span class="material-symbols-outlined text-6xl">flare</span>
+        </div>
+        <div class="absolute top-[40%] right-[10%] text-strawberry-cream floating-2 twinkle opacity-30" style="animation-delay: 1s">
+            <span class="material-symbols-outlined text-3xl">magic_button</span>
         </div>
     </div>
+
+    <main class="flex-1 flex flex-col max-w-[1200px] mx-auto px-4 md:px-10 pb-20 w-full pt-10">
+        <!-- Hero Section -->
+        <section class="flex flex-col-reverse lg:flex-row items-center justify-between py-16 lg:py-24 gap-12">
+            <div class="flex flex-col gap-8 flex-1 text-center lg:text-left">
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-2 justify-center lg:justify-start">
+                        <span class="text-primary font-bold tracking-widest uppercase text-xs">Hệ thống vận hành</span>
+                        <span class="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+                    </div>
+                    <h1 class="text-5xl md:text-7xl font-bold leading-[1.1] tracking-tight text-[#1e293b]">
+                        {{ greeting }}, {{ authStore.displayName }}! ✨
+                    </h1>
+                    <p class="text-lg md:text-xl text-[#1e293b]/60 max-w-xl mx-auto lg:mx-0 font-medium whitespace-pre-line">
+                        Hôm nay là <span class="font-bold text-[#1e293b]">{{ formattedDate }}</span>.
+                        Hệ thống sẵn sàng phục vụ bạn.
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-4 justify-center lg:justify-start">
+                    <router-link to="/tools" class="min-w-[180px] h-14 flex items-center justify-center rounded-full bg-primary text-white font-bold text-lg glow-primary hover:translate-y-[-2px] transition-all">
+                        Mở công cụ
+                    </router-link>
+                    <router-link v-if="authStore.role === 'admin'" to="/admin" class="min-w-[180px] h-14 flex items-center justify-center rounded-full border-2 border-strawberry-cream font-bold text-lg hover:bg-white/50 transition-all text-primary">
+                        Quản trị
+                    </router-link>
+                </div>
+            </div>
+            <div class="relative flex-1 flex justify-center items-center">
+                <div class="absolute -top-10 right-10 text-primary floating-1">
+                    <span class="material-symbols-outlined text-4xl">directions_boat</span>
+                </div>
+                <div class="absolute -bottom-10 left-0 text-strawberry-cream floating-2">
+                    <span class="material-symbols-outlined text-5xl">auto_awesome</span>
+                </div>
+                <div class="absolute top-20 -left-10 text-primary/60 floating-1" style="animation-delay: 1s;">
+                    <span class="material-symbols-outlined text-3xl">star_rate</span>
+                </div>
+                <div class="relative size-[320px] md:size-[400px] blob-shape bg-primary/10 flex items-center justify-center p-6 overflow-hidden shadow-2xl glow-primary">
+                    <!-- Stats inside blob -->
+                    <div class="flex flex-col items-center gap-4 text-center z-10">
+                        <span class="material-symbols-outlined text-primary text-6xl">sailing</span>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-5xl font-black text-primary">{{ loading ? '...' : vessels.length }}</span>
+                            <span class="text-sm font-bold text-[#1e293b]/60">tàu đang làm hàng</span>
+                        </div>
+                        <div class="flex gap-6 mt-2">
+                            <div class="flex flex-col items-center">
+                                <span class="text-2xl font-black text-teal-600">{{ loading ? '...' : allBarges.length }}</span>
+                                <span class="text-[10px] font-bold text-[#1e293b]/50">sà lan</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-2xl font-black text-amber-600">{{ loading ? '...' : allBarges.filter(b => !b.locked).length }}</span>
+                                <span class="text-[10px] font-bold text-[#1e293b]/50">đang mở</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Toolkit Section -->
+        <section class="py-10 bg-white/20 rounded-xl backdrop-blur-sm border border-white/40 mb-20">
+            <div class="flex flex-col items-center gap-4 mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-center text-[#1e293b]">Tiện ích hệ thống</h2>
+                <div class="h-1.5 w-24 bg-primary rounded-full glow-primary"></div>
+            </div>
+            <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4" v-if="!loadingTools">
+                <!-- Dashboard / Báo cáo tổng quan -->
+                <router-link
+                    v-if="allowedTools.includes('weighbridge')"
+                    to="/tools/printer"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">print</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Dashboard</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Dữ liệu cân hàng -->
+                <router-link
+                    v-if="allowedTools.includes('allocator')"
+                    to="/tools/allocator"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">shuffle</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Cân hàng</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Quản lý hồ sơ phương tiện -->
+                <router-link
+                    v-if="allowedTools.includes('vehicles')"
+                    to="/tools/vehicles"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Phương tiện</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Biên bản sà lan -->
+                <router-link
+                    to="/tools?tool=minutes"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">description</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Biên bản</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Bộ công cụ Excel/PDF -->
+                <router-link
+                    to="/tools?tool=utilities"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">construction</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Excel & PDF</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Admin panel -->
+                <router-link
+                    v-if="authStore.role === 'admin'"
+                    to="/admin"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">settings_applications</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Quản trị</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+            </div>
+        </section>
+
+        <!-- Quick Stats Section -->
+        <section class="py-10">
+            <div class="flex items-center justify-between mb-10 px-4">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#1e293b]">Tổng quan hệ thống</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
+                <!-- Stat Card 1: Vessels -->
+                <div class="bg-white rounded-[2rem] p-6 pb-8 text-center border border-primary/5 hover:-translate-y-2 transition-transform duration-300 shadow-sm hover:shadow-xl flex flex-col items-center">
+                    <div class="relative w-full aspect-[4/3] rounded-[1.5rem] overflow-hidden mb-4 flex items-center justify-center bg-primary/5">
+                        <span class="material-symbols-outlined text-primary text-7xl opacity-20">directions_boat</span>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-6xl font-black text-primary">{{ loading ? '...' : vessels.length }}</span>
+                        </div>
+                    </div>
+                    <div class="inline-block px-4 py-1.5 bg-primary/10 rounded-full mb-4">
+                        <span class="text-xs font-bold text-primary uppercase tracking-wider">Đang hoạt động</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2 text-primary">Tàu hàng</h3>
+                    <p class="text-[#1e293b]/60 font-medium leading-relaxed max-w-sm mx-auto">Số tàu đang thực hiện xếp dỡ hàng hóa tại cảng.</p>
+                </div>
+
+                <!-- Stat Card 2: Barges -->
+                <div class="bg-white rounded-[2rem] p-6 pb-8 text-center border border-teal-600/5 hover:-translate-y-2 transition-transform duration-300 shadow-sm hover:shadow-xl flex flex-col items-center">
+                    <div class="relative w-full aspect-[4/3] rounded-[1.5rem] overflow-hidden mb-4 flex items-center justify-center bg-teal-50">
+                        <span class="material-symbols-outlined text-teal-600 text-7xl opacity-20">layers</span>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-6xl font-black text-teal-600">{{ loading ? '...' : allBarges.length }}</span>
+                        </div>
+                    </div>
+                    <div class="inline-block px-4 py-1.5 bg-teal-50 rounded-full mb-4">
+                        <span class="text-xs font-bold text-teal-600 uppercase tracking-wider">Đã lập</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2 text-teal-600">Sà lan</h3>
+                    <p class="text-[#1e293b]/60 font-medium leading-relaxed max-w-sm mx-auto">Tổng số sà lan đã được lập hồ sơ trong hệ thống.</p>
+                </div>
+
+                <!-- Stat Card 3: Unlocked -->
+                <div class="bg-white rounded-[2rem] p-6 pb-8 text-center border border-amber-600/5 hover:-translate-y-2 transition-transform duration-300 shadow-sm hover:shadow-xl flex flex-col items-center">
+                    <div class="relative w-full aspect-[4/3] rounded-[1.5rem] overflow-hidden mb-4 flex items-center justify-center bg-amber-50">
+                        <span class="material-symbols-outlined text-amber-600 text-7xl opacity-20">lock_open</span>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-6xl font-black text-amber-600">{{ loading ? '...' : allBarges.filter(b => !b.locked).length }}</span>
+                        </div>
+                    </div>
+                    <div class="inline-block px-4 py-1.5 bg-amber-50 rounded-full mb-4">
+                        <span class="text-xs font-bold text-amber-600 uppercase tracking-wider">Đồng bộ</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2 text-amber-600">Đang mở khóa</h3>
+                    <p class="text-[#1e293b]/60 font-medium leading-relaxed max-w-sm mx-auto">Sà lan đang nhận đồng bộ dữ liệu từ đám mây.</p>
+                </div>
+            </div>
+        </section>
+    </main>
 </template>
