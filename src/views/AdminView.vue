@@ -296,23 +296,6 @@ const loadAccounts = async () => {
     accountsList.value = await ContentService.loadAccounts();
 };
 
-const handleAccountAvatarUpload = async (e: Event, isEdit: boolean) => {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
-        triggerToast('Đang tải ảnh đại diện lên... ⏳');
-        const url = await StorageService.uploadImage(target.files[0], 'avatars');
-        if (url) {
-            if (isEdit) {
-                editAccountForm.value.avatar = url;
-            } else {
-                accountForm.value.avatar = url;
-            }
-            triggerToast('Ảnh đại diện đã được tải lên! ✨');
-        } else {
-            triggerToast('Tải ảnh thất bại.');
-        }
-    }
-};
 
 const openCreateAccountModal = () => {
     accountForm.value = {
@@ -1340,16 +1323,7 @@ onMounted(async () => {
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Ảnh Đại Diện (Tùy chọn)</label>
-                            <input type="file" accept="image/*" @change="handleAccountAvatarUpload($event, false)" class="w-full bg-[#fcf8f9] p-4.5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
-                        </div>
-                        <div v-if="accountForm.avatar" class="flex items-center gap-2 mt-4 ml-2">
-                            <img :src="accountForm.avatar" class="size-12 rounded-full border-2 border-primary/20 object-cover" />
-                            <button @click="accountForm.avatar = ''" class="text-[10px] font-black text-red-500 hover:underline">Xóa</button>
-                        </div>
-                    </div>
+
 
                     <button @click="handleCreateAccount" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Xác Nhận Tạo ✨</button>
                 </div>
