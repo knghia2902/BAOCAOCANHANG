@@ -498,12 +498,25 @@ const actionPermissionsMapping = {
   minutes: [
     { name: 'Lập biên bản làm hàng sà lan', permId: 'min_create', showView: true, showCreate: true, showUpdate: true, showDelete: true },
     { name: 'Xuất bộ biên bản ra Excel', permId: 'min_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+  ],
+  utilities: [
+    { name: 'Chuyển Đổi Định Dạng File', permId: 'converter', showView: true, showCreate: false, showUpdate: false, showDelete: false },
+    { name: 'Gộp Excel Thông Minh', permId: 'merger', showView: true, showCreate: false, showUpdate: false, showDelete: false },
+    { name: 'Trích Xuất PDF & OCR', permId: 'ocr', showView: true, showCreate: false, showUpdate: false, showDelete: false }
   ]
 };
 
 const isActionPermChecked = (role: string, subsystem: string, permId: string, actionType: 'read' | 'create' | 'update' | 'delete') => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return false;
+    
+    // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools
+    if (subsystem === 'utilities') {
+        if (actionType === 'read') {
+            return roleConfig.tools.includes(permId);
+        }
+        return false;
+    }
     
     // If parent subsystem is not enabled, child permissions must be false
     if (!roleConfig.tools.includes(subsystem)) {
@@ -636,6 +649,19 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, actio
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
     
+    // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools
+    if (subsystem === 'utilities') {
+        if (actionType !== 'read') return;
+        const index = roleConfig.tools.indexOf(permId);
+        if (index >= 0) {
+            roleConfig.tools.splice(index, 1);
+        } else {
+            roleConfig.tools.push(permId);
+        }
+        handleSubsystemCheckboxChange(role, 'utilities');
+        return;
+    }
+    
     // Automatically enable subsystem tool if not enabled
     if (!roleConfig.tools.includes(subsystem)) {
         roleConfig.tools.push(subsystem);
@@ -690,17 +716,7 @@ const enabledActionSubsystems = computed(() => {
     return list;
 });
 
-const toggleUtilitySubTool = (role: string, toolId: string) => {
-    const roleConfig = rolePermissions.value[role];
-    if (!roleConfig || !roleConfig.tools) return;
-    
-    const index = roleConfig.tools.indexOf(toolId);
-    if (index >= 0) {
-        roleConfig.tools.splice(index, 1);
-    } else {
-        roleConfig.tools.push(toolId);
-    }
-};
+
 
 const getSubsystemName = (id: string) => {
     const t = allToolsWithMinutes.find(tool => tool.id === id);
@@ -1386,7 +1402,7 @@ onMounted(async () => {
                                     </span>
                                 </div>
                                 
-                                <div v-if="subsystem !== 'utilities'" class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                                     <table class="w-full border-collapse">
                                         <thead>
                                             <tr class="bg-slate-50 border-b border-gray-150 text-left">
@@ -1470,26 +1486,6 @@ onMounted(async () => {
                                             </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                
-                                <div v-else class="bg-white rounded-2xl border border-gray-200 p-5 space-y-3.5 shadow-sm">
-                                    <div v-for="sub in [
-                                        { id: 'converter', name: 'Chuyển Đổi Định Dạng File', desc: 'Chuyển đổi PDF, Word, Excel, ảnh trực tiếp trong trình duyệt' },
-                                        { id: 'merger', name: 'Gộp Excel Thông Minh', desc: 'Gộp các file Excel báo cáo cân hàng, báo cáo sản lượng nhanh chóng' },
-                                        { id: 'ocr', name: 'Trích Xuất PDF & OCR', desc: 'Nhận diện văn bản hình ảnh, quét OCR tài liệu và trích xuất dữ liệu' }
-                                    ]" :key="sub.id" class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-gray-100 hover:border-primary/20 transition-all select-none">
-                                        <div class="flex flex-col gap-0.5 text-left pr-4">
-                                            <span class="font-black text-xs text-slate-700">{{ sub.name }}</span>
-                                            <span class="text-[10px] font-bold text-gray-400 leading-normal">{{ sub.desc }}</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox"
-                                                :checked="rolePermissions[selectedRoleToConfigure]!.tools.includes(sub.id)"
-                                                @change="toggleUtilitySubTool(selectedRoleToConfigure, sub.id)"
-                                                class="sr-only peer" />
-                                            <div class="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                        </label>
-                                    </div>
                                 </div>
                             </div>
                         </div>
