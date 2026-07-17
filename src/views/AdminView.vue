@@ -679,10 +679,28 @@ const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role 
 const enabledActionSubsystems = computed(() => {
     const config = rolePermissions.value[selectedRoleToConfigure.value];
     if (!config || !config.tools) return [];
-    return allToolsWithMinutes
-        .map(t => t.id)
-        .filter(id => config.tools.includes(id) && (id in actionPermissionsMapping));
+    const list: string[] = [];
+    if (config.tools.includes('weighbridge')) list.push('weighbridge');
+    if (config.tools.includes('allocator')) list.push('allocator');
+    if (config.tools.includes('vehicles')) list.push('vehicles');
+    if (config.tools.includes('minutes')) list.push('minutes');
+    if (isSubsystemChecked(selectedRoleToConfigure.value, 'utilities')) {
+        list.push('utilities');
+    }
+    return list;
 });
+
+const toggleUtilitySubTool = (role: string, toolId: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig || !roleConfig.tools) return;
+    
+    const index = roleConfig.tools.indexOf(toolId);
+    if (index >= 0) {
+        roleConfig.tools.splice(index, 1);
+    } else {
+        roleConfig.tools.push(toolId);
+    }
+};
 
 const getSubsystemName = (id: string) => {
     const t = allToolsWithMinutes.find(tool => tool.id === id);
@@ -1361,14 +1379,14 @@ onMounted(async () => {
                             <div v-for="subsystem in enabledActionSubsystems" :key="subsystem" class="space-y-2.5 text-left animate-fade-in">
                                 <div class="flex items-center gap-2 px-1">
                                     <span class="material-symbols-outlined text-base text-primary">
-                                        {{ subsystem === 'weighbridge' ? 'print' : subsystem === 'allocator' ? 'shuffle' : subsystem === 'vehicles' ? 'local_shipping' : 'description' }}
+                                        {{ subsystem === 'weighbridge' ? 'print' : subsystem === 'allocator' ? 'shuffle' : subsystem === 'vehicles' ? 'local_shipping' : subsystem === 'minutes' ? 'description' : 'construction' }}
                                     </span>
                                     <span class="text-xs font-black text-slate-700 uppercase tracking-wide">
                                         {{ getSubsystemName(subsystem) }}
                                     </span>
                                 </div>
                                 
-                                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                                <div v-if="subsystem !== 'utilities'" class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                                     <table class="w-full border-collapse">
                                         <thead>
                                             <tr class="bg-slate-50 border-b border-gray-150 text-left">
@@ -1452,6 +1470,26 @@ onMounted(async () => {
                                             </tr>
                                         </tbody>
                                     </table>
+                                </div>
+                                
+                                <div v-else class="bg-white rounded-2xl border border-gray-200 p-5 space-y-3.5 shadow-sm">
+                                    <div v-for="sub in [
+                                        { id: 'converter', name: 'Chuyển Đổi Định Dạng File', desc: 'Chuyển đổi PDF, Word, Excel, ảnh trực tiếp trong trình duyệt' },
+                                        { id: 'merger', name: 'Gộp Excel Thông Minh', desc: 'Gộp các file Excel báo cáo cân hàng, báo cáo sản lượng nhanh chóng' },
+                                        { id: 'ocr', name: 'Trích Xuất PDF & OCR', desc: 'Nhận diện văn bản hình ảnh, quét OCR tài liệu và trích xuất dữ liệu' }
+                                    ]" :key="sub.id" class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-gray-100 hover:border-primary/20 transition-all select-none">
+                                        <div class="flex flex-col gap-0.5 text-left pr-4">
+                                            <span class="font-black text-xs text-slate-700">{{ sub.name }}</span>
+                                            <span class="text-[10px] font-bold text-gray-400 leading-normal">{{ sub.desc }}</span>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox"
+                                                :checked="rolePermissions[selectedRoleToConfigure]!.tools.includes(sub.id)"
+                                                @change="toggleUtilitySubTool(selectedRoleToConfigure, sub.id)"
+                                                class="sr-only peer" />
+                                            <div class="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
