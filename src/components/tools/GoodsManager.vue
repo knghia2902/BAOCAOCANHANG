@@ -415,14 +415,14 @@ const clearAll = async () => {
                                 <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2 px-4 text-center flex items-center justify-center gap-1.5">
                                     <button v-if="authStore.role === 'admin' || canUpdate()"
                                         @click="editItem(idx)"
-                                        class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                         title="Chỉnh sửa"
                                     >
                                         <span class="material-symbols-outlined text-[12px]">edit</span>
                                     </button>
                                     <button v-if="authStore.role === 'admin' || canDelete()"
                                         @click="deleteItem(idx)"
-                                        class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                         title="Xóa"
                                     >
                                         <span class="material-symbols-outlined text-[12px]">delete</span>
