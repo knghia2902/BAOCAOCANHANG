@@ -166,7 +166,7 @@ export const canDelete = () => {
     return perm ? perm.canDelete : false;
 };
 
-export const hasDetailPermission = (toolId: string, permissionId: string, _action?: string): boolean => {
+export const hasDetailPermission = (toolId: string, permissionId: string, action?: string): boolean => {
     if (!authStore.isAuthenticated) return false;
     if (authStore.role === 'admin') return true;
     const perm = authStore.rolePermissions?.[authStore.role || ''];
@@ -175,7 +175,18 @@ export const hasDetailPermission = (toolId: string, permissionId: string, _actio
     if (!perm.detailPermissions) return true;
     const toolPerms = perm.detailPermissions[toolId];
     if (!toolPerms) return true;
-    return toolPerms.includes(permissionId);
+    
+    // Backwards compatibility: if bare permissionId is present, all actions are allowed
+    if (toolPerms.includes(permissionId)) {
+        return true;
+    }
+    
+    if (action) {
+        const act = action === 'read' ? 'read' : action === 'create' ? 'create' : action === 'update' ? 'update' : action === 'delete' ? 'delete' : action;
+        return toolPerms.includes(`${permissionId}:${act}`);
+    }
+    
+    return toolPerms.some(p => p.startsWith(`${permissionId}:`));
 };
 
 

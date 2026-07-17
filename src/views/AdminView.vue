@@ -516,29 +516,48 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
         if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
             return actionType === 'read';
         }
-        if (actionType === 'read') return true;
         return true;
     }
     
     const perms = roleConfig.detailPermissions[subsystem];
+    const specificPerm = `${permId}:${actionType}`;
     
-    if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
-        if (actionType === 'read') return perms.includes(permId);
-        return false;
+    // Backwards compatibility: if the bare permId is present in perms, it means all actions are enabled
+    if (perms.includes(permId)) {
+        if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
+            return actionType === 'read';
+        }
+        return true;
     }
-    if (actionType === 'read') return true;
-    return perms.includes(permId);
+    
+    return perms.includes(specificPerm);
 };
 
 const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
     if (subsystem === 'weighbridge') {
-        return ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'];
+        return [
+            'wb_vessel_manage:read', 'wb_vessel_manage:create', 'wb_vessel_manage:update', 'wb_vessel_manage:delete',
+            'wb_truck_manage:read', 'wb_truck_manage:create', 'wb_truck_manage:update', 'wb_truck_manage:delete',
+            'wb_print_export:read',
+            'wb_layout_config:read', 'wb_layout_config:create', 'wb_layout_config:update', 'wb_layout_config:delete'
+        ];
     } else if (subsystem === 'allocator') {
-        return ['al_barge_manage', 'al_rules_manage', 'al_export'];
+        return [
+            'al_barge_manage:read', 'al_barge_manage:create', 'al_barge_manage:update', 'al_barge_manage:delete',
+            'al_rules_manage:read', 'al_rules_manage:create', 'al_rules_manage:update', 'al_rules_manage:delete',
+            'al_export:read'
+        ];
     } else if (subsystem === 'vehicles') {
-        return ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'];
+        return [
+            'veh_barge_profile:read', 'veh_barge_profile:create', 'veh_barge_profile:update', 'veh_barge_profile:delete',
+            'veh_crew_profile:read', 'veh_crew_profile:create', 'veh_crew_profile:update', 'veh_crew_profile:delete',
+            'veh_registry_insurance:read', 'veh_registry_insurance:create', 'veh_registry_insurance:update', 'veh_registry_insurance:delete'
+        ];
     } else if (subsystem === 'minutes') {
-        return ['min_create', 'min_export'];
+        return [
+            'min_create:read', 'min_create:create', 'min_create:update', 'min_create:delete',
+            'min_export:read'
+        ];
     }
     return [];
 };
@@ -613,7 +632,7 @@ const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
     }
 };
 
-const toggleActionPerm = (role: string, subsystem: string, permId: string, _actionType: 'read' | 'create' | 'update' | 'delete') => {
+const toggleActionPerm = (role: string, subsystem: string, permId: string, actionType: 'read' | 'create' | 'update' | 'delete') => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
     
@@ -630,13 +649,26 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, _acti
         roleConfig.detailPermissions[subsystem] = getDefaultPermissionsForSubsystem(subsystem);
     }
     
-    const perms = [...roleConfig.detailPermissions[subsystem]];
-    const index = perms.indexOf(permId);
+    let perms = [...roleConfig.detailPermissions[subsystem]];
+    
+    // Backwards compatibility migration: if perms contains the bare permId (meaning all actions are enabled),
+    // expand it into the specific actions before toggling.
+    if (perms.includes(permId)) {
+        perms = perms.filter(p => p !== permId);
+        if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
+            perms.push(`${permId}:read`);
+        } else {
+            perms.push(`${permId}:read`, `${permId}:create`, `${permId}:update`, `${permId}:delete`);
+        }
+    }
+    
+    const specificPerm = `${permId}:${actionType}`;
+    const index = perms.indexOf(specificPerm);
     
     if (index >= 0) {
         perms.splice(index, 1);
     } else {
-        perms.push(permId);
+        perms.push(specificPerm);
     }
     
     roleConfig.detailPermissions[subsystem] = perms;
