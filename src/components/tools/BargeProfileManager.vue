@@ -887,7 +887,7 @@ async function exportToExcel() {
             const crewStatus = crew.status === 'ĐỦ' ? 'PHÙ HỢP' : 'KHÔNG PHÙ HỢP';
             row.getCell(11).value = crewStatus;
             
-            const ketluanVal = config.ketluan === "Cho phép" ? "CHO PHÉP" : (config.ketluan === "Không cho phép" ? "KHÔNG CHO PHÉP" : "KHÔNG ĐỦ HỒ SƠ");
+            const ketluanVal = (docStatus === 'ĐỦ' && crewStatus === 'PHÙ HỢP') ? "CHO PHÉP" : "KHÔNG CHO PHÉP";
             row.getCell(12).value = ketluanVal;
             
             if (docStatus === 'THIẾU') {
@@ -898,7 +898,7 @@ async function exportToExcel() {
             
             clearCellFill(row.getCell(11));
 
-            if (ketluanVal === 'KHÔNG ĐỦ HỒ SƠ') {
+            if (ketluanVal === 'KHÔNG CHO PHÉP') {
                 setCellFill(row.getCell(12), 'FFFF00');
             } else {
                 clearCellFill(row.getCell(12));
@@ -990,23 +990,28 @@ async function handleExcelImport(event: Event) {
             if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
                 return str.slice(0, 10);
             }
-            return str;
+            return (str === 'undefined' || str === 'null') ? '' : str;
         };
         
         const formatNumberCell = (cellValue: any): number | undefined => {
             if (cellValue === null || cellValue === undefined) return undefined;
             if (typeof cellValue === 'number') return cellValue;
             if (typeof cellValue === 'object' && typeof cellValue.result === 'number') return cellValue.result;
-            const parsed = parseFloat(String(cellValue).replace(/[^0-9.-]/g, ''));
+            const strVal = String(cellValue).trim();
+            if (strVal === 'undefined' || strVal === 'null') return undefined;
+            const parsed = parseFloat(strVal.replace(/[^0-9.-]/g, ''));
             return isNaN(parsed) ? undefined : parsed;
         };
         
         const formatStringCell = (cellValue: any): string => {
             if (cellValue === null || cellValue === undefined) return '';
+            let val = '';
             if (typeof cellValue === 'object' && cellValue.result !== undefined) {
-                return String(cellValue.result).trim();
+                val = String(cellValue.result).trim();
+            } else {
+                val = String(cellValue).trim();
             }
-            return String(cellValue).trim();
+            return (val === 'undefined' || val === 'null') ? '' : val;
         };
 
         const normalizeBargeName = (name: string): string => {
@@ -1372,10 +1377,8 @@ onUnmounted(() => {
                                         </div>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="item.barge.config?.ketluan === 'Cho phép'" class="inline-flex px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-xs font-black">Cho phép</span>
-                                        <span v-else-if="item.barge.config?.ketluan === 'Không cho phép'" class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-black">Không cho phép</span>
-                                        <span v-else-if="item.barge.config?.ketluan" class="text-gray-700 font-semibold">{{ item.barge.config.ketluan }}</span>
-                                        <span v-else class="text-gray-400 italic text-xs">-</span>
+                                        <span v-if="isDocComplete(item.barge.config || {}) && getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" class="inline-flex px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-xs font-black">Cho phép</span>
+                                        <span v-else class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-black">Không cho phép</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
                                         <span v-if="item.barge.config?.khaihethong === 'Có'" class="inline-flex px-2.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-xs font-black">Có</span>
