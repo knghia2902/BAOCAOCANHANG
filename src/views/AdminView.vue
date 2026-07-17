@@ -1221,8 +1221,8 @@ onMounted(async () => {
                                                 @change="handleSubsystemCheckboxChange(selectedRoleToConfigure, t.id)"
                                                 class="sr-only peer"
                                             />
-                                            <div class="size-6 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
-                                                <span class="material-symbols-outlined text-white text-base font-bold scale-90">check</span>
+                                            <div class="size-6 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center transition-all text-transparent peer-checked:text-white peer-checked:bg-primary peer-checked:border-primary">
+                                                <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
                                             </div>
                                         </label>
                                         
@@ -1243,7 +1243,7 @@ onMounted(async () => {
                         </div>
 
                         <!-- Actions Permissions Table -->
-                        <div v-if="actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" class="space-y-3.5 text-left animate-fade-in">
+                        <div v-if="rolePermissions[selectedRoleToConfigure]!.tools.includes(activeSubsystem) && actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" class="space-y-3.5 text-left animate-fade-in">
                             <h4 class="text-xs font-black text-gray-500 uppercase tracking-wider">Chi tiết quyền hạn thao tác (Actions Permissions)</h4>
                             
                             <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
