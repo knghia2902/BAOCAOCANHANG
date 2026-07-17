@@ -480,13 +480,75 @@ const loadStaffToolsConfig = async () => {
     staffToolsConfig.value = await ContentService.loadStaffTools();
 };
 
-const handleSaveStaffTools = async () => {
-    const success = await ContentService.saveStaffTools(staffToolsConfig.value);
+
+
+
+const rolePermissions = ref<Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>>({});
+const selectedRoleToConfigure = ref<string>('staff');
+const customRoleName = ref<string>('');
+
+const loadRolePermissionsConfig = async () => {
+    try {
+        rolePermissions.value = await ContentService.loadRolePermissions();
+        const roles = Object.keys(rolePermissions.value).filter(r => r !== 'admin');
+        if (roles.length > 0 && !roles.includes(selectedRoleToConfigure.value)) {
+            selectedRoleToConfigure.value = roles[0] || 'staff';
+        }
+    } catch (e) {
+        console.error('Failed to load role permissions:', e);
+    }
+};
+
+const handleSaveRolePermissions = async () => {
+    if (rolePermissions.value.staff) {
+        staffToolsConfig.value = rolePermissions.value.staff.tools;
+        await ContentService.saveStaffTools(staffToolsConfig.value);
+    }
+    const success = await ContentService.saveRolePermissions(rolePermissions.value);
     if (success) {
-        triggerToast('Cập nhật phân quyền hiển thị công cụ thành công! 🛠️');
-        await LogService.logAction('Phân quyền', 'Cập nhật phân quyền công cụ cho nhân viên');
+        triggerToast('Cập nhật phân quyền vai trò thành công! 🛠️');
+        await LogService.logAction('Phân quyền', 'Cập nhật phân quyền cho các vai trò');
     } else {
-        triggerToast('Có lỗi xảy ra khi lưu cấu hình.');
+        triggerToast('Có lỗi xảy ra khi lưu cấu hình vai trò.');
+    }
+};
+
+const handleCreateCustomRole = () => {
+    const name = customRoleName.value.trim().toLowerCase();
+    if (!name) {
+        triggerToast('Tên vai trò không được để trống!');
+        return;
+    }
+    if (name === 'admin') {
+        triggerToast('Không thể tạo vai trò trùng tên với Admin!');
+        return;
+    }
+    if (rolePermissions.value[name]) {
+        triggerToast('Vai trò này đã tồn tại!');
+        return;
+    }
+    
+    rolePermissions.value[name] = {
+        tools: ['converter', 'merger', 'ocr'],
+        canWrite: true,
+        canDelete: false
+    };
+    
+    selectedRoleToConfigure.value = name;
+    customRoleName.value = '';
+    triggerToast(`Đã tạo vai trò mới: ${name}! Hãy cấu hình công cụ bên dưới.`);
+};
+
+const handleDeleteCustomRole = (role: string) => {
+    if (role === 'staff' || role === 'admin' || role === 'operator' || role === 'viewer') {
+        triggerToast('Không thể xóa vai trò mặc định của hệ thống!');
+        return;
+    }
+    if (confirm(`Bạn có chắc chắn muốn xóa vai trò "${role}" không? Các tài khoản thuộc vai trò này sẽ mất quyền.`)) {
+        delete rolePermissions.value[role];
+        const remainingRoles = Object.keys(rolePermissions.value).filter(r => r !== 'admin');
+        selectedRoleToConfigure.value = remainingRoles[0] || 'staff';
+        triggerToast(`Đã xóa vai trò: ${role}`);
     }
 };
 
@@ -562,6 +624,7 @@ onMounted(async () => {
     await ContentService.loadAll();
     await loadAccounts();
     await loadStaffToolsConfig();
+    await loadRolePermissionsConfig();
 });
 </script>
 
@@ -942,35 +1005,82 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <!-- Phân Quyền Công Cụ Cho Staff Card -->
+                <!-- Phân Quyền Theo Vai Trò Card -->
                 <div class="bg-white rounded-[3rem] p-8 card-shadow border border-white/40 flex flex-col gap-6">
-                    <div>
-                        <h4 class="text-lg font-black text-[#4a2c32] flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary">settings_accessibility</span>
-                            Phân Quyền Công Cụ Cho Nhân Viên (Staff)
-                        </h4>
-                        <p class="text-xs font-bold text-gray-400 mt-1">Chọn các công cụ/module hiển thị cho các tài khoản có vai trò Staff.</p>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-primary/10 pb-6">
+                        <div>
+                            <h4 class="text-lg font-black text-[#4a2c32] flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">settings_accessibility</span>
+                                Quản Lý & Phân Quyền Vai Trò
+                            </h4>
+                            <p class="text-xs font-bold text-gray-400 mt-1">Cấu hình chi tiết quyền truy cập công cụ và hành động cho từng vai trò.</p>
+                        </div>
+                        
+                        <!-- Add Custom Role Form -->
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <input v-model="customRoleName" type="text" placeholder="Tên vai trò mới (vd: manager)" class="bg-[#fcf8f9] px-4 py-2.5 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shrink-0 w-44" />
+                            <button @click="handleCreateCustomRole" class="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
+                                <span class="material-symbols-outlined text-xs">add</span> Tạo vai trò
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#fcf8f9] rounded-2xl flex items-center justify-between border border-transparent hover:border-primary/10 transition-all group">
-                            <div class="flex items-center gap-3">
-                                <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
-                                    <span class="material-symbols-outlined text-sm">
-                                        {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
-                                    </span>
+                    <!-- Role Selector Tabs -->
+                    <div class="flex flex-wrap gap-2">
+                        <button v-for="r in Object.keys(rolePermissions).filter(role => role !== 'admin')" :key="r"
+                            @click="selectedRoleToConfigure = r"
+                            class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border"
+                            :class="selectedRoleToConfigure === r ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150'"
+                        >
+                            <span>{{ r.toUpperCase() }}</span>
+                            <span v-if="!['staff', 'operator', 'viewer'].includes(r)" @click.stop="handleDeleteCustomRole(r)" class="material-symbols-outlined text-xs hover:text-red-200 transition-colors ml-1">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Configure Permissions for Selected Role -->
+                    <div v-if="rolePermissions[selectedRoleToConfigure]" class="space-y-6">
+                        <!-- Switch Actions/Write/Delete permissions -->
+                        <div class="p-4 bg-[#fcf8f9] rounded-2xl border border-primary/5 flex flex-col sm:flex-row gap-6">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canWrite" class="accent-primary size-4" />
+                                <div>
+                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Thêm / Sửa dữ liệu</p>
+                                    <p class="text-[10px] text-gray-400 font-bold">Người dùng thuộc vai trò này có thể tạo mới hoặc cập nhật thông tin.</p>
                                 </div>
-                                <span class="font-bold text-xs text-[#4a2c32] group-hover:text-primary transition-colors">{{ t.name }}</span>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer scale-90">
-                                <input type="checkbox" :value="t.id" v-model="staffToolsConfig" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                             </label>
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canDelete" class="accent-primary size-4" />
+                                <div>
+                                    <p class="text-xs font-black text-[#4a2c32]">Cho phép Xóa dữ liệu</p>
+                                    <p class="text-[10px] text-gray-400 font-bold">Người dùng thuộc vai trò này có thể xóa thông tin/dữ liệu trên hệ thống.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Checkboxes for permitted tools -->
+                        <div>
+                            <p class="text-xs font-black text-[#4a2c32] mb-3">Các công cụ được phép hiển thị & truy cập:</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#fcf8f9] rounded-2xl flex items-center justify-between border border-transparent hover:border-primary/10 transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
+                                            <span class="material-symbols-outlined text-sm">
+                                                {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
+                                            </span>
+                                        </div>
+                                        <span class="font-bold text-xs text-[#4a2c32] group-hover:text-primary transition-colors">{{ t.name }}</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer scale-90">
+                                        <input type="checkbox" :value="t.id" v-model="rolePermissions[selectedRoleToConfigure]!.tools" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="flex justify-end pt-2 border-t border-dashed border-primary/10">
-                        <button @click="handleSaveStaffTools" class="bg-primary text-white px-8 py-2.5 rounded-full font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">Lưu phân quyền công cụ</button>
+                        <button @click="handleSaveRolePermissions" class="bg-primary text-white px-8 py-2.5 rounded-full font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">Lưu cấu hình phân quyền</button>
                     </div>
                 </div>
             </div>

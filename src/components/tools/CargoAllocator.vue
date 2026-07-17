@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
-import { authStore } from '@/stores/auth';
+import { authStore, canWrite, canDelete } from '@/stores/auth';
 import VehicleManager from '@/components/tools/VehicleManager.vue';
 import GoodsManager from '@/components/tools/GoodsManager.vue';
 import { LogService } from '@/services/storage/LogService';
@@ -974,6 +974,10 @@ function openEditTicketDialog(ticket: CSVRecord) {
 }
 
 async function saveTicket() {
+    if (authStore.role !== 'admin' && !canWrite()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     if (!dialogTicket.value.plateNumber.trim()) {
         addToast('Vui lòng nhập biển số xe!', 'info');
         return;
@@ -1013,6 +1017,10 @@ async function saveTicket() {
 }
 
 async function deleteTicket(ticket: CSVRecord) {
+    if (authStore.role !== 'admin' && !canDelete()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirm = await showConfirm({
         title: 'Xóa phiếu cân',
         message: `Bạn có chắc chắn muốn xóa phiếu cân ${ticket.ticketNo || ticket.plateNumber} không?`,
@@ -1030,6 +1038,10 @@ async function deleteTicket(ticket: CSVRecord) {
 
 // Clear all tickets
 async function clearAllTickets() {
+    if (authStore.role !== 'admin' && !canDelete()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirm = await showConfirm({
         title: 'Xóa tất cả phiếu cân',
         message: 'Bạn có chắc chắn muốn xóa toàn bộ danh sách phiếu cân hiện tại không? Hành động này sẽ dọn sạch Tab 1.',
@@ -2622,7 +2634,7 @@ async function deleteGeneratedTrip(trip: SplitTrip) {
 }
 
 async function editHistoryTripOrderNo(trip: SplitTrip) {
-    if (authStore.role !== 'admin') {
+    if (authStore.role !== 'admin' && !canWrite()) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2642,7 +2654,7 @@ async function editHistoryTripOrderNo(trip: SplitTrip) {
 }
 
 async function deleteHistoryTrip(trip: SplitTrip) {
-    if (authStore.role !== 'admin') {
+    if (authStore.role !== 'admin' && !canDelete()) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2693,7 +2705,7 @@ async function clearAllGeneratedTrips() {
 
 // Clear all history
 async function clearHistory() {
-    if (authStore.role !== 'admin') {
+    if (authStore.role !== 'admin' && !canDelete()) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3851,7 +3863,7 @@ async function compileAndDownload() {
                                     </div>
                                 </th>
                                 <th class="py-1 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="authStore.role === 'admin'" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Hành động</th>
+                                <th v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Hành động</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
@@ -3891,7 +3903,7 @@ async function compileAndDownload() {
                                     </span>
                                     <span v-else class="text-gray-400 italic text-[10px]">-</span>
                                 </td>
-                                <td v-if="authStore.role === 'admin'" class="py-1 px-3 text-center">
+                                <td v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="py-1 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="editHistoryTripOrderNo(trip)"

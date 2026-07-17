@@ -2,8 +2,8 @@
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
-import { authStore } from '../stores/auth';
-import { ContentService } from '../services/ContentService';
+import { authStore, hasPermission } from '../stores/auth';
+
 
 const router = useRouter();
 const allowed = ref(false);
@@ -14,12 +14,9 @@ const checkPermission = async () => {
     if (!authStore.isAuthenticated) {
         return;
     }
-    if (authStore.role === 'staff') {
-        const staffTools = await ContentService.loadStaffTools();
-        if (!staffTools.includes('weighbridge')) {
-            router.push('/tools');
-            return;
-        }
+    if (!hasPermission('weighbridge')) {
+        router.push('/tools');
+        return;
     }
     allowed.value = true;
     loading.value = false;

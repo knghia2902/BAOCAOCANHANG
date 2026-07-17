@@ -2,7 +2,7 @@ import { supabase } from '../../supabase';
 
 export interface User {
     username: string;
-    role: 'admin' | 'staff';
+    role: string;
     displayName?: string;
     avatar?: string;
 }

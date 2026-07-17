@@ -225,6 +225,68 @@ export const ContentService = {
             console.error('Error saving staff tools config', e);
             return false;
         }
+    },
+
+    async loadRolePermissions(): Promise<Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>> {
+        try {
+            const { data, error } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+            if (error || !data?.settings) return DEFAULT_ROLE_PERMISSIONS;
+            return data.settings.role_permissions || DEFAULT_ROLE_PERMISSIONS;
+        } catch (e) {
+            console.error('Error loading role permissions config', e);
+            return DEFAULT_ROLE_PERMISSIONS;
+        }
+    },
+
+    async saveRolePermissions(rolePermissions: Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>): Promise<boolean> {
+        try {
+            const { data: current, error: fetchError } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+            if (fetchError || !current?.settings) return false;
+            
+            const newSettings = {
+                ...current.settings,
+                role_permissions: rolePermissions
+            };
+            const { error } = await supabase
+                .from('content')
+                .update({ settings: newSettings })
+                .eq('id', 'main');
+            return !error;
+        } catch (e) {
+            console.error('Error saving role permissions config', e);
+            return false;
+        }
+    }
+};
+
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }> = {
+    admin: {
+        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'],
+        canWrite: true,
+        canDelete: true
+    },
+    staff: {
+        tools: ['converter', 'merger', 'ocr'],
+        canWrite: true,
+        canDelete: false
+    },
+    operator: {
+        tools: ['weighbridge', 'allocator', 'vehicles'],
+        canWrite: true,
+        canDelete: false
+    },
+    viewer: {
+        tools: ['weighbridge', 'allocator', 'vehicles'],
+        canWrite: false,
+        canDelete: false
     }
 };
 

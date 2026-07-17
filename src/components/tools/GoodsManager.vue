@@ -4,6 +4,7 @@ import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
 import { LogService } from '@/services/storage/LogService';
+import { authStore, canWrite, canDelete } from '@/stores/auth';
 
 const { addToast } = useToast();
 
@@ -195,6 +196,10 @@ const filteredGoods = computed(() => {
 
 // Form submission handler
 const handleSubmit = async () => {
+    if (authStore.role !== 'admin' && !canWrite()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const item = goodsInput.value.trim();
     if (!item) return;
 
@@ -238,6 +243,10 @@ const editItem = (index: number) => {
 };
 
 const deleteItem = async (index: number) => {
+    if (authStore.role !== 'admin' && !canDelete()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const item = filteredGoods.value[index];
     if (item !== undefined) {
         const realIndex = goodsList.value.indexOf(item);
@@ -270,6 +279,10 @@ const cancelEdit = () => {
 };
 
 const clearAll = async () => {
+    if (authStore.role !== 'admin' && !canDelete()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirmClear = await showConfirm({
         title: 'Xóa sạch danh sách',
         message: 'Bạn có chắc chắn muốn xóa toàn bộ danh mục hàng hóa hiện tại? Hành động này không thể hoàn tác.',
@@ -308,7 +321,7 @@ const clearAll = async () => {
             <!-- Actions buttons -->
             <div class="flex items-center gap-2">
                 <button 
-                    v-if="goodsList.length > 0"
+                    v-if="goodsList.length > 0 && (authStore.role === 'admin' || canDelete())"
                     @click="clearAll"
                     class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all"
                 >
@@ -322,7 +335,7 @@ const clearAll = async () => {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             <!-- Form Card -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+            <div v-if="authStore.role === 'admin' || canWrite()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">{{ editingIndex !== null ? 'edit_note' : 'add_circle' }}</span>
                     {{ editingIndex !== null ? 'Cập nhật hàng hóa' : 'Thêm hàng hóa mới' }}
@@ -361,7 +374,7 @@ const clearAll = async () => {
             </div>
             
             <!-- List Card -->
-            <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 min-h-[350px]">
+            <div :class="(authStore.role === 'admin' || canWrite()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 min-h-[350px]">
                 <!-- Search bar -->
                 <div class="relative w-full flex items-center">
                     <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
@@ -387,7 +400,7 @@ const clearAll = async () => {
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2.5 px-4 w-16 text-center">STT</th>
                                 <th class="py-2.5 px-4">Tên hàng hóa</th>
-                                <th class="py-2.5 px-4 w-28 text-center">Thao tác</th>
+                                <th v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="py-2.5 px-4 w-28 text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#4a2c32]/90">
@@ -398,15 +411,15 @@ const clearAll = async () => {
                             >
                                 <td class="py-2 px-4 text-center font-bold text-gray-400">{{ idx + 1 }}</td>
                                 <td class="py-2 px-4 font-bold text-gray-800">{{ item }}</td>
-                                <td class="py-2 px-4 text-center flex items-center justify-center gap-1.5">
-                                    <button 
+                                <td v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="py-2 px-4 text-center flex items-center justify-center gap-1.5">
+                                    <button v-if="authStore.role === 'admin' || canWrite()"
                                         @click="editItem(idx)"
                                         class="size-7 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all"
                                         title="Chỉnh sửa"
                                     >
                                         <span class="material-symbols-outlined text-[15px]">edit</span>
                                     </button>
-                                    <button 
+                                    <button v-if="authStore.role === 'admin' || canDelete()"
                                         @click="deleteItem(idx)"
                                         class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-655 flex items-center justify-center transition-all"
                                         title="Xóa"

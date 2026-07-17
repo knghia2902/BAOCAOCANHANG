@@ -4,10 +4,11 @@ import { authService } from '../services/storage/AuthService';
 interface AuthState {
     isAuthenticated: boolean;
     user: string | null;
-    role: 'admin' | 'staff' | null;
+    role: string | null;
     displayName: string | null;
     avatar: string | null;
     isFirstLogin: boolean;
+    rolePermissions: Record<string, { tools: string[]; canWrite: boolean; canDelete: boolean }>;
 }
 
 import { LogService } from '../services/storage/LogService';
@@ -22,7 +23,13 @@ const initialState: AuthState = {
     role: saved?.role ?? (saved?.isAuthenticated ? 'admin' : null),
     displayName: saved?.displayName ?? (saved?.isAuthenticated ? 'Admin' : null),
     avatar: saved?.avatar ?? null,
-    isFirstLogin: saved?.isFirstLogin ?? false
+    isFirstLogin: saved?.isFirstLogin ?? false,
+    rolePermissions: saved?.rolePermissions ?? {
+        admin: { tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], canWrite: true, canDelete: true },
+        staff: { tools: ['converter', 'merger', 'ocr'], canWrite: true, canDelete: false },
+        operator: { tools: ['weighbridge', 'allocator', 'vehicles'], canWrite: true, canDelete: false },
+        viewer: { tools: ['weighbridge', 'allocator', 'vehicles'], canWrite: false, canDelete: false }
+    }
 };
 
 export const authStore = reactive<AuthState>(initialState);
@@ -31,6 +38,8 @@ export const authStore = reactive<AuthState>(initialState);
 watch(authStore, (state) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 });
+
+import { ContentService } from '../services/ContentService';
 
 export const login = async (username: string, pass: string) => {
     const res = await authService.login(username, pass);
@@ -41,6 +50,13 @@ export const login = async (username: string, pass: string) => {
         authStore.displayName = res.user.displayName || res.user.username;
         authStore.avatar = res.user.avatar || null;
         authStore.isFirstLogin = res.isFirstLogin || false;
+        
+        try {
+            const perms = await ContentService.loadRolePermissions();
+            authStore.rolePermissions = perms;
+        } catch (e) {
+            console.error('Failed to load role permissions on login:', e);
+        }
         
         // Log login action
         await LogService.logAction('Đăng nhập', 'Đăng nhập thành công vào hệ thống');
@@ -66,6 +82,27 @@ export const updateStoreProfile = (displayName: string, avatarUrl?: string) => {
     if (avatarUrl !== undefined) {
         authStore.avatar = avatarUrl;
     }
+};
+
+export const hasPermission = (toolId: string) => {
+    if (!authStore.isAuthenticated) return false;
+    if (authStore.role === 'admin') return true;
+    const perm = authStore.rolePermissions?.[authStore.role || ''];
+    return perm ? perm.tools.includes(toolId) : false;
+};
+
+export const canWrite = () => {
+    if (!authStore.isAuthenticated) return false;
+    if (authStore.role === 'admin') return true;
+    const perm = authStore.rolePermissions?.[authStore.role || ''];
+    return perm ? perm.canWrite : false;
+};
+
+export const canDelete = () => {
+    if (!authStore.isAuthenticated) return false;
+    if (authStore.role === 'admin') return true;
+    const perm = authStore.rolePermissions?.[authStore.role || ''];
+    return perm ? perm.canDelete : false;
 };
 
 

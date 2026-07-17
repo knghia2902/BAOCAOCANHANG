@@ -4,6 +4,7 @@ import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
 import { LogService } from '@/services/storage/LogService';
+import { authStore, canWrite, canDelete } from '@/stores/auth';
 
 const { addToast } = useToast();
 
@@ -207,6 +208,10 @@ const filteredVehicles = computed(() => {
 
 // Add or edit vehicle
 const handleSubmit = async () => {
+    if (authStore.role !== 'admin' && !canWrite()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const plate = plateInput.value.trim().toUpperCase();
     const mooc = moocInput.value.trim().toUpperCase();
 
@@ -267,6 +272,10 @@ const cancelEdit = () => {
 
 // Delete vehicle
 const deleteVehicle = async (index: number) => {
+    if (authStore.role !== 'admin' && !canDelete()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const v = vehicles.value[index];
     if (!v) return;
     const confirm = await showConfirm({
@@ -291,6 +300,10 @@ const deleteVehicle = async (index: number) => {
 
 // Clear all
 const clearAll = async () => {
+    if (authStore.role !== 'admin' && !canDelete()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirm = await showConfirm({
         title: 'Xóa sạch danh sách xe',
         message: 'Bạn có chắc chắn muốn xóa SẠCH toàn bộ danh sách xe không? Hành động này không thể hoàn tác!',
@@ -317,6 +330,10 @@ const triggerImport = () => {
 };
 
 const handleImportExcel = async (e: Event) => {
+    if (authStore.role !== 'admin' && !canWrite()) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const target = e.target as HTMLInputElement;
     const file = target.files?.[0];
     if (!file) return;
@@ -462,7 +479,7 @@ const handleExportExcel = async () => {
                 </button>
                 
                 <button 
-                    v-if="vehicles.length > 0"
+                    v-if="vehicles.length > 0 && (authStore.role === 'admin' || canDelete())"
                     @click="clearAll"
                     class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all"
                 >
@@ -476,7 +493,7 @@ const handleExportExcel = async () => {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             <!-- Form Card -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+            <div v-if="authStore.role === 'admin' || canWrite()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">{{ editingIndex !== null ? 'edit_note' : 'add_circle' }}</span>
                     {{ editingIndex !== null ? 'Cập nhật thông tin xe' : 'Thêm xe mới' }}
@@ -525,7 +542,7 @@ const handleExportExcel = async () => {
             </div>
 
             <!-- Table & Search Card -->
-            <div class="lg:col-span-2 flex flex-col gap-4">
+            <div :class="(authStore.role === 'admin' || canWrite()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
                 <!-- Search bar -->
                 <div class="relative w-full">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
@@ -546,7 +563,7 @@ const handleExportExcel = async () => {
                                     <th class="px-4 py-3 text-center w-14">STT</th>
                                     <th class="px-4 py-3">Biển số xe</th>
                                     <th class="px-4 py-3">Số mooc</th>
-                                    <th class="px-4 py-3 text-center w-24">Thao tác</th>
+                                    <th v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="px-4 py-3 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -561,16 +578,16 @@ const handleExportExcel = async () => {
                                         <span v-if="v.moocNumber" class="text-primary font-bold">{{ v.moocNumber }}</span>
                                         <span v-else class="text-gray-400 italic font-normal text-[11px]">Chưa cấu hình</span>
                                     </td>
-                                    <td class="px-4 py-3 text-center">
+                                    <td v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
-                                            <button 
+                                            <button v-if="authStore.role === 'admin' || canWrite()"
                                                 @click="startEdit(index)"
                                                 class="size-7 rounded-lg text-primary hover:bg-primary/10 flex items-center justify-center transition-all"
                                                 title="Sửa thông tin"
                                             >
                                                 <span class="material-symbols-outlined text-base">edit</span>
                                             </button>
-                                            <button 
+                                            <button v-if="authStore.role === 'admin' || canDelete()"
                                                 @click="deleteVehicle(index)"
                                                 class="size-7 rounded-lg text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"
                                                 title="Xóa xe"

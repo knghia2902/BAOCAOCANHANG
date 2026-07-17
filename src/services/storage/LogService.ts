@@ -6,7 +6,7 @@ export interface ActivityLog {
     timestamp: string;
     username: string;
     displayName: string;
-    role: 'admin' | 'staff' | 'system';
+    role: string;
     action: string;
     details: string;
 }

@@ -21,10 +21,21 @@ const loading = ref(true);
 
 const loadTools = async () => {
     loading.value = true;
-    if (authStore.role === 'staff') {
-        allowedStaffTools.value = await ContentService.loadStaffTools();
+    if (authStore.isAuthenticated) {
+        if (authStore.role === 'admin') {
+            allowedStaffTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes'];
+        } else {
+            try {
+                const rolePerms = await ContentService.loadRolePermissions();
+                authStore.rolePermissions = rolePerms;
+                allowedStaffTools.value = rolePerms[authStore.role || 'staff']?.tools || [];
+            } catch (e) {
+                console.error(e);
+                allowedStaffTools.value = [];
+            }
+        }
     } else {
-        allowedStaffTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes'];
+        allowedStaffTools.value = [];
     }
     loading.value = false;
 };
