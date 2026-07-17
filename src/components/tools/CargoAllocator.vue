@@ -2515,6 +2515,10 @@ async function triggerManualSyncToPrinter() {
 
 // Save generated temporary trips into history
 async function saveToHistory() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
+        addToast('Bạn không có quyền lưu dữ liệu vào Sổ Theo Dõi!', 'error');
+        return;
+    }
     try {
         const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
         if (savedVehicles && Array.isArray(savedVehicles)) {
@@ -2635,7 +2639,7 @@ async function deleteGeneratedTrip(trip: SplitTrip) {
 }
 
 async function editHistoryTripOrderNo(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_rules_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'update')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2655,7 +2659,7 @@ async function editHistoryTripOrderNo(trip: SplitTrip) {
 }
 
 async function deleteHistoryTrip(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_rules_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2706,7 +2710,7 @@ async function clearAllGeneratedTrips() {
 
 // Clear all history
 async function clearHistory() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_rules_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3868,7 +3872,7 @@ async function compileAndDownload() {
                                     </div>
                                 </th>
                                 <th class="py-2 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'create') || hasDetailPermission('allocator', 'al_barge_manage', 'update') || hasDetailPermission('allocator', 'al_barge_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -3908,9 +3912,10 @@ async function compileAndDownload() {
                                     </span>
                                     <span v-else class="text-gray-400 italic text-xs">-</span>
                                 </td>
-                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'create') || hasDetailPermission('allocator', 'al_barge_manage', 'update') || hasDetailPermission('allocator', 'al_barge_manage', 'delete')" class="py-2 px-3 text-center">
+                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
                                             @click="editHistoryTripOrderNo(trip)"
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa Mã lệnh"
@@ -3918,6 +3923,7 @@ async function compileAndDownload() {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                                             @click="deleteHistoryTrip(trip)"
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"
@@ -4086,7 +4092,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 text-center bg-gray-50 font-bold w-[80px] select-none">Thao tác</th>
+                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center bg-gray-50 font-bold w-[80px] select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4123,9 +4129,10 @@ async function compileAndDownload() {
                                 </td>
                                 <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.cargoType">{{ trip.cargoType }}</td>
                                 <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.bargeName">{{ trip.bargeName }}</td>
-                                <td class="py-2 px-3 text-center">
+                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
                                             @click="editGeneratedTripOrderNo(trip)"
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa Mã lệnh"
@@ -4133,6 +4140,7 @@ async function compileAndDownload() {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                                             @click="deleteGeneratedTrip(trip)"
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa chuyến xe này"

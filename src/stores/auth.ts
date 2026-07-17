@@ -38,7 +38,7 @@ const initialState: AuthState = {
             canDelete: true,
             detailPermissions: {
                 weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
-                allocator: ['al_barge_manage', 'al_rules_manage', 'al_export'],
+                allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
                 vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
                 minutes: ['min_create', 'min_export']
             }

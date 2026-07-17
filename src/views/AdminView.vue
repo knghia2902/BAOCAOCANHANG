@@ -488,6 +488,7 @@ const actionPermissionsMapping = {
   allocator: [
     { name: 'Quản lý xe & moóc xếp hàng', permId: 'al_barge_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
     { name: 'Cấu hình quy tắc & trạm cân', permId: 'al_rules_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Dữ liệu cân hàng (Sổ theo dõi)', permId: 'al_data_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
     { name: 'Xuất file excel lệnh điều xe', permId: 'al_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
   ],
   vehicles: [
@@ -568,6 +569,7 @@ const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
         return [
             'al_barge_manage:read', 'al_barge_manage:create', 'al_barge_manage:update', 'al_barge_manage:delete',
             'al_rules_manage:read', 'al_rules_manage:create', 'al_rules_manage:update', 'al_rules_manage:delete',
+            'al_data_manage:read', 'al_data_manage:create', 'al_data_manage:update', 'al_data_manage:delete',
             'al_export:read'
         ];
     } else if (subsystem === 'vehicles') {
