@@ -63,8 +63,8 @@ onMounted(async () => {
         if (savedTool) {
             openTool(savedTool);
         } else {
-            // 4. Default to Báo Cáo Tổng Quan
-            activeToolId.value = 'weighbridge';
+            // 4. Default to show catalog grid (no redirect)
+            activeToolId.value = null;
         }
     }
 });
