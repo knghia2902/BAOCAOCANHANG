@@ -83,7 +83,7 @@ const allTools = [
   },
   {
     id: 'weighbridge',
-    name: 'In Phiếu Nhanh 🚢',
+    name: 'Dashboard 🚢',
     desc: 'Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.',
     icon: 'print',
     bgIcon: 'bg-primary/10 text-primary',
