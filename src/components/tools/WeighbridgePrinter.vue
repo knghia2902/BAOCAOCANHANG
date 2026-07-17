@@ -5006,14 +5006,14 @@ onUnmounted(() => {
                         <label>Ngày giờ vào</label>
                         <div class="flex gap-2">
                             <input v-model="dialogDateInDate" type="date" class="flex-[3] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
-                            <input v-model="dialogTimeInTime" type="text" placeholder="HH:mm" class="flex-[2] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
+                            <input v-model="dialogTimeInTime" type="time" class="flex-[2] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
                         </div>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày giờ ra</label>
                         <div class="flex gap-2">
                             <input v-model="dialogDateOutDate" type="date" class="flex-[3] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
-                            <input v-model="dialogTimeOutTime" type="text" placeholder="HH:mm" class="flex-[2] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
+                            <input v-model="dialogTimeOutTime" type="time" class="flex-[2] min-w-0 px-3 py-2.5 rounded border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
                         </div>
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">

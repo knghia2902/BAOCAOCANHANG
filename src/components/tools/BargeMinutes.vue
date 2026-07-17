@@ -876,7 +876,7 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ đến</label>
-                                    <input type="text" placeholder="HH:mm" v-model="timeIn" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeIn" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày đến</label>
@@ -889,7 +889,7 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ KT</label>
-                                    <input type="text" placeholder="HH:mm" v-model="timeInspection" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeInspection" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày KT</label>
@@ -902,7 +902,7 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ BĐ</label>
-                                    <input type="text" placeholder="HH:mm" v-model="timeCommenced" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeCommenced" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày BĐ</label>
@@ -915,7 +915,7 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ KT</label>
-                                    <input type="text" placeholder="HH:mm" v-model="timeCompleted" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeCompleted" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày KT</label>
@@ -928,7 +928,7 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ rời</label>
-                                    <input type="text" placeholder="HH:mm" v-model="timeDepart" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeDepart" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày rời</label>

@@ -1226,7 +1226,7 @@ onUnmounted(() => {
                         <!-- Dropdown list -->
                         <div 
                             v-if="isSiteDropdownOpen"
-                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
                         >
                             <div 
                                 @click="selectSite('NguyenNgoc')"
@@ -1617,7 +1617,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isCaptainGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectCaptainGrade('')"
@@ -1664,7 +1664,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isChiefEngineerGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectChiefEngineerGrade('')"
@@ -1749,14 +1749,14 @@ onUnmounted(() => {
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian cập bến</label>
                                     <div class="flex gap-1.5">
                                         <input v-model="editArrivalDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
-                                        <input v-model="editArrivalTimeStr" type="text" placeholder="HH:mm" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                        <input v-model="editArrivalTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
                                     </div>
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian rời bến</label>
                                     <div class="flex gap-1.5">
                                         <input v-model="editDepartureDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
-                                        <input v-model="editDepartureTimeStr" type="text" placeholder="HH:mm" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                        <input v-model="editDepartureTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
                                     </div>
                                 </div>
                             </div>
@@ -1796,7 +1796,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isKhaiHethongDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectKhaiHethong('')"
