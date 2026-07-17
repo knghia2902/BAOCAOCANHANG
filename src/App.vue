@@ -117,7 +117,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="layout-container flex h-full grow flex-col min-h-screen bg-cute-gradient font-display">
+  <div class="layout-container flex h-full grow flex-col min-h-screen font-display">
     <!-- Top global floating header (only if logged in) -->
     <header v-if="authStore.isAuthenticated" class="mx-auto mt-6 w-[95%] max-w-[1200px] flex items-center justify-between whitespace-nowrap bg-white px-8 py-4 rounded-full shadow-sm sticky top-6 z-50 border border-soft-pink no-print">
       <div class="flex items-center gap-3">
