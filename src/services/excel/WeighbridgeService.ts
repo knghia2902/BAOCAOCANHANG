@@ -397,12 +397,31 @@ export const WeighbridgeService = {
      */
     async updateBargeConfig(id: number, config: BargeConfig): Promise<boolean> {
         const local = await getLocalVessels();
+        
+        // 1. Fetch current config from Supabase to perform a safe merge
+        let remoteConfig: BargeConfig = {} as BargeConfig;
+        try {
+            const { data, error } = await supabase
+                .from('weighbridge_barges')
+                .select('config')
+                .eq('id', id)
+                .single();
+            if (!error && data && data.config) {
+                remoteConfig = data.config;
+            }
+        } catch (e) {
+            console.warn('Failed to fetch remote config for merge:', e);
+        }
+        
+        // 2. Perform merge
+        const finalConfig = { ...remoteConfig, ...config, updatedAt: Date.now() };
+        
+        // 3. Update local cache
         let found = false;
-        const configWithTime = { ...config, updatedAt: Date.now() };
         for (const vessel of local) {
             const barge = vessel.barges?.find(b => b.id === id);
             if (barge) {
-                barge.config = configWithTime;
+                barge.config = finalConfig;
                 found = true;
                 break;
             }
@@ -411,10 +430,11 @@ export const WeighbridgeService = {
             await saveLocalVessels(local);
         }
 
+        // 4. Update Supabase
         try {
             const { error } = await supabase
                 .from('weighbridge_barges')
-                .update({ config: configWithTime })
+                .update({ config: finalConfig })
                 .eq('id', id);
 
             if (error) {
