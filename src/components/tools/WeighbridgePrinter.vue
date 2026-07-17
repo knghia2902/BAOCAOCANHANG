@@ -4301,7 +4301,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- TAB 2: CONFIGURATION -->
-                        <div v-if="activeTab === 'config' && authStore.role === 'admin'" class="flex flex-col gap-4 animate-fade-in">
+                        <div v-if="activeTab === 'config' && authStore.role === 'admin'" class="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0 pb-6 pr-1 animate-fade-in custom-scrollbar">
                             <!-- Banner lock warning -->
                             <div v-if="cfgForm.locked" class="bg-red-50 text-red-700 text-xs font-bold p-3 rounded-lg border border-red-200 mb-2 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-sm">warning</span>

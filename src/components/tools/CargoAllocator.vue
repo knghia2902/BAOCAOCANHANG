@@ -3413,7 +3413,7 @@ async function compileAndDownload() {
                     <span class="w-[1px] h-4 bg-gray-200 mx-1"></span>
 
                     <!-- Tab 1 Search -->
-                    <div v-if="activeDataTab === 'source'" class="relative w-[180px] flex items-center">
+                    <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[180px] flex items-center">
                         <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
                         <input 
                             type="text" 
@@ -3431,8 +3431,8 @@ async function compileAndDownload() {
                     </div>
 
                     <!-- Tab 2 Search & Filter -->
-                    <div v-if="activeDataTab === 'template'" class="flex items-center gap-2">
-                        <div class="relative w-[180px] flex items-center">
+                    <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-[180px] flex items-center">
                             <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
                             <input 
                                 type="text" 
@@ -3470,7 +3470,7 @@ async function compileAndDownload() {
                     </div>
 
                     <!-- Tab 3 Search -->
-                    <div v-if="activeDataTab === 'generated'" class="relative w-[180px] flex items-center">
+                    <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[180px] flex items-center">
                         <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
                         <input 
                             type="text" 
@@ -3713,8 +3713,10 @@ async function compileAndDownload() {
                                 </td>
                             </tr>
                             <tr v-if="filteredSourceTickets.length === 0">
-                                <td colspan="9" class="p-8 text-center text-gray-400 italic">
-                                    {{ csvRecords.length === 0 ? 'Chưa có phiếu cân nào. Vui lòng bấm "Import phiếu cân" hoặc "Thêm phiếu cân" để bắt đầu.' : 'Không tìm thấy phiếu cân nào khớp bộ lọc!' }}
+                                <td colspan="9" class="p-8 text-left sm:text-center text-gray-400 italic">
+                                    <div class="sticky left-0 w-[calc(100vw-3.5rem)] max-w-[450px] mx-auto text-center leading-normal">
+                                        {{ csvRecords.length === 0 ? 'Chưa có phiếu cân nào. Vui lòng bấm "Import" hoặc "Thêm" để bắt đầu.' : 'Không tìm thấy phiếu cân nào khớp bộ lọc!' }}
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -3899,8 +3901,10 @@ async function compileAndDownload() {
                                 </td>
                             </tr>
                             <tr v-if="filteredHistoryTrips.length === 0">
-                                <td :colspan="authStore.role === 'admin' ? 11 : 10" class="p-8 text-center text-gray-400 italic">
-                                    Không tìm thấy bản ghi nào khớp bộ lọc!
+                                <td :colspan="authStore.role === 'admin' ? 11 : 10" class="p-8 text-left sm:text-center text-gray-400 italic">
+                                    <div class="sticky left-0 w-[calc(100vw-3.5rem)] max-w-[450px] mx-auto text-center leading-normal">
+                                        Không tìm thấy bản ghi nào khớp bộ lọc!
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -4113,8 +4117,10 @@ async function compileAndDownload() {
                                 </td>
                             </tr>
                             <tr v-if="filteredTrips.length === 0">
-                                <td colspan="16" class="p-8 text-center text-gray-400 italic">
-                                    Không tìm thấy bản ghi nào khớp bộ lọc!
+                                <td colspan="16" class="p-8 text-left sm:text-center text-gray-400 italic">
+                                    <div class="sticky left-0 w-[calc(100vw-3.5rem)] max-w-[450px] mx-auto text-center leading-normal">
+                                        Không tìm thấy bản ghi nào khớp bộ lọc!
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
