@@ -3864,7 +3864,7 @@ async function compileAndDownload() {
                                     </div>
                                 </th>
                                 <th class="py-1 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Hành động</th>
+                                <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-1 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -3911,14 +3911,14 @@ async function compileAndDownload() {
                                             class="size-6 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all"
                                             title="Sửa Mã lệnh"
                                         >
-                                            <span class="material-symbols-outlined text-[13px]">edit</span>
+                                            <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
                                             @click="deleteHistoryTrip(trip)"
                                             class="size-6 rounded-full bg-red-50 hover:bg-red-100 text-red-655 flex items-center justify-center transition-all"
                                             title="Xóa"
                                         >
-                                            <span class="material-symbols-outlined text-[13px]">delete</span>
+                                            <span class="material-symbols-outlined text-[12px]">delete</span>
                                         </button>
                                     </div>
                                 </td>

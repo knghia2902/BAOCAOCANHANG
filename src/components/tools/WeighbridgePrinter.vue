@@ -4330,10 +4330,10 @@ onUnmounted(() => {
                                                             <span class="material-symbols-outlined text-base">print</span>
                                                         </button>
                                                         <button v-if="authStore.role === 'admin' || canUpdate()" @click="openEditTruckDialog(truck)" :disabled="cfgForm.locked" class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none" title="Sửa">
-                                                            <span class="material-symbols-outlined text-base">edit</span>
+                                                            <span class="material-symbols-outlined text-[12px]">edit</span>
                                                         </button>
                                                         <button v-if="authStore.role === 'admin' || canDelete()" @click="deleteTruck(truck.id, truck.plateNumber)" :disabled="cfgForm.locked" class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none" title="Xóa">
-                                                            <span class="material-symbols-outlined text-base">delete</span>
+                                                            <span class="material-symbols-outlined text-[12px]">delete</span>
                                                         </button>
                                                     </div>
                                                 </td>

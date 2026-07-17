@@ -1392,7 +1392,7 @@ onUnmounted(() => {
                                             class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95"
                                             title="Chỉnh sửa hồ sơ"
                                         >
-                                            <span class="material-symbols-outlined text-base">edit</span>
+                                            <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
                                             v-if="activeSite === 'PhuMy'"
@@ -1400,7 +1400,7 @@ onUnmounted(() => {
                                             class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa sà lan"
                                         >
-                                            <span class="material-symbols-outlined text-base">delete</span>
+                                            <span class="material-symbols-outlined text-[12px]">delete</span>
                                         </button>
                                     </td>
                                 </tr>
