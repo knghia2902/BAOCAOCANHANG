@@ -50,8 +50,8 @@ onMounted(async () => {
     const toolParam = route.query.tool;
     if (typeof toolParam === 'string' && toolParam) {
         openTool(toolParam);
-    } else if (authStore.role === 'staff') {
-        // If staff, go directly to "Báo Cáo Tổng Quan" (weighbridge)
+    } else {
+        // Default to "Báo Cáo Tổng Quan" (weighbridge) for all roles
         activeToolId.value = 'weighbridge';
     }
 });
