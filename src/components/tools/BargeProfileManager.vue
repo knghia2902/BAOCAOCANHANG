@@ -67,6 +67,28 @@ const selectSite = (site: 'NguyenNgoc' | 'PhuMy') => {
     activeBargeId.value = null;
     isSiteDropdownOpen.value = false;
 };
+const isCaptainGradeDropdownOpen = ref(false);
+const isChiefEngineerGradeDropdownOpen = ref(false);
+const isKhaiHethongDropdownOpen = ref(false);
+
+const captainGradeDropdownRef = ref<HTMLElement | null>(null);
+const chiefEngineerGradeDropdownRef = ref<HTMLElement | null>(null);
+const khaiHethongDropdownRef = ref<HTMLElement | null>(null);
+
+const selectCaptainGrade = (grade: string) => {
+    editCaptainGrade.value = grade;
+    isCaptainGradeDropdownOpen.value = false;
+};
+
+const selectChiefEngineerGrade = (grade: string) => {
+    editChiefEngineerGrade.value = grade;
+    isChiefEngineerGradeDropdownOpen.value = false;
+};
+
+const selectKhaiHethong = (status: string) => {
+    editKhaiHethong.value = status;
+    isKhaiHethongDropdownOpen.value = false;
+};
 const showAddBargeModal = ref(false);
 const newBargeName = ref('');
 const editGcnImages = ref<string[]>([]);
@@ -1099,6 +1121,15 @@ const handleOutsideClick = (event: MouseEvent) => {
     if (isSiteDropdownOpen.value && siteDropdownRef.value && !siteDropdownRef.value.contains(event.target as Node)) {
         isSiteDropdownOpen.value = false;
     }
+    if (isCaptainGradeDropdownOpen.value && captainGradeDropdownRef.value && !captainGradeDropdownRef.value.contains(event.target as Node)) {
+        isCaptainGradeDropdownOpen.value = false;
+    }
+    if (isChiefEngineerGradeDropdownOpen.value && chiefEngineerGradeDropdownRef.value && !chiefEngineerGradeDropdownRef.value.contains(event.target as Node)) {
+        isChiefEngineerGradeDropdownOpen.value = false;
+    }
+    if (isKhaiHethongDropdownOpen.value && khaiHethongDropdownRef.value && !khaiHethongDropdownRef.value.contains(event.target as Node)) {
+        isKhaiHethongDropdownOpen.value = false;
+    }
 };
 
 onMounted(() => {
@@ -1529,12 +1560,40 @@ onUnmounted(() => {
                                         <span>Hạng thuyền trưởng</span>
                                         <span v-if="computedExpectedCaptainGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedCaptainGrade }}</span>
                                     </label>
-                                    <select v-model="editCaptainGrade" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] cursor-pointer">
-                                        <option value="">- Chọn hạng -</option>
-                                        <option value="T1">T1</option>
-                                        <option value="T2">T2</option>
-                                        <option value="T3">T3</option>
-                                    </select>
+                                    <div ref="captainGradeDropdownRef" class="relative">
+                                        <button 
+                                            @click="isCaptainGradeDropdownOpen = !isCaptainGradeDropdownOpen"
+                                            type="button"
+                                            class="w-full h-8 px-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none text-left flex items-center justify-between text-[#1e293b] select-none"
+                                        >
+                                            <span>{{ editCaptainGrade || '- Chọn hạng -' }}</span>
+                                            <span 
+                                                class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200"
+                                                :class="{ 'rotate-180': isCaptainGradeDropdownOpen }"
+                                            >
+                                                expand_more
+                                            </span>
+                                        </button>
+                                        <div 
+                                            v-if="isCaptainGradeDropdownOpen"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-lg shadow-lg py-1 z-50 overflow-hidden"
+                                        >
+                                            <div 
+                                                @click="selectCaptainGrade('')"
+                                                :class="['px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors select-none', !editCaptainGrade ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                                            >
+                                                - Chọn hạng -
+                                            </div>
+                                            <div 
+                                                v-for="grade in ['T1', 'T2', 'T3']"
+                                                :key="grade"
+                                                @click="selectCaptainGrade(grade)"
+                                                :class="['px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors select-none', editCaptainGrade === grade ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                                            >
+                                                {{ grade }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1548,12 +1607,40 @@ onUnmounted(() => {
                                         <span>Hạng máy trưởng</span>
                                         <span v-if="computedExpectedChiefEngineerGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedChiefEngineerGrade }}</span>
                                     </label>
-                                    <select v-model="editChiefEngineerGrade" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] cursor-pointer">
-                                        <option value="">- Chọn hạng -</option>
-                                        <option value="M1">M1</option>
-                                        <option value="M2">M2</option>
-                                        <option value="M3">M3</option>
-                                    </select>
+                                    <div ref="chiefEngineerGradeDropdownRef" class="relative">
+                                        <button 
+                                            @click="isChiefEngineerGradeDropdownOpen = !isChiefEngineerGradeDropdownOpen"
+                                            type="button"
+                                            class="w-full h-8 px-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none text-left flex items-center justify-between text-[#1e293b] select-none"
+                                        >
+                                            <span>{{ editChiefEngineerGrade || '- Chọn hạng -' }}</span>
+                                            <span 
+                                                class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200"
+                                                :class="{ 'rotate-180': isChiefEngineerGradeDropdownOpen }"
+                                            >
+                                                expand_more
+                                            </span>
+                                        </button>
+                                        <div 
+                                            v-if="isChiefEngineerGradeDropdownOpen"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-lg shadow-lg py-1 z-50 overflow-hidden"
+                                        >
+                                            <div 
+                                                @click="selectChiefEngineerGrade('')"
+                                                :class="['px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors select-none', !editChiefEngineerGrade ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                                            >
+                                                - Chọn hạng -
+                                            </div>
+                                            <div 
+                                                v-for="grade in ['M1', 'M2', 'M3']"
+                                                :key="grade"
+                                                @click="selectChiefEngineerGrade(grade)"
+                                                :class="['px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors select-none', editChiefEngineerGrade === grade ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                                            >
+                                                {{ grade }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1645,11 +1732,40 @@ onUnmounted(() => {
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Khai hệ thống</label>
-                                    <select v-model="editKhaiHethong" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] cursor-pointer font-bold">
-                                        <option value="">- Chọn -</option>
-                                        <option value="Có">Có</option>
-                                        <option value="Không">Không</option>
-                                    </select>
+                                    <div ref="khaiHethongDropdownRef" class="relative">
+                                        <button 
+                                            @click="isKhaiHethongDropdownOpen = !isKhaiHethongDropdownOpen"
+                                            type="button"
+                                            class="w-full h-8 px-2.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:outline-none text-left flex items-center justify-between text-[#1e293b] select-none"
+                                        >
+                                            <span>{{ editKhaiHethong || '- Chọn -' }}</span>
+                                            <span 
+                                                class="material-symbols-outlined text-gray-400 text-sm transition-transform duration-200"
+                                                :class="{ 'rotate-180': isKhaiHethongDropdownOpen }"
+                                            >
+                                                expand_more
+                                            </span>
+                                        </button>
+                                        <div 
+                                            v-if="isKhaiHethongDropdownOpen"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-lg shadow-lg py-1 z-50 overflow-hidden"
+                                        >
+                                            <div 
+                                                @click="selectKhaiHethong('')"
+                                                :class="['px-3 py-1.5 text-xs font-bold cursor-pointer transition-colors select-none', !editKhaiHethong ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                                            >
+                                                - Chọn -
+                                            </div>
+                                            <div 
+                                                v-for="status in ['Có', 'Không']"
+                                                :key="status"
+                                                @click="selectKhaiHethong(status)"
+                                                :class="['px-3 py-1.5 text-xs font-bold cursor-pointer transition-colors select-none', editKhaiHethong === status ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-50']"
+                                            >
+                                                {{ status }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
