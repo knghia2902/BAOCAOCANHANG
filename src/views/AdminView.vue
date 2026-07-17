@@ -500,9 +500,9 @@ const actionPermissionsMapping = {
     { name: 'Xuất bộ biên bản ra Excel', permId: 'min_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
   ],
   utilities: [
-    { name: 'Chuyển Đổi Định Dạng File', permId: 'converter', showView: true, showCreate: false, showUpdate: false, showDelete: false },
-    { name: 'Gộp Excel Thông Minh', permId: 'merger', showView: true, showCreate: false, showUpdate: false, showDelete: false },
-    { name: 'Trích Xuất PDF & OCR', permId: 'ocr', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+    { name: 'Chuyển Đổi Định Dạng File', permId: 'converter', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Gộp Excel Thông Minh', permId: 'merger', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Trích Xuất PDF & OCR', permId: 'ocr', showView: true, showCreate: true, showUpdate: true, showDelete: true }
   ]
 };
 
@@ -510,23 +510,27 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return false;
     
-    // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools
-    if (subsystem === 'utilities') {
-        if (actionType === 'read') {
-            return roleConfig.tools.includes(permId);
-        }
+    // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools.
+    // If the tool is not enabled at all in the tools list, return false.
+    if (subsystem === 'utilities' && !roleConfig.tools.includes(permId)) {
         return false;
     }
     
-    // If parent subsystem is not enabled, child permissions must be false
-    if (!roleConfig.tools.includes(subsystem)) {
+    // If parent subsystem is not utilities and is not enabled, child permissions must be false
+    if (subsystem !== 'utilities' && !roleConfig.tools.includes(subsystem)) {
         return false;
     }
     
     if (!roleConfig.detailPermissions) return true;
     
     if (!roleConfig.detailPermissions[subsystem]) {
-        if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
+        if (subsystem === 'weighbridge' && permId === 'wb_print_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'allocator' && permId === 'al_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'minutes' && permId === 'min_export') {
             return actionType === 'read';
         }
         return true;
@@ -537,7 +541,13 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
     
     // Backwards compatibility: if the bare permId is present in perms, it means all actions are enabled
     if (perms.includes(permId)) {
-        if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
+        if (subsystem === 'weighbridge' && permId === 'wb_print_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'allocator' && permId === 'al_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'minutes' && permId === 'min_export') {
             return actionType === 'read';
         }
         return true;
@@ -571,6 +581,12 @@ const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
             'min_create:read', 'min_create:create', 'min_create:update', 'min_create:delete',
             'min_export:read'
         ];
+    } else if (subsystem === 'utilities') {
+        return [
+            'converter:read', 'converter:create', 'converter:update', 'converter:delete',
+            'merger:read', 'merger:create', 'merger:update', 'merger:delete',
+            'ocr:read', 'ocr:create', 'ocr:update', 'ocr:delete'
+        ];
     }
     return [];
 };
@@ -593,6 +609,9 @@ const onSubsystemCheckboxToggle = (role: string, id: string) => {
         if (isChecked) {
             // Disable: Remove converter, merger, ocr from tools
             roleConfig.tools = roleConfig.tools.filter(t => t !== 'converter' && t !== 'merger' && t !== 'ocr' && t !== 'utilities');
+            if (roleConfig.detailPermissions) {
+                roleConfig.detailPermissions.utilities = [];
+            }
         } else {
             // Enable: Add converter, merger, ocr to tools
             const newTools = [...roleConfig.tools];
@@ -600,6 +619,10 @@ const onSubsystemCheckboxToggle = (role: string, id: string) => {
             if (!newTools.includes('merger')) newTools.push('merger');
             if (!newTools.includes('ocr')) newTools.push('ocr');
             roleConfig.tools = newTools;
+            if (!roleConfig.detailPermissions) {
+                roleConfig.detailPermissions = {};
+            }
+            roleConfig.detailPermissions.utilities = getDefaultPermissionsForSubsystem('utilities');
         }
         handleSubsystemCheckboxChange(role, 'utilities');
     } else {
