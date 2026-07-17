@@ -25,9 +25,9 @@ Tài liệu này quy chuẩn hóa các thành phần giao diện (UI) trong dự
 
 ## 2. Bảng Quy Chuẩn Typography (Cỡ Chữ & Trọng Số)
 
-Font chữ áp dụng:
-*   **Font Tiêu Đề/Nhấn Mạnh**: `Space Grotesk` hoặc `Fredoka` (Font bo tròn tạo nét thân thiện, dễ thương).
-*   **Font Nội Dung/Bảng Biểu**: `Noto Sans` hoặc `Quicksand` (Font không chân, sạch sẽ, dễ đọc số liệu).
+Hệ thống phông chữ tối ưu hóa (Chỉ sử dụng 2 phông để đảm bảo hiệu năng tải trang và tính đồng bộ kích thước hiển thị):
+*   **Font Tiêu Đề / Nhấn Mạnh / Tên sà lan (Display Font)**: `Space Grotesk` (Phông chữ hình học hiện đại, nét đậm cá tính).
+*   **Font Nội Dung / Số liệu / Bảng biểu (Body Font)**: `Quicksand` (Phông chữ bo tròn nhẹ, cực kỳ rõ nét khi hiển thị số liệu cân và văn bản nhỏ).
 
 Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt lõi** dưới đây (đảm bảo cỡ chữ nhỏ nhất hiển thị trên màn hình là 12px để tăng độ đọc hiểu và bảo vệ an toàn cho phôi in):
 
