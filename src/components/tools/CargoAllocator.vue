@@ -3224,7 +3224,7 @@ async function compileAndDownload() {
                 </div>
 
                 <!-- Chế độ 2: Giao diện Phân bổ tải trọng xếp hàng (Chạy toàn cục) -->
-                <div v-else class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto overflow-y-auto flex-1 min-h-0">
+                <div v-else class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto overflow-hidden flex-1 min-h-0">
 
                     <div class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 fade-in flex-1 min-h-0">
         <!-- Header Banner -->
@@ -3392,7 +3392,7 @@ async function compileAndDownload() {
         </div>
 
         <!-- Tabbed Data Panel -->
-        <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full">
+        <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full flex-1 min-h-0 overflow-hidden">
             <!-- Tabs Header -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <!-- Tabs Navigation Strip -->
