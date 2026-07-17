@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 
 // Toast and notifications
 const toast = ref<{ msg: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
@@ -94,6 +95,11 @@ const formatTimeToInput = (d: Date): string => {
 // Parse Weight List Excel
 async function handleWlUpload(event: Event) {
     const target = event.target as HTMLInputElement;
+    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_create')) {
+        showToast('Bạn không có quyền lập biên bản sà lan!', 'error');
+        target.value = '';
+        return;
+    }
     const file = target.files?.[0];
     if (!file) return;
 
@@ -429,6 +435,10 @@ function formatExcelDateStr(isoDate: string): string {
 
 // Generate minutes file
 async function generateMinutes() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_export')) {
+        showToast('Bạn không có quyền xuất biên bản ra Excel!', 'error');
+        return;
+    }
     if (!wlFile.value) {
         showToast('Vui lòng tải lên tệp Weight List trước!', 'error');
         return;

@@ -8,7 +8,13 @@ interface AuthState {
     displayName: string | null;
     avatar: string | null;
     isFirstLogin: boolean;
-    rolePermissions: Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>;
+    rolePermissions: Record<string, { 
+        tools: string[]; 
+        canCreate: boolean; 
+        canUpdate: boolean; 
+        canDelete: boolean;
+        detailPermissions?: Record<string, string[]>;
+    }>;
 }
 
 import { LogService } from '../services/storage/LogService';
@@ -25,10 +31,54 @@ const initialState: AuthState = {
     avatar: saved?.avatar ?? null,
     isFirstLogin: saved?.isFirstLogin ?? false,
     rolePermissions: saved?.rolePermissions ?? {
-        admin: { tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], canCreate: true, canUpdate: true, canDelete: true },
-        staff: { tools: ['converter', 'merger', 'ocr'], canCreate: true, canUpdate: true, canDelete: false },
-        operator: { tools: ['weighbridge', 'allocator', 'vehicles'], canCreate: true, canUpdate: true, canDelete: false },
-        viewer: { tools: ['weighbridge', 'allocator', 'vehicles'], canCreate: false, canUpdate: false, canDelete: false }
+        admin: { 
+            tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], 
+            canCreate: true, 
+            canUpdate: true, 
+            canDelete: true,
+            detailPermissions: {
+                weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
+                allocator: ['al_barge_manage', 'al_rules_manage', 'al_export'],
+                vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+                minutes: ['min_create', 'min_export']
+            }
+        },
+        staff: { 
+            tools: ['converter', 'merger', 'ocr'], 
+            canCreate: true, 
+            canUpdate: true, 
+            canDelete: false,
+            detailPermissions: {
+                weighbridge: ['wb_print_export'],
+                allocator: ['al_export'],
+                vehicles: ['veh_barge_profile', 'veh_crew_profile'],
+                minutes: ['min_create', 'min_export']
+            }
+        },
+        operator: { 
+            tools: ['weighbridge', 'allocator', 'vehicles'], 
+            canCreate: true, 
+            canUpdate: true, 
+            canDelete: false,
+            detailPermissions: {
+                weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export'],
+                allocator: ['al_barge_manage', 'al_export'],
+                vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+                minutes: ['min_create', 'min_export']
+            }
+        },
+        viewer: { 
+            tools: ['weighbridge', 'allocator', 'vehicles'], 
+            canCreate: false, 
+            canUpdate: false, 
+            canDelete: false,
+            detailPermissions: {
+                weighbridge: ['wb_print_export'],
+                allocator: ['al_export'],
+                vehicles: ['veh_barge_profile'],
+                minutes: ['min_export']
+            }
+        }
     }
 };
 
@@ -115,5 +165,18 @@ export const canDelete = () => {
     const perm = authStore.rolePermissions?.[authStore.role || ''];
     return perm ? perm.canDelete : false;
 };
+
+export const hasDetailPermission = (toolId: string, permissionId: string): boolean => {
+    if (!authStore.isAuthenticated) return false;
+    if (authStore.role === 'admin') return true;
+    const perm = authStore.rolePermissions?.[authStore.role || ''];
+    if (!perm) return false;
+    if (!perm.tools.includes(toolId)) return false;
+    if (!perm.detailPermissions) return true;
+    const toolPerms = perm.detailPermissions[toolId];
+    if (!toolPerms) return true;
+    return toolPerms.includes(permissionId);
+};
+
 
 

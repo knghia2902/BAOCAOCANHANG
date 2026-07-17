@@ -4,7 +4,7 @@ import { WeighbridgeService, type Vessel, type Barge, type BargeConfig } from '@
 import { StorageService } from '@/services/storage/StorageService';
 import { useToast } from '@/composables/useToast';
 import { LogService } from '../../services/storage/LogService';
-import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 
 const { addToast } = useToast();
 const vessels = ref<Vessel[]>([]);
@@ -439,7 +439,7 @@ async function loadData() {
 }
 
 const addPhuMyBarge = async () => {
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -493,7 +493,7 @@ const addPhuMyBarge = async () => {
 };
 
 const deletePhuMyBarge = async (barge: Barge) => {
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -691,7 +691,7 @@ function removeCustomMeta(index: number) {
 }
 
 async function saveProfile() {
-    if (authStore.role !== 'admin' && !canUpdate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_registry_insurance')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1015,7 +1015,7 @@ async function exportToExcel() {
 }
 
 async function handleExcelImport(event: Event) {
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_crew_profile')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1281,7 +1281,7 @@ onUnmounted(() => {
                             <span class="material-symbols-outlined text-sm">add</span>
                             Thêm sà lan mới
                         </button>
-                        <button v-if="authStore.role === 'admin' || canCreate()"
+                        <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile')"
                             @click="triggerExcelUpload"
                             class="h-8 px-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-600/10 shrink-0"
                             title="Nhập dữ liệu hồ sơ từ file Excel"
@@ -2046,7 +2046,7 @@ onUnmounted(() => {
                     >
                         Hủy
                     </button>
-                    <button v-if="authStore.role === 'admin' || canUpdate()"
+                    <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_registry_insurance')"
                         @click="saveProfile"
                         :disabled="saving"
                         class="h-9 px-6 bg-primary hover:bg-primary-dark text-white font-black rounded-xl text-xs active:scale-95 transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 disabled:opacity-50"

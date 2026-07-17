@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { authStore, canCreate, canUpdate, canWrite, canDelete } from '@/stores/auth';
+import { authStore, canCreate, canUpdate, canDelete, hasDetailPermission } from '@/stores/auth';
 import { supabase } from '@/supabase';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
@@ -1235,6 +1235,10 @@ const saveBargeConfig = () => {
 const saveBargeConfigImmediately = async () => {
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config')) {
+        showToast('Bạn không có quyền thay đổi cấu hình sà lan!', 'error');
+        return;
+    }
     if (authStore.role !== 'admin' && !canUpdate()) {
         showToast('Bạn không có quyền lưu cấu hình!', 'error');
         return;
@@ -1280,6 +1284,10 @@ const saveBargeConfigImmediately = async () => {
 const toggleBargeLock = async () => {
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config')) {
+        showToast('Bạn không có quyền khóa/mở khóa sà lan!', 'error');
+        return;
+    }
     if (authStore.role !== 'admin') {
         showToast('Chỉ Quản trị viên mới có quyền thực hiện thao tác này!', 'error');
         return;
@@ -2155,6 +2163,10 @@ function regenerateAllTicketNumbers(trucksList: Truck[], startingSeed: string | 
 const handleTicketConfigChange = async () => {
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config')) {
+        showToast('Bạn không có quyền cấu hình số phiếu!', 'error');
+        return;
+    }
     if (cfgForm.locked) {
         showToast('Sà lan đang bị khóa! Không thể thay đổi số phiếu.', 'error');
         return;
@@ -2193,7 +2205,7 @@ const handleTicketConfigChange = async () => {
 
 // Vessel CRUD
 const addVessel = async () => {
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2222,7 +2234,7 @@ const renameVessel = async (id: number, currentName: string) => {
     const name = await showPrompt('Đổi tên tàu:', currentName);
     if (!name || !name.trim() || name.trim() === currentName) return;
 
-    if (authStore.role !== 'admin' && !canWrite()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2254,7 +2266,7 @@ const deleteVessel = async (id: number, name: string) => {
     });
     if (!confirm) return;
 
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2283,11 +2295,7 @@ const deleteVessel = async (id: number, name: string) => {
 
 // Barge CRUD
 const addBarge = async (vesselId: number) => {
-    if (authStore.role !== 'admin' && !canCreate()) {
-        showToast('Bạn không có quyền thêm sà lan mới!', 'error');
-        return;
-    }
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thêm sà lan mới!', 'error');
         return;
     }
@@ -2317,7 +2325,7 @@ const addBarge = async (vesselId: number) => {
     const result = await showBargeDialog('Thêm sà lan phân bổ mới', '', nextOrderNo);
     if (!result || !result.name.trim()) return;
 
-    if (authStore.role !== 'admin' && !canWrite()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2341,7 +2349,7 @@ const addBarge = async (vesselId: number) => {
 };
 
 const renameBarge = async (id: number, currentName: string) => {
-    if (authStore.role !== 'admin' && !canUpdate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2403,6 +2411,10 @@ const renameBarge = async (id: number, currentName: string) => {
 };
 
 const deleteBarge = async (_vesselId: number, id: number, name: string) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
+        showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const barge = vessels.value.flatMap(v => v.barges || []).find(b => b.id === id);
     if (barge?.config?.locked) {
         showToast('Sà lan đang bị khóa! Vui lòng mở khóa để xóa.', 'error');
@@ -3358,7 +3370,7 @@ const deleteTruck = async (id: number, plate: string) => {
 };
 
 const clearTrucks = async () => {
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3678,14 +3690,14 @@ onUnmounted(() => {
                                 </div>
                                 
                                 <!-- Vessel Actions -->
-                                <div v-if="authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()" class="flex items-center gap-0.5" @click.stopPropagation>
-                                    <button v-if="authStore.role === 'admin' || canCreate()" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
+                                <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" class="flex items-center gap-0.5" @click.stopPropagation>
+                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
                                         <span class="material-symbols-outlined text-xs">add</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || canUpdate()" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
+                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
                                         <span class="material-symbols-outlined text-xs">edit</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || canDelete()" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
+                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
                                         <span class="material-symbols-outlined text-xs">delete</span>
                                     </button>
                                 </div>
@@ -3711,10 +3723,10 @@ onUnmounted(() => {
                                         <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
                                     </div>
                                     <div v-if="authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()" class="flex items-center gap-0.5" @click.stopPropagation>
-                                        <button v-if="authStore.role === 'admin' || canUpdate()" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
+                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
                                             <span class="material-symbols-outlined text-xs">edit</span>
                                         </button>
-                                        <button v-if="authStore.role === 'admin' || canDelete()" @click="deleteBarge(vessel.id, barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-red-500'" title="Xóa sà lan">
+                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="deleteBarge(vessel.id, barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-red-500'" title="Xóa sà lan">
                                             <span class="material-symbols-outlined text-xs">delete</span>
                                         </button>
                                     </div>
@@ -3724,7 +3736,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Sidebar Footer -->
-                    <div v-if="authStore.role === 'admin' || canWrite() || canDelete()" class="p-3 border-t border-primary/10 bg-gray-50">
+                    <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" class="p-3 border-t border-primary/10 bg-gray-50">
                         <button 
                             @click="addVessel" 
                             class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-[12px] text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
@@ -4132,7 +4144,7 @@ onUnmounted(() => {
                             <!-- Stats & Excel Upload Side-by-Side -->
                             <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 items-stretch">
                                 <!-- Stats Grid (6 cols / 12 cols depending on role) -->
-                                <div :class="(authStore.role === 'admin' || canCreate()) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <div :class="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage')) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
                                         <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>

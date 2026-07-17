@@ -466,10 +466,39 @@ const loadStaffToolsConfig = async () => {
 
 
 
-const rolePermissions = ref<Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>>({});
+const rolePermissions = ref<Record<string, { 
+    tools: string[]; 
+    canCreate: boolean; 
+    canUpdate: boolean; 
+    canDelete: boolean;
+    detailPermissions?: Record<string, string[]>;
+}>>({});
 const selectedRoleToConfigure = ref<string>('staff');
 const customRoleName = ref<string>('');
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
+
+const subPermissionsConfig = {
+  weighbridge: [
+    { id: 'wb_vessel_manage', name: 'Quản lý Tàu & Sà lan (Thêm/Sửa/Xóa)' },
+    { id: 'wb_truck_manage', name: 'Quản lý xe cân (Thêm/Sửa/Xóa/Đồng bộ)' },
+    { id: 'wb_print_export', name: 'In phiếu cân A5 & Xuất báo cáo Excel' },
+    { id: 'wb_layout_config', name: 'Cấu hình thông số & Căn chỉnh Layout in' }
+  ],
+  allocator: [
+    { id: 'al_barge_manage', name: 'Quản lý xe & moóc trong lệnh điều xe' },
+    { id: 'al_rules_manage', name: 'Cấu hình công thức phân bổ tải trọng' },
+    { id: 'al_export', name: 'Xuất file excel lệnh điều xe' }
+  ],
+  vehicles: [
+    { id: 'veh_barge_profile', name: 'Xem & Chỉnh sửa hồ sơ sà lan' },
+    { id: 'veh_crew_profile', name: 'Xem & Chỉnh sửa hồ sơ thuyền viên' },
+    { id: 'veh_registry_insurance', name: 'Xem & Chỉnh sửa Đăng kiểm & Bảo hiểm' }
+  ],
+  minutes: [
+    { id: 'min_create', name: 'Lập biên bản làm hàng sà lan' },
+    { id: 'min_export', name: 'Xuất bộ biên bản làm hàng ra Excel' }
+  ]
+};
 
 const loadRolePermissionsConfig = async () => {
     try {
@@ -516,7 +545,13 @@ const handleCreateCustomRole = () => {
         tools: ['converter', 'merger', 'ocr'],
         canCreate: true,
         canUpdate: true,
-        canDelete: false
+        canDelete: false,
+        detailPermissions: {
+            weighbridge: [],
+            allocator: [],
+            vehicles: [],
+            minutes: []
+        }
     };
     
     selectedRoleToConfigure.value = name;
@@ -525,8 +560,8 @@ const handleCreateCustomRole = () => {
 };
 
 const handleDeleteCustomRole = (role: string) => {
-    if (role === 'staff' || role === 'admin' || role === 'operator' || role === 'viewer') {
-        triggerToast('Không thể xóa vai trò mặc định của hệ thống!');
+    if (role === 'admin') {
+        triggerToast('Không thể xóa vai trò Admin chính!');
         return;
     }
     if (confirm(`Bạn có chắc chắn muốn xóa vai trò "${role}" không? Các tài khoản thuộc vai trò này sẽ mất quyền.`)) {
@@ -534,6 +569,38 @@ const handleDeleteCustomRole = (role: string) => {
         const remainingRoles = Object.keys(rolePermissions.value).filter(r => r !== 'admin');
         selectedRoleToConfigure.value = remainingRoles[0] || 'staff';
         triggerToast(`Đã xóa vai trò: ${role}`);
+    }
+};
+
+const isSubPermissionChecked = (role: string, toolId: string, subId: string) => {
+    const rolePerms = rolePermissions.value[role];
+    if (!rolePerms) return false;
+    if (!rolePerms.detailPermissions) {
+        rolePerms.detailPermissions = {};
+    }
+    if (!rolePerms.detailPermissions[toolId]) {
+        rolePerms.detailPermissions[toolId] = [];
+    }
+    return rolePerms.detailPermissions[toolId].includes(subId);
+};
+
+const toggleSubPermission = (role: string, toolId: string, subId: string, event: Event) => {
+    const checked = (event.target as HTMLInputElement).checked;
+    const rolePerms = rolePermissions.value[role];
+    if (!rolePerms) return;
+    if (!rolePerms.detailPermissions) {
+        rolePerms.detailPermissions = {};
+    }
+    if (!rolePerms.detailPermissions[toolId]) {
+        rolePerms.detailPermissions[toolId] = [];
+    }
+    
+    if (checked) {
+        if (!rolePerms.detailPermissions[toolId].includes(subId)) {
+            rolePerms.detailPermissions[toolId].push(subId);
+        }
+    } else {
+        rolePerms.detailPermissions[toolId] = rolePerms.detailPermissions[toolId].filter(id => id !== subId);
     }
 };
 
@@ -1048,7 +1115,7 @@ onMounted(async () => {
                             :class="selectedRoleToConfigure === r ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150'"
                         >
                             <span>{{ r.toUpperCase() }}</span>
-                            <span v-if="!['staff', 'operator', 'viewer'].includes(r)" @click.stop="handleDeleteCustomRole(r)" class="material-symbols-outlined text-xs hover:text-red-200 transition-colors ml-1">close</span>
+                            <span v-if="r !== 'admin'" @click.stop="handleDeleteCustomRole(r)" class="material-symbols-outlined text-xs hover:text-red-200 transition-colors ml-1">close</span>
                         </button>
                     </div>
 
@@ -1083,19 +1150,38 @@ onMounted(async () => {
                         <div>
                             <p class="text-xs font-black text-[#1e293b] mb-3">Các công cụ được phép hiển thị & truy cập:</p>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#f1f5f9] rounded-2xl flex items-center justify-between border border-transparent hover:border-primary/10 transition-all group">
-                                    <div class="flex items-center gap-3">
-                                        <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
-                                            <span class="material-symbols-outlined text-sm">
-                                                {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
-                                            </span>
+                                <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#f1f5f9] rounded-2xl flex flex-col gap-3 border border-transparent hover:border-primary/10 transition-all group text-left">
+                                    <div class="flex items-center justify-between w-full">
+                                        <div class="flex items-center gap-3">
+                                            <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
+                                                <span class="material-symbols-outlined text-sm">
+                                                    {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
+                                                </span>
+                                            </div>
+                                            <span class="font-bold text-xs text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
                                         </div>
-                                        <span class="font-bold text-xs text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
+                                        <label class="relative inline-flex items-center cursor-pointer scale-90">
+                                            <input type="checkbox" :value="t.id" v-model="rolePermissions[selectedRoleToConfigure]!.tools" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
                                     </div>
-                                    <label class="relative inline-flex items-center cursor-pointer scale-90">
-                                        <input type="checkbox" :value="t.id" v-model="rolePermissions[selectedRoleToConfigure]!.tools" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
+                                    
+                                    <!-- Sub-permissions detail check -->
+                                    <div v-if="rolePermissions[selectedRoleToConfigure]!.tools.includes(t.id) && subPermissionsConfig[t.id as keyof typeof subPermissionsConfig]" class="pl-12 pt-2 border-t border-dashed border-primary/10 space-y-2">
+                                        <p class="text-[10px] font-black text-primary/70 uppercase tracking-wider mb-1">Quyền mục nhỏ:</p>
+                                        <div v-for="sub in subPermissionsConfig[t.id as keyof typeof subPermissionsConfig]" :key="sub.id" class="flex items-center gap-2">
+                                            <input 
+                                                type="checkbox" 
+                                                :id="selectedRoleToConfigure + '_' + sub.id"
+                                                :checked="isSubPermissionChecked(selectedRoleToConfigure, t.id, sub.id)"
+                                                @change="toggleSubPermission(selectedRoleToConfigure, t.id, sub.id, $event)"
+                                                class="accent-primary size-3.5 rounded"
+                                            />
+                                            <label :for="selectedRoleToConfigure + '_' + sub.id" class="text-xs font-semibold text-[#1e293b] cursor-pointer select-none">
+                                                {{ sub.name }}
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
