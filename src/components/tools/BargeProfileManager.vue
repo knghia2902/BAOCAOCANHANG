@@ -62,7 +62,6 @@ const editLastPort = ref('');
 const activeSite = ref<'NguyenNgoc' | 'PhuMy'>('NguyenNgoc');
 const showAddBargeModal = ref(false);
 const newBargeName = ref('');
-const isEditReadOnly = ref(false);
 const editGcnImages = ref<string[]>([]);
 const editDkImages = ref<string[]>([]);
 const editBhImages = ref<string[]>([]);
@@ -465,56 +464,13 @@ const deletePhuMyBarge = async (barge: Barge) => {
     }
 };
 
-const toggleLockBarge = async (item: { barge: Barge; vesselName: string }) => {
-    if (authStore.role !== 'admin') {
-        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
-        return;
-    }
-    const config = item.barge.config || {};
-    const newLocked = !config.locked;
-    const actionText = newLocked ? 'Khóa' : 'Mở khóa';
-    
-    if (!confirm(`Bạn có chắc chắn muốn ${actionText.toLowerCase()} sà lan "${item.barge.name}"?`)) return;
-    
-    loading.value = true;
-    try {
-        const updatedConfig = {
-            ...config,
-            locked: newLocked
-        };
-        await WeighbridgeService.updateBargeConfig(item.barge.id, updatedConfig);
-        addToast(`Đã ${actionText.toLowerCase()} sà lan: ${item.barge.name}`, 'success');
-        await LogService.logAction(`${actionText} sà lan`, `${actionText} hồ sơ sà lan: ` + item.barge.name);
-        await loadData();
-    } catch (e) {
-        console.error(`Lỗi khi ${actionText.toLowerCase()} sà lan:`, e);
-        addToast(`Lỗi khi ${actionText.toLowerCase()} sà lan!`, 'error');
-    } finally {
-        loading.value = false;
-    }
-};
 
-
-
-function openView(item: { barge: Barge; vesselName: string }) {
-    isEditReadOnly.value = true;
-    openEdit(item);
-}
-
-function openEditWithWrite(item: { barge: Barge; vesselName: string }) {
-    const config = item.barge.config || {};
-    isEditReadOnly.value = !!config.locked;
-    openEdit(item);
-}
 
 function openEdit(item: { barge: Barge; vesselName: string }) {
     selectedBarge.value = item.barge;
     selectedVesselName.value = item.vesselName;
     
     const config = item.barge.config || {} as BargeConfig;
-    if (config.locked) {
-        isEditReadOnly.value = true;
-    }
     editBargeName.value = item.barge.name || '';
     editOrderNo.value = config.orderNo || '';
     editGoods.value = config.goods || '';
@@ -1162,17 +1118,22 @@ onUnmounted(() => {
                         </h1>
                     </div>
                     
-                    <!-- Tabs site switcher (Dropdown style) -->
-                    <div class="relative select-none">
-                        <select 
-                            v-model="activeSite" 
-                            @change="activeBargeId = null"
-                            class="h-8 px-4 bg-slate-50 border border-gray-200 hover:border-primary/50 text-[#1e293b] font-black rounded-xl text-xs transition-all shadow-sm focus:outline-none cursor-pointer appearance-none pr-8 select-none"
+                    <!-- Tabs site switcher -->
+                    <div class="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 shadow-inner">
+                        <button 
+                            @click="activeSite = 'NguyenNgoc'; activeBargeId = null"
+                            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 select-none', activeSite === 'NguyenNgoc' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-[#1e293b]']"
                         >
-                            <option value="NguyenNgoc">⚓ Cảng Nguyên Ngọc</option>
-                            <option value="PhuMy">📍 Khu vực Phú Mỹ</option>
-                        </select>
-                        <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-base">keyboard_arrow_down</span>
+                            <span class="material-symbols-outlined text-sm">sailing</span>
+                            Cảng Nguyên Ngọc
+                        </button>
+                        <button 
+                            @click="activeSite = 'PhuMy'; activeBargeId = null"
+                            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 select-none', activeSite === 'PhuMy' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-[#1e293b]']"
+                        >
+                            <span class="material-symbols-outlined text-sm">location_on</span>
+                            Khu vực Phú Mỹ
+                        </button>
                     </div>
                 </div>
 
@@ -1423,52 +1384,16 @@ onUnmounted(() => {
                                         <span v-else class="text-gray-400 italic text-xs">-</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center flex items-center justify-center gap-1.5">
-                                        <!-- Read-only View Action -->
                                         <button 
-                                            @click="openView(item)" 
-                                            class="px-2 py-1 bg-slate-50 hover:bg-slate-200 border border-slate-200 text-slate-700 font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5"
+                                            @click="openEdit(item)" 
+                                            class="px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm"
                                         >
-                                            <span class="material-symbols-outlined text-xs">visibility</span>
-                                            Xem
+                                            Chỉnh sửa
                                         </button>
-
-                                        <!-- Edit Action (Disabled or styled differently if locked) -->
-                                        <button 
-                                            @click="openEditWithWrite(item)" 
-                                            :disabled="item.barge.config?.locked"
-                                            :class="[
-                                                'px-2 py-1 border font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5',
-                                                item.barge.config?.locked 
-                                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
-                                                    : 'bg-[#f1f5f9] hover:bg-primary hover:text-white border-soft-pink text-primary'
-                                            ]"
-                                            :title="item.barge.config?.locked ? 'Sà lan này đang bị khóa' : 'Chỉnh sửa hồ sơ sà lan'"
-                                        >
-                                            <span class="material-symbols-outlined text-xs">{{ item.barge.config?.locked ? 'lock' : 'edit' }}</span>
-                                            Sửa
-                                        </button>
-
-                                        <!-- Lock/Unlock Toggle for Admin -->
-                                        <button 
-                                            v-if="authStore.role === 'admin'"
-                                            @click="toggleLockBarge(item)"
-                                            :class="[
-                                                'px-2 py-1 border font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5',
-                                                item.barge.config?.locked
-                                                    ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-600 hover:text-white'
-                                                    : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-600 hover:text-white'
-                                            ]"
-                                            :title="item.barge.config?.locked ? 'Mở khóa sà lan' : 'Khóa sà lan'"
-                                        >
-                                            <span class="material-symbols-outlined text-xs">{{ item.barge.config?.locked ? 'lock_open' : 'lock' }}</span>
-                                            {{ item.barge.config?.locked ? 'Mở khóa' : 'Khóa' }}
-                                        </button>
-
-                                        <!-- Delete Action for PhuMy site -->
                                         <button 
                                             v-if="activeSite === 'PhuMy'"
                                             @click="deletePhuMyBarge(item.barge)" 
-                                            class="px-2 py-1 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-600 font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5"
+                                            class="px-2.5 py-1 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-600 font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5"
                                         >
                                             Xóa
                                         </button>
@@ -1487,7 +1412,7 @@ onUnmounted(() => {
                 <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between bg-slate-50 shrink-0">
                     <div>
                         <h3 class="text-base font-black text-primary uppercase tracking-wider flex items-center gap-2 select-none">
-                            <span class="material-symbols-outlined text-base">edit_note</span>
+                            <span class="material-symbols-outlined text-lg">edit_note</span>
                             Hồ sơ sà lan: {{ selectedBarge?.name }}
                         </h3>
                         <p class="text-xs text-gray-400 font-bold mt-0.5">
@@ -1506,7 +1431,7 @@ onUnmounted(() => {
                 <!-- Form Panel (Scrollable, Two Columns) -->
                 <div class="flex-grow overflow-y-auto p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-0 custom-scrollbar">
                     <!-- Left: Administrative & Crew & Movement details -->
-                    <fieldset :disabled="isEditReadOnly" class="space-y-4 border-0 p-0 m-0">
+                    <div class="space-y-4">
                         <h4 class="text-xs font-black text-primary uppercase tracking-wider border-b border-dashed border-gray-200 pb-2 flex items-center gap-1">
                             <span class="material-symbols-outlined text-base">settings</span>
                             Thông tin hành chính & Hành trình
@@ -1625,7 +1550,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                         <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'crew')" class="hidden" />
@@ -1638,7 +1563,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button v-if="!isEditReadOnly" @click="removeImage(idx, 'crew')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button @click="removeImage(idx, 'crew')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -1691,10 +1616,10 @@ onUnmounted(() => {
                                 </div>
                             </div>
                         </div>
-                    </fieldset>
+                    </div>
 
                     <!-- Right: Technical profiles (Structured Excel fields + Custom fields) -->
-                    <fieldset :disabled="isEditReadOnly" class="space-y-4 flex flex-col min-h-0 border-0 p-0 m-0">
+                    <div class="space-y-4 flex flex-col min-h-0">
                         <h4 class="text-xs font-black text-primary uppercase tracking-wider border-b border-dashed border-gray-200 pb-2 flex items-center gap-1">
                             <span class="material-symbols-outlined text-base">engineering</span>
                             Hồ sơ kỹ thuật & Pháp lý (Excel)
@@ -1763,7 +1688,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editGcnImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'gcn')" class="hidden" />
@@ -1776,7 +1701,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button v-if="!isEditReadOnly" @click="removeImage(idx, 'gcn')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button @click="removeImage(idx, 'gcn')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -1810,7 +1735,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editDkImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'dk')" class="hidden" />
@@ -1823,7 +1748,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button v-if="!isEditReadOnly" @click="removeImage(idx, 'dk')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button @click="removeImage(idx, 'dk')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -1857,7 +1782,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editBhImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'bh')" class="hidden" />
@@ -1870,7 +1795,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button v-if="!isEditReadOnly" @click="removeImage(idx, 'bh')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button @click="removeImage(idx, 'bh')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -1887,7 +1812,6 @@ onUnmounted(() => {
                                     Thông số phụ khác (Tự chọn)
                                 </span>
                                 <button 
-                                    v-if="!isEditReadOnly"
                                     @click="addCustomMeta"
                                     class="text-xs font-black text-primary hover:underline uppercase flex items-center gap-0.5"
                                 >
@@ -1900,14 +1824,14 @@ onUnmounted(() => {
                                 <div v-for="(meta, idx) in customMetas" :key="idx" class="flex gap-2 items-center">
                                     <input v-model="meta.key" placeholder="Tên thông số" class="flex-1 h-7 px-2 text-xs bg-slate-50 border border-gray-200 rounded-lg text-[#1e293b]" />
                                     <input v-model="meta.value" placeholder="Giá trị" class="flex-1 h-7 px-2 text-xs bg-slate-50 border border-gray-200 rounded-lg text-[#1e293b]" />
-                                    <button v-if="!isEditReadOnly" @click="removeCustomMeta(idx)" class="size-7 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center border border-gray-200 shrink-0">
+                                    <button @click="removeCustomMeta(idx)" class="size-7 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center border border-gray-200 shrink-0">
                                         <span class="material-symbols-outlined text-sm">delete</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </fieldset>
                     </div>
+                </div>
 
                 <!-- Footer -->
                 <div class="px-8 py-5 border-t border-primary/10 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
@@ -1917,7 +1841,7 @@ onUnmounted(() => {
                     >
                         Hủy
                     </button>
-                    <button v-if="!isEditReadOnly && (authStore.role === 'admin' || canUpdate())"
+                    <button v-if="authStore.role === 'admin' || canUpdate()"
                         @click="saveProfile"
                         :disabled="saving"
                         class="h-9 px-6 bg-primary hover:bg-primary-dark text-white font-black rounded-xl text-xs active:scale-95 transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 disabled:opacity-50"
@@ -1948,11 +1872,11 @@ onUnmounted(() => {
             <div class="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
                 <div class="flex items-center justify-between border-b border-gray-150 pb-3">
                     <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
-                        <span class="material-symbols-outlined text-base">add_box</span>
+                        <span class="material-symbols-outlined text-lg">add_box</span>
                         Thêm sà lan Phú Mỹ mới
                     </h3>
                     <button @click="showAddBargeModal = false" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined text-base">close</span>
+                        <span class="material-symbols-outlined text-lg">close</span>
                     </button>
                 </div>
                 
