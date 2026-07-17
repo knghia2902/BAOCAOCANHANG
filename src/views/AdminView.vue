@@ -521,6 +521,11 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, _acti
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
     
+    // Automatically enable subsystem tool if not enabled
+    if (!roleConfig.tools.includes(subsystem)) {
+        roleConfig.tools.push(subsystem);
+    }
+    
     if (!roleConfig.detailPermissions) {
         roleConfig.detailPermissions = {
             weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
@@ -1195,7 +1200,7 @@ onMounted(async () => {
                         </div>
 
                         <!-- Actions Permissions Table -->
-                        <div v-if="rolePermissions[selectedRoleToConfigure]!.tools.includes(activeSubsystem) && actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" class="space-y-3.5 text-left animate-fade-in">
+                        <div v-if="actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" class="space-y-3.5 text-left animate-fade-in">
                             <h4 class="text-xs font-black text-gray-500 uppercase tracking-wider">Chi tiết quyền hạn thao tác (Actions Permissions)</h4>
                             
                             <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
