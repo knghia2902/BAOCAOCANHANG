@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import FormatConverter from '../components/tools/FormatConverter.vue';
 import PdfOcrTools from '../components/tools/PdfOcrTools.vue';
 import ExcelMerger from '../components/tools/ExcelMerger.vue';
@@ -12,7 +12,6 @@ import { authStore } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
 
 const route = useRoute();
-const router = useRouter();
 
 // Active tool and utility tabs
 const activeToolId = ref<string | null>(null);
@@ -48,16 +47,35 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
 onMounted(async () => {
     await loadTools();
 
+    // 1. Restore utility tab if saved
+    const savedUtil = localStorage.getItem('active_utility_tab');
+    if (savedUtil) {
+        activeUtilityTab.value = savedUtil as any;
+    }
+
+    // 2. Check query param first (for external redirects like from HomeView)
     const toolParam = route.query.tool;
     if (typeof toolParam === 'string' && toolParam) {
         openTool(toolParam);
     } else {
-        // Default to "Báo Cáo Tổng Quan" (weighbridge) for all roles
-        activeToolId.value = 'weighbridge';
+        // 3. If no query, check localStorage for last active tool
+        const savedTool = localStorage.getItem('active_tool_id');
+        if (savedTool) {
+            openTool(savedTool);
+        } else {
+            // 4. Default to Báo Cáo Tổng Quan
+            activeToolId.value = 'weighbridge';
+        }
     }
 });
 
 watch(activeToolId, (newVal) => {
+    if (newVal) {
+        localStorage.setItem('active_tool_id', newVal);
+    } else {
+        localStorage.removeItem('active_tool_id');
+    }
+
     const isWeighbridge = newVal === 'weighbridge';
     window.dispatchEvent(new CustomEvent('weighbridge-status', { detail: isWeighbridge }));
 
@@ -67,6 +85,12 @@ watch(activeToolId, (newVal) => {
         document.body.style.overflow = '';
     }
 }, { immediate: true });
+
+watch(activeUtilityTab, (newVal) => {
+    if (newVal) {
+        localStorage.setItem('active_utility_tab', newVal);
+    }
+});
 
 onUnmounted(() => {
     document.body.style.overflow = '';
@@ -179,18 +203,6 @@ watch(allowedStaffTools, (newVal) => {
     }
 });
 
-// Synchronize state to URL query parameter
-watch([activeToolId, activeUtilityTab], ([newTool, newUtil]) => {
-    const query: any = {};
-    if (newTool) {
-        if (newTool === 'utilities' && newUtil) {
-            query.tool = newUtil;
-        } else {
-            query.tool = newTool;
-        }
-    }
-    router.replace({ path: '/tools', query });
-});
 </script>
 
 <template>
