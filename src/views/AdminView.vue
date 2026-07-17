@@ -1385,16 +1385,7 @@ onMounted(async () => {
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Ảnh Đại Diện (Tùy chọn)</label>
-                            <input type="file" accept="image/*" @change="handleAccountAvatarUpload($event, true)" class="w-full bg-[#fcf8f9] p-4.5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
-                        </div>
-                        <div class="flex items-center gap-2 mt-4 ml-2">
-                            <img :src="editAccountForm.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(editAccountForm.displayName || 'User'))" class="size-12 rounded-full border-2 border-primary/20 object-cover" />
-                            <button v-if="editAccountForm.avatar" @click="editAccountForm.avatar = ''" class="text-[10px] font-black text-red-500 hover:underline">Xóa</button>
-                        </div>
-                    </div>
+
 
                     <button @click="handleEditAccount" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Lưu Thay Đổi ✨</button>
                 </div>
