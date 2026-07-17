@@ -3568,7 +3568,7 @@ onUnmounted(() => {
             </div>
             <div>
                 <h3 class="text-2xl font-display font-black text-primary mb-3">In Phiếu Cân Xe 🚢</h3>
-                <p class="text-sm font-medium text-[#1b0d11]/60 leading-relaxed mb-6">
+                <p class="text-sm font-bold text-[#1b0d11]/60 leading-relaxed mb-6">
                     Quản lý danh sách tàu, sà lan và nhập xe từ Excel. Hỗ trợ tạo và in phiếu cân tự động định dạng A5 chuyên nghiệp.
                 </p>
                 <div class="flex flex-wrap gap-2 mb-6">
@@ -3597,7 +3597,7 @@ onUnmounted(() => {
                     </div>
                     <div>
                         <h2 class="text-sm font-black text-primary leading-tight">PHẦN MỀM IN PHIẾU CÂN XE</h2>
-                        <p class="text-[10px] font-medium text-[#1b0d11]/60 leading-none">Cảng Nguyên Ngọc - Đồng bộ đám mây</p>
+                        <p class="text-[10px] font-bold text-[#1b0d11]/60 leading-none">Cảng Nguyên Ngọc - Đồng bộ đám mây</p>
                     </div>
                 </div>
                 
@@ -3681,7 +3681,7 @@ onUnmounted(() => {
                                     v-for="barge in vessel.barges" 
                                     :key="barge.id"
                                     @click="selectBarge(vessel.id, barge.id)"
-                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
+                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100']"
                                 >
                                     <div class="flex items-center gap-1.5 truncate">
                                         <span class="material-symbols-outlined text-sm">layers</span>
@@ -3841,7 +3841,7 @@ onUnmounted(() => {
                                 Không tìm thấy sà lan phù hợp với từ khóa tìm kiếm hoặc bộ lọc.
                             </div>
                             <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                <table class="w-full text-left border-collapse text-sm font-bold whitespace-nowrap">
+                                <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
@@ -3869,8 +3869,8 @@ onUnmounted(() => {
                                                     {{ b.vesselName }}
                                                 </span>
                                             </td>
-                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{{ b.dateStart ? formatDateTimeStr(b.dateStart) : '-' }}</td>
-                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{{ b.dateEnd ? formatDateTimeStr(b.dateEnd) : '-' }}</td>
+                                            <td class="px-3 py-2 text-gray-700 whitespace-nowrap">{{ b.dateStart ? formatDateTimeStr(b.dateStart) : '-' }}</td>
+                                            <td class="px-3 py-2 text-gray-700 whitespace-nowrap">{{ b.dateEnd ? formatDateTimeStr(b.dateEnd) : '-' }}</td>
                                             <td class="px-3 py-2 text-center">
                                                 <span v-if="b.locked" class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap">
                                                     <span class="material-symbols-outlined text-[11px]">lock</span> Khóa
@@ -4008,7 +4008,7 @@ onUnmounted(() => {
                                 Không có sà lan nào hoạt động trong thời gian được lọc.
                             </div>
                             <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                <table class="w-full text-left border-collapse text-sm font-bold whitespace-nowrap">
+                                <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
@@ -4025,10 +4025,10 @@ onUnmounted(() => {
                                         <tr v-for="(b, idx) in filteredVesselBarges" :key="b.id" class="hover:bg-gray-50 transition-colors">
                                             <td class="px-3 py-2 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                             <td class="px-3 py-2 font-bold text-gray-900">{{ b.name }}</td>
-                                            <td class="px-3 py-2 text-right font-medium">{{ formatNumber(b.truckCount) }}</td>
+                                            <td class="px-3 py-2 text-right font-bold">{{ formatNumber(b.truckCount) }}</td>
                                             <td class="px-3 py-2 text-right font-bold text-teal-600">{{ formatNumber(b.totalWeight) }}</td>
-                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{{ formatDateTimeStr(b.dateStart) || '-' }}</td>
-                                            <td class="px-3 py-2 text-gray-500 whitespace-nowrap">{{ formatDateTimeStr(b.dateEnd) || '-' }}</td>
+                                            <td class="px-3 py-2 text-gray-700 whitespace-nowrap">{{ formatDateTimeStr(b.dateStart) || '-' }}</td>
+                                            <td class="px-3 py-2 text-gray-700 whitespace-nowrap">{{ formatDateTimeStr(b.dateEnd) || '-' }}</td>
                                             <td class="px-3 py-2 text-center">
                                                 <span v-if="b.locked" class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap">
                                                     <span class="material-symbols-outlined text-[11px]">lock</span> Khóa
@@ -4079,10 +4079,10 @@ onUnmounted(() => {
                                 <span v-if="cfgForm.locked" class="text-[10px] font-black text-red-600 flex items-center gap-0.5 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
                                     <span class="material-symbols-outlined text-[12px]">lock</span> ĐÃ KHÓA
                                 </span>
-                                <span v-else-if="saving" class="text-[10px] font-medium text-gray-400 flex items-center gap-0.5">
+                                <span v-else-if="saving" class="text-[10px] font-bold text-gray-400 flex items-center gap-0.5">
                                     <span class="material-symbols-outlined text-xs animate-spin">sync</span> Đang đồng bộ...
                                 </span>
-                                <span v-else class="text-[10px] font-medium text-teal-500 flex items-center gap-0.5">
+                                <span v-else class="text-[10px] font-bold text-teal-500 flex items-center gap-0.5">
                                     <span class="material-symbols-outlined text-xs">cloud_done</span> Đã đồng bộ đám mây
                                 </span>
                             </div>
@@ -4246,7 +4246,7 @@ onUnmounted(() => {
 
                                 <!-- Table -->
                                 <div class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                    <table class="w-full text-left border-collapse text-sm font-bold whitespace-nowrap">
+                                    <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                         <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
                                             <tr class="text-gray-500 border-b border-gray-100 font-bold select-none">
                                                 <th class="p-2.5 w-10 text-center bg-gray-50">STT</th>
@@ -4317,12 +4317,12 @@ onUnmounted(() => {
                                                 <td class="p-2 text-center text-gray-400 font-bold">{{ index + 1 }}</td>
                                                 <td class="p-2 font-mono text-[#1e293b] font-bold">{{ truck.ticketNo }}</td>
                                                 <td class="p-2 font-bold text-gray-900">{{ truck.plateNumber }}</td>
-                                                <td class="p-2 text-gray-600">{{ truck.driver || '-' }}</td>
-                                                <td class="p-2 text-right font-medium">{{ formatNumber(truck.weight1) }}</td>
-                                                <td class="p-2 text-right font-medium">{{ formatNumber(truck.weight2) }}</td>
+                                                <td class="p-2 text-gray-700">{{ truck.driver || '-' }}</td>
+                                                <td class="p-2 text-right font-bold">{{ formatNumber(truck.weight1) }}</td>
+                                                <td class="p-2 text-right font-bold">{{ formatNumber(truck.weight2) }}</td>
                                                 <td class="p-2 text-right font-bold text-teal-600">{{ formatNumber(truck.weightNet) }}</td>
-                                                <td class="p-2 text-gray-500 whitespace-nowrap">{{ formatDateTimeStr(truck.dateIn) }}</td>
-                                                <td class="p-2 text-gray-500 whitespace-nowrap">{{ formatDateTimeStr(truck.dateOut) }}</td>
+                                                <td class="p-2 text-gray-700 whitespace-nowrap">{{ formatDateTimeStr(truck.dateIn) }}</td>
+                                                <td class="p-2 text-gray-700 whitespace-nowrap">{{ formatDateTimeStr(truck.dateOut) }}</td>
                                                 <td class="p-2 text-gray-400 italic max-w-[150px] truncate" :title="truck.note">{{ truck.note || '-' }}</td>
                                                 <td class="p-2">
                                                     <div class="flex items-center gap-1.5 justify-center">
@@ -5098,7 +5098,7 @@ onUnmounted(() => {
                 </div>
                 
                 <!-- Message Content -->
-                <div class="text-xs font-semibold text-gray-600 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto pr-1">
+                <div class="text-xs font-semibold text-gray-700 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto pr-1">
                     {{ confirmDialog.message }}
                 </div>
                 
