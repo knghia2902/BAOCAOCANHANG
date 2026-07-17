@@ -680,7 +680,7 @@ onMounted(async () => {
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-2 lg:p-10 overflow-y-auto min-w-0">
+        <main class="flex-1 pt-2 lg:pt-10 px-2 lg:px-10 pb-2 lg:pb-0 overflow-y-auto min-w-0">
             <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 lg:mb-10 gap-4">
                 <div class="text-left">
                     <h2 class="text-xl lg:text-3xl font-display font-black">Welcome back, Admin!</h2>
@@ -782,7 +782,7 @@ onMounted(async () => {
             </div>
 
             <!-- Bottom Dashboard Row (Perfectly Aligned) -->
-            <div v-if="currentTab === 'dashboard'" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch pb-8">
+            <div v-if="currentTab === 'dashboard'" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch pb-0 lg:pb-0">
                 <!-- Visibility -->
                 <div class="bg-white rounded-[2.5rem] p-10 card-shadow border border-white/50 flex flex-col h-full">
                     <h3 class="text-xl font-display font-black mb-8 flex items-center gap-3">
