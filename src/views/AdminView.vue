@@ -542,7 +542,15 @@ const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
         if (roleConfig.detailPermissions) {
             roleConfig.detailPermissions[subsystem] = [];
         }
+        // If the disabled subsystem was the active one, switch activeSubsystem to another enabled subsystem that has action permissions
+        if (activeSubsystem.value === subsystem) {
+            const firstActive = roleConfig.tools.find(t => t in actionPermissionsMapping);
+            activeSubsystem.value = firstActive || 'weighbridge';
+        }
     } else {
+        // Automatically make the newly enabled subsystem active
+        activeSubsystem.value = subsystem;
+        
         // Populate default sub-permissions when subsystem is enabled
         if (!roleConfig.detailPermissions) {
             roleConfig.detailPermissions = {};
@@ -594,6 +602,20 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, _acti
 };
 const customRoleName = ref<string>('');
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
+
+watch([selectedRoleToConfigure, () => rolePermissions.value], ([newRole, permissions]) => {
+    if (!permissions) return;
+    const roleConfig = permissions[newRole];
+    if (roleConfig && roleConfig.tools) {
+        // If the current activeSubsystem is not enabled, or is not in actionPermissionsMapping,
+        // we switch it to the first enabled tool that is in actionPermissionsMapping.
+        const isCurrentActiveValid = roleConfig.tools.includes(activeSubsystem.value) && (activeSubsystem.value in actionPermissionsMapping);
+        if (!isCurrentActiveValid) {
+            const firstActive = roleConfig.tools.find(t => t in actionPermissionsMapping);
+            activeSubsystem.value = firstActive || 'weighbridge';
+        }
+    }
+}, { immediate: true });
 
 
 
