@@ -567,6 +567,36 @@ const filteredLogs = computed(() => {
     return logs;
 });
 
+// Pagination State for Activity Logs
+const logsCurrentPage = ref(1);
+const logsPerPage = ref(10);
+
+watch([logsSearchQuery, logsFilterAction], () => {
+    logsCurrentPage.value = 1;
+});
+
+const paginatedLogs = computed(() => {
+    const start = (logsCurrentPage.value - 1) * logsPerPage.value;
+    const end = start + logsPerPage.value;
+    return filteredLogs.value.slice(start, end);
+});
+
+const logsTotalPages = computed(() => {
+    return Math.ceil(filteredLogs.value.length / logsPerPage.value) || 1;
+});
+
+const logsNextPage = () => {
+    if (logsCurrentPage.value < logsTotalPages.value) {
+        logsCurrentPage.value++;
+    }
+};
+
+const logsPrevPage = () => {
+    if (logsCurrentPage.value > 1) {
+        logsCurrentPage.value--;
+    }
+};
+
 const uniqueActions = computed(() => {
     const actions = new Set(activityLogs.value.map(l => l.action));
     return Array.from(actions).sort();
@@ -1127,7 +1157,7 @@ onMounted(async () => {
                     <!-- Table -->
                     <div v-else class="overflow-x-auto">
                         <div class="text-right mb-3">
-                            <span class="text-xs font-bold text-gray-300">Hiển thị {{ filteredLogs.length }} / {{ activityLogs.length }} bản ghi</span>
+                            <span class="text-xs font-bold text-gray-300">Hiển thị {{ paginatedLogs.length }} / {{ filteredLogs.length }} bản ghi (Tổng {{ activityLogs.length }})</span>
                         </div>
                         <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead>
@@ -1140,7 +1170,7 @@ onMounted(async () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-primary/5">
-                                <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-soft-pink/5 transition-colors">
+                                <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-soft-pink/5 transition-colors">
                                     <td class="py-3.5 pl-4 text-xs font-bold text-gray-400">
                                         {{ formatLogTime(log.timestamp) }}
                                     </td>
@@ -1174,6 +1204,27 @@ onMounted(async () => {
                                 </tr>
                             </tbody>
                         </table>
+
+                        <!-- Pagination controls -->
+                        <div v-if="filteredLogs.length > 0" class="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 text-xs">
+                            <button 
+                                @click="logsPrevPage" 
+                                :disabled="logsCurrentPage === 1"
+                                class="px-4 py-2 bg-gray-50 hover:bg-primary hover:text-white border border-gray-200 text-gray-500 font-black rounded-xl transition-all disabled:opacity-40 disabled:hover:bg-gray-50 disabled:hover:text-gray-500"
+                            >
+                                Trước
+                            </button>
+                            <span class="font-bold text-gray-400">
+                                Trang <strong class="text-[#1e293b]">{{ logsCurrentPage }}</strong> / {{ logsTotalPages }}
+                            </span>
+                            <button 
+                                @click="logsNextPage" 
+                                :disabled="logsCurrentPage === logsTotalPages"
+                                class="px-4 py-2 bg-gray-50 hover:bg-primary hover:text-white border border-gray-200 text-gray-500 font-black rounded-xl transition-all disabled:opacity-40 disabled:hover:bg-gray-50 disabled:hover:text-gray-500"
+                            >
+                                Sau
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
