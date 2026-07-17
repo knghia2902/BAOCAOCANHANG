@@ -475,9 +475,7 @@ const allToolsWithMinutes = [
   { id: 'allocator', name: 'Báo cáo cân hàng 🚛', description: 'Phân bổ tải trọng, điều phối xe và gộp dữ liệu chuyến hàng' },
   { id: 'vehicles', name: 'Hồ sơ phương tiện sà lan 🚢', description: 'Quản lý hồ sơ sà lan, thông tin thuyền viên và đăng kiểm' },
   { id: 'minutes', name: 'Biên Bản Sà Lan 📝', description: 'Tạo biên bản giao nhận sà lan tự động dựa trên file dữ liệu cân' },
-  { id: 'ocr', name: 'Trích Xuất PDF & OCR', description: 'Nhận diện văn bản hình ảnh, quét OCR tài liệu và trích xuất dữ liệu' },
-  { id: 'merger', name: 'Gộp Excel Thông Minh', description: 'Gộp các file Excel báo cáo cân hàng, báo cáo sản lượng nhanh chóng' },
-  { id: 'converter', name: 'Chuyển Đổi Định Dạng File', description: 'Chuyển đổi PDF, Word, Excel, ảnh trực tiếp trong trình duyệt' }
+  { id: 'utilities', name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️', description: 'Chuyển đổi định dạng file, gộp Excel thông minh và trích xuất dữ liệu OCR' }
 ];
 
 const actionPermissionsMapping = {
@@ -545,11 +543,54 @@ const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
     return [];
 };
 
+const isSubsystemChecked = (role: string, id: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig || !roleConfig.tools) return false;
+    if (id === 'utilities') {
+        return roleConfig.tools.includes('converter') || roleConfig.tools.includes('merger') || roleConfig.tools.includes('ocr');
+    }
+    return roleConfig.tools.includes(id);
+};
+
+const onSubsystemCheckboxToggle = (role: string, id: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig || !roleConfig.tools) return;
+    
+    if (id === 'utilities') {
+        const isChecked = isSubsystemChecked(role, 'utilities');
+        if (isChecked) {
+            // Disable: Remove converter, merger, ocr from tools
+            roleConfig.tools = roleConfig.tools.filter(t => t !== 'converter' && t !== 'merger' && t !== 'ocr' && t !== 'utilities');
+        } else {
+            // Enable: Add converter, merger, ocr to tools
+            const newTools = [...roleConfig.tools];
+            if (!newTools.includes('converter')) newTools.push('converter');
+            if (!newTools.includes('merger')) newTools.push('merger');
+            if (!newTools.includes('ocr')) newTools.push('ocr');
+            roleConfig.tools = newTools;
+        }
+        handleSubsystemCheckboxChange(role, 'utilities');
+    } else {
+        const index = roleConfig.tools.indexOf(id);
+        if (index >= 0) {
+            // Disable
+            roleConfig.tools.splice(index, 1);
+        } else {
+            // Enable
+            roleConfig.tools.push(id);
+        }
+        handleSubsystemCheckboxChange(role, id);
+    }
+};
+
 const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
     
-    const isEnabled = roleConfig.tools.includes(subsystem);
+    const isEnabled = subsystem === 'utilities'
+        ? (roleConfig.tools.includes('converter') || roleConfig.tools.includes('merger') || roleConfig.tools.includes('ocr'))
+        : roleConfig.tools.includes(subsystem);
+
     if (!isEnabled) {
         // Clear all sub-permissions when subsystem is disabled
         if (roleConfig.detailPermissions) {
@@ -1251,12 +1292,16 @@ onMounted(async () => {
                                         <label class="relative flex items-center cursor-pointer" @click.stop>
                                             <input 
                                                 type="checkbox" 
-                                                :value="t.id" 
-                                                v-model="rolePermissions[selectedRoleToConfigure]!.tools" 
-                                                @change="handleSubsystemCheckboxChange(selectedRoleToConfigure, t.id)"
+                                                :checked="isSubsystemChecked(selectedRoleToConfigure, t.id)" 
+                                                @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, t.id)"
                                                 class="sr-only peer"
                                             />
-                                            <div class="size-6 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center transition-all text-transparent peer-checked:text-white peer-checked:bg-primary peer-checked:border-primary">
+                                            <div 
+                                                class="size-6 rounded-lg flex items-center justify-center transition-all border-2"
+                                                :class="isSubsystemChecked(selectedRoleToConfigure, t.id) 
+                                                    ? 'bg-primary border-primary text-white' 
+                                                    : 'bg-white border-gray-300 text-transparent'"
+                                            >
                                                 <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
                                             </div>
                                         </label>
@@ -1270,7 +1315,7 @@ onMounted(async () => {
                                     <!-- Icon badge -->
                                     <div class="size-8 bg-slate-50 text-gray-400 rounded-xl flex items-center justify-center border border-gray-150 shrink-0">
                                         <span class="material-symbols-outlined text-sm">
-                                            {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : t.id === 'minutes' ? 'description' : 'document_scanner' }}
+                                            {{ t.id === 'utilities' ? 'construction' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : t.id === 'minutes' ? 'description' : 'document_scanner' }}
                                         </span>
                                     </div>
                                 </div>
