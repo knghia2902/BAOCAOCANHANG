@@ -1226,7 +1226,7 @@ onUnmounted(() => {
                         <!-- Dropdown list -->
                         <div 
                             v-if="isSiteDropdownOpen"
-                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
+                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                         >
                             <div 
                                 @click="selectSite('NguyenNgoc')"
@@ -1617,7 +1617,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isCaptainGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectCaptainGrade('')"
@@ -1664,7 +1664,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isChiefEngineerGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectChiefEngineerGrade('')"
@@ -1796,7 +1796,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isKhaiHethongDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded-sm shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectKhaiHethong('')"

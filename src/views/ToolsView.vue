@@ -51,7 +51,7 @@ onMounted(async () => {
     if (typeof toolParam === 'string' && toolParam) {
         openTool(toolParam);
     } else if (authStore.role === 'staff') {
-        // If staff, go directly to "In Phiếu Nhanh" (weighbridge)
+        // If staff, go directly to "Báo Cáo Tổng Quan" (weighbridge)
         activeToolId.value = 'weighbridge';
     }
 });
@@ -74,6 +74,14 @@ onUnmounted(() => {
 
 const allTools = [
   {
+    id: 'weighbridge',
+    name: 'Báo Cáo Tổng Quan 🚢',
+    desc: 'Truy cập trực tiếp trang in ấn phiếu cân A5 cho các xe.',
+    icon: 'print',
+    bgIcon: 'bg-primary/10 text-primary',
+    tags: ['In A5', 'Supabase Cloud', 'Trạm cân']
+  },
+  {
     id: 'allocator',
     name: 'Dữ Liệu Cân Hàng 🚢',
     desc: 'Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.',
@@ -82,20 +90,12 @@ const allTools = [
     tags: ['Phân bổ', 'Sà lan', 'Excel']
   },
   {
-    id: 'weighbridge',
-    name: 'In Phiếu Nhanh 🚢',
-    desc: 'Tru cập trực tiếp trang in ấn phiếu cân A5 cho các xe.',
-    icon: 'print',
-    bgIcon: 'bg-primary/10 text-primary',
-    tags: ['In A5', 'Supabase Cloud', 'Trạm cân']
-  },
-  {
-    id: 'utilities',
-    name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️',
-    desc: 'Tập hợp các tiện ích văn phòng: Chuyển đổi định dạng file (XLSX, CSV, JSON), gộp bảng tính Excel và nhận diện ký tự OCR từ tệp PDF.',
-    icon: 'construction',
-    bgIcon: 'bg-teal-500/10 text-teal-600',
-    tags: ['Excel', 'PDF OCR', 'Chuyển đổi', 'Gộp bảng tính']
+    id: 'vehicles',
+    name: 'Quản Lý Hồ Sơ Phương Tiện 🚢',
+    desc: 'Quản lý thông tin kỹ thuật, giấy tờ đăng kiểm, bảo hiểm và hồ sơ thuyền trưởng, thuyền viên của các phương tiện.',
+    icon: 'local_shipping',
+    bgIcon: 'bg-amber-500/10 text-amber-600',
+    tags: ['Phương tiện', 'Sà lan', 'Thuyền viên', 'Đăng kiểm']
   },
   {
     id: 'minutes',
@@ -106,12 +106,12 @@ const allTools = [
     tags: ['Biên bản sà lan', 'Excel', 'Offline']
   },
   {
-    id: 'vehicles',
-    name: 'Quản Lý Hồ Sơ Phương Tiện 🚢',
-    desc: 'Quản lý thông tin kỹ thuật, giấy tờ đăng kiểm, bảo hiểm và hồ sơ thuyền trưởng, thuyền viên của các phương tiện.',
-    icon: 'local_shipping',
-    bgIcon: 'bg-amber-500/10 text-amber-600',
-    tags: ['Phương tiện', 'Sà lan', 'Thuyền viên', 'Đăng kiểm']
+    id: 'utilities',
+    name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️',
+    desc: 'Tập hợp các tiện ích văn phòng: Chuyển đổi định dạng file (XLSX, CSV, JSON), gộp bảng tính Excel và nhận diện ký tự OCR từ tệp PDF.',
+    icon: 'construction',
+    bgIcon: 'bg-teal-500/10 text-teal-600',
+    tags: ['Excel', 'PDF OCR', 'Chuyển đổi', 'Gộp bảng tính']
   }
 ];
 
