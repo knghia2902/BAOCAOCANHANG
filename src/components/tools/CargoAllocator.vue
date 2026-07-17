@@ -2694,6 +2694,10 @@ async function editGeneratedTripOrderNo(trip: SplitTrip) {
 }
 
 async function clearAllGeneratedTrips() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirmClear = await showConfirm({
         title: 'Xóa tất cả phân bổ',
         message: 'Bạn có chắc chắn muốn xóa toàn bộ danh sách phân bổ ở Tab 2 không? Hành động này không thể hoàn tác!',
@@ -3445,7 +3449,7 @@ async function compileAndDownload() {
                     <!-- Search Input container -->
                     <div class="flex-grow sm:flex-initial min-w-0 flex items-center h-7">
                         <!-- Tab 1 Search -->
-                        <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[180px] h-7 flex items-center">
+                        <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[240px] h-7 flex items-center">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                             <input 
                                 type="text" 
@@ -3464,7 +3468,7 @@ async function compileAndDownload() {
 
                         <!-- Tab 2 Search & Filter -->
                         <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto h-7">
-                            <div class="relative w-full sm:w-[160px] h-7 flex items-center">
+                            <div class="relative w-full sm:w-[220px] h-7 flex items-center">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                                 <input 
                                     type="text" 
@@ -3502,7 +3506,7 @@ async function compileAndDownload() {
                         </div>
 
                         <!-- Tab 3 Search -->
-                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[180px] h-7 flex items-center">
+                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[240px] h-7 flex items-center">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                             <input 
                                 type="text" 
@@ -3588,6 +3592,7 @@ async function compileAndDownload() {
                             {{ isAlreadySaved ? 'Đã lưu' : 'Lưu' }}
                         </button>
                         <button 
+                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                             @click="clearAllGeneratedTrips"
                             :disabled="generatedTrips.length === 0"
                             class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
