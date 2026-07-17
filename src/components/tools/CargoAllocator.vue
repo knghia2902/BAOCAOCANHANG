@@ -3629,7 +3629,7 @@ async function compileAndDownload() {
 
                 <!-- Source Tickets Table -->
                 <div v-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs font-semibold min-w-[1200px] whitespace-nowrap">
+                    <table class="w-full text-left border-collapse text-sm font-bold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
@@ -3795,7 +3795,7 @@ async function compileAndDownload() {
 
                 <!-- Preview Data Table -->
                 <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs font-semibold min-w-[1200px] whitespace-nowrap">
+                    <table class="w-full text-left border-collapse text-sm font-bold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
@@ -3982,7 +3982,7 @@ async function compileAndDownload() {
 
                 <!-- Preview Data Table -->
                 <div v-if="filteredTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs font-semibold min-w-[1200px] whitespace-nowrap">
+                    <table class="w-full text-left border-collapse text-sm font-bold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
