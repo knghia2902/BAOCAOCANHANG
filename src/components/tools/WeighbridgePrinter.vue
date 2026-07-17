@@ -4325,15 +4325,15 @@ onUnmounted(() => {
                                                 <td class="p-2 text-gray-500 whitespace-nowrap">{{ formatDateTimeStr(truck.dateOut) }}</td>
                                                 <td class="p-2 text-gray-400 italic max-w-[150px] truncate" :title="truck.note">{{ truck.note || '-' }}</td>
                                                 <td class="p-2">
-                                                    <div class="flex items-center gap-1 justify-center">
-                                                        <button @click="triggerPrint(truck)" class="size-7 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-600 flex items-center justify-center transition-all" title="In phiếu này">
-                                                            <span class="material-symbols-outlined text-sm">print</span>
+                                                    <div class="flex items-center gap-1.5 justify-center">
+                                                        <button @click="triggerPrint(truck)" class="size-8 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-600 border border-teal-200 flex items-center justify-center transition-all active:scale-95" title="In phiếu này">
+                                                            <span class="material-symbols-outlined text-base">print</span>
                                                         </button>
-                                                        <button v-if="authStore.role === 'admin' || canUpdate()" @click="openEditTruckDialog(truck)" :disabled="cfgForm.locked" class="size-7 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none" title="Sửa">
-                                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                                        <button v-if="authStore.role === 'admin' || canUpdate()" @click="openEditTruckDialog(truck)" :disabled="cfgForm.locked" class="size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none" title="Sửa">
+                                                            <span class="material-symbols-outlined text-base">edit</span>
                                                         </button>
-                                                        <button v-if="authStore.role === 'admin' || canDelete()" @click="deleteTruck(truck.id, truck.plateNumber)" :disabled="cfgForm.locked" class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none" title="Xóa">
-                                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                                        <button v-if="authStore.role === 'admin' || canDelete()" @click="deleteTruck(truck.id, truck.plateNumber)" :disabled="cfgForm.locked" class="size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none" title="Xóa">
+                                                            <span class="material-symbols-outlined text-base">delete</span>
                                                         </button>
                                                     </div>
                                                 </td>

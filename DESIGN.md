@@ -58,12 +58,15 @@ Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt l
 
 ## 4. Quy Chuẩn Thiết Kế Các Loại Nút (Buttons Spec)
 
-| Loại Nút | Thiết Kế Gốc (Nền & Viền) | Trạng Thái Tương Tác (Hover / Active) | Mã Tailwind Chuẩn |
+| Loại Nút | Thiết Kế Gốc (Nền & Viền) | Trạng Thế Tương Tác (Hover / Active) | Mã Tailwind Chuẩn |
 | :--- | :--- | :--- | :--- |
 | **Primary (Puffy)** | Nền `primary` (`#4a78c2`), chữ trắng, bóng dưới `#6495ed` dày 4px. | **Hover**: dịch xuống 2px, bóng mỏng 2px.<br>**Active**: co lại 95%, dịch xuống 4px, mất bóng. | `bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all` |
 | **Secondary (Outline)**| Nền trắng, viền mỏng màu `primary/10`, chữ màu `primary`. | **Hover**: Nền chuyển sang màu xanh pastel nhạt (`bg-primary/5`), viền đổi sang màu `primary`. | `bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm` |
 | **Icon Button (Tròn)** | Nền `bg-[#f1f5f9]`, chữ xám nhạt (`text-gray-400`). | **Hover**: Biểu tượng đổi sang đỏ hoặc xanh lá, phóng to nhẹ (`scale-105`). | `size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all` |
-| **Table Action (Bảng)** | Nền `bg-[#f1f5f9]`, chữ `text-primary`, viền `border-soft-pink`. | **Hover**: Đảo ngược thành nền `bg-primary` chữ trắng (`text-white`). | `px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm` |
+| **Table Action (Chữ)** | Nền `bg-[#f1f5f9]`, chữ `text-primary`, viền `border-soft-pink`. | **Hover**: Đảo ngược thành nền `bg-primary` chữ trắng (`text-white`). | `px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm` |
+| **Table Action Icon (Edit)** | Nền `bg-slate-50`, chữ `text-slate-500`, viền `border-gray-200`, kích thước `32x32px`. | **Hover**: Nền `bg-primary/10`, chữ `text-primary`, viền `border-primary/20`. <br>**Active**: co lại 95%. | `size-8 rounded-lg bg-slate-50 hover:bg-primary/10 text-slate-500 hover:text-primary border border-gray-200 hover:border-primary/20 flex items-center justify-center transition-all active:scale-95` |
+| **Table Action Icon (Delete)** | Nền `bg-red-50`, chữ `text-red-500`, viền `border-red-200`, kích thước `32x32px`. | **Hover**: Nền `bg-red-100`, chữ `text-red-600`. <br>**Active**: co lại 95%. | `size-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border border-red-200 flex items-center justify-center transition-all active:scale-95` |
+| **Table Action Icon (Print)** | Nền `bg-teal-50`, chữ `text-teal-600`, viền `border-teal-200`, kích thước `32x32px`. | **Hover**: Nền `bg-teal-100`, chữ `text-teal-700`. <br>**Active**: co lại 95%. | `size-8 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-600 border border-teal-200 flex items-center justify-center transition-all active:scale-95` |
 
 ---
 
