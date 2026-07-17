@@ -442,7 +442,7 @@ const deletePhuMyBarge = async (barge: Barge) => {
         const success = await WeighbridgeService.deleteBarge(barge.id);
         if (success) {
             addToast(`Đã xóa sà lan: ${barge.name}`, 'success');
-            LogService.logAction('Xóa sà lan', 'Xóa hồ sơ sà lan: ' + barge.name);
+            await LogService.logAction('Xóa sà lan', 'Xóa hồ sơ sà lan: ' + barge.name);
             await loadData();
         } else {
             addToast('Không thể xóa sà lan!', 'error');
@@ -683,7 +683,7 @@ async function saveProfile() {
         await WeighbridgeService.updateBargeConfig(id, updatedConfig);
         
         addToast('Luu ho so sa lan thanh cong!', 'success');
-        LogService.logAction('Lưu hồ sơ sà lan', 'Cập nhật hồ sơ: ' + editBargeName.value);
+        await LogService.logAction('Lưu hồ sơ sà lan', 'Cập nhật hồ sơ: ' + editBargeName.value);
         window.dispatchEvent(new CustomEvent('barge-config-updated', { detail: { bargeId: id } }));
         
         activeBargeId.value = null;

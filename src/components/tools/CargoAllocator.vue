@@ -714,7 +714,7 @@ async function handleTicketImport(event: Event) {
             
             const { added, updated, skipped } = mergeTickets(finalRecords);
             addToast(`Import CSV: ${added} mới, ${updated} cập nhật, ${skipped} bỏ qua (trùng)`, 'success');
-            LogService.logAction('Import CSV', `Import CSV: ${added} mới, ${updated} cập nhật`);
+            await LogService.logAction('Import CSV', `Import CSV: ${added} mới, ${updated} cập nhật`);
             await saveTicketsToSupabase();
         } catch (error) {
             console.error(error);
@@ -859,7 +859,7 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
         
         const { added, updated, skipped } = mergeTickets(finalRecords);
         addToast(`Import Excel: ${added} mới, ${updated} cập nhật, ${skipped} bỏ qua (trùng)`, 'success');
-        LogService.logAction('Import Excel', `Import Excel phiếu cân: ${added} mới, ${updated} cập nhật`);
+        await LogService.logAction('Import Excel', `Import Excel phiếu cân: ${added} mới, ${updated} cập nhật`);
         await saveTicketsToSupabase();
         
     } catch (e) {
@@ -973,7 +973,7 @@ function openEditTicketDialog(ticket: CSVRecord) {
     showTicketDialog.value = true;
 }
 
-function saveTicket() {
+async function saveTicket() {
     if (!dialogTicket.value.plateNumber.trim()) {
         addToast('Vui lòng nhập biển số xe!', 'info');
         return;
@@ -995,7 +995,7 @@ function saveTicket() {
         if (idx !== -1) {
             currentList[idx] = { ...dialogTicket.value };
             addToast('Đã cập nhật phiếu cân thành công!', 'success');
-            LogService.logAction('Sửa phiếu cân', 'Cập nhật phiếu cân: ' + dialogTicket.value.plateNumber);
+            await LogService.logAction('Sửa phiếu cân', 'Cập nhật phiếu cân: ' + dialogTicket.value.plateNumber);
         }
     } else {
         const id = 'ticket_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
@@ -1004,7 +1004,7 @@ function saveTicket() {
             id
         });
         addToast('Đã thêm phiếu cân mới thành công!', 'success');
-        LogService.logAction('Thêm phiếu cân', 'Thêm phiếu cân mới: ' + dialogTicket.value.plateNumber);
+        await LogService.logAction('Thêm phiếu cân', 'Thêm phiếu cân mới: ' + dialogTicket.value.plateNumber);
     }
     
     csvRecords.value = currentList;
@@ -1023,6 +1023,7 @@ async function deleteTicket(ticket: CSVRecord) {
     if (confirm) {
         csvRecords.value = csvRecords.value.filter(t => t.id !== ticket.id);
         addToast('Đã xóa phiếu cân!', 'info');
+        await LogService.logAction('Xóa phiếu cân', 'Xóa phiếu cân: ' + (ticket.ticketNo || ticket.plateNumber));
         saveTicketsToSupabase();
     }
 }
@@ -1040,6 +1041,7 @@ async function clearAllTickets() {
         csvRecords.value = [];
         csvFile.value = null;
         addToast('Đã xóa sạch danh sách phiếu cân!', 'info');
+        await LogService.logAction('Xóa tất cả phiếu cân', 'Xóa toàn bộ danh sách phiếu cân');
         saveTicketsToSupabase();
     }
 }
@@ -2495,7 +2497,7 @@ async function triggerManualSyncToPrinter() {
     await saveTicketsToSupabase();
     syncChannel.postMessage({ type: 'manual_sync_request' });
     addToast('Đồng bộ dữ liệu thành công! Bản phân bổ đã được lưu lên đám mây và sẽ tự động cập nhật khi bạn mở trang DASHBOARD.', 'success');
-    LogService.logAction('Đồng bộ dữ liệu', 'Đồng bộ bản phân bổ lên đám mây');
+    await LogService.logAction('Đồng bộ dữ liệu', 'Đồng bộ bản phân bổ lên đám mây');
 }
 
 // Save generated temporary trips into history
@@ -3119,7 +3121,7 @@ async function compileAndDownload() {
         URL.revokeObjectURL(url);
         
         addToast('Đã xuất tệp Excel thành công!', 'success');
-        LogService.logAction('Xuất Excel', 'Xuất báo cáo cân hàng ra Excel');
+        await LogService.logAction('Xuất Excel', 'Xuất báo cáo cân hàng ra Excel');
     } catch (error) {
         console.error(error);
         addToast('Lỗi khi xuất tệp Excel!', 'error');

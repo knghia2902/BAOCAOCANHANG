@@ -1007,7 +1007,7 @@ const exportAllBargesToExcel = () => {
             );
             
             showToast('Xuất tệp Excel thành công! 📊', 'success');
-            LogService.logAction('Xuất Excel', 'Xuất danh sách quản lý sà lan ra Excel');
+            await LogService.logAction('Xuất Excel', 'Xuất danh sách quản lý sà lan ra Excel');
             exportingGlobalBarges.value = false;
         }).catch((err) => {
             console.error('Error exporting global barges:', err);
@@ -1283,6 +1283,7 @@ const toggleBargeLock = async () => {
                 }
             });
             showToast(cfgForm.locked ? 'Đã khóa sà lan thành công! 🔒' : 'Đã mở khóa sà lan thành công! 🔓');
+            await LogService.logAction(cfgForm.locked ? 'Khóa sà lan' : 'Mở khóa sà lan', 'Sà lan: ' + (activeBarge.value?.name || bargeId));
         } else {
             showToast('Không thể thay đổi trạng thái khóa!', 'error');
         }
@@ -2183,6 +2184,7 @@ const addVessel = async () => {
             await loadVessels();
             expandedVesselIds.value[data.id] = true;
             showToast(`Đã thêm tàu: ${data.name}`);
+            await LogService.logAction('Thêm tàu', 'Thêm tàu: ' + data.name);
         } else {
             showToast('Không thể thêm tàu mới!', 'error');
         }
@@ -2203,6 +2205,7 @@ const renameVessel = async (id: number, currentName: string) => {
         if (success) {
             await loadVessels();
             showToast(`Đã đổi tên tàu thành: ${name}`);
+            await LogService.logAction('Sửa tàu', 'Đổi tên tàu thành: ' + name);
         } else {
             showToast('Không thể đổi tên tàu!', 'error');
         }
@@ -2234,6 +2237,7 @@ const deleteVessel = async (id: number, name: string) => {
             }
             await loadVessels();
             showToast(`Đã xóa tàu: ${name}`, 'error');
+            await LogService.logAction('Xóa tàu', 'Xóa tàu: ' + name);
         } else {
             showToast('Không thể xóa tàu!', 'error');
         }
@@ -2279,6 +2283,7 @@ const addBarge = async (vesselId: number) => {
             await loadVessels();
             await selectBarge(vesselId, data.id);
             showToast(`Đã thêm sà lan: ${data.name}`);
+            await LogService.logAction('Thêm sà lan', 'Thêm sà lan: ' + data.name);
         } else {
             showToast('Không thể thêm sà lan mới!', 'error');
         }
@@ -2337,6 +2342,7 @@ const renameBarge = async (id: number, currentName: string) => {
                 await selectBarge(activeVesselId.value, id);
             }
             showToast('Đã cập nhật thông tin sà lan!');
+            await LogService.logAction('Sửa sà lan', 'Chỉnh sửa sà lan ID: ' + id + ', Tên mới: ' + name);
         }
     } catch (e) {
         showToast('Lỗi khi chỉnh sửa sà lan!', 'error');
@@ -2371,7 +2377,7 @@ const deleteBarge = async (_vesselId: number, id: number, name: string) => {
             }
             await loadVessels();
             showToast(`Đã xóa sà lan: ${name}`, 'error');
-            LogService.logAction('Xóa sà lan', 'Xóa sà lan: ' + name);
+            await LogService.logAction('Xóa sà lan', 'Xóa sà lan: ' + name);
         } else {
             showToast('Không thể xóa sà lan!', 'error');
         }
@@ -3288,7 +3294,7 @@ const deleteTruck = async (id: number, plate: string) => {
         if (success) {
             trucks.value = trucks.value.filter(t => t.id !== id);
             showToast(`Đã xóa xe: ${plate}`, 'error');
-            LogService.logAction('Xóa phiếu cân', 'Xóa xe: ' + plate);
+            await LogService.logAction('Xóa phiếu cân', 'Xóa xe: ' + plate);
         } else {
             showToast('Không thể xóa xe!', 'error');
         }
@@ -3331,7 +3337,7 @@ const clearTrucks = async () => {
             await WeighbridgeService.updateBargeConfig(bargeId, { ...cfgForm });
 
             showToast("Đã xóa sạch danh sách xe của sà lan!", "error");
-            LogService.logAction('Xóa tất cả phiếu cân', 'Xóa sạch danh sách xe của sà lan');
+            await LogService.logAction('Xóa tất cả phiếu cân', 'Xóa sạch danh sách xe của sà lan');
         } else {
             showToast('Không thể xóa danh sách xe!', 'error');
         }

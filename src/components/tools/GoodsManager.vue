@@ -208,7 +208,7 @@ const handleSubmit = async () => {
         }
         goodsList.value[index] = item;
         addToast('Cập nhật hàng hóa thành công!', 'success');
-        LogService.logAction('Sửa hàng hóa', 'Cập nhật: ' + item);
+        await LogService.logAction('Sửa hàng hóa', 'Cập nhật: ' + item);
         editingIndex.value = null;
     } else {
         // Add mode
@@ -219,7 +219,7 @@ const handleSubmit = async () => {
         }
         goodsList.value.push(item);
         addToast('Thêm hàng hóa mới thành công!', 'success');
-        LogService.logAction('Thêm hàng hóa', 'Thêm mới: ' + item);
+        await LogService.logAction('Thêm hàng hóa', 'Thêm mới: ' + item);
     }
 
     goodsInput.value = '';
@@ -253,7 +253,7 @@ const deleteItem = async (index: number) => {
             if (confirmDelete) {
                 goodsList.value.splice(realIndex, 1);
                 addToast('Đã xóa hàng hóa!', 'success');
-                LogService.logAction('Xóa hàng hóa', 'Xóa: ' + item);
+                await LogService.logAction('Xóa hàng hóa', 'Xóa: ' + item);
                 if (editingIndex.value === realIndex) {
                     editingIndex.value = null;
                     goodsInput.value = '';
@@ -284,7 +284,7 @@ const clearAll = async () => {
         goodsInput.value = '';
         await saveToStorage();
         addToast('Đã xóa sạch danh sách hàng hóa!', 'success');
-        LogService.logAction('Xóa tất cả hàng hóa', 'Xóa sạch danh sách hàng hóa');
+        await LogService.logAction('Xóa tất cả hàng hóa', 'Xóa sạch danh sách hàng hóa');
     }
 };
 </script>
