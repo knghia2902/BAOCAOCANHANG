@@ -3681,7 +3681,7 @@ onUnmounted(() => {
                                     v-for="barge in vessel.barges" 
                                     :key="barge.id"
                                     @click="selectBarge(vessel.id, barge.id)"
-                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-[11px] font-bold', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
+                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
                                 >
                                     <div class="flex items-center gap-1.5 truncate">
                                         <span class="material-symbols-outlined text-sm">layers</span>
@@ -4246,7 +4246,7 @@ onUnmounted(() => {
 
                                 <!-- Table -->
                                 <div class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
-                                    <table class="w-full text-left border-collapse text-[11px] font-semibold whitespace-nowrap">
+                                    <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                                         <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
                                             <tr class="text-gray-500 border-b border-gray-100 font-bold select-none">
                                                 <th class="p-2.5 w-10 text-center bg-gray-50">STT</th>
@@ -4537,7 +4537,7 @@ onUnmounted(() => {
                                                         }
                                                     }"
                                                     :disabled="cfgForm.locked"
-                                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] font-bold focus:outline-none focus:border-primary cursor-pointer w-full"
+                                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary cursor-pointer w-full"
                                                 >
                                                     <option value="">-- Chọn trường để thêm --</option>
                                                     <option v-for="item in availableFields" :key="item.id" :value="item.id">
