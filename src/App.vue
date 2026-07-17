@@ -123,14 +123,14 @@ onUnmounted(() => {
     <header v-if="authStore.isAuthenticated" class="mx-auto mt-6 w-[95%] max-w-[1200px] flex items-center justify-between whitespace-nowrap bg-white px-8 py-4 rounded-full shadow-sm sticky top-6 z-50 border border-soft-pink no-print">
       <div class="flex items-center gap-3">
         <router-link to="/" class="size-10 bg-soft-rose rounded-full flex items-center justify-center text-white glow-primary">
-          <span class="material-symbols-outlined text-2xl">magic_button</span>
+          <span class="material-symbols-outlined text-xl">magic_button</span>
         </router-link>
         <router-link to="/" class="text-xl font-display font-bold tracking-tight text-soft-rose hover:text-primary transition-colors">Cảng Nguyên Ngọc</router-link>
       </div>
       
       <nav class="hidden md:flex items-center gap-8">
         <router-link to="/" class="flex items-center gap-2 text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors" active-class="text-primary">
-            <span class="material-symbols-outlined text-lg">home</span>
+            <span class="material-symbols-outlined text-base">home</span>
             Home
         </router-link>
         <router-link v-if="allowedTools.length > 0" to="/tools" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
@@ -167,7 +167,7 @@ onUnmounted(() => {
                 ></div>
                 <div class="truncate">
                   <p class="text-xs font-black text-primary truncate leading-tight">{{ authStore.displayName }}</p>
-                  <p class="text-[9px] font-black uppercase text-gray-400 mt-0.5 tracking-wider">
+                  <p class="text-[10px] font-black uppercase text-gray-400 mt-0.5 tracking-wider">
                     {{ authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên' }}
                   </p>
                 </div>
@@ -256,7 +256,7 @@ onUnmounted(() => {
          <div class="bg-white w-full max-w-md rounded-[3rem] p-10 card-shadow space-y-6 animate-scale-up relative">
             <header class="flex justify-between items-center">
                 <div>
-                    <h3 class="text-2xl font-black text-primary">Chỉnh Sửa Hồ Sơ</h3>
+                    <h3 class="text-xl font-black text-primary">Chỉnh Sửa Hồ Sơ</h3>
                     <p class="text-[10px] font-bold text-gray-400">Cập nhật tên hiển thị và ảnh đại diện của bạn ✨</p>
                 </div>
                 <button @click="showProfileModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
@@ -272,11 +272,11 @@ onUnmounted(() => {
                         Tải ảnh lên
                         <input type="file" accept="image/*" @change="handleProfileAvatarUpload" class="hidden" />
                     </label>
-                    <span v-if="uploadingAvatar" class="text-[9px] font-bold text-primary animate-pulse">Đang tải lên...</span>
+                    <span v-if="uploadingAvatar" class="text-[10px] font-bold text-primary animate-pulse">Đang tải lên...</span>
                 </div>
 
                 <div class="space-y-1">
-                    <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Tên hiển thị</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tên hiển thị</label>
                     <input v-model="profileForm.displayName" placeholder="Tên hiển thị" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                 </div>
 

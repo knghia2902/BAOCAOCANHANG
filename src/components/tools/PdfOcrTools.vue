@@ -129,7 +129,7 @@ const onFileSelected = async (file: File) => {
         <span class="material-symbols-outlined text-5xl">upload_file</span>
       </div>
       <div class="mt-4">
-        <p class="font-bold text-primary text-lg">Upload file</p>
+        <p class="font-bold text-primary text-base">Upload file</p>
         <p class="text-xs opacity-50 mt-1">Maximum 15MB</p>
       </div>
     </FileDropzone>
@@ -142,7 +142,7 @@ const onFileSelected = async (file: File) => {
     <div v-if="previewResult && downloadUrl" class="mt-8 border-t border-primary/10 pt-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h4 class="text-sm font-black text-primary flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-lg">preview</span>
+          <span class="material-symbols-outlined text-base">preview</span>
           Xem trước kết quả trích xuất
         </h4>
         
@@ -176,7 +176,7 @@ const onFileSelected = async (file: File) => {
               Trang {{ pageIdx + 1 }}
             </div>
             
-            <table class="border-collapse text-[11px] font-display min-w-full bg-white shadow-sm rounded-xl overflow-hidden border border-primary/5 whitespace-nowrap">
+            <table class="border-collapse text-xs font-display min-w-full bg-white shadow-sm rounded-xl overflow-hidden border border-primary/5 whitespace-nowrap">
               <tbody>
                 <tr 
                   v-for="(row, rowIdx) in grid" 
@@ -203,7 +203,7 @@ const onFileSelected = async (file: File) => {
         <!-- Word Preview -->
         <div v-else-if="previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto flex-1 p-6 bg-white rounded-2xl border border-primary/5 text-xs text-[#1b0d11]/80 font-serif leading-relaxed select-text text-left max-w-full scrollbar-thin">
           <div v-for="(grid, pageIdx) in previewResult.pagesGrids" :key="pageIdx" class="mb-8 last:mb-0">
-            <div v-if="previewResult.pagesGrids.length > 1" class="text-[9px] font-sans font-black text-primary/60 uppercase tracking-wider mb-4 border-b border-primary/10 pb-1.5">
+            <div v-if="previewResult.pagesGrids.length > 1" class="text-[10px] font-sans font-black text-primary/60 uppercase tracking-wider mb-4 border-b border-primary/10 pb-1.5">
               Trang {{ pageIdx + 1 }}
             </div>
             <div 

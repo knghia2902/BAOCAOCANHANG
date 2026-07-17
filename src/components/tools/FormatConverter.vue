@@ -144,7 +144,7 @@ const reset = () => {
           <span class="material-symbols-outlined text-5xl">upload_file</span>
         </div>
         <div>
-          <p class="font-bold text-primary text-lg">Thả file vào mây nhé!</p>
+          <p class="font-bold text-primary text-base">Thả file vào mây nhé!</p>
           <p class="text-xs opacity-50 mt-1">Hỗ trợ .xlsx, .csv, .json (Tối đa 10MB)</p>
         </div>
       </div>

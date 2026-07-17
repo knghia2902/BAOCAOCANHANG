@@ -181,7 +181,7 @@ const downloadResult = () => {
                 </div>
             </div>
 
-            <button @click="startMerge" :disabled="isMerging" class="w-full mt-10 bg-primary text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
+            <button @click="startMerge" :disabled="isMerging" class="w-full mt-10 bg-primary text-white py-5 rounded-2xl font-black text-base shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
                 <span v-if="isMerging" class="size-5 border-4 border-white/30 border-t-white rounded-full animate-spin"></span>
                 <span v-else class="material-symbols-outlined">auto_fix_high</span>
                 {{ isMerging ? 'Đang thực hiện phép thuật...' : 'Bắt đầu Trộn Thông Minh ✨' }}

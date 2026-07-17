@@ -214,7 +214,7 @@ watch(allowedStaffTools, (newVal) => {
           <!-- Tool Header -->
           <div class="flex items-center gap-3 mb-4">
             <div :class="['size-10 rounded-xl flex items-center justify-center shadow-soft', tool.bgIcon]">
-              <span class="material-symbols-outlined text-lg">{{ tool.icon }}</span>
+              <span class="material-symbols-outlined text-base">{{ tool.icon }}</span>
             </div>
             <h3 class="text-base font-display font-black text-[#1e293b] group-hover:text-primary transition-colors">
               {{ tool.name }}
@@ -231,7 +231,7 @@ watch(allowedStaffTools, (newVal) => {
             <span 
               v-for="tag in tool.tags" 
               :key="tag" 
-              class="text-[9px] font-black px-2.5 py-1 bg-gray-50 text-gray-500 rounded-full border border-gray-100"
+              class="text-[10px] font-black px-2.5 py-1 bg-gray-50 text-gray-500 rounded-full border border-gray-100"
             >
               {{ tag }}
             </span>
@@ -251,7 +251,7 @@ watch(allowedStaffTools, (newVal) => {
       <!-- Placeholder card for future tools -->
       <div class="bg-white/30 rounded-2xl p-6 border border-dashed border-primary/20 flex flex-col justify-center items-center text-center h-full min-h-[220px]">
         <div class="size-11 bg-primary/5 text-primary/30 rounded-full flex items-center justify-center mb-3">
-          <span class="material-symbols-outlined text-lg">add_circle</span>
+          <span class="material-symbols-outlined text-base">add_circle</span>
         </div>
         <h3 class="text-xs font-black text-[#1e293b]/50 mb-1">
           Nhiều công cụ khác sắp ra mắt...
@@ -276,7 +276,7 @@ watch(allowedStaffTools, (newVal) => {
       <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
         <div class="flex items-center gap-2.5">
           <div :class="['size-9 rounded-full flex items-center justify-center text-white shadow-soft', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
-            <span class="material-symbols-outlined text-lg">
+            <span class="material-symbols-outlined text-base">
               {{ activeToolId === 'utilities' 
                  ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.icon || 'construction')
                  : activeToolMetadata.icon 

@@ -624,7 +624,7 @@ onMounted(async () => {
                     <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-10 rounded-full border border-soft-pink object-cover" />
                     <div class="text-left">
                         <h2 class="text-sm font-black text-primary leading-tight">{{ authStore.displayName }}</h2>
-                        <span class="text-[8px] font-black uppercase text-gray-400 tracking-wider">ADMIN MODE</span>
+                        <span class="text-[10px] font-black uppercase text-gray-400 tracking-wider">ADMIN MODE</span>
                     </div>
                 </div>
                 <button @click="logout(); router.push('/login')" class="px-3 py-1.5 rounded-xl font-bold text-xs text-red-500 hover:bg-red-50 flex items-center gap-1.5 transition-all">
@@ -683,7 +683,7 @@ onMounted(async () => {
         <main class="flex-1 p-2 lg:p-10 overflow-y-auto min-w-0">
             <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 lg:mb-10 gap-4">
                 <div class="text-left">
-                    <h2 class="text-2xl lg:text-3xl font-display font-black">Welcome back, Admin!</h2>
+                    <h2 class="text-xl lg:text-3xl font-display font-black">Welcome back, Admin!</h2>
                     <p class="text-gray-400 font-medium">Ready to sprinkle some more magic today? ✨</p>
                 </div>
 
@@ -726,7 +726,7 @@ onMounted(async () => {
                     <!-- Edit Content Card -->
                     <div class="bg-white rounded-[2.5rem] p-6 lg:p-10 card-shadow border border-white/50 relative overflow-hidden flex-1">
                         <div class="flex items-center justify-between mb-8">
-                            <h3 class="text-lg font-black flex items-center gap-3">
+                            <h3 class="text-base font-black flex items-center gap-3">
                                 <span class="material-symbols-outlined text-primary">home</span> Edit 'Trang chủ' Content
                             </h3>
                             <button @click="saveAll" class="bg-primary text-white px-8 py-2 rounded-full font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">Save</button>
@@ -828,7 +828,7 @@ onMounted(async () => {
                             <div class="size-12 bg-yellow-400 rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-200">
                                 <span class="material-symbols-outlined text-white">lightbulb</span>
                             </div>
-                            <h4 class="font-black text-yellow-700 text-lg uppercase tracking-widest">Quick Tip</h4>
+                            <h4 class="font-black text-yellow-700 text-base uppercase tracking-widest">Quick Tip</h4>
                         </div>
                         <p class="text-xs leading-relaxed text-yellow-900/60 font-medium flex-1">
                             Drag the image box above to adjust pixel-perfect centering for the homepage circle frame. Changes here will sync instantly to your Navbar and Sidebar! ✨
@@ -845,7 +845,7 @@ onMounted(async () => {
             <!-- Other Tabs -->
             <div v-else-if="currentTab === 'projects'" class="space-y-8 max-w-5xl mx-auto">
                  <div class="flex justify-between items-center">
-                    <h3 class="text-2xl font-black text-primary">Managed Projects</h3>
+                    <h3 class="text-xl font-black text-primary">Managed Projects</h3>
                     <button @click="showProjectModal = true; isEditingProject = false" class="bg-primary text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
                         <span class="material-symbols-outlined">add</span> New Project
                     </button>
@@ -856,11 +856,11 @@ onMounted(async () => {
                         <div class="flex-1 flex flex-col justify-between py-1">
                              <div>
                                 <h4 class="font-black text-xl text-primary truncate">{{ p.title }}</h4>
-                                <span class="px-4 py-1 bg-soft-pink/10 text-primary text-[8px] font-black uppercase rounded-full mt-2 inline-block">{{ p.tag }}</span>
+                                <span class="px-4 py-1 bg-soft-pink/10 text-primary text-[10px] font-black uppercase rounded-full mt-2 inline-block">{{ p.tag }}</span>
                              </div>
                              <div class="flex gap-4">
-                                <button @click="isEditingProject = true; newProject = { ...p }; showProjectModal = true" class="text-[11px] font-black text-gray-400 hover:text-primary transition-colors">Edit Details</button>
-                                <button @click="deleteProject(idx)" class="text-[11px] font-black text-red-200 hover:text-red-500 transition-colors">Delete</button>
+                                <button @click="isEditingProject = true; newProject = { ...p }; showProjectModal = true" class="text-xs font-black text-gray-400 hover:text-primary transition-colors">Edit Details</button>
+                                <button @click="deleteProject(idx)" class="text-xs font-black text-red-200 hover:text-red-500 transition-colors">Delete</button>
                              </div>
                         </div>
                     </div>
@@ -869,7 +869,7 @@ onMounted(async () => {
 
             <div v-else-if="currentTab === 'about'" class="max-w-2xl mx-auto space-y-8">
                 <div class="bg-white rounded-[2.5rem] p-8 card-shadow">
-                    <h3 class="text-lg font-black mb-6 flex items-center gap-3">
+                    <h3 class="text-base font-black mb-6 flex items-center gap-3">
                         <span class="material-symbols-outlined text-primary">mail</span> Primary Email
                     </h3>
                     <input v-model="contentStore.about.email" class="w-full bg-[#f1f5f9] p-5 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
@@ -877,7 +877,7 @@ onMounted(async () => {
 
                 <div class="bg-white rounded-[2.5rem] p-8 card-shadow space-y-6">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-black flex items-center gap-3">
+                        <h3 class="text-base font-black flex items-center gap-3">
                             <span class="material-symbols-outlined text-primary">share</span> Social Presence
                         </h3>
                         <button @click="addSocialLink" class="text-[10px] font-black text-primary uppercase bg-soft-pink/10 px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all">+ Add Link</button>
@@ -889,11 +889,11 @@ onMounted(async () => {
                              </button>
                              <div class="grid grid-cols-2 gap-4 mb-4">
                                  <div class="space-y-1">
-                                     <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Platform</label>
+                                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Platform</label>
                                      <input v-model="l.platform" class="w-full bg-white p-4 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/10" />
                                  </div>
                                  <div class="space-y-1">
-                                     <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Icon Style</label>
+                                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Icon Style</label>
                                      <button @click="showIconPickerFor = l" class="w-full bg-white p-4 rounded-xl text-xs font-black flex items-center justify-between hover:bg-gray-50 transition-colors">
                                          <div class="flex items-center gap-2">
                                              <div v-if="l.isSvg" v-html="getIconHtml(l.icon)" class="size-4"></div>
@@ -905,7 +905,7 @@ onMounted(async () => {
                                  </div>
                              </div>
                              <div class="space-y-1">
-                                 <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Profile URL</label>
+                                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Profile URL</label>
                                  <input v-model="l.url" class="w-full bg-white p-4 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/10" placeholder="https://..." />
                              </div>
                          </div>
@@ -926,7 +926,7 @@ onMounted(async () => {
                         <div class="flex items-center gap-4">
                             <div class="size-3 rounded-full" :class="m.isRead ? 'bg-gray-200' : 'bg-primary shadow-[0_0_15px_rgba(255,133,162,0.6)]'"></div>
                             <div>
-                                <h4 class="font-black text-2xl text-primary">{{ m.name }}</h4>
+                                <h4 class="font-black text-xl text-primary">{{ m.name }}</h4>
                                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ m.email }} • {{ m.date }}</p>
                             </div>
                         </div>
@@ -945,7 +945,7 @@ onMounted(async () => {
 
             <div v-else-if="currentTab === 'accounts'" class="max-w-5xl mx-auto space-y-8 animate-fade-in">
                  <div class="flex justify-between items-center">
-                    <h3 class="text-2xl font-black text-primary">Quản Lý Tài Khoản</h3>
+                    <h3 class="text-xl font-black text-primary">Quản Lý Tài Khoản</h3>
                     <button @click="openCreateAccountModal" class="bg-primary text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
                         <span class="material-symbols-outlined">person_add</span> Thêm Tài Khoản
                     </button>
@@ -973,7 +973,7 @@ onMounted(async () => {
                                     </td>
                                     <td class="py-4 font-bold text-sm text-[#1e293b]">{{ acc.username }}</td>
                                     <td class="py-4">
-                                        <span class="px-3 py-1 text-[9px] font-black uppercase rounded-full"
+                                        <span class="px-3 py-1 text-[10px] font-black uppercase rounded-full"
                                             :class="acc.role === 'admin' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'"
                                         >
                                             {{ acc.role || 'staff' }}
@@ -994,7 +994,7 @@ onMounted(async () => {
                 <div class="bg-white rounded-[3rem] p-8 card-shadow border border-white/40 flex flex-col gap-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-primary/10 pb-6">
                         <div>
-                            <h4 class="text-lg font-black text-[#1e293b] flex items-center gap-2">
+                            <h4 class="text-base font-black text-[#1e293b] flex items-center gap-2">
                                 <span class="material-symbols-outlined text-primary">settings_accessibility</span>
                                 Quản Lý & Phân Quyền Vai Trò
                             </h4>
@@ -1081,8 +1081,8 @@ onMounted(async () => {
             <div v-else-if="currentTab === 'logs'" class="max-w-6xl mx-auto space-y-6 animate-fade-in">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h3 class="text-2xl font-black text-primary flex items-center gap-2">
-                            <span class="material-symbols-outlined text-2xl">history</span>
+                        <h3 class="text-xl font-black text-primary flex items-center gap-2">
+                            <span class="material-symbols-outlined text-xl">history</span>
                             Lịch Sử Hoạt Động
                         </h3>
                         <p class="text-xs font-bold text-gray-400 mt-1">Theo dõi lịch sử thao tác, truy cập của người dùng trên hệ thống.</p>
@@ -1096,7 +1096,7 @@ onMounted(async () => {
                 <!-- Filters -->
                 <div class="bg-white rounded-[2rem] p-5 card-shadow border border-white/40 flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
-                        <span class="material-symbols-outlined text-gray-300 absolute left-4 top-1/2 -translate-y-1/2 text-lg">search</span>
+                        <span class="material-symbols-outlined text-gray-300 absolute left-4 top-1/2 -translate-y-1/2 text-base">search</span>
                         <input v-model="logsSearchQuery" type="text" placeholder="Tìm kiếm theo tên, hành động, chi tiết..." class="w-full bg-[#f1f5f9] pl-11 pr-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
                     <select v-model="logsFilterAction" class="bg-[#f1f5f9] px-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[180px]">
@@ -1141,7 +1141,7 @@ onMounted(async () => {
                             </thead>
                             <tbody class="divide-y divide-primary/5">
                                 <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-soft-pink/5 transition-colors">
-                                    <td class="py-3.5 pl-4 text-[11px] font-bold text-gray-400">
+                                    <td class="py-3.5 pl-4 text-xs font-bold text-gray-400">
                                         {{ formatLogTime(log.timestamp) }}
                                     </td>
                                     <td class="py-3.5">
@@ -1151,12 +1151,12 @@ onMounted(async () => {
                                             </div>
                                             <div>
                                                 <p class="text-xs font-black text-[#1e293b]">{{ log.displayName }}</p>
-                                                <p class="text-[9px] font-bold text-gray-300">@{{ log.username }}</p>
+                                                <p class="text-[10px] font-bold text-gray-300">@{{ log.username }}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="py-3.5">
-                                        <span class="px-2.5 py-1 text-[9px] font-black uppercase rounded-full"
+                                        <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-full"
                                             :class="log.role === 'admin' ? 'bg-red-50 text-red-500' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-600'"
                                         >
                                             {{ log.role }}
@@ -1187,7 +1187,7 @@ onMounted(async () => {
                 <button @click="showToolkitManager = false" class="absolute top-6 right-6 size-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-primary transition-all">
                     <span class="material-symbols-outlined">close</span>
                 </button>
-                <h2 class="text-2xl font-display font-black text-primary mb-2">Toolkit Manager</h2>
+                <h2 class="text-xl font-display font-black text-primary mb-2">Toolkit Manager</h2>
                 <p class="text-xs font-bold text-gray-400 mb-8">Add or manage your magic skills ✨</p>
                 <div class="mb-6">
                     <a href="https://fonts.google.com/icons?selected=Material+Symbols+Outlined" target="_blank" class="text-[10px] font-black text-primary hover:underline uppercase tracking-widest flex items-center gap-1">
@@ -1213,7 +1213,7 @@ onMounted(async () => {
                     <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{{ isEditingTool ? 'Editing Skill' : 'New Magic Skill' }}</p>
                     
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider text-left">Chọn liên kết nhanh công cụ</label>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider text-left">Chọn liên kết nhanh công cụ</label>
                         <select 
                             :value="['/tools?tool=weighbridge', '/tools?tool=merger', '/tools?tool=converter', '/tools?tool=ocr'].includes(newTool.tool) ? newTool.tool : ''"
                             @change="handleToolSelect"
@@ -1258,23 +1258,23 @@ onMounted(async () => {
                             <div v-if="newProject.image" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${newProject.image})` }"></div>
                             <div class="text-center group-hover:scale-110 transition-transform">
                                 <span class="material-symbols-outlined text-4xl text-primary/30">add_photo_alternate</span>
-                                <p class="text-[8px] font-black text-primary/30 uppercase mt-2">Upload Artwork</p>
+                                <p class="text-[10px] font-black text-primary/30 uppercase mt-2">Upload Artwork</p>
                             </div>
                             <input type="file" ref="projectInput" class="hidden" @change="handleProjectImageUpload" accept="image/*" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Title</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Title</label>
                             <input v-model="newProject.title" placeholder="Project name" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Type / Tag</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Type / Tag</label>
                             <input v-model="newProject.tag" placeholder="e.g. Mobile Design" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Description</label>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Description</label>
                         <textarea v-model="newProject.description" placeholder="Share the story behind this magic..." class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-bold border-none h-28 resize-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm leading-relaxed"></textarea>
                     </div>
                     <button @click="addProject" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Confirm Changes ✨</button>
@@ -1307,21 +1307,21 @@ onMounted(async () => {
                 <div class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên đăng nhập</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên đăng nhập</label>
                             <input v-model="accountForm.username" placeholder="Ví dụ: nguyenvana" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
                             <input v-model="accountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu</label>
                             <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
                             <select v-model="accountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">Admin (Quản trị viên)</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
@@ -1353,11 +1353,11 @@ onMounted(async () => {
                 <div class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
                             <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
                             <select v-model="editAccountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">Admin (Quản trị viên)</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
@@ -1388,7 +1388,7 @@ onMounted(async () => {
                 </header>
                 <div class="space-y-6">
                     <div class="space-y-1">
-                        <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu mới</label>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu mới</label>
                         <input v-model="resetPasswordForm.newPassword" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                     </div>
                     <button @click="handleResetPassword" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Đặt Lại Mật Khẩu ✨</button>

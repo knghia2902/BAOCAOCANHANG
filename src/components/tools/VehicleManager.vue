@@ -443,11 +443,11 @@ const handleExportExcel = async () => {
         <!-- Header Section -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
-                <h3 class="text-lg font-black text-primary flex items-center gap-2">
+                <h3 class="text-base font-black text-primary flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl">local_shipping</span>
                     Danh sách xe
                 </h3>
-                <p class="text-[11px] text-gray-500 font-semibold mt-1">
+                <p class="text-xs text-gray-500 font-semibold mt-1">
                     Quản lý danh sách biển số xe và số mooc tương ứng. Tổng cộng: 
                     <span class="text-teal-600 font-bold font-mono">{{ vehicles.length }}</span> xe.
                 </p>
@@ -465,7 +465,7 @@ const handleExportExcel = async () => {
                 
                 <button 
                     @click="triggerImport"
-                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
+                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">upload_file</span>
                     Nhập Excel
@@ -473,7 +473,7 @@ const handleExportExcel = async () => {
                 
                 <button 
                     @click="handleExportExcel"
-                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
+                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">download</span>
                     Xuất Excel
@@ -482,7 +482,7 @@ const handleExportExcel = async () => {
                 <button 
                     v-if="vehicles.length > 0 && (authStore.role === 'admin' || canDelete())"
                     @click="clearAll"
-                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all"
+                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
                     Xóa sạch
@@ -577,7 +577,7 @@ const handleExportExcel = async () => {
                                     <td class="px-4 py-3 text-primary font-mono font-black select-all">{{ v.plateNumber }}</td>
                                     <td class="px-4 py-3 font-mono select-all">
                                         <span v-if="v.moocNumber" class="text-primary font-bold">{{ v.moocNumber }}</span>
-                                        <span v-else class="text-gray-400 italic font-normal text-[11px]">Chưa cấu hình</span>
+                                        <span v-else class="text-gray-400 italic font-normal text-xs">Chưa cấu hình</span>
                                     </td>
                                     <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">

@@ -45,7 +45,7 @@ const handleChangePassword = async () => {
             <div class="size-16 bg-pastel-lavender rounded-full flex items-center justify-center text-primary mx-auto mb-6 animate-bounce">
                 <span class="material-symbols-outlined text-3xl">verified_user</span>
             </div>
-            <h2 class="text-2xl font-bold font-display text-primary mb-2">Change Password</h2>
+            <h2 class="text-xl font-bold font-display text-primary mb-2">Change Password</h2>
             <p class="text-[#1b0d11]/60 mb-8 text-sm font-medium">Vì lý do bảo mật, vui lòng đổi mật khẩu trong lần đăng nhập đầu tiên nhé!</p>
 
             <form v-if="!success" @submit.prevent="handleChangePassword" class="space-y-4">

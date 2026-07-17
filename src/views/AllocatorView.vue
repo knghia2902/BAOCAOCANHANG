@@ -32,7 +32,7 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
     <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
       <div class="flex items-center gap-2.5">
         <div class="size-9 rounded-full bg-primary flex items-center justify-center text-white shadow-soft">
-          <span class="material-symbols-outlined text-lg">shuffle</span>
+          <span class="material-symbols-outlined text-base">shuffle</span>
         </div>
         <div>
           <h2 class="text-sm font-black text-primary leading-tight">

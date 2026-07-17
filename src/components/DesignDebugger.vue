@@ -179,7 +179,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Muted guide text -->
-            <div class="text-[9px] text-gray-400 font-medium border-t border-primary/5 pt-2 select-none">
+            <div class="text-[10px] text-gray-400 font-medium border-t border-primary/5 pt-2 select-none">
                 * Soi chi tiết (Hover): Di chuột vào bất cứ phần tử nào để đo đạc kích thước và khoảng cách. Bấm ESC để tắt.
             </div>
         </div>

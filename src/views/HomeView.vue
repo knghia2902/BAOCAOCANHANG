@@ -102,7 +102,7 @@ onMounted(async () => {
             
             <div class="relative z-10 space-y-2">
                 <span class="text-[10px] font-black text-primary uppercase tracking-widest bg-white/60 px-3 py-1 rounded-full border border-soft-pink/30">HỆ THỐNG VẬN HÀNH</span>
-                <h2 class="text-2xl md:text-3xl font-display font-black text-[#1e293b] mt-2">
+                <h2 class="text-xl md:text-3xl font-display font-black text-[#1e293b] mt-2">
                     Chào buổi sáng, {{ authStore.displayName }}! ✨
                 </h2>
                 <p class="text-xs md:text-sm font-medium text-[#1b0d11]/60">
@@ -117,10 +117,10 @@ onMounted(async () => {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 flex items-center gap-4 text-left">
                 <div class="size-12 bg-primary/5 text-primary rounded-2xl flex items-center justify-center flex-shrink-0 border border-primary/10">
-                    <span class="material-symbols-outlined text-2xl">directions_boat</span>
+                    <span class="material-symbols-outlined text-xl">directions_boat</span>
                 </div>
                 <div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Quản lý tàu</p>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quản lý tàu</p>
                     <h4 class="text-xl font-black text-[#1e293b] mt-0.5">
                         {{ loading ? '...' : vessels.length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">tàu đang làm hàng</span>
@@ -130,10 +130,10 @@ onMounted(async () => {
 
             <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 flex items-center gap-4 text-left">
                 <div class="size-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center flex-shrink-0 border border-teal-100">
-                    <span class="material-symbols-outlined text-2xl">layers</span>
+                    <span class="material-symbols-outlined text-xl">layers</span>
                 </div>
                 <div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tổng số sà lan</p>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tổng số sà lan</p>
                     <h4 class="text-xl font-black text-teal-600 mt-0.5">
                         {{ loading ? '...' : allBarges.length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">sà lan được lập</span>
@@ -143,10 +143,10 @@ onMounted(async () => {
 
             <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 flex items-center gap-4 text-left">
                 <div class="size-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center flex-shrink-0 border border-amber-100">
-                    <span class="material-symbols-outlined text-2xl">lock_open</span>
+                    <span class="material-symbols-outlined text-xl">lock_open</span>
                 </div>
                 <div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Đang mở khóa</p>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đang mở khóa</p>
                     <h4 class="text-xl font-black text-amber-600 mt-0.5">
                         {{ loading ? '...' : allBarges.filter(b => !b.locked).length }}
                         <span class="text-xs text-gray-400 font-bold ml-0.5">sà lan nhận đồng bộ</span>
@@ -158,7 +158,7 @@ onMounted(async () => {
         <!-- Main Dashboard Section: Utilities Grid -->
         <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-150 flex flex-col text-left">
             <h3 class="text-sm font-black text-[#1e293b] flex items-center gap-2 mb-6">
-                <span class="material-symbols-outlined text-primary text-lg font-black">dashboard_customize</span>
+                <span class="material-symbols-outlined text-primary text-base font-black">dashboard_customize</span>
                 Tiện ích hệ thống
             </h3>
             

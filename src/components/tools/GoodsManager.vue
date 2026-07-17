@@ -309,11 +309,11 @@ const clearAll = async () => {
         <!-- Header Section -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
-                <h3 class="text-lg font-black text-primary flex items-center gap-2">
+                <h3 class="text-base font-black text-primary flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl">inventory_2</span>
                     Danh mục hàng hóa
                 </h3>
-                <p class="text-[11px] text-gray-500 font-semibold mt-1">
+                <p class="text-xs text-gray-500 font-semibold mt-1">
                     Quản lý danh mục loại hàng hóa dùng chung cho toàn bộ tàu và sà lan. Tổng cộng: 
                     <span class="text-teal-600 font-bold font-mono">{{ goodsList.length }}</span> mặt hàng.
                 </p>
@@ -324,7 +324,7 @@ const clearAll = async () => {
                 <button 
                     v-if="goodsList.length > 0 && (authStore.role === 'admin' || canDelete())"
                     @click="clearAll"
-                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-[11px] font-black rounded-[14px] flex items-center gap-1.5 transition-all"
+                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
                     Xóa sạch

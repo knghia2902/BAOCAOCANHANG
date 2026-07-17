@@ -67,11 +67,11 @@ const handleLogin = async () => {
                 </div>
 
                 <div v-if="error" class="bg-red-50 text-red-500 p-4 rounded-xl text-sm font-bold flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg">error</span>
+                    <span class="material-symbols-outlined text-base">error</span>
                     {{ error }}
                 </div>
 
-                <button :disabled="isLoading" type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                <button :disabled="isLoading" type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-base flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
                     <span v-if="isLoading" class="material-symbols-outlined animate-spin">progress_activity</span>
                     <span v-else>Unlock Magic ✨</span>
                 </button>

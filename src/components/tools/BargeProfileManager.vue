@@ -1156,7 +1156,7 @@ onUnmounted(() => {
                 <!-- Welcome Header banner -->
                 <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-4 shrink-0">
                     <div>
-                        <div class="text-[9px] uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống quản lý hồ sơ phương tiện</div>
+                        <div class="text-[10px] uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống quản lý hồ sơ phương tiện</div>
                         <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5 select-none">
                             Báo cáo tổng quan hệ thống hồ sơ phương tiện sà lan
                         </h1>
@@ -1281,13 +1281,13 @@ onUnmounted(() => {
                                             v-if="isDocComplete(item.barge.config || {})" 
                                             class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">task_alt</span> ĐỦ
+                                            <span class="material-symbols-outlined text-xs">task_alt</span> ĐỦ
                                         </span>
                                         <span 
                                             v-else 
                                             class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">warning</span> THIẾU
+                                            <span class="material-symbols-outlined text-xs">warning</span> THIẾU
                                         </span>
 
                                         <!-- GCN, DK, BH attachment popover -->
@@ -1307,7 +1307,7 @@ onUnmounted(() => {
                                                 <div class="font-black text-primary border-b border-primary/5 pb-1 mb-2 uppercase select-none">Tệp đính kèm</div>
                                                 
                                                 <div v-if="item.barge.config?.gcnImages?.length" class="mb-2">
-                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-1 select-none">GCN Đăng ký</div>
+                                                    <div class="font-bold text-gray-400 uppercase text-[10px] mb-1 select-none">GCN Đăng ký</div>
                                                     <div class="grid grid-cols-4 gap-1.5">
                                                         <div 
                                                             v-for="(img, idx) in item.barge.config.gcnImages" 
@@ -1318,14 +1318,14 @@ onUnmounted(() => {
                                                         >
                                                             <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
                                                             <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                                <span class="material-symbols-outlined text-xs text-white font-bold">visibility</span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 
                                                 <div v-if="item.barge.config?.dkImages?.length" class="mb-2">
-                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-1 select-none">Đăng kiểm</div>
+                                                    <div class="font-bold text-gray-400 uppercase text-[10px] mb-1 select-none">Đăng kiểm</div>
                                                     <div class="grid grid-cols-4 gap-1.5">
                                                         <div 
                                                             v-for="(img, idx) in item.barge.config.dkImages" 
@@ -1336,14 +1336,14 @@ onUnmounted(() => {
                                                         >
                                                             <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
                                                             <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                                <span class="material-symbols-outlined text-xs text-white font-bold">visibility</span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 
                                                 <div v-if="item.barge.config?.bhImages?.length">
-                                                    <div class="font-bold text-gray-400 uppercase text-[8px] mb-1 select-none">Bảo hiểm</div>
+                                                    <div class="font-bold text-gray-400 uppercase text-[10px] mb-1 select-none">Bảo hiểm</div>
                                                     <div class="grid grid-cols-4 gap-1.5">
                                                         <div 
                                                             v-for="(img, idx) in item.barge.config.bhImages" 
@@ -1354,7 +1354,7 @@ onUnmounted(() => {
                                                         >
                                                             <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
                                                             <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                                <span class="material-symbols-outlined text-xs text-white font-bold">visibility</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1368,14 +1368,14 @@ onUnmounted(() => {
                                             class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap cursor-help"
                                             :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">how_to_reg</span> Phù hợp
+                                            <span class="material-symbols-outlined text-xs">how_to_reg</span> Phù hợp
                                         </span>
                                         <span 
                                             v-else 
                                             class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[10px] font-bold items-center gap-1 whitespace-nowrap cursor-help"
                                             :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">person_off</span> Không phù hợp
+                                            <span class="material-symbols-outlined text-xs">person_off</span> Không phù hợp
                                         </span>
 
                                         <!-- Crew attachment popover -->
@@ -1403,7 +1403,7 @@ onUnmounted(() => {
                                                     >
                                                         <img :src="img" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" />
                                                         <div class="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                                            <span class="material-symbols-outlined text-[11px] text-white font-bold">visibility</span>
+                                                            <span class="material-symbols-outlined text-xs text-white font-bold">visibility</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1428,7 +1428,7 @@ onUnmounted(() => {
                                             @click="openView(item)" 
                                             class="px-2 py-1 bg-slate-50 hover:bg-slate-200 border border-slate-200 text-slate-700 font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm flex items-center gap-0.5"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">visibility</span>
+                                            <span class="material-symbols-outlined text-xs">visibility</span>
                                             Xem
                                         </button>
 
@@ -1444,7 +1444,7 @@ onUnmounted(() => {
                                             ]"
                                             :title="item.barge.config?.locked ? 'Sà lan này đang bị khóa' : 'Chỉnh sửa hồ sơ sà lan'"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">{{ item.barge.config?.locked ? 'lock' : 'edit' }}</span>
+                                            <span class="material-symbols-outlined text-xs">{{ item.barge.config?.locked ? 'lock' : 'edit' }}</span>
                                             Sửa
                                         </button>
 
@@ -1460,7 +1460,7 @@ onUnmounted(() => {
                                             ]"
                                             :title="item.barge.config?.locked ? 'Mở khóa sà lan' : 'Khóa sà lan'"
                                         >
-                                            <span class="material-symbols-outlined text-[11px]">{{ item.barge.config?.locked ? 'lock_open' : 'lock' }}</span>
+                                            <span class="material-symbols-outlined text-xs">{{ item.barge.config?.locked ? 'lock_open' : 'lock' }}</span>
                                             {{ item.barge.config?.locked ? 'Mở khóa' : 'Khóa' }}
                                         </button>
 
@@ -1487,7 +1487,7 @@ onUnmounted(() => {
                 <div class="border-b border-primary/10 px-6 py-4 flex items-center justify-between bg-slate-50 shrink-0">
                     <div>
                         <h3 class="text-base font-black text-primary uppercase tracking-wider flex items-center gap-2 select-none">
-                            <span class="material-symbols-outlined text-lg">edit_note</span>
+                            <span class="material-symbols-outlined text-base">edit_note</span>
                             Hồ sơ sà lan: {{ selectedBarge?.name }}
                         </h3>
                         <p class="text-[10px] text-gray-400 font-bold mt-0.5">
@@ -1514,7 +1514,7 @@ onUnmounted(() => {
                         
                         <div class="grid gap-4" :class="activeSite === 'NguyenNgoc' ? 'grid-cols-2' : 'grid-cols-1'">
                             <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
                                 <input 
                                     v-model="editBargeName" 
                                     type="text" 
@@ -1522,7 +1522,7 @@ onUnmounted(() => {
                                 />
                             </div>
                             <div v-if="activeSite === 'NguyenNgoc'" class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mã lệnh</label>
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mã lệnh</label>
                                 <input 
                                     v-model="editOrderNo" 
                                     type="text" 
@@ -1532,7 +1532,7 @@ onUnmounted(() => {
                         </div>
 
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên hàng hóa</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tên hàng hóa</label>
                             <input 
                                 v-model="editGoods" 
                                 type="text" 
@@ -1541,7 +1541,7 @@ onUnmounted(() => {
                         </div>
 
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Rời bến cuối cùng (Hàng hóa & Cảng trước đó)</label>
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rời bến cuối cùng (Hàng hóa & Cảng trước đó)</label>
                             <input 
                                 v-model="editLastPort" 
                                 type="text" 
@@ -1559,11 +1559,11 @@ onUnmounted(() => {
                             
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Thuyền trưởng</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Thuyền trưởng</label>
                                     <input v-model="editCaptain" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between">
                                         <span>Hạng thuyền trưởng</span>
                                         <span v-if="computedExpectedCaptainGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedCaptainGrade }}</span>
                                     </label>
@@ -1578,11 +1578,11 @@ onUnmounted(() => {
 
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Máy trưởng</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Máy trưởng</label>
                                     <input v-model="editChiefEngineer" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between">
                                         <span>Hạng máy trưởng</span>
                                         <span v-if="computedExpectedChiefEngineerGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedChiefEngineerGrade }}</span>
                                     </label>
@@ -1596,7 +1596,7 @@ onUnmounted(() => {
                             </div>
 
                             <div class="space-y-1">
-                                <label class="text-[8px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-between">
                                     <span>Thủy thủ</span>
                                     <span v-if="isComputedSailorRequired" class="text-teal-600 font-bold normal-case">Bắt buộc (Trọng tải ≥ 500 tấn)</span>
                                     <span v-else class="text-gray-400 font-normal normal-case">Không bắt buộc</span>
@@ -1624,15 +1624,15 @@ onUnmounted(() => {
                             <!-- Crew File list and Upload -->
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
-                                        <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
+                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[10px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'crew')" class="hidden" />
                                     </label>
                                 </div>
                                 <div v-if="editCrewImages.length > 0" class="space-y-1">
-                                    <div v-for="(img, idx) in editCrewImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                    <div v-for="(img, idx) in editCrewImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[10px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
@@ -1656,11 +1656,11 @@ onUnmounted(() => {
                             
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Thời gian cập bến</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Thời gian cập bến</label>
                                     <input v-model="editArrivalTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Thời gian rời bến</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Thời gian rời bến</label>
                                     <input v-model="editDepartureTime" type="datetime-local" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                             </div>
@@ -1675,14 +1675,14 @@ onUnmounted(() => {
                             
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Kết quả</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Kết quả</label>
                                     <select v-model="editKetluan" disabled class="w-full h-8 px-2 text-xs bg-gray-100 border border-gray-200 rounded-lg text-[#1e293b] cursor-not-allowed font-black">
                                         <option value="Cho phép">Cho phép</option>
                                         <option value="Không cho phép">Không cho phép</option>
                                     </select>
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Khai hệ thống</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Khai hệ thống</label>
                                     <select v-model="editKhaiHethong" class="w-full h-8 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] cursor-pointer font-bold">
                                         <option value="">- Chọn -</option>
                                         <option value="Có">Có</option>
@@ -1702,7 +1702,7 @@ onUnmounted(() => {
                         
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Trọng tải (Tấn)</label>
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trọng tải (Tấn)</label>
                                 <input 
                                     v-model="editTonnage" 
                                     type="number" 
@@ -1711,7 +1711,7 @@ onUnmounted(() => {
                                 />
                             </div>
                             <div class="space-y-1">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Công suất (HP)</label>
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Công suất (HP)</label>
                                 <input 
                                     v-model="editHp" 
                                     type="number" 
@@ -1729,17 +1729,17 @@ onUnmounted(() => {
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Số hiệu GCN</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Số hiệu GCN</label>
                                     <input v-model="editGcnNo" type="text" placeholder="Nhập số hiệu" class="w-full h-7 px-2 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Ngày cấp</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Ngày cấp</label>
                                     <input v-model="editGcnIssuedDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
                                     <div class="flex items-center justify-between">
-                                        <label class="text-[8px] font-bold text-gray-400 uppercase">Hạn hiệu lực</label>
-                                        <label class="flex items-center gap-0.5 text-[8px] font-black text-teal-600 cursor-pointer select-none">
+                                        <label class="text-[10px] font-bold text-gray-400 uppercase">Hạn hiệu lực</label>
+                                        <label class="flex items-center gap-0.5 text-[10px] font-black text-teal-600 cursor-pointer select-none">
                                             <input type="checkbox" :checked="editGcnExpiryDate === 'Vô thời hạn'" @change="toggleGcnNoExpiry" class="size-2.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-600" />
                                             <span>Vô hạn</span>
                                         </label>
@@ -1762,15 +1762,15 @@ onUnmounted(() => {
                             <!-- GCN File list and Upload -->
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editGcnImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editGcnImages.length }})</span>
+                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[10px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'gcn')" class="hidden" />
                                     </label>
                                 </div>
                                 <div v-if="editGcnImages.length > 0" class="space-y-1">
-                                    <div v-for="(img, idx) in editGcnImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                    <div v-for="(img, idx) in editGcnImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[10px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
@@ -1793,15 +1793,15 @@ onUnmounted(() => {
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Số Đăng kiểm</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Số Đăng kiểm</label>
                                     <input v-model="editDkNo" type="text" placeholder="Nhập số DK" class="w-full h-7 px-2 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Ngày kiểm</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Ngày kiểm</label>
                                     <input v-model="editDkIssuedDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạn hết hiệu lực</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Hạn hết hiệu lực</label>
                                     <input v-model="editDkExpiryDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                             </div>
@@ -1809,15 +1809,15 @@ onUnmounted(() => {
                             <!-- Đăng kiểm File list and Upload -->
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editDkImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editDkImages.length }})</span>
+                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[10px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'dk')" class="hidden" />
                                     </label>
                                 </div>
                                 <div v-if="editDkImages.length > 0" class="space-y-1">
-                                    <div v-for="(img, idx) in editDkImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                    <div v-for="(img, idx) in editDkImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[10px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
@@ -1840,15 +1840,15 @@ onUnmounted(() => {
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Số bảo hiểm</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Số bảo hiểm</label>
                                     <input v-model="editBhNo" type="text" placeholder="Nhập số BH" class="w-full h-7 px-2 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Ngày cấp</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Ngày cấp</label>
                                     <input v-model="editBhIssuedDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-[8px] font-bold text-gray-400 uppercase">Hạn bảo hiểm</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase">Hạn bảo hiểm</label>
                                     <input v-model="editBhExpiryDate" type="date" class="w-full h-7 px-1.5 text-[10px] bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                             </div>
@@ -1856,15 +1856,15 @@ onUnmounted(() => {
                             <!-- Bảo hiểm File list and Upload -->
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[8px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editBhImages.length }})</span>
-                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[9px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editBhImages.length }})</span>
+                                    <label v-if="!isEditReadOnly" class="cursor-pointer text-[10px] font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'bh')" class="hidden" />
                                     </label>
                                 </div>
                                 <div v-if="editBhImages.length > 0" class="space-y-1">
-                                    <div v-for="(img, idx) in editBhImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[9px] text-gray-600">
+                                    <div v-for="(img, idx) in editBhImages" :key="idx" class="flex items-center justify-between bg-white px-2 py-1 rounded border border-gray-100 text-[10px] text-gray-600">
                                         <span class="truncate max-w-[150px] font-medium" :title="extractFileName(img)">{{ extractFileName(img) }}</span>
                                         <div class="flex items-center gap-1.5">
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
@@ -1889,7 +1889,7 @@ onUnmounted(() => {
                                 <button 
                                     v-if="!isEditReadOnly"
                                     @click="addCustomMeta"
-                                    class="text-[9px] font-black text-primary hover:underline uppercase flex items-center gap-0.5"
+                                    class="text-[10px] font-black text-primary hover:underline uppercase flex items-center gap-0.5"
                                 >
                                     <span class="material-symbols-outlined text-xs">add</span> Thêm ô nhập
                                 </button>
@@ -1948,17 +1948,17 @@ onUnmounted(() => {
             <div class="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
                 <div class="flex items-center justify-between border-b border-gray-150 pb-3">
                     <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
-                        <span class="material-symbols-outlined text-lg">add_box</span>
+                        <span class="material-symbols-outlined text-base">add_box</span>
                         Thêm sà lan Phú Mỹ mới
                     </h3>
                     <button @click="showAddBargeModal = false" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors">
-                        <span class="material-symbols-outlined text-lg">close</span>
+                        <span class="material-symbols-outlined text-base">close</span>
                     </button>
                 </div>
                 
                 <div class="space-y-4">
                     <div class="space-y-1">
-                        <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tên sà lan *</label>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tên sà lan *</label>
                         <input 
                             v-model="newBargeName" 
                             type="text" 
