@@ -5,6 +5,7 @@ import { supabase } from '@/supabase';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
 import { WeighbridgeService, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement } from '@/services/excel/WeighbridgeService';
+import { LogService } from '@/services/storage/LogService';
 const props = withDefaults(defineProps<{
     hideCard?: boolean;
 }>(), {
@@ -1006,6 +1007,7 @@ const exportAllBargesToExcel = () => {
             );
             
             showToast('Xuất tệp Excel thành công! 📊', 'success');
+            LogService.logAction('Xuất Excel', 'Xuất danh sách quản lý sà lan ra Excel');
             exportingGlobalBarges.value = false;
         }).catch((err) => {
             console.error('Error exporting global barges:', err);
@@ -2369,6 +2371,7 @@ const deleteBarge = async (_vesselId: number, id: number, name: string) => {
             }
             await loadVessels();
             showToast(`Đã xóa sà lan: ${name}`, 'error');
+            LogService.logAction('Xóa sà lan', 'Xóa sà lan: ' + name);
         } else {
             showToast('Không thể xóa sà lan!', 'error');
         }
@@ -3285,6 +3288,7 @@ const deleteTruck = async (id: number, plate: string) => {
         if (success) {
             trucks.value = trucks.value.filter(t => t.id !== id);
             showToast(`Đã xóa xe: ${plate}`, 'error');
+            LogService.logAction('Xóa phiếu cân', 'Xóa xe: ' + plate);
         } else {
             showToast('Không thể xóa xe!', 'error');
         }
@@ -3327,6 +3331,7 @@ const clearTrucks = async () => {
             await WeighbridgeService.updateBargeConfig(bargeId, { ...cfgForm });
 
             showToast("Đã xóa sạch danh sách xe của sà lan!", "error");
+            LogService.logAction('Xóa tất cả phiếu cân', 'Xóa sạch danh sách xe của sà lan');
         } else {
             showToast('Không thể xóa danh sách xe!', 'error');
         }

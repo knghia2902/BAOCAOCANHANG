@@ -6,6 +6,7 @@ import { supabase } from '@/supabase';
 import { authStore } from '@/stores/auth';
 import VehicleManager from '@/components/tools/VehicleManager.vue';
 import GoodsManager from '@/components/tools/GoodsManager.vue';
+import { LogService } from '@/services/storage/LogService';
 
 const { addToast } = useToast();
 
@@ -713,6 +714,7 @@ async function handleTicketImport(event: Event) {
             
             const { added, updated, skipped } = mergeTickets(finalRecords);
             addToast(`Import CSV: ${added} mới, ${updated} cập nhật, ${skipped} bỏ qua (trùng)`, 'success');
+            LogService.logAction('Import CSV', `Import CSV: ${added} mới, ${updated} cập nhật`);
             await saveTicketsToSupabase();
         } catch (error) {
             console.error(error);
@@ -857,6 +859,7 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
         
         const { added, updated, skipped } = mergeTickets(finalRecords);
         addToast(`Import Excel: ${added} mới, ${updated} cập nhật, ${skipped} bỏ qua (trùng)`, 'success');
+        LogService.logAction('Import Excel', `Import Excel phiếu cân: ${added} mới, ${updated} cập nhật`);
         await saveTicketsToSupabase();
         
     } catch (e) {
@@ -992,6 +995,7 @@ function saveTicket() {
         if (idx !== -1) {
             currentList[idx] = { ...dialogTicket.value };
             addToast('Đã cập nhật phiếu cân thành công!', 'success');
+            LogService.logAction('Sửa phiếu cân', 'Cập nhật phiếu cân: ' + dialogTicket.value.plateNumber);
         }
     } else {
         const id = 'ticket_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
@@ -1000,6 +1004,7 @@ function saveTicket() {
             id
         });
         addToast('Đã thêm phiếu cân mới thành công!', 'success');
+        LogService.logAction('Thêm phiếu cân', 'Thêm phiếu cân mới: ' + dialogTicket.value.plateNumber);
     }
     
     csvRecords.value = currentList;
@@ -2490,6 +2495,7 @@ async function triggerManualSyncToPrinter() {
     await saveTicketsToSupabase();
     syncChannel.postMessage({ type: 'manual_sync_request' });
     addToast('Đồng bộ dữ liệu thành công! Bản phân bổ đã được lưu lên đám mây và sẽ tự động cập nhật khi bạn mở trang DASHBOARD.', 'success');
+    LogService.logAction('Đồng bộ dữ liệu', 'Đồng bộ bản phân bổ lên đám mây');
 }
 
 // Save generated temporary trips into history
@@ -3113,6 +3119,7 @@ async function compileAndDownload() {
         URL.revokeObjectURL(url);
         
         addToast('Đã xuất tệp Excel thành công!', 'success');
+        LogService.logAction('Xuất Excel', 'Xuất báo cáo cân hàng ra Excel');
     } catch (error) {
         console.error(error);
         addToast('Lỗi khi xuất tệp Excel!', 'error');

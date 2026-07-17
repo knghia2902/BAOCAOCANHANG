@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
+import { LogService } from '@/services/storage/LogService';
 
 const { addToast } = useToast();
 
@@ -223,6 +224,7 @@ const handleSubmit = async () => {
         }
         vehicles.value.push({ plateNumber: plate, moocNumber: mooc });
         addToast('Đã thêm xe mới thành công!', 'success');
+        LogService.logAction('Thêm xe', 'Thêm xe mới: ' + plate);
     } else {
         // Edit existing
         const index = editingIndex.value;
@@ -235,6 +237,7 @@ const handleSubmit = async () => {
         if (currentVehicle) {
             vehicles.value[index] = { plateNumber: plate, moocNumber: mooc };
             addToast('Đã cập nhật thông tin xe!', 'success');
+            LogService.logAction('Sửa xe', 'Cập nhật xe: ' + plate);
         }
         editingIndex.value = null;
     }
@@ -277,6 +280,7 @@ const deleteVehicle = async (index: number) => {
         vehicles.value.splice(index, 1);
         await saveVehicles();
         addToast('Đã xóa xe khỏi danh sách!', 'info');
+        LogService.logAction('Xóa xe', 'Xóa xe: ' + v.plateNumber);
         if (editingIndex.value === index) {
             cancelEdit();
         } else if (editingIndex.value !== null && editingIndex.value > index) {
@@ -301,6 +305,7 @@ const clearAll = async () => {
         moocInput.value = '';
         await saveVehicles();
         addToast('Đã xóa sạch danh sách xe!', 'info');
+        LogService.logAction('Xóa tất cả xe', 'Xóa sạch danh sách xe');
     }
 };
 
@@ -356,6 +361,7 @@ const handleImportExcel = async (e: Event) => {
 
         await saveVehicles();
         addToast(`Đã nhập xong! Thêm mới: ${importedCount}, Cập nhật: ${updatedCount}`, 'success');
+        LogService.logAction('Import xe', `Import Excel: ${importedCount} mới, ${updatedCount} cập nhật`);
     } catch (err) {
         console.error(err);
         addToast('Có lỗi xảy ra khi đọc tệp Excel!', 'error');
@@ -405,6 +411,7 @@ const handleExportExcel = async () => {
         link.click();
         window.URL.revokeObjectURL(url);
         addToast('Xuất tệp Excel thành công!', 'success');
+        LogService.logAction('Xuất Excel xe', 'Xuất danh sách xe ra Excel');
     } catch (err) {
         console.error(err);
         addToast('Có lỗi xảy ra khi xuất Excel!', 'error');

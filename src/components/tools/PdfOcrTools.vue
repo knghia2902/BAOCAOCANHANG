@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { pdfOcrService } from '@/services/pdf/PdfOcrService';
 import { documentConversionService } from '@/services/conversion/DocumentConversionService';
 import { useToast } from '@/composables/useToast';
+import { LogService } from '@/services/storage/LogService';
 import FileDropzone from '@/components/ui/FileDropzone.vue';
 import ConversionProgress from '@/components/ui/ConversionProgress.vue';
 import type { PdfOcrResult } from '@/types/pdf';
@@ -53,6 +54,7 @@ const onFileSelected = async (file: File) => {
         downloadUrl.value = URL.createObjectURL(blob);
         previewResult.value = result;
         addToast('File processed successfully! Preview loaded below.', 'success');
+        LogService.logAction('Xử lý PDF/OCR', 'Trích xuất file: ' + file.name);
       } else {
         addToast(result.error || 'Failed to process file', 'error');
       }
@@ -70,6 +72,7 @@ const onFileSelected = async (file: File) => {
       const pdfResult = await documentConversionService.exportToPdf(previewContainer.value!, file.name, { onProgress: updateProgress });
       if (pdfResult.success) {
          addToast('Converted to PDF successfully!', 'success');
+         LogService.logAction('Chuyển đổi PDF', 'Chuyển đổi file sang PDF');
       } else {
          throw new Error(pdfResult.error);
       }
