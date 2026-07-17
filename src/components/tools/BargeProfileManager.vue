@@ -1245,15 +1245,15 @@ onUnmounted(() => {
                                     <td class="px-3 py-2.5 text-center">
                                         <span 
                                             v-if="isDocComplete(item.barge.config || {})" 
-                                            class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-xs font-bold items-center gap-1 whitespace-nowrap"
+                                            class="inline-flex text-teal-600 text-xs font-bold whitespace-nowrap"
                                         >
-                                            <span class="material-symbols-outlined text-xs">task_alt</span> ĐỦ
+                                            Đủ
                                         </span>
                                         <span 
                                             v-else 
-                                            class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-bold items-center gap-1 whitespace-nowrap"
+                                            class="inline-flex text-rose-600 text-xs font-bold whitespace-nowrap"
                                         >
-                                            <span class="material-symbols-outlined text-xs">warning</span> THIẾU
+                                            Thiếu
                                         </span>
 
                                         <!-- GCN, DK, BH attachment popover -->
@@ -1331,17 +1331,17 @@ onUnmounted(() => {
                                     <td class="px-3 py-2.5 text-center">
                                         <span 
                                             v-if="getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" 
-                                            class="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-xs font-bold items-center gap-1 whitespace-nowrap cursor-help"
+                                            class="inline-flex text-teal-600 text-xs font-bold whitespace-nowrap cursor-help"
                                             :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            <span class="material-symbols-outlined text-xs">how_to_reg</span> Phù hợp
+                                            Phù hợp
                                         </span>
                                         <span 
                                             v-else 
-                                            class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-bold items-center gap-1 whitespace-nowrap cursor-help"
+                                            class="inline-flex text-rose-600 text-xs font-bold whitespace-nowrap cursor-help"
                                             :title="getCrewStatus(item.barge.config || {}).details"
                                         >
-                                            <span class="material-symbols-outlined text-xs">person_off</span> Không phù hợp
+                                            Không phù hợp
                                         </span>
 
                                         <!-- Crew attachment popover -->
@@ -1377,13 +1377,13 @@ onUnmounted(() => {
                                         </div>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="isDocComplete(item.barge.config || {}) && getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" class="inline-flex px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-xs font-black">Cho phép</span>
-                                        <span v-else class="inline-flex px-2.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-black">Không cho phép</span>
+                                        <span v-if="isDocComplete(item.barge.config || {}) && getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" class="inline-flex text-emerald-600 text-xs font-bold">Cho phép</span>
+                                        <span v-else class="inline-flex text-rose-600 text-xs font-bold">Không cho phép</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="item.barge.config?.khaihethong === 'Có'" class="inline-flex px-2.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-xs font-black">Có</span>
-                                        <span v-else-if="item.barge.config?.khaihethong === 'Không'" class="inline-flex px-2.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-xs font-black">Không</span>
-                                        <span v-else-if="item.barge.config?.khaihethong" class="text-gray-700 font-semibold">{{ item.barge.config.khaihethong }}</span>
+                                        <span v-if="item.barge.config?.khaihethong === 'Có'" class="inline-flex text-blue-600 text-xs font-bold">Có</span>
+                                        <span v-else-if="item.barge.config?.khaihethong === 'Không'" class="inline-flex text-amber-600 text-xs font-bold">Không</span>
+                                        <span v-else-if="item.barge.config?.khaihethong" class="text-gray-700 font-bold text-xs">{{ item.barge.config.khaihethong }}</span>
                                         <span v-else class="text-gray-400 italic text-xs">-</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center flex items-center justify-center gap-1.5">
