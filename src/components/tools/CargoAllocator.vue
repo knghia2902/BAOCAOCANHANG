@@ -974,7 +974,8 @@ function openEditTicketDialog(ticket: CSVRecord) {
 }
 
 async function saveTicket() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage')) {
+    const isNew = !editingTicket.value || !editingTicket.value.id;
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', isNew ? 'create' : 'update')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1017,7 +1018,7 @@ async function saveTicket() {
 }
 
 async function deleteTicket(ticket: CSVRecord) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1038,7 +1039,7 @@ async function deleteTicket(ticket: CSVRecord) {
 
 // Clear all tickets
 async function clearAllTickets() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -2730,7 +2731,7 @@ const historyTotalWeightTons = computed(() => {
 
 // Export source tickets (Tab 1) as Excel
 async function exportSourceTickets() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_export')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_export', 'read')) {
         addToast('Bạn không có quyền xuất dữ liệu Excel!', 'error');
         return;
     }
@@ -3867,7 +3868,7 @@ async function compileAndDownload() {
                                     </div>
                                 </th>
                                 <th class="py-2 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'create') || hasDetailPermission('allocator', 'al_barge_manage', 'update') || hasDetailPermission('allocator', 'al_barge_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -3907,7 +3908,7 @@ async function compileAndDownload() {
                                     </span>
                                     <span v-else class="text-gray-400 italic text-xs">-</span>
                                 </td>
-                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage')" class="py-2 px-3 text-center">
+                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_barge_manage', 'create') || hasDetailPermission('allocator', 'al_barge_manage', 'update') || hasDetailPermission('allocator', 'al_barge_manage', 'delete')" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
                                             @click="editHistoryTripOrderNo(trip)"

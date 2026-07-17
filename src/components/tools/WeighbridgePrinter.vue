@@ -1235,7 +1235,7 @@ const saveBargeConfig = () => {
 const saveBargeConfigImmediately = async () => {
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
         showToast('Bạn không có quyền thay đổi cấu hình sà lan!', 'error');
         return;
     }
@@ -1284,7 +1284,7 @@ const saveBargeConfigImmediately = async () => {
 const toggleBargeLock = async () => {
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
         showToast('Bạn không có quyền khóa/mở khóa sà lan!', 'error');
         return;
     }
@@ -2163,7 +2163,7 @@ function regenerateAllTicketNumbers(trucksList: Truck[], startingSeed: string | 
 const handleTicketConfigChange = async () => {
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
         showToast('Bạn không có quyền cấu hình số phiếu!', 'error');
         return;
     }
@@ -2205,7 +2205,7 @@ const handleTicketConfigChange = async () => {
 
 // Vessel CRUD
 const addVessel = async () => {
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3370,7 +3370,7 @@ const deleteTruck = async (id: number, plate: string) => {
 };
 
 const clearTrucks = async () => {
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'delete')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3690,14 +3690,14 @@ onUnmounted(() => {
                                 </div>
                                 
                                 <!-- Vessel Actions -->
-                                <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" class="flex items-center gap-0.5" @click.stopPropagation>
-                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
+                                <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" class="flex items-center gap-0.5" @click.stopPropagation>
+                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
                                         <span class="material-symbols-outlined text-xs">add</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
+                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
                                         <span class="material-symbols-outlined text-xs">edit</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
+                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
                                         <span class="material-symbols-outlined text-xs">delete</span>
                                     </button>
                                 </div>
@@ -3723,10 +3723,10 @@ onUnmounted(() => {
                                         <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
                                     </div>
                                     <div v-if="authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()" class="flex items-center gap-0.5" @click.stopPropagation>
-                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
+                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
                                             <span class="material-symbols-outlined text-xs">edit</span>
                                         </button>
-                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" @click="deleteBarge(vessel.id, barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-red-500'" title="Xóa sà lan">
+                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" @click="deleteBarge(vessel.id, barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-red-500'" title="Xóa sà lan">
                                             <span class="material-symbols-outlined text-xs">delete</span>
                                         </button>
                                     </div>
@@ -3736,7 +3736,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Sidebar Footer -->
-                    <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')" class="p-3 border-t border-primary/10 bg-gray-50">
+                    <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')" class="p-3 border-t border-primary/10 bg-gray-50">
                         <button 
                             @click="addVessel" 
                             class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-[12px] text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
@@ -4144,7 +4144,7 @@ onUnmounted(() => {
                             <!-- Stats & Excel Upload Side-by-Side -->
                             <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 items-stretch">
                                 <!-- Stats Grid (6 cols / 12 cols depending on role) -->
-                                <div :class="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage')) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <div :class="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
                                         <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>

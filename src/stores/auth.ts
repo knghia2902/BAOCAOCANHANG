@@ -166,7 +166,7 @@ export const canDelete = () => {
     return perm ? perm.canDelete : false;
 };
 
-export const hasDetailPermission = (toolId: string, permissionId: string): boolean => {
+export const hasDetailPermission = (toolId: string, permissionId: string, _action?: string): boolean => {
     if (!authStore.isAuthenticated) return false;
     if (authStore.role === 'admin') return true;
     const perm = authStore.rolePermissions?.[authStore.role || ''];

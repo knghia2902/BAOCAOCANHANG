@@ -267,27 +267,31 @@ export const ContentService = {
     }
 };
 
-export const DEFAULT_ROLE_PERMISSIONS: Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, { tools: string[]; description?: string; canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = {
     admin: {
         tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'],
+        description: 'Quản trị viên toàn quyền hệ thống',
         canCreate: true,
         canUpdate: true,
         canDelete: true
     },
     staff: {
         tools: ['converter', 'merger', 'ocr'],
+        description: 'Nhân viên văn phòng, xử lý tài liệu Excel/PDF',
         canCreate: true,
         canUpdate: true,
         canDelete: false
     },
     operator: {
         tools: ['weighbridge', 'allocator', 'vehicles'],
+        description: 'Nhân viên vận hành, in phiếu cân xe và cập nhật chuyến hàng sà lan',
         canCreate: true,
         canUpdate: true,
         canDelete: false
     },
     viewer: {
         tools: ['weighbridge', 'allocator', 'vehicles'],
+        description: 'Tài khoản giám sát, chỉ xem báo cáo sản lượng',
         canCreate: false,
         canUpdate: false,
         canDelete: false

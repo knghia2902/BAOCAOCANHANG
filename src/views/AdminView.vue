@@ -448,14 +448,7 @@ const handleResetPassword = async () => {
     }
 };
 
-const allTools = [
-  { id: 'converter', name: 'Chuyển Đổi Định Dạng File' },
-  { id: 'merger', name: 'Gộp Excel Thông Minh' },
-  { id: 'weighbridge', name: 'In Phiếu Cân Xe 🚢' },
-  { id: 'allocator', name: 'Báo cáo cân hàng 🚛' },
-  { id: 'vehicles', name: 'Hồ sơ phương tiện sà lan 🚢' },
-  { id: 'ocr', name: 'Trích Xuất PDF & OCR' }
-];
+
 
 const staffToolsConfig = ref<string[]>([]);
 
@@ -468,37 +461,94 @@ const loadStaffToolsConfig = async () => {
 
 const rolePermissions = ref<Record<string, { 
     tools: string[]; 
+    description?: string;
     canCreate: boolean; 
     canUpdate: boolean; 
     canDelete: boolean;
     detailPermissions?: Record<string, string[]>;
 }>>({});
 const selectedRoleToConfigure = ref<string>('staff');
+const activeSubsystem = ref<string>('weighbridge');
+
+const allToolsWithMinutes = [
+  { id: 'weighbridge', name: 'In Phiếu Cân Xe 🚢', description: 'Vận hành làn cân điện tử, lưu trữ và in phiếu cân tự động' },
+  { id: 'allocator', name: 'Báo cáo cân hàng 🚛', description: 'Phân bổ tải trọng, điều phối xe và gộp dữ liệu chuyến hàng' },
+  { id: 'vehicles', name: 'Hồ sơ phương tiện sà lan 🚢', description: 'Quản lý hồ sơ sà lan, thông tin thuyền viên và đăng kiểm' },
+  { id: 'minutes', name: 'Biên Bản Sà Lan 📝', description: 'Tạo biên bản giao nhận sà lan tự động dựa trên file dữ liệu cân' },
+  { id: 'ocr', name: 'Trích Xuất PDF & OCR', description: 'Nhận diện văn bản hình ảnh, quét OCR tài liệu và trích xuất dữ liệu' },
+  { id: 'merger', name: 'Gộp Excel Thông Minh', description: 'Gộp các file Excel báo cáo cân hàng, báo cáo sản lượng nhanh chóng' },
+  { id: 'converter', name: 'Chuyển Đổi Định Dạng File', description: 'Chuyển đổi PDF, Word, Excel, ảnh trực tiếp trong trình duyệt' }
+];
+
+const actionPermissionsMapping = {
+  weighbridge: [
+    { name: 'Quản lý Tàu & Sà lan', permId: 'wb_vessel_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Quản lý xe cân hàng', permId: 'wb_truck_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'In ấn & Xuất báo cáo', permId: 'wb_print_export', showView: true, showCreate: false, showUpdate: false, showDelete: false },
+    { name: 'Cấu hình thông số & Căn chỉnh Layout', permId: 'wb_layout_config', showView: true, showCreate: true, showUpdate: true, showDelete: true }
+  ],
+  allocator: [
+    { name: 'Quản lý xe & moóc xếp hàng', permId: 'al_barge_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Cấu hình quy tắc & trạm cân', permId: 'al_rules_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Xuất file excel lệnh điều xe', permId: 'al_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+  ],
+  vehicles: [
+    { name: 'Hồ sơ sà lan', permId: 'veh_barge_profile', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Hồ sơ thuyền viên', permId: 'veh_crew_profile', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Đăng kiểm & Bảo hiểm', permId: 'veh_registry_insurance', showView: true, showCreate: true, showUpdate: true, showDelete: true }
+  ],
+  minutes: [
+    { name: 'Lập biên bản làm hàng sà lan', permId: 'min_create', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Xuất bộ biên bản ra Excel', permId: 'min_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+  ]
+};
+
+const isActionPermChecked = (role: string, subsystem: string, permId: string, actionType: 'read' | 'create' | 'update' | 'delete') => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig) return false;
+    if (!roleConfig.detailPermissions) return true;
+    const perms = roleConfig.detailPermissions[subsystem] || [];
+    
+    if (permId === 'wb_print_export' || permId === 'al_export' || permId === 'min_export') {
+        if (actionType === 'read') return perms.includes(permId);
+        return false;
+    }
+    if (actionType === 'read') return true;
+    return perms.includes(permId);
+};
+
+const toggleActionPerm = (role: string, subsystem: string, permId: string, _actionType: 'read' | 'create' | 'update' | 'delete') => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig) return;
+    
+    if (!roleConfig.detailPermissions) {
+        roleConfig.detailPermissions = {
+            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
+            allocator: ['al_barge_manage', 'al_rules_manage', 'al_export'],
+            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+            minutes: ['min_create', 'min_export']
+        };
+    }
+    
+    if (!roleConfig.detailPermissions[subsystem]) {
+        roleConfig.detailPermissions[subsystem] = [];
+    }
+    
+    const perms = [...roleConfig.detailPermissions[subsystem]];
+    const index = perms.indexOf(permId);
+    
+    if (index >= 0) {
+        perms.splice(index, 1);
+    } else {
+        perms.push(permId);
+    }
+    
+    roleConfig.detailPermissions[subsystem] = perms;
+};
 const customRoleName = ref<string>('');
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
 
-const subPermissionsConfig = {
-  weighbridge: [
-    { id: 'wb_vessel_manage', name: 'Quản lý Tàu & Sà lan (Thêm/Sửa/Xóa)' },
-    { id: 'wb_truck_manage', name: 'Quản lý xe cân (Thêm/Sửa/Xóa/Đồng bộ)' },
-    { id: 'wb_print_export', name: 'In phiếu cân A5 & Xuất báo cáo Excel' },
-    { id: 'wb_layout_config', name: 'Cấu hình thông số & Căn chỉnh Layout in' }
-  ],
-  allocator: [
-    { id: 'al_barge_manage', name: 'Quản lý xe & moóc trong lệnh điều xe' },
-    { id: 'al_rules_manage', name: 'Cấu hình công thức phân bổ tải trọng' },
-    { id: 'al_export', name: 'Xuất file excel lệnh điều xe' }
-  ],
-  vehicles: [
-    { id: 'veh_barge_profile', name: 'Xem & Chỉnh sửa hồ sơ sà lan' },
-    { id: 'veh_crew_profile', name: 'Xem & Chỉnh sửa hồ sơ thuyền viên' },
-    { id: 'veh_registry_insurance', name: 'Xem & Chỉnh sửa Đăng kiểm & Bảo hiểm' }
-  ],
-  minutes: [
-    { id: 'min_create', name: 'Lập biên bản làm hàng sà lan' },
-    { id: 'min_export', name: 'Xuất bộ biên bản làm hàng ra Excel' }
-  ]
-};
+
 
 const loadRolePermissionsConfig = async () => {
     try {
@@ -543,6 +593,7 @@ const handleCreateCustomRole = () => {
     
     rolePermissions.value[name] = {
         tools: ['converter', 'merger', 'ocr'],
+        description: '',
         canCreate: true,
         canUpdate: true,
         canDelete: false,
@@ -572,37 +623,7 @@ const handleDeleteCustomRole = (role: string) => {
     }
 };
 
-const isSubPermissionChecked = (role: string, toolId: string, subId: string) => {
-    const rolePerms = rolePermissions.value[role];
-    if (!rolePerms) return false;
-    if (!rolePerms.detailPermissions) {
-        rolePerms.detailPermissions = {};
-    }
-    if (!rolePerms.detailPermissions[toolId]) {
-        rolePerms.detailPermissions[toolId] = [];
-    }
-    return rolePerms.detailPermissions[toolId].includes(subId);
-};
 
-const toggleSubPermission = (role: string, toolId: string, subId: string, event: Event) => {
-    const checked = (event.target as HTMLInputElement).checked;
-    const rolePerms = rolePermissions.value[role];
-    if (!rolePerms) return;
-    if (!rolePerms.detailPermissions) {
-        rolePerms.detailPermissions = {};
-    }
-    if (!rolePerms.detailPermissions[toolId]) {
-        rolePerms.detailPermissions[toolId] = [];
-    }
-    
-    if (checked) {
-        if (!rolePerms.detailPermissions[toolId].includes(subId)) {
-            rolePerms.detailPermissions[toolId].push(subId);
-        }
-    } else {
-        rolePerms.detailPermissions[toolId] = rolePerms.detailPermissions[toolId].filter(id => id !== subId);
-    }
-};
 
 // === Activity Logs Tab ===
 import type { ActivityLog } from '../services/storage/LogService';
@@ -1121,68 +1142,146 @@ onMounted(async () => {
 
                     <!-- Configure Permissions for Selected Role -->
                     <div v-if="rolePermissions[selectedRoleToConfigure]" class="space-y-6">
-                        <!-- Switch Actions/Create/Update/Delete permissions -->
-                        <div class="p-4 bg-[#f1f5f9] rounded-2xl border border-primary/5 flex flex-col md:flex-row gap-6">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canCreate" class="accent-primary size-4" />
-                                <div>
-                                    <p class="text-xs font-black text-[#1e293b]">Cho phép Thêm dữ liệu</p>
-                                    <p class="text-xs text-gray-400 font-bold">Thành viên vai trò này được quyền tạo mới dữ liệu.</p>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canUpdate" class="accent-primary size-4" />
-                                <div>
-                                    <p class="text-xs font-black text-[#1e293b]">Cho phép Sửa dữ liệu</p>
-                                    <p class="text-xs text-gray-400 font-bold">Thành viên vai trò này được quyền chỉnh sửa thông tin.</p>
-                                </div>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canDelete" class="accent-primary size-4" />
-                                <div>
-                                    <p class="text-xs font-black text-[#1e293b]">Cho phép Xóa dữ liệu</p>
-                                    <p class="text-xs text-gray-400 font-bold">Thành viên vai trò này được quyền xóa vĩnh viễn dữ liệu.</p>
-                                </div>
-                            </label>
+                        <!-- Role Description (Mô tả chi tiết) -->
+                        <div class="space-y-1.5 text-left">
+                            <label class="text-xs font-black text-gray-500 uppercase tracking-wider">Mô tả chi tiết</label>
+                            <input 
+                                type="text" 
+                                v-model="rolePermissions[selectedRoleToConfigure]!.description" 
+                                placeholder="VD: Quyền thực hiện cân và tra cứu báo cáo cân" 
+                                class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-colors placeholder:text-gray-400 placeholder:font-normal"
+                            />
                         </div>
 
-                        <!-- Checkboxes for permitted tools -->
-                        <div>
-                            <p class="text-xs font-black text-[#1e293b] mb-3">Các công cụ được phép hiển thị & truy cập:</p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div v-for="t in allTools" :key="t.id" class="p-4 bg-[#f1f5f9] rounded-2xl flex flex-col gap-3 border border-transparent hover:border-primary/10 transition-all group text-left">
-                                    <div class="flex items-center justify-between w-full">
-                                        <div class="flex items-center gap-3">
-                                            <div class="size-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center shadow-soft">
-                                                <span class="material-symbols-outlined text-sm">
-                                                    {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : 'document_scanner' }}
-                                                </span>
-                                            </div>
-                                            <span class="font-bold text-xs text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer scale-90">
-                                            <input type="checkbox" :value="t.id" v-model="rolePermissions[selectedRoleToConfigure]!.tools" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                        </label>
-                                    </div>
-                                    
-                                    <!-- Sub-permissions detail check -->
-                                    <div v-if="rolePermissions[selectedRoleToConfigure]!.tools.includes(t.id) && subPermissionsConfig[t.id as keyof typeof subPermissionsConfig]" class="pl-12 pt-2 border-t border-dashed border-primary/10 space-y-2">
-                                        <p class="text-[10px] font-black text-primary/70 uppercase tracking-wider mb-1">Quyền mục nhỏ:</p>
-                                        <div v-for="sub in subPermissionsConfig[t.id as keyof typeof subPermissionsConfig]" :key="sub.id" class="flex items-center gap-2">
+                        <!-- Grid for Subsystems -->
+                        <div class="space-y-3.5 text-left">
+                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-wider">Phân quyền truy cập các Phân hệ (Subsystem)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div 
+                                    v-for="t in allToolsWithMinutes" 
+                                    :key="t.id"
+                                    @click="activeSubsystem = t.id"
+                                    class="p-4 bg-white rounded-2xl border flex items-center justify-between transition-all cursor-pointer select-none group"
+                                    :style="activeSubsystem === t.id ? 'border-color: #5850ec; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); background-color: rgba(88, 80, 236, 0.02); ring: 1px solid #5850ec;' : 'border-color: #e2e8f0;'"
+                                >
+                                    <div class="flex items-center gap-3.5 pr-2">
+                                        <!-- Custom Big Checkbox -->
+                                        <label class="relative flex items-center cursor-pointer" @click.stop>
                                             <input 
                                                 type="checkbox" 
-                                                :id="selectedRoleToConfigure + '_' + sub.id"
-                                                :checked="isSubPermissionChecked(selectedRoleToConfigure, t.id, sub.id)"
-                                                @change="toggleSubPermission(selectedRoleToConfigure, t.id, sub.id, $event)"
-                                                class="accent-primary size-3.5 rounded"
+                                                :value="t.id" 
+                                                v-model="rolePermissions[selectedRoleToConfigure]!.tools" 
+                                                class="sr-only peer"
                                             />
-                                            <label :for="selectedRoleToConfigure + '_' + sub.id" class="text-xs font-semibold text-[#1e293b] cursor-pointer select-none">
-                                                {{ sub.name }}
-                                            </label>
+                                            <div class="size-6 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                <span class="material-symbols-outlined text-white text-base font-bold scale-90">check</span>
+                                            </div>
+                                        </label>
+                                        
+                                        <div class="flex flex-col gap-0.5 text-left">
+                                            <span class="font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
+                                            <span class="text-[10px] font-bold text-gray-400 leading-normal">{{ t.description }}</span>
                                         </div>
                                     </div>
+                                    
+                                    <!-- Icon badge -->
+                                    <div class="size-8 bg-slate-50 text-gray-400 rounded-xl flex items-center justify-center border border-gray-150 shrink-0">
+                                        <span class="material-symbols-outlined text-sm">
+                                            {{ t.id === 'converter' ? 'swap_horiz' : t.id === 'merger' ? 'layers' : t.id === 'weighbridge' ? 'print' : t.id === 'allocator' ? 'shuffle' : t.id === 'vehicles' ? 'local_shipping' : t.id === 'minutes' ? 'description' : 'document_scanner' }}
+                                        </span>
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Permissions Table -->
+                        <div v-if="rolePermissions[selectedRoleToConfigure]!.tools.includes(activeSubsystem) && actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" class="space-y-3.5 text-left animate-fade-in">
+                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-wider">Chi tiết quyền hạn thao tác (Actions Permissions)</h4>
+                            
+                            <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                                <table class="w-full border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-gray-150 text-left">
+                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider w-[40%]">Chức năng</th>
+                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Xem</th>
+                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Thêm</th>
+                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Sửa</th>
+                                            <th class="py-3 px-5 text-[10px] font-black text-gray-500 uppercase tracking-wider text-center w-[15%]">Xóa</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <tr v-for="act in actionPermissionsMapping[activeSubsystem as keyof typeof actionPermissionsMapping]" :key="act.permId" class="hover:bg-slate-50/50 transition-colors">
+                                            <!-- Chức năng -->
+                                            <td class="py-3.5 px-5 text-xs font-black text-[#1e293b]">
+                                                {{ act.name }}
+                                            </td>
+                                            
+                                            <!-- Xem -->
+                                            <td class="py-3.5 px-5 text-center">
+                                                <label v-if="act.showView" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'read')" 
+                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'read')"
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                    </div>
+                                                </label>
+                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                            </td>
+                                            
+                                            <!-- Thêm -->
+                                            <td class="py-3.5 px-5 text-center">
+                                                <label v-if="act.showCreate" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'create')" 
+                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'create')"
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                    </div>
+                                                </label>
+                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                            </td>
+                                            
+                                            <!-- Sửa -->
+                                            <td class="py-3.5 px-5 text-center">
+                                                <label v-if="act.showUpdate" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'update')" 
+                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'update')"
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                    </div>
+                                                </label>
+                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                            </td>
+                                            
+                                            <!-- Xóa -->
+                                            <td class="py-3.5 px-5 text-center">
+                                                <label v-if="act.showDelete" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :checked="isActionPermChecked(selectedRoleToConfigure, activeSubsystem, act.permId, 'delete')" 
+                                                        @change="toggleActionPerm(selectedRoleToConfigure, activeSubsystem, act.permId, 'delete')"
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="size-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                        <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                    </div>
+                                                </label>
+                                                <div v-else class="size-5 mx-auto bg-slate-100 border border-gray-200 rounded cursor-not-allowed"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

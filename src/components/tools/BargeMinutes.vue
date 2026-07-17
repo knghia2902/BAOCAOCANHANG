@@ -95,7 +95,7 @@ const formatTimeToInput = (d: Date): string => {
 // Parse Weight List Excel
 async function handleWlUpload(event: Event) {
     const target = event.target as HTMLInputElement;
-    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_create')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_create', 'create')) {
         showToast('Bạn không có quyền lập biên bản sà lan!', 'error');
         target.value = '';
         return;
@@ -435,7 +435,7 @@ function formatExcelDateStr(isoDate: string): string {
 
 // Generate minutes file
 async function generateMinutes() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_export')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_export', 'read')) {
         showToast('Bạn không có quyền xuất biên bản ra Excel!', 'error');
         return;
     }

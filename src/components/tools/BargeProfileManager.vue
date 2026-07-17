@@ -493,7 +493,7 @@ const addPhuMyBarge = async () => {
 };
 
 const deletePhuMyBarge = async (barge: Barge) => {
-    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1281,7 +1281,7 @@ onUnmounted(() => {
                             <span class="material-symbols-outlined text-sm">add</span>
                             Thêm sà lan mới
                         </button>
-                        <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile')"
+                        <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'create')"
                             @click="triggerExcelUpload"
                             class="h-8 px-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-600/10 shrink-0"
                             title="Nhập dữ liệu hồ sơ từ file Excel"
@@ -2046,7 +2046,7 @@ onUnmounted(() => {
                     >
                         Hủy
                     </button>
-                    <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_registry_insurance')"
+                    <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_registry_insurance', 'update')"
                         @click="saveProfile"
                         :disabled="saving"
                         class="h-9 px-6 bg-primary hover:bg-primary-dark text-white font-black rounded-xl text-xs active:scale-95 transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 disabled:opacity-50"
