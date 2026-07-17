@@ -1123,22 +1123,20 @@ onUnmounted(() => {
                         </h1>
                     </div>
                     
-                    <!-- Tabs site switcher -->
-                    <div class="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 shadow-inner">
-                        <button 
-                            @click="activeSite = 'NguyenNgoc'; activeBargeId = null"
-                            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 select-none', activeSite === 'NguyenNgoc' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-[#1e293b]']"
+                    <!-- Tabs site switcher (Dropdown) -->
+                    <div class="relative min-w-[180px] flex items-center">
+                        <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm pointer-events-none">
+                            {{ activeSite === 'NguyenNgoc' ? 'sailing' : 'location_on' }}
+                        </span>
+                        <select 
+                            v-model="activeSite"
+                            @change="activeBargeId = null"
+                            class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-black focus:outline-none focus:border-primary cursor-pointer appearance-none shadow-sm text-gray-700"
                         >
-                            <span class="material-symbols-outlined text-sm">sailing</span>
-                            Cảng Nguyên Ngọc
-                        </button>
-                        <button 
-                            @click="activeSite = 'PhuMy'; activeBargeId = null"
-                            :class="['px-4 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 select-none', activeSite === 'PhuMy' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-[#1e293b]']"
-                        >
-                            <span class="material-symbols-outlined text-sm">location_on</span>
-                            Khu vực Phú Mỹ
-                        </button>
+                            <option value="NguyenNgoc">Cảng Nguyên Ngọc</option>
+                            <option value="PhuMy">Khu vực Phú Mỹ</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 text-gray-400 text-sm pointer-events-none">expand_more</span>
                     </div>
                 </div>
 
@@ -1659,19 +1657,23 @@ onUnmounted(() => {
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div class="space-y-1 col-span-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase">Số hiệu GCN</label>
+                                    <div class="h-4 flex items-center">
+                                        <label class="text-xs font-bold text-gray-400 uppercase leading-none">Số hiệu GCN</label>
+                                    </div>
                                     <input v-model="editGcnNo" type="text" placeholder="Nhập số hiệu" class="w-full h-7 px-2 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase">Ngày cấp</label>
+                                    <div class="h-4 flex items-center">
+                                        <label class="text-xs font-bold text-gray-400 uppercase leading-none">Ngày cấp</label>
+                                    </div>
                                     <input v-model="editGcnIssuedDate" type="date" class="w-full h-7 px-1.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-xs font-bold text-gray-400 uppercase">Hạn hiệu lực</label>
+                                    <div class="flex items-center justify-between h-4">
+                                        <label class="text-xs font-bold text-gray-400 uppercase leading-none">Hạn hiệu lực</label>
                                         <label class="flex items-center gap-0.5 text-xs font-black text-teal-600 cursor-pointer select-none">
                                             <input type="checkbox" :checked="editGcnExpiryDate === 'Vô thời hạn'" @change="toggleGcnNoExpiry" class="size-2.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-600" />
-                                            <span>Vô hạn</span>
+                                            <span class="leading-none">Vô hạn</span>
                                         </label>
                                     </div>
                                     <input 
