@@ -4229,7 +4229,7 @@ onUnmounted(() => {
                             <!-- Stats & Excel Upload Side-by-Side -->
                             <div class="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-4 items-stretch">
                                 <!-- Stats Grid (6 cols / 12 cols depending on role) -->
-                                <div :class="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) ? 'col-span-2 md:col-span-6' : 'col-span-2 md:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <div :class="(authStore.role === 'admin' || canCreate()) ? 'col-span-2 md:col-span-6' : 'col-span-2 md:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
                                         <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>
