@@ -7,6 +7,7 @@ interface Step {
     description: string;
     noteType?: 'success' | 'warning' | 'info';
     noteText?: string;
+    image?: string;
 }
 
 interface TaskGuide {
@@ -94,7 +95,8 @@ const docsData = ref<ToolDoc[]>([
                         icon: 'palette',
                         description: 'Trong khung cập nhật hồ sơ, mỗi ô điều kiện (GCN, Đăng kiểm, Bảo hiểm, Thuyền viên) sẽ tự động đổi màu: Màu Xanh lá (Đầy đủ giấy tờ còn hạn và có ảnh đính kèm), Màu Đỏ (Bị thiếu ảnh, thiếu số hiệu hoặc đã hết hạn hiệu lực).',
                         noteType: 'info',
-                        noteText: 'Người dùng có thể dễ dàng nhận biết hồ sơ đang thiếu ở phần nào để bổ sung kịp thời.'
+                        noteText: 'Người dùng có thể dễ dàng nhận biết hồ sơ đang thiếu ở phần nào để bổ sung kịp thời.',
+                        image: '/doc_color_status.png'
                     },
                     {
                         title: 'Kiểm tra định mức định biên Thuyền viên',
@@ -432,6 +434,11 @@ const selectTool = (id: string) => {
                                             {{ step.noteType === 'success' ? 'check_circle' : step.noteType === 'warning' ? 'warning' : 'info' }}
                                         </span>
                                         <span class="leading-relaxed">{{ step.noteText }}</span>
+                                    </div>
+
+                                    <!-- Step Image -->
+                                    <div v-if="step.image" class="mt-3 ml-5 sm:ml-6 max-w-full md:max-w-xl rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-white p-1">
+                                        <img :src="step.image" alt="Minh họa bước" class="w-full h-auto object-cover rounded-lg" />
                                     </div>
                                 </div>
                             </div>
