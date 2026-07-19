@@ -203,7 +203,27 @@ const filteredBarges = computed(() => {
 
 // Helpers to calculate status
 const isDocComplete = (config: BargeConfig) => {
-    return !!(config.gcnNo && config.dkNo && config.bhNo);
+    // 1. Kiểm tra số hiệu giấy tờ của cả 3 loại phải tồn tại
+    if (!config.gcnNo || !config.dkNo || !config.bhNo) {
+        return false;
+    }
+    // 2. Kiểm tra cả 3 loại giấy tờ đều phải còn hạn
+    if (checkExpiryStatus(config.gcnExpiryDate) !== 'CÒN HẠN' ||
+        checkExpiryStatus(config.dkExpiryDate) !== 'CÒN HẠN' ||
+        checkExpiryStatus(config.bhExpiryDate) !== 'CÒN HẠN') {
+        return false;
+    }
+    // 3. Kiểm tra cả 3 loại đều phải có ít nhất một hình ảnh đính kèm
+    if (!config.gcnImages || !Array.isArray(config.gcnImages) || config.gcnImages.length === 0) {
+        return false;
+    }
+    if (!config.dkImages || !Array.isArray(config.dkImages) || config.dkImages.length === 0) {
+        return false;
+    }
+    if (!config.bhImages || !Array.isArray(config.bhImages) || config.bhImages.length === 0) {
+        return false;
+    }
+    return true;
 };
 
 const formatDateTime = (dtStr?: string) => {
