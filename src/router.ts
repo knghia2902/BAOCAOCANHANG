@@ -3,6 +3,7 @@ import HomeView from './views/HomeView.vue'
 import ToolsView from './views/ToolsView.vue'
 import AdminView from './views/AdminView.vue'
 import AboutView from './views/AboutView.vue'
+import DocumentsView from './views/DocumentsView.vue'
 import LoginView from './views/LoginView.vue'
 import ChangePasswordView from './views/ChangePasswordView.vue'
 import { authStore } from './stores/auth'
@@ -20,6 +21,12 @@ const router = createRouter({
             path: '/tools',
             name: 'tools',
             component: ToolsView,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/documents',
+            name: 'documents',
+            component: DocumentsView,
             meta: { requiresAuth: true }
         },
         {
