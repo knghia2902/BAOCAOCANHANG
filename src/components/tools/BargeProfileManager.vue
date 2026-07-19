@@ -120,6 +120,44 @@ const editDkImages = ref<string[]>([]);
 const editBhImages = ref<string[]>([]);
 const editCrewImages = ref<string[]>([]);
 
+const isGcnCardValid = computed(() => {
+    return !!(
+        editGcnNo.value.trim() &&
+        checkExpiryStatus(editGcnExpiryDate.value) === 'CÒN HẠN' &&
+        editGcnImages.value.length > 0
+    );
+});
+
+const isDkCardValid = computed(() => {
+    return !!(
+        editDkNo.value.trim() &&
+        checkExpiryStatus(editDkExpiryDate.value) === 'CÒN HẠN' &&
+        editDkImages.value.length > 0
+    );
+});
+
+const isBhCardValid = computed(() => {
+    return !!(
+        editBhNo.value.trim() &&
+        checkExpiryStatus(editBhExpiryDate.value) === 'CÒN HẠN' &&
+        editBhImages.value.length > 0
+    );
+});
+
+const isCrewCardValid = computed(() => {
+    const mockConfig = {
+        tonnage: editTonnage.value !== '' ? Number(editTonnage.value) : 0,
+        hp: editHp.value !== '' ? Number(editHp.value) : 0,
+        captain: editCaptain.value,
+        captainGrade: editCaptainGrade.value,
+        chiefEngineer: editChiefEngineer.value,
+        chiefEngineerGrade: editChiefEngineerGrade.value,
+        sailors: editSailors.value,
+        hasCrewBook: editHasCrewBook.value
+    };
+    return getCrewStatus(mockConfig as any).status === 'ĐỦ' && editCrewImages.value.length > 0;
+});
+
 const previewImageUrl = ref<string | null>(null);
 
 const activePopover = ref<{ bargeId: number; type: 'doc' | 'crew' } | null>(null);
@@ -1605,7 +1643,14 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Crew members -->
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                        <div 
+                            :class="[
+                                'p-3 rounded-2xl border space-y-2 transition-all duration-300',
+                                isCrewCardValid 
+                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    : 'bg-rose-50/40 border-rose-300'
+                            ]"
+                        >
                             <span class="text-xs font-black text-[#1e293b] uppercase tracking-wider flex items-center gap-1 select-none">
                                 <span class="material-symbols-outlined text-sm text-primary">groups</span>
                                 Thông tin thuyền viên
@@ -1868,7 +1913,14 @@ onUnmounted(() => {
                         </div>
 
                         <!-- GCN Đăng ký Group -->
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                        <div 
+                            :class="[
+                                'p-3 rounded-2xl border space-y-2 transition-all duration-300',
+                                isGcnCardValid 
+                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    : 'bg-rose-50/40 border-rose-300'
+                            ]"
+                        >
                             <span class="text-xs font-black text-[#1e293b] uppercase tracking-wider flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm text-primary">feed</span>
                                 Giấy chứng nhận (GCN) đăng ký
@@ -1936,7 +1988,14 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Đăng kiểm Group -->
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                        <div 
+                            :class="[
+                                'p-3 rounded-2xl border space-y-2 transition-all duration-300',
+                                isDkCardValid 
+                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    : 'bg-rose-50/40 border-rose-300'
+                            ]"
+                        >
                             <span class="text-xs font-black text-[#1e293b] uppercase tracking-wider flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm text-primary">gavel</span>
                                 Hồ sơ Đăng kiểm phương tiện
@@ -1983,7 +2042,14 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Bảo hiểm Group -->
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                        <div 
+                            :class="[
+                                'p-3 rounded-2xl border space-y-2 transition-all duration-300',
+                                isBhCardValid 
+                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    : 'bg-rose-50/40 border-rose-300'
+                            ]"
+                        >
                             <span class="text-xs font-black text-[#1e293b] uppercase tracking-wider flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm text-primary">verified_user</span>
                                 Bảo hiểm trách nhiệm dân sự
