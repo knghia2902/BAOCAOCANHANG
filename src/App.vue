@@ -133,10 +133,7 @@ onUnmounted(() => {
             Home
         </router-link>
         <router-link v-if="allowedTools.length > 0" to="/tools" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
-        <router-link to="/documents" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary flex items-center gap-1" active-class="text-primary border-primary">
-            <span class="material-symbols-outlined text-base">menu_book</span>
-            Document
-        </router-link>
+        <router-link to="/documents" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Document</router-link>
         <router-link to="/about" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">About</router-link>
       </nav>
 
