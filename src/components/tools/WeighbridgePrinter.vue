@@ -4227,9 +4227,9 @@ onUnmounted(() => {
                         <!-- TAB 1: DATA & PRINT -->
                         <div v-if="activeTab === 'data'" class="flex-1 flex flex-col gap-4 min-h-0 animate-fade-in">
                             <!-- Stats & Excel Upload Side-by-Side -->
-                            <div class="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-4 items-stretch">
+                            <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 items-stretch">
                                 <!-- Stats Grid (6 cols / 12 cols depending on role) -->
-                                <div :class="(authStore.role === 'admin' || canCreate()) ? 'col-span-2 md:col-span-6' : 'col-span-2 md:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <div :class="(authStore.role === 'admin' || canCreate()) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
                                         <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>
@@ -4263,7 +4263,7 @@ onUnmounted(() => {
                                 <div v-if="authStore.role === 'admin' || canCreate()"
                                     @dragover.prevent
                                     @drop="cfgForm.locked ? null : handleExcelDrop($event)"
-                                    :class="['col-span-1 md:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
+                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
                                 >
                                     <input 
                                         type="file" 
@@ -4296,7 +4296,7 @@ onUnmounted(() => {
 
                                 <!-- Direct Sync Card (3 cols) -->
                                 <div v-if="authStore.role === 'admin' || canCreate()"
-                                    :class="['col-span-1 md:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-55/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
+                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-55/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
                                 >
                                     <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : syncFromAllocatorActiveBarge()">
                                         <div class="size-7 sm:size-9 bg-teal-500/10 text-teal-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
