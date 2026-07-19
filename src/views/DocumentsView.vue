@@ -314,7 +314,7 @@ const selectTool = (id: string) => {
                     <span class="material-symbols-outlined text-sm">support_agent</span>
                     Trung tâm hỗ trợ sử dụng
                 </div>
-                <h1 class="text-xl sm:text-3xl font-black mb-2 tracking-tight">Tài Liệu Hướng Dẫn Sử Dụng</h1>
+                <h1 class="text-xl sm:text-3xl font-black mb-2 tracking-tight">Document Hướng Dẫn Sử Dụng</h1>
                 <p class="text-xs sm:text-sm text-white/80 font-bold">
                     Các tài liệu hướng dẫn chi tiết từng bước, giúp người vận hành cảng dễ dàng làm quen và thao tác chính xác trên các công cụ của hệ thống.
                 </p>
@@ -324,7 +324,7 @@ const selectTool = (id: string) => {
         <!-- Main Content Area with Sidebar -->
         <div class="mx-auto w-full max-w-[1200px] flex-1 flex flex-col md:flex-row gap-6 min-h-0">
             <!-- Left Sidebar -->
-            <div class="w-full md:w-[280px] flex flex-col gap-4 shrink-0">
+            <div class="w-full md:w-80 flex flex-col gap-4 shrink-0">
                 <!-- Search bar -->
                 <div class="bg-white p-3 rounded-2xl border border-primary/5 soft-shadow flex items-center gap-2">
                     <span class="material-symbols-outlined text-gray-400 text-lg">search</span>
