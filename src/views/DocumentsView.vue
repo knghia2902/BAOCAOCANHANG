@@ -437,8 +437,8 @@ const selectTool = (id: string) => {
                                     </div>
 
                                     <!-- Step Image -->
-                                    <div v-if="step.image" class="mt-4 mx-auto max-w-full md:max-w-xl rounded-md overflow-hidden border border-gray-200 shadow-sm bg-white p-1">
-                                        <img :src="step.image" alt="Minh họa bước" class="w-full h-auto object-cover rounded" />
+                                    <div v-if="step.image" class="mt-4 mx-auto max-w-full md:max-w-xl rounded-[10px] overflow-hidden border border-gray-200 shadow-sm bg-white p-1">
+                                        <img :src="step.image" alt="Minh họa bước" class="w-full h-auto object-cover rounded-[8px]" />
                                     </div>
                                 </div>
                             </div>
