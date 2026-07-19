@@ -332,6 +332,10 @@ const ticketStart = ref(1);
 const ticketPadding = ref(6);
 const useAutoTicketNo = ref(true);
 
+const canEditRules = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('allocator', 'al_rules_manage', 'update');
+});
+
 const previewTicketNo = computed(() => {
     const num = String(ticketStart.value).padStart(ticketPadding.value, '0');
     const dateObj = new Date();
@@ -3253,10 +3257,6 @@ async function compileAndDownload() {
             </div>
         </div>
 
-        <!-- Settings Section -->
-
-        <!-- Settings Section -->
-
         <!-- Compact Settings & Capacities configs -->
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 shrink-0 text-left">
             <!-- Thẻ 1: Số phiếu tự động (2/4 width) -->
@@ -3266,6 +3266,7 @@ async function compileAndDownload() {
                     <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                         <span class="material-symbols-outlined text-[13px]">tag</span>
                         Số phiếu tự động
+                        <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
                     </h4>
                     <div class="space-y-2">
                         <div class="flex flex-col gap-0.5">
@@ -3273,8 +3274,9 @@ async function compileAndDownload() {
                             <input 
                                 type="text" 
                                 v-model="ticketPrefix" 
+                                :disabled="!canEditRules"
                                 placeholder="Ví dụ: PC-"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                             >
                         </div>
                         <div class="flex flex-col gap-0.5">
@@ -3282,8 +3284,9 @@ async function compileAndDownload() {
                             <input 
                                 type="number" 
                                 v-model.number="ticketStart" 
+                                :disabled="!canEditRules"
                                 min="0"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                             >
                         </div>
                         <div class="text-xs text-gray-400 font-semibold italic flex items-center gap-1 pt-1 select-none text-left">
@@ -3302,9 +3305,10 @@ async function compileAndDownload() {
                             <input 
                                 type="number" 
                                 v-model.number="ticketPadding" 
+                                :disabled="!canEditRules"
                                 min="1" 
                                 max="10"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                             >
                         </div>
                         <div class="flex flex-col gap-0.5">
@@ -3312,8 +3316,9 @@ async function compileAndDownload() {
                             <input 
                                 type="text" 
                                 v-model="ticketSuffix" 
+                                :disabled="!canEditRules"
                                 placeholder="Ví dụ: /mmyy"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                             >
                         </div>
                     </div>
@@ -3325,11 +3330,12 @@ async function compileAndDownload() {
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                     <span class="material-symbols-outlined text-[13px]">tune</span>
                     Quy tắc phân bổ
+                    <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
                 </h4>
                 <div class="space-y-2">
                     <div class="flex flex-col gap-0.5">
                         <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Chiến lược chia</span>
-                        <select v-model="distStrategy" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer">
+                        <select v-model="distStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
                             <option value="random">Phân bổ ngẫu nhiên</option>
                             <option value="even">Chia đều</option>
                             <option value="max">Tối đa hóa công suất</option>
@@ -3337,7 +3343,7 @@ async function compileAndDownload() {
                     </div>
                     <div class="flex flex-col gap-0.5">
                         <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Định thời gian</span>
-                        <select v-model="spacingStrategy" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer">
+                        <select v-model="spacingStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
                             <option value="even">Phân đều chu kỳ</option>
                             <option value="forward">Tịnh tiến (+ Phút)</option>
                             <option value="backward">Lùi dần (- Phút)</option>
@@ -3348,9 +3354,10 @@ async function compileAndDownload() {
                         <input 
                             type="number" 
                             v-model.number="timeIntervalMinutes" 
+                            :disabled="!canEditRules"
                             min="10" 
                             max="720"
-                            class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center"
+                            class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                         <span class="text-xs text-gray-400 font-bold">phút</span>
                     </div>
@@ -3362,6 +3369,7 @@ async function compileAndDownload() {
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                     <span class="material-symbols-outlined text-[13px]">shield</span>
                     Hạn mức tải trọng
+                    <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
                 </h4>
                 <div class="space-y-2">
                     <div class="flex flex-col gap-0.5">
