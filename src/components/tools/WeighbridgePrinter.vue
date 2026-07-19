@@ -3508,7 +3508,7 @@ const formatNumber = (num: number): string => {
 // Print Logic
 const printTrucksList = ref<Truck[]>([]);
 
-const triggerPrint = (singleTruck?: Truck) => {
+const triggerPrint = async (singleTruck?: Truck) => {
     if (singleTruck) {
         printTrucksList.value = [singleTruck];
     } else {
@@ -3519,10 +3519,95 @@ const triggerPrint = (singleTruck?: Truck) => {
         printTrucksList.value = [...filteredTrucks.value];
     }
 
-    // Wait for DOM to render the print section
+    // Wait for Vue to render the print section DOM
+    await nextTick();
+
     setTimeout(() => {
-        window.print();
-    }, 200);
+        const printSection = document.getElementById('print-section');
+        if (!printSection) return;
+
+        const content = printSection.innerHTML;
+
+        // Remove any previous print iframe
+        const oldIframe = document.getElementById('print-iframe');
+        if (oldIframe) oldIframe.remove();
+
+        // Create a hidden iframe for isolated printing
+        const iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.top = '-10000px';
+        iframe.style.left = '-10000px';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        const iframeWin = iframe.contentWindow;
+        if (!iframeDoc || !iframeWin) {
+            iframe.remove();
+            window.print(); // Fallback
+            return;
+        }
+
+        iframeDoc.open();
+        iframeDoc.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Phiếu Cân Xe</title>
+<style>
+@page {
+    size: 210mm 148mm;
+    margin: 0;
+}
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 210mm;
+    background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.print-page {
+    page-break-after: always;
+    width: 210mm;
+    height: 148mm;
+    position: relative;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    color: black;
+    background: white;
+}
+.print-page:last-child {
+    page-break-after: avoid;
+}
+</style>
+</head>
+<body>${content}</body>
+</html>`);
+        iframeDoc.close();
+
+        // Wait for iframe content to render, then trigger print
+        setTimeout(() => {
+            iframeWin.focus();
+            iframeWin.print();
+
+            // Clean up iframe after print dialog is dismissed
+            iframeWin.onafterprint = () => {
+                setTimeout(() => iframe.remove(), 500);
+            };
+        }, 300);
+    }, 150);
 };
 
 // Initialize
@@ -5331,15 +5416,19 @@ onUnmounted(() => {
         transform: scale(1);
     }
 }
+</style>
 
-/* Print CSS Styles */
+<style>
+/* Print CSS Styles - Global (non-scoped) for teleported elements */
 @media print {
     @page {
         size: A5 landscape;
         margin: 0;
     }
 
-    :global(body) {
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
         background-color: white !important;
         background-image: none !important;
         color: black !important;
@@ -5347,7 +5436,7 @@ onUnmounted(() => {
         overflow: visible !important;
     }
     /* Hide the entire app container during printing */
-    :global(#app) {
+    #app {
         display: none !important;
     }
     
