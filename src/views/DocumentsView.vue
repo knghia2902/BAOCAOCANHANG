@@ -316,7 +316,7 @@ const selectTool = (id: string) => {
                     <span class="material-symbols-outlined text-sm">support_agent</span>
                     Trung tâm hỗ trợ sử dụng
                 </div>
-                <h1 class="text-xl sm:text-3xl font-black mb-2 tracking-tight">Document Hướng Dẫn Sử Dụng</h1>
+                <h1 class="text-xl sm:text-3xl font-black mb-2 tracking-tight">Docs Hướng Dẫn Sử Dụng</h1>
                 <p class="text-xs sm:text-sm text-white/80 font-bold">
                     Các tài liệu hướng dẫn chi tiết từng bước, giúp người vận hành cảng dễ dàng làm quen và thao tác chính xác trên các công cụ của hệ thống.
                 </p>
