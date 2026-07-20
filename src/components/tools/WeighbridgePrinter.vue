@@ -2585,12 +2585,12 @@ async function autoSyncAllBarges(isManual = false) {
                 let addedCount = 0;
                 importedTrucks.forEach((tr, idx) => {
                     const matchIdx = mergedTrucks.findIndex(ct => {
-                        if (tr.ticketNo && ct.ticketNo) {
-                            return tr.ticketNo === ct.ticketNo;
+                        if (tr.ticketNo && ct.ticketNo && tr.ticketNo === ct.ticketNo) {
+                            return true;
                         }
                         const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '') === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '');
                         const sameWeight = Math.abs(ct.weightNet - tr.weightNet) < 0.1;
-                        const sameDate = ct.dateIn.slice(0, 10) === tr.dateIn.slice(0, 10);
+                        const sameDate = ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16);
                         return samePlate && sameWeight && sameDate;
                     });
                     if (matchIdx !== -1) {
@@ -2819,12 +2819,12 @@ const syncFromAllocatorActiveBarge = async () => {
             let addedCount = 0;
             importedTrucks.forEach((tr, idx) => {
                 const matchIdx = allTrucks.findIndex(ct => {
-                    if (tr.ticketNo && ct.ticketNo) {
-                        return tr.ticketNo === ct.ticketNo;
+                    if (tr.ticketNo && ct.ticketNo && tr.ticketNo === ct.ticketNo) {
+                        return true;
                     }
                     const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '') === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '');
                     const sameWeight = Math.abs(ct.weightNet - tr.weightNet) < 0.1;
-                    const sameDate = ct.dateIn.slice(0, 10) === tr.dateIn.slice(0, 10);
+                    const sameDate = ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16);
                     return samePlate && sameWeight && sameDate;
                 });
                 if (matchIdx !== -1) {
