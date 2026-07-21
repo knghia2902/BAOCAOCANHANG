@@ -81,6 +81,49 @@ watch([editDepartureDate, editDepartureTimeStr], () => {
         editDepartureTime.value = '';
     }
 });
+
+function validateAndFormatTime(type: 'arrival' | 'departure') {
+    const val = type === 'arrival' ? editArrivalTimeStr.value : editDepartureTimeStr.value;
+    if (!val) {
+        if (type === 'arrival') editArrivalTimeStr.value = '00:00';
+        else editDepartureTimeStr.value = '00:00';
+        return;
+    }
+    const clean = val.replace(/[^0-9]/g, '');
+    let hh = '00';
+    let mm = '00';
+    
+    if (clean.length === 1) {
+        hh = '0' + clean;
+    } else if (clean.length === 2) {
+        hh = clean;
+    } else if (clean.length === 3) {
+        hh = '0' + clean.slice(0, 1);
+        mm = clean.slice(1);
+    } else if (clean.length >= 4) {
+        hh = clean.slice(0, 2);
+        mm = clean.slice(2, 4);
+    } else {
+        const parts = val.split(':');
+        if (parts.length === 2) {
+            hh = (parts[0] || '').padStart(2, '0');
+            mm = (parts[1] || '').padEnd(2, '0').slice(0, 2);
+        }
+    }
+    
+    let hNum = parseInt(hh, 10);
+    let mNum = parseInt(mm, 10);
+    if (isNaN(hNum) || hNum < 0 || hNum > 23) hNum = 0;
+    if (isNaN(mNum) || mNum < 0 || mNum > 59) mNum = 0;
+    
+    const formatted = `${String(hNum).padStart(2, '0')}:${String(mNum).padStart(2, '0')}`;
+    if (type === 'arrival') {
+        editArrivalTimeStr.value = formatted;
+    } else {
+        editDepartureTimeStr.value = formatted;
+    }
+}
+
 const editKhaiHethong = ref('');
 const editLastPort = ref('');
 const activeSite = ref<'NguyenNgoc' | 'PhuMy'>('NguyenNgoc');
@@ -1814,14 +1857,14 @@ onUnmounted(() => {
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian cập bến</label>
                                     <div class="flex gap-1.5">
                                         <input v-model="editArrivalDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
-                                        <input v-model="editArrivalTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                        <input v-model="editArrivalTimeStr" type="text" placeholder="12:00" @blur="validateAndFormatTime('arrival')" @keyup.enter="validateAndFormatTime('arrival')" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
                                     </div>
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thời gian rời bến</label>
                                     <div class="flex gap-1.5">
                                         <input v-model="editDepartureDate" type="date" class="flex-[3] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] focus:outline-none" />
-                                        <input v-model="editDepartureTimeStr" type="time" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
+                                        <input v-model="editDepartureTimeStr" type="text" placeholder="12:00" @blur="validateAndFormatTime('departure')" @keyup.enter="validateAndFormatTime('departure')" class="flex-[2] min-w-0 h-8 px-2 text-xs bg-white border border-gray-200 rounded text-[#1e293b] text-center font-semibold focus:outline-none" />
                                     </div>
                                 </div>
                             </div>
