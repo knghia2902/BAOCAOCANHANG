@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { WeighbridgeService, type Vessel, type Barge, type BargeConfig } from '@/services/excel/WeighbridgeService';
 import { StorageService } from '@/services/storage/StorageService';
 import { useToast } from '@/composables/useToast';
@@ -11,6 +11,7 @@ const vessels = ref<Vessel[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const searchQuery = ref('');
+const isOpeningEdit = ref(false);
 
 // Excel Import state
 const excelFileInput = ref<HTMLInputElement | null>(null);
@@ -66,6 +67,7 @@ const editDepartureTimeStr = ref('');
 
 // Sync split refs -> combined ISO string
 watch([editArrivalDate, editArrivalTimeStr], () => {
+    if (isOpeningEdit.value) return;
     if (editArrivalDate.value) {
         const t = editArrivalTimeStr.value.trim() || '00:00';
         editArrivalTime.value = `${editArrivalDate.value}T${t}`;
@@ -74,6 +76,7 @@ watch([editArrivalDate, editArrivalTimeStr], () => {
     }
 });
 watch([editDepartureDate, editDepartureTimeStr], () => {
+    if (isOpeningEdit.value) return;
     if (editDepartureDate.value) {
         const t = editDepartureTimeStr.value.trim() || '00:00';
         editDepartureTime.value = `${editDepartureDate.value}T${t}`;
@@ -621,6 +624,7 @@ const deletePhuMyBarge = async (barge: Barge) => {
 
 
 function openEdit(item: { barge: Barge; vesselName: string }) {
+    isOpeningEdit.value = true;
     selectedBarge.value = item.barge;
     selectedVesselName.value = item.vesselName;
     
@@ -701,6 +705,10 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     editCrewImages.value = Array.isArray(config.crewImages) ? [...config.crewImages] : [];
     
     activeBargeId.value = item.barge.id;
+    
+    nextTick(() => {
+        isOpeningEdit.value = false;
+    });
 }
 
 function toggleGcnNoExpiry(e: Event) {
