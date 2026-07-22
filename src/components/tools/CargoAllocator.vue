@@ -1242,7 +1242,10 @@ async function loadTicketsFromSupabase() {
     }
 }
 
-async function saveTicketsToSupabase() {
+let saveSupabaseTimer: any = null;
+let isSavingSupabase = false;
+
+async function doExecuteSaveTicketsToSupabase() {
     syncStatus.value = 'saving';
     try {
         const { data: current, error: fetchError } = await supabase
@@ -1254,6 +1257,23 @@ async function saveTicketsToSupabase() {
         if (fetchError) throw fetchError;
         
         const currentSettings = current?.settings || {};
+
+        // Clean tickets to minimal serializable payload
+        const cleanTickets = (csvRecords.value || []).map(r => ({
+            id: r.id,
+            ticketNo: r.ticketNo,
+            sourceTicketNo: (r as any).sourceTicketNo || '',
+            plateNumber: r.plateNumber,
+            weight1: r.weight1,
+            weight2: r.weight2,
+            weightNet: r.weightNet,
+            dateInStr: r.dateInStr,
+            dateOutStr: r.dateOutStr,
+            date1Obj: (r as any).date1Obj,
+            date2Obj: (r as any).date2Obj,
+            notes: r.notes || '',
+            orderNo: r.orderNo || ''
+        }));
 
         // Clean generated trips to minimal serializable payload
         const cleanGenerated = (generatedTrips.value || []).map(g => ({
@@ -1294,7 +1314,7 @@ async function saveTicketsToSupabase() {
 
         const updatedSettings = {
             ...currentSettings,
-            allocator_tickets: csvRecords.value,
+            allocator_tickets: cleanTickets,
             allocator_history_trips: cleanHistory,
             allocator_generated_trips: cleanGenerated
         };
@@ -1309,7 +1329,7 @@ async function saveTicketsToSupabase() {
             console.warn('Full Supabase update failed, retrying fallback payload without history:', updateError);
             const fallbackSettings = {
                 ...currentSettings,
-                allocator_tickets: csvRecords.value,
+                allocator_tickets: cleanTickets,
                 allocator_generated_trips: cleanGenerated
             };
             const { error: fallbackErr } = await supabase
@@ -1326,6 +1346,30 @@ async function saveTicketsToSupabase() {
         syncStatus.value = 'error';
         addToast('Lỗi đồng bộ dữ liệu đám mây!', 'error');
     }
+}
+
+function saveTicketsToSupabase(): Promise<void> {
+    return new Promise((resolve) => {
+        if (saveSupabaseTimer) clearTimeout(saveSupabaseTimer);
+        
+        saveSupabaseTimer = setTimeout(async () => {
+            if (isSavingSupabase) {
+                // If a save is currently executing, retry after 300ms
+                saveSupabaseTimer = setTimeout(() => {
+                    saveTicketsToSupabase().then(resolve);
+                }, 300);
+                return;
+            }
+            
+            isSavingSupabase = true;
+            try {
+                await doExecuteSaveTicketsToSupabase();
+            } finally {
+                isSavingSupabase = false;
+                resolve();
+            }
+        }, 200);
+    });
 }
 
 // Core state for sidebar
