@@ -1122,6 +1122,36 @@ async function exportToExcel() {
             sheet3.getRow(3).commit();
             sheet3.getRow(4).commit();
         }
+
+        // Auto-fit column widths dynamically for Sheet 1 & Sheet 2
+        const getCellStringLength = (value: any): number => {
+            if (value === null || value === undefined) return 0;
+            if (value instanceof Date) return 11;
+            if (typeof value === 'object') {
+                if (value.result !== undefined) return String(value.result).length;
+                if (value.text !== undefined) return String(value.text).length;
+                return 0;
+            }
+            return String(value).length;
+        };
+
+        [sheet1, sheet2].forEach(sheet => {
+            if (sheet && sheet.columns) {
+                sheet.columns.forEach((column) => {
+                    if (column && column.eachCell) {
+                        let maxColumnLength = 0;
+                        column.eachCell({ includeEmpty: false }, (cell) => {
+                            const cellLength = getCellStringLength(cell.value);
+                            if (cellLength > maxColumnLength) {
+                                maxColumnLength = cellLength;
+                            }
+                        });
+                        const currentWidth = column.width || 10;
+                        column.width = Math.max(currentWidth, maxColumnLength + 4);
+                    }
+                });
+            }
+        });
         
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
