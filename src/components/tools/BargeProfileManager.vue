@@ -1073,7 +1073,7 @@ async function exportToExcel() {
             row.getCell(5).value = config.departureTime ? parseLocalTimeStr(config.departureTime) : null;
             row.getCell(6).value = item.barge.name || '';
             row.getCell(7).value = config.gcnNo || '';
-            row.getCell(8).value = config.goods ? config.goods.trim().toUpperCase() : '';
+            row.getCell(8).value = config.goods ? config.goods.trim().toLowerCase() : '';
             row.getCell(9).value = config.orderNo || '';
             
             const docStatus = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
