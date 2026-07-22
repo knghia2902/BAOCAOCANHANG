@@ -2581,39 +2581,25 @@ async function autoSyncAllBarges(isManual = false) {
 
                 const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
                 
-                // Smart dedup: only add trips from genuinely NEW original CSV tickets
-                const existingTicketNos = new Set<string>();
+                // Count-based dedup: count trips per plate on existing barge
+                const normPlate = (p: string) => p.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+                const existingCountByPlate = new Map<string, number>();
                 currentTrucks.forEach(ct => {
-                    if (ct.ticketNo && ct.ticketNo.trim()) {
-                        existingTicketNos.add(ct.ticketNo.trim());
-                    }
+                    const plate = normPlate(ct.plateNumber || '');
+                    existingCountByPlate.set(plate, (existingCountByPlate.get(plate) || 0) + 1);
                 });
 
-                // Only add trips that are genuinely new
+                const seenByPlate = new Map<string, number>();
                 const tripsToAdd: Truck[] = [];
                 importedTrucks.forEach(tr => {
-                    const src = (tr.sourceTicketNo || '').trim();
+                    const plate = normPlate(tr.plateNumber || '');
+                    const seen = (seenByPlate.get(plate) || 0) + 1;
+                    seenByPlate.set(plate, seen);
 
-                    if (src) {
-                        // New dedup: skip if source ticket already on barge
-                        if (existingTicketNos.has(src)) return;
-                    } else {
-                        // Fallback for old data without sourceTicketNo:
-                        // Match by ticketNo, or by plate+weight+date
-                        const alreadyExists = currentTrucks.some(ct => {
-                            if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
-                                return tr.ticketNo.trim() === ct.ticketNo.trim();
-                            }
-                            const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-                            const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
-                            const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
-                            const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
-                            return samePlate && sameWeight && sameDateIn && sameDateOut;
-                        });
-                        if (alreadyExists) return;
+                    const existingCount = existingCountByPlate.get(plate) || 0;
+                    if (seen > existingCount) {
+                        tripsToAdd.push(tr);
                     }
-
-                    tripsToAdd.push(tr);
                 });
 
                 const mergedTrucks = [...currentTrucks, ...tripsToAdd];
@@ -2810,40 +2796,31 @@ const syncFromAllocatorActiveBarge = async () => {
             }
             allTrucks = importedTrucks;
         } else {
-            // Smart dedup: only add trips from genuinely NEW original CSV tickets
-            // Build a set of original CSV ticketNos already on the barge
-            const existingTicketNos = new Set<string>();
+            // Count-based dedup: count trips per plate on existing barge
+            const normPlate = (p: string) => p.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+            const existingCountByPlate = new Map<string, number>();
             currentTrucks.forEach(ct => {
-                if (ct.ticketNo && ct.ticketNo.trim()) {
-                    existingTicketNos.add(ct.ticketNo.trim());
-                }
+                const plate = normPlate(ct.plateNumber || '');
+                existingCountByPlate.set(plate, (existingCountByPlate.get(plate) || 0) + 1);
             });
 
-            // Only add trips that are genuinely new
+            // Track how many incoming trips we've seen per plate
+            const seenByPlate = new Map<string, number>();
             const tripsToAdd: Truck[] = [];
+
+            // Incoming trips are chronologically sorted (day 20 before day 21),
+            // so the first N trips per plate match existing, anything beyond N is new
             importedTrucks.forEach(tr => {
-                const src = (tr.sourceTicketNo || '').trim();
+                const plate = normPlate(tr.plateNumber || '');
+                const seen = (seenByPlate.get(plate) || 0) + 1;
+                seenByPlate.set(plate, seen);
 
-                if (src) {
-                    // New dedup: skip if source ticket already on barge
-                    if (existingTicketNos.has(src)) return;
-                } else {
-                    // Fallback for old data without sourceTicketNo:
-                    // Match by ticketNo, or by plate+weight+date
-                    const alreadyExists = currentTrucks.some(ct => {
-                        if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
-                            return tr.ticketNo.trim() === ct.ticketNo.trim();
-                        }
-                        const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-                        const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
-                        const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
-                        const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
-                        return samePlate && sameWeight && sameDateIn && sameDateOut;
-                    });
-                    if (alreadyExists) return;
+                const existingCount = existingCountByPlate.get(plate) || 0;
+                if (seen > existingCount) {
+                    // This trip is beyond what's already on the barge → genuinely new
+                    tripsToAdd.push(tr);
                 }
-
-                tripsToAdd.push(tr);
+                // else: already represented on barge → skip
             });
 
             allTrucks = [...currentTrucks, ...tripsToAdd];
