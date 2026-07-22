@@ -854,8 +854,6 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
         try {
             const list = await WeighbridgeService.getTrucks(bargeId);
             trucks.value = list;
-            // Auto sync allocator trips if available
-            await autoSyncAllBarges(false);
         } catch (e) {
             showToast('Lỗi tải danh sách xe cân!', 'error');
         } finally {
@@ -3633,22 +3631,10 @@ onMounted(async () => {
     }
 
     loadGlobalGoods();
-    try {
-        await autoSyncAllBarges(false);
-    } catch (e) {
-        console.error('Lỗi khi tự động đồng bộ khi mở trang in phiếu:', e);
-    }
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     window.addEventListener('barge-config-updated', loadVessels);
-    window.addEventListener('allocator_sync_event', async () => {
-        try {
-            await autoSyncAllBarges(false);
-        } catch (e) {
-            console.error('Lỗi khi tự động đồng bộ từ event:', e);
-        }
-    });
 });
 
 // Watch activeTab to dynamically register/deregister ResizeObserver when entering/leaving config tab
@@ -4311,22 +4297,21 @@ onUnmounted(() => {
 
                                 <!-- Direct Sync Card (3 cols) -->
                                 <div v-if="authStore.role === 'admin' || canCreate()"
-                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-teal-50/30', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
+                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
                                 >
-                                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                                        <div class="size-7 sm:size-9 bg-teal-500/10 text-teal-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0 animate-pulse">
-                                            <span class="material-symbols-outlined text-sm sm:text-lg">sync</span>
+                                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : syncFromAllocatorActiveBarge()">
+                                        <div class="size-7 sm:size-9 bg-teal-500/10 text-teal-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
+                                            <span class="material-symbols-outlined text-sm sm:text-lg">sync_alt</span>
                                         </div>
                                         <div class="text-left min-w-0">
-                                            <p class="text-xs sm:text-xs font-black text-[#1e293b] truncate">Tự động đồng bộ</p>
-                                            <p class="text-xs sm:text-xs text-teal-600 font-bold truncate hidden sm:block">Đã kết nối dữ liệu</p>
+                                            <p class="text-xs sm:text-xs font-black text-[#1e293b] truncate">Đồng bộ từ Phân bổ</p>
+                                            <p class="text-xs sm:text-xs text-gray-400 font-bold truncate hidden sm:block">Kéo từ tab Phân bổ</p>
                                         </div>
                                     </div>
                                     <button 
                                         @click="syncFromAllocatorActiveBarge"
-                                        class="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-teal-600 text-white text-xs sm:text-xs font-black rounded-[6px] sm:rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0 shadow-sm"
+                                        class="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-teal-600 text-white text-xs sm:text-xs font-black rounded-[6px] sm:rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
                                         :disabled="cfgForm.locked"
-                                        title="Bấm nếu muốn đồng bộ thủ công hoặc chọn Ghi đè"
                                     >
                                         Đồng bộ
                                     </button>
