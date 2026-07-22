@@ -2580,13 +2580,22 @@ async function autoSyncAllBarges(isManual = false) {
 
                 const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
                 
-                // Append importedTrucks into currentTrucks without merging/overwriting duplicate tickets
+                // Smart merge importedTrucks into currentTrucks preventing duplicate trips on re-sync
                 const mergedTrucks = currentTrucks.map(ct => ({ ...ct }));
                 let addedCount = 0;
                 importedTrucks.forEach((tr, idx) => {
-                    const matchIdx = mergedTrucks.findIndex(ct => ct.id === tr.id);
+                    const matchIdx = mergedTrucks.findIndex(ct => {
+                        if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
+                            return tr.ticketNo.trim() === ct.ticketNo.trim();
+                        }
+                        const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+                        const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
+                        const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
+                        const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
+                        return samePlate && sameWeight && sameDateIn && sameDateOut;
+                    });
                     if (matchIdx !== -1) {
-                        mergedTrucks[matchIdx] = { ...mergedTrucks[matchIdx], ...tr };
+                        mergedTrucks[matchIdx] = { ...mergedTrucks[matchIdx], ...tr, id: mergedTrucks[matchIdx]!.id, ticketNo: mergedTrucks[matchIdx]!.ticketNo || tr.ticketNo };
                     } else {
                         tr.id = Date.now() + idx + addedCount;
                         mergedTrucks.push(tr);
@@ -2785,13 +2794,22 @@ const syncFromAllocatorActiveBarge = async () => {
             }
             allTrucks = importedTrucks;
         } else {
-            // Append importedTrucks to currentTrucks without overwriting/deleting duplicate tickets
+            // Smart merge importedTrucks into currentTrucks preventing duplicate trips on re-sync
             allTrucks = currentTrucks.map(ct => ({ ...ct }));
             let addedCount = 0;
             importedTrucks.forEach((tr, idx) => {
-                const matchIdx = allTrucks.findIndex(ct => ct.id === tr.id);
+                const matchIdx = allTrucks.findIndex(ct => {
+                    if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
+                        return tr.ticketNo.trim() === ct.ticketNo.trim();
+                    }
+                    const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+                    const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
+                    const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
+                    const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
+                    return samePlate && sameWeight && sameDateIn && sameDateOut;
+                });
                 if (matchIdx !== -1) {
-                    allTrucks[matchIdx] = { ...allTrucks[matchIdx], ...tr };
+                    allTrucks[matchIdx] = { ...allTrucks[matchIdx], ...tr, id: allTrucks[matchIdx]!.id, ticketNo: allTrucks[matchIdx]!.ticketNo || tr.ticketNo };
                 } else {
                     tr.id = Date.now() + idx + addedCount;
                     allTrucks.push(tr);
