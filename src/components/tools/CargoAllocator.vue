@@ -110,6 +110,7 @@ interface SplitTrip {
     tttp: number;
     limit: number;
     ticketNo: string;
+    sourceTicketNo?: string; // Original CSV ticketNo for ALL splits (not just first)
     cargoType: string;
     weightTons: number;
     notes: string;
@@ -2036,6 +2037,7 @@ function regenerateAllocatedTrips() {
         tttp: number;
         limit: number;
         ticketNo: string;
+        sourceTicketNo?: string; // Original CSV ticketNo for ALL splits
         cargoType: string;
         weightTons: number;
         notes: string;
@@ -2143,6 +2145,7 @@ function regenerateAllocatedTrips() {
                 tttp: capacity.tttp,
                 limit: capacity.limit,
                 ticketNo: j === 0 ? record.ticketNo : '', // Only keep ticketNo for the first trip
+                sourceTicketNo: record.ticketNo, // Keep original CSV ticketNo on ALL splits for sync dedup
                 cargoType: record.cargoType, // Keep full original cargo type
                 weightTons: tripWeightTons,
                 notes: '',

@@ -103,6 +103,7 @@ export interface Truck {
     dateOut: string;
     note: string;
     created_at?: string;
+    sourceTicketNo?: string; // Original CSV ticketNo used for sync dedup (not persisted to DB)
 }
 
 // Local IndexedDB cache helpers

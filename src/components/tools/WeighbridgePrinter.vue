@@ -2567,6 +2567,7 @@ async function autoSyncAllBarges(isManual = false) {
                         id: Date.now() + idx,
                         barge_id: barge.id,
                         ticketNo: t.ticketNo || '',
+                        sourceTicketNo: t.sourceTicketNo || '', // Original CSV ticketNo for dedup
                         plateNumber: t.plateNumber || '',
                         driver: '',
                         weight1: Number(t.weight1) || 0,
@@ -2580,28 +2581,25 @@ async function autoSyncAllBarges(isManual = false) {
 
                 const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
                 
-                // Smart merge importedTrucks into currentTrucks preventing duplicate trips on re-sync
-                const mergedTrucks = currentTrucks.map(ct => ({ ...ct }));
-                let addedCount = 0;
-                importedTrucks.forEach((tr, idx) => {
-                    const matchIdx = mergedTrucks.findIndex(ct => {
-                        if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
-                            return tr.ticketNo.trim() === ct.ticketNo.trim();
-                        }
-                        const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-                        const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
-                        const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
-                        const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
-                        return samePlate && sameWeight && sameDateIn && sameDateOut;
-                    });
-                    if (matchIdx !== -1) {
-                        mergedTrucks[matchIdx] = { ...mergedTrucks[matchIdx], ...tr, id: mergedTrucks[matchIdx]!.id, ticketNo: mergedTrucks[matchIdx]!.ticketNo || tr.ticketNo };
-                    } else {
-                        tr.id = Date.now() + idx + addedCount;
-                        mergedTrucks.push(tr);
-                        addedCount++;
+                // Smart dedup: only add trips from genuinely NEW original CSV tickets
+                const existingTicketNos = new Set<string>();
+                currentTrucks.forEach(ct => {
+                    if (ct.ticketNo && ct.ticketNo.trim()) {
+                        existingTicketNos.add(ct.ticketNo.trim());
                     }
                 });
+
+                // Only add trips whose sourceTicketNo is NOT already on the barge
+                const tripsToAdd: Truck[] = [];
+                importedTrucks.forEach(tr => {
+                    const src = (tr.sourceTicketNo || '').trim();
+                    if (src && existingTicketNos.has(src)) {
+                        return; // Skip - this ticket already exists
+                    }
+                    tripsToAdd.push(tr);
+                });
+
+                const mergedTrucks = [...currentTrucks, ...tripsToAdd];
 
                 let currentSeed = barge.config?.ticketSeed || '1';
                 for (const tr of mergedTrucks) {
@@ -2770,6 +2768,7 @@ const syncFromAllocatorActiveBarge = async () => {
                 id: Date.now() + idx,
                 barge_id: bargeId,
                 ticketNo: t.ticketNo || '',
+                sourceTicketNo: t.sourceTicketNo || '', // Original CSV ticketNo for dedup
                 plateNumber: t.plateNumber || '',
                 driver: '',
                 weight1: Number(t.weight1) || 0,
@@ -2794,28 +2793,28 @@ const syncFromAllocatorActiveBarge = async () => {
             }
             allTrucks = importedTrucks;
         } else {
-            // Smart merge importedTrucks into currentTrucks preventing duplicate trips on re-sync
-            allTrucks = currentTrucks.map(ct => ({ ...ct }));
-            let addedCount = 0;
-            importedTrucks.forEach((tr, idx) => {
-                const matchIdx = allTrucks.findIndex(ct => {
-                    if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
-                        return tr.ticketNo.trim() === ct.ticketNo.trim();
-                    }
-                    const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-                    const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
-                    const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
-                    const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
-                    return samePlate && sameWeight && sameDateIn && sameDateOut;
-                });
-                if (matchIdx !== -1) {
-                    allTrucks[matchIdx] = { ...allTrucks[matchIdx], ...tr, id: allTrucks[matchIdx]!.id, ticketNo: allTrucks[matchIdx]!.ticketNo || tr.ticketNo };
-                } else {
-                    tr.id = Date.now() + idx + addedCount;
-                    allTrucks.push(tr);
-                    addedCount++;
+            // Smart dedup: only add trips from genuinely NEW original CSV tickets
+            // Build a set of original CSV ticketNos already on the barge
+            // (first splits keep the original ticketNo like "010782/26B")
+            const existingTicketNos = new Set<string>();
+            currentTrucks.forEach(ct => {
+                if (ct.ticketNo && ct.ticketNo.trim()) {
+                    existingTicketNos.add(ct.ticketNo.trim());
                 }
             });
+
+            // Only add trips whose sourceTicketNo is NOT already represented on the barge
+            const tripsToAdd: Truck[] = [];
+            importedTrucks.forEach(tr => {
+                const src = (tr.sourceTicketNo || '').trim();
+                if (src && existingTicketNos.has(src)) {
+                    // This trip belongs to an original ticket already on the barge → skip
+                    return;
+                }
+                tripsToAdd.push(tr);
+            });
+
+            allTrucks = [...currentTrucks, ...tripsToAdd];
             for (const tr of allTrucks) {
                 if (!tr.ticketNo) {
                     tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, allTrucks, currentSeed, tr.id);
