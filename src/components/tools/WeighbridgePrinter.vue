@@ -4307,7 +4307,7 @@ onUnmounted(() => {
                                         <button v-if="authStore.role === 'admin' || canCreate()"
                                             @click="openAddTruckDialog"
                                             :disabled="cfgForm.locked"
-                                            class="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all"
+                                            class="px-3.5 py-1.5 puffy-button text-xs flex items-center gap-1 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                                         >
                                             <span class="material-symbols-outlined text-xs">add</span>
                                             Thêm xe
@@ -4315,7 +4315,7 @@ onUnmounted(() => {
                                         <button v-if="authStore.role === 'admin' || canCreate()"
                                             @click="fileInput?.click()"
                                             :disabled="cfgForm.locked"
-                                            class="px-3 py-1.5 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all"
+                                            class="px-3.5 py-1.5 puffy-button text-xs flex items-center gap-1 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none !bg-teal-600 !shadow-[0_4px_0_0_#0d9488]"
                                         >
                                             <span class="material-symbols-outlined text-xs">upload_file</span>
                                             Nhập Excel
@@ -4323,14 +4323,14 @@ onUnmounted(() => {
                                         <button v-if="authStore.role === 'admin' || canDelete()"
                                             @click="clearTrucks"
                                             :disabled="cfgForm.locked"
-                                            class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                                            class="px-3.5 py-1.5 puffy-button text-xs flex items-center gap-1 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none !bg-rose-500 !shadow-[0_4px_0_0_#e11d48]"
                                         >
                                             <span class="material-symbols-outlined text-xs">delete_sweep</span>
                                             Xóa tất cả
                                         </button>
                                         <button 
                                             @click="triggerPrint()"
-                                            class="px-3 py-1.5 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95"
+                                            class="px-3.5 py-1.5 puffy-button text-xs flex items-center gap-1 hover:scale-[1.02] transition-all"
                                         >
                                             <span class="material-symbols-outlined text-xs">print</span>
                                             In hàng loạt (A5)
