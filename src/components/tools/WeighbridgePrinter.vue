@@ -2495,26 +2495,6 @@ async function autoSyncAllBarges(isManual = false) {
             return;
         }
 
-        // Check if any matched barge for allocatorTrips is locked
-        const lockedBarges: string[] = [];
-        for (const vessel of vessels.value) {
-            if (vessel.barges) {
-                for (const barge of vessel.barges) {
-                    const hasMatch = allocatorTrips.some((t: any) => isBargeMatch(t, barge));
-                    if (hasMatch && barge.config?.locked) {
-                        lockedBarges.push(`"${barge.name}" (${barge.config.orderNo || ''})`);
-                    }
-                }
-            }
-        }
-
-        if (lockedBarges.length > 0) {
-            const errorMsg = `Đồng bộ thất bại! Sà lan đang khóa: ${lockedBarges.join(', ')}. Vui lòng mở khóa trước.`;
-            showToast(errorMsg, 'error');
-            syncChannel.postMessage({ type: 'sync_response', message: errorMsg, status: 'error' });
-            return;
-        }
-
         let hasUpdates = false;
         let matchedBargeCount = 0;
         
@@ -2698,23 +2678,7 @@ const syncFromAllocatorActiveBarge = async () => {
             return;
         }
 
-        // Check if any matched barge for allocatorTrips is locked
-        const lockedBarges: string[] = [];
-        for (const vessel of vessels.value) {
-            if (vessel.barges) {
-                for (const barge of vessel.barges) {
-                    const hasMatch = allocatorTrips.some((t: any) => isBargeMatch(t, barge));
-                    if (hasMatch && barge.config?.locked) {
-                        lockedBarges.push(`"${barge.name}" (${barge.config.orderNo || ''})`);
-                    }
-                }
-            }
-        }
 
-        if (lockedBarges.length > 0) {
-            showToast(`Đồng bộ thất bại! Sà lan đang khóa: ${lockedBarges.join(', ')}. Vui lòng mở khóa trước.`, 'error');
-            return;
-        }
 
         const activeBargeName = activeBarge.value.name;
         // Filter trips for this active barge (matches strictly by orderNo)
