@@ -2589,13 +2589,30 @@ async function autoSyncAllBarges(isManual = false) {
                     }
                 });
 
-                // Only add trips whose sourceTicketNo is NOT already on the barge
+                // Only add trips that are genuinely new
                 const tripsToAdd: Truck[] = [];
                 importedTrucks.forEach(tr => {
                     const src = (tr.sourceTicketNo || '').trim();
-                    if (src && existingTicketNos.has(src)) {
-                        return; // Skip - this ticket already exists
+
+                    if (src) {
+                        // New dedup: skip if source ticket already on barge
+                        if (existingTicketNos.has(src)) return;
+                    } else {
+                        // Fallback for old data without sourceTicketNo:
+                        // Match by ticketNo, or by plate+weight+date
+                        const alreadyExists = currentTrucks.some(ct => {
+                            if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
+                                return tr.ticketNo.trim() === ct.ticketNo.trim();
+                            }
+                            const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+                            const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
+                            const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
+                            const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
+                            return samePlate && sameWeight && sameDateIn && sameDateOut;
+                        });
+                        if (alreadyExists) return;
                     }
+
                     tripsToAdd.push(tr);
                 });
 
@@ -2795,7 +2812,6 @@ const syncFromAllocatorActiveBarge = async () => {
         } else {
             // Smart dedup: only add trips from genuinely NEW original CSV tickets
             // Build a set of original CSV ticketNos already on the barge
-            // (first splits keep the original ticketNo like "010782/26B")
             const existingTicketNos = new Set<string>();
             currentTrucks.forEach(ct => {
                 if (ct.ticketNo && ct.ticketNo.trim()) {
@@ -2803,14 +2819,30 @@ const syncFromAllocatorActiveBarge = async () => {
                 }
             });
 
-            // Only add trips whose sourceTicketNo is NOT already represented on the barge
+            // Only add trips that are genuinely new
             const tripsToAdd: Truck[] = [];
             importedTrucks.forEach(tr => {
                 const src = (tr.sourceTicketNo || '').trim();
-                if (src && existingTicketNos.has(src)) {
-                    // This trip belongs to an original ticket already on the barge → skip
-                    return;
+
+                if (src) {
+                    // New dedup: skip if source ticket already on barge
+                    if (existingTicketNos.has(src)) return;
+                } else {
+                    // Fallback for old data without sourceTicketNo:
+                    // Match by ticketNo, or by plate+weight+date
+                    const alreadyExists = currentTrucks.some(ct => {
+                        if (tr.ticketNo && ct.ticketNo && tr.ticketNo.trim() && ct.ticketNo.trim()) {
+                            return tr.ticketNo.trim() === ct.ticketNo.trim();
+                        }
+                        const samePlate = ct.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase() === tr.plateNumber.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+                        const sameWeight = Math.abs((ct.weightNet || 0) - (tr.weightNet || 0)) < 0.01;
+                        const sameDateIn = ct.dateIn && tr.dateIn ? ct.dateIn.slice(0, 16) === tr.dateIn.slice(0, 16) : false;
+                        const sameDateOut = ct.dateOut && tr.dateOut ? ct.dateOut.slice(0, 16) === tr.dateOut.slice(0, 16) : false;
+                        return samePlate && sameWeight && sameDateIn && sameDateOut;
+                    });
+                    if (alreadyExists) return;
                 }
+
                 tripsToAdd.push(tr);
             });
 
