@@ -843,7 +843,7 @@ async function saveProfile() {
         const updatedConfig: BargeConfig = {
             ...(selectedBarge.value.config || {}),
             orderNo: editOrderNo.value.trim().toUpperCase(),
-            goods: editGoods.value.trim().toUpperCase(),
+            goods: editGoods.value.trim() ? (editGoods.value.trim().charAt(0).toUpperCase() + editGoods.value.trim().slice(1).toLowerCase()) : '',
             goodsCode: editGoodsCode.value.trim().toUpperCase(),
             owner: editOwner.value.trim(),
             operator: editOperator.value.trim(),
@@ -1073,7 +1073,7 @@ async function exportToExcel() {
             row.getCell(5).value = config.departureTime ? parseLocalTimeStr(config.departureTime) : null;
             row.getCell(6).value = item.barge.name || '';
             row.getCell(7).value = config.gcnNo || '';
-            row.getCell(8).value = config.goods ? config.goods.trim().toLowerCase() : '';
+            row.getCell(8).value = config.goods ? (config.goods.trim().charAt(0).toUpperCase() + config.goods.trim().slice(1).toLowerCase()) : '';
             row.getCell(9).value = config.orderNo || '';
             
             const docStatus = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
