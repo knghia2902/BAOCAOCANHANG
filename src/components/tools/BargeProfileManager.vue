@@ -843,7 +843,7 @@ async function saveProfile() {
         const updatedConfig: BargeConfig = {
             ...(selectedBarge.value.config || {}),
             orderNo: editOrderNo.value.trim().toUpperCase(),
-            goods: editGoods.value.trim(),
+            goods: editGoods.value.trim().toUpperCase(),
             goodsCode: editGoodsCode.value.trim().toUpperCase(),
             owner: editOwner.value.trim(),
             operator: editOperator.value.trim(),
@@ -1073,7 +1073,7 @@ async function exportToExcel() {
             row.getCell(5).value = config.departureTime ? parseLocalTimeStr(config.departureTime) : null;
             row.getCell(6).value = item.barge.name || '';
             row.getCell(7).value = config.gcnNo || '';
-            row.getCell(8).value = config.goods || '';
+            row.getCell(8).value = config.goods ? config.goods.trim().toUpperCase() : '';
             row.getCell(9).value = config.orderNo || '';
             
             const docStatus = isDocComplete(config) ? 'ĐỦ' : 'THIẾU';
@@ -1127,17 +1127,32 @@ async function exportToExcel() {
         const getCellStringLength = (value: any): number => {
             if (value === null || value === undefined) return 0;
             if (value instanceof Date) return 11;
+            
+            let str = '';
             if (typeof value === 'object') {
-                if (value.result !== undefined) return String(value.result).length;
-                if (value.text !== undefined) return String(value.text).length;
-                return 0;
+                if (value.result !== undefined) str = String(value.result);
+                else if (value.text !== undefined) str = String(value.text);
+                else return 0;
+            } else {
+                str = String(value);
             }
-            return String(value).length;
+            
+            // Add extra weight for uppercase letters since they are wider
+            let len = str.length;
+            for (let i = 0; i < str.length; i++) {
+                const char = str[i];
+                if (char && char === char.toUpperCase() && char !== char.toLowerCase()) {
+                    len += 0.3; // Uppercase character gets 30% more weight
+                }
+            }
+            return Math.ceil(len);
         };
 
         [sheet1, sheet2].forEach(sheet => {
-            if (sheet && sheet.columns) {
-                sheet.columns.forEach((column) => {
+            if (sheet) {
+                const colCount = sheet.columnCount;
+                for (let c = 1; c <= colCount; c++) {
+                    const column = sheet.getColumn(c);
                     if (column && column.eachCell) {
                         let maxColumnLength = 0;
                         column.eachCell({ includeEmpty: false }, (cell) => {
@@ -1147,9 +1162,9 @@ async function exportToExcel() {
                             }
                         });
                         const currentWidth = column.width || 10;
-                        column.width = Math.max(currentWidth, maxColumnLength + 4);
+                        column.width = Math.max(currentWidth, maxColumnLength + 5);
                     }
-                });
+                }
             }
         });
         
