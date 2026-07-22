@@ -340,15 +340,16 @@ const parseLocalDate = (dateStr?: string): Date | null => {
     return isNaN(d.getTime()) ? null : d;
 };
 
-const parseLocalTime = (timeStr?: string): Date | null => {
+const parseLocalTimeStr = (timeStr?: string): string | null => {
     if (!timeStr) return null;
-    const parts = timeStr.split(':');
-    if (parts.length >= 2) {
-        const hr = parseInt(parts[0] || '0', 10);
-        const min = parseInt(parts[1] || '0', 10);
-        return new Date(1899, 11, 30, hr, min, 0);
+    const cleanStr = timeStr.includes('T') ? (timeStr.split('T')[1] || '') : timeStr;
+    const parts = cleanStr.split(':');
+    if (parts.length >= 2 && parts[0] !== undefined && parts[1] !== undefined) {
+        const hr = parts[0].trim().padStart(2, '0');
+        const min = parts[1].trim().padStart(2, '0');
+        return `${hr}:${min}`;
     }
-    return null;
+    return cleanStr || null;
 };
 
 const checkExpiryStatus = (expiryDateStr?: string): string => {
@@ -1050,10 +1051,10 @@ async function exportToExcel() {
             applyRowStyleTemplate(row, styleRow2);
             
             row.getCell(1).value = index + 1; // STT
-            row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.split('T')[0]) : null;
-            row.getCell(3).value = config.arrivalTime ? parseLocalTime(config.arrivalTime.split('T')[1]) : null;
-            row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.split('T')[0]) : null;
-            row.getCell(5).value = config.departureTime ? parseLocalTime(config.departureTime.split('T')[1]) : null;
+            row.getCell(2).value = config.arrivalTime ? parseLocalDate(config.arrivalTime.includes('T') ? config.arrivalTime.split('T')[0] : config.arrivalTime) : null;
+            row.getCell(3).value = config.arrivalTime ? parseLocalTimeStr(config.arrivalTime) : null;
+            row.getCell(4).value = config.departureTime ? parseLocalDate(config.departureTime.includes('T') ? config.departureTime.split('T')[0] : config.departureTime) : null;
+            row.getCell(5).value = config.departureTime ? parseLocalTimeStr(config.departureTime) : null;
             row.getCell(6).value = item.barge.name || '';
             row.getCell(7).value = config.gcnNo || '';
             row.getCell(8).value = config.goods || '';
