@@ -327,16 +327,32 @@ const formatDateTime = (dtStr?: string) => {
     return dtStr.replace('T', ' ');
 };
 
+const sanitizeDate = (dateStr?: string): string => {
+    if (!dateStr || dateStr === 'Vô thời hạn') return dateStr || '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        const year = parseInt(parts[0] || '0', 10);
+        if (year > 2100 || year < 1900) {
+            const yearStr = String(parts[0]);
+            const lastTwo = yearStr.slice(-2);
+            const correctedYear = `20${lastTwo}`;
+            return `${correctedYear}-${parts[1]}-${parts[2]}`;
+        }
+    }
+    return dateStr;
+};
+
 const parseLocalDate = (dateStr?: string): Date | null => {
     if (!dateStr || dateStr === 'Vô thời hạn') return null;
-    const parts = dateStr.split('-');
+    const cleanStr = sanitizeDate(dateStr);
+    const parts = cleanStr.split('-');
     if (parts.length === 3) {
         const year = parseInt(parts[0] || '0', 10);
         const month = parseInt(parts[1] || '1', 10) - 1;
         const day = parseInt(parts[2] || '1', 10);
         return new Date(year, month, day, 12, 0, 0);
     }
-    const d = new Date(dateStr);
+    const d = new Date(cleanStr);
     return isNaN(d.getTime()) ? null : d;
 };
 
@@ -842,14 +858,14 @@ async function saveProfile() {
             tonnage: editTonnage.value !== '' ? Number(editTonnage.value) : undefined,
             hp: editHp.value !== '' ? Number(editHp.value) : undefined,
             gcnNo: editGcnNo.value.trim(),
-            gcnIssuedDate: editGcnIssuedDate.value,
-            gcnExpiryDate: editGcnExpiryDate.value,
+            gcnIssuedDate: sanitizeDate(editGcnIssuedDate.value),
+            gcnExpiryDate: sanitizeDate(editGcnExpiryDate.value),
             dkNo: editDkNo.value.trim(),
-            dkIssuedDate: editDkIssuedDate.value,
-            dkExpiryDate: editDkExpiryDate.value,
+            dkIssuedDate: sanitizeDate(editDkIssuedDate.value),
+            dkExpiryDate: sanitizeDate(editDkExpiryDate.value),
             bhNo: editBhNo.value.trim(),
-            bhIssuedDate: editBhIssuedDate.value,
-            bhExpiryDate: editBhExpiryDate.value,
+            bhIssuedDate: sanitizeDate(editBhIssuedDate.value),
+            bhExpiryDate: sanitizeDate(editBhExpiryDate.value),
             
             customProfileInfo: customProfileInfo,
             
@@ -859,8 +875,8 @@ async function saveProfile() {
             chiefEngineerGrade: editChiefEngineerGrade.value.trim(),
             sailors: editSailors.value.trim(),
             hasCrewBook: editHasCrewBook.value,
-            arrivalTime: editArrivalTime.value,
-            departureTime: editDepartureTime.value,
+            arrivalTime: editArrivalTime.value ? `${sanitizeDate(editArrivalTime.value.split('T')[0])}T${editArrivalTime.value.split('T')[1] || '00:00'}` : '',
+            departureTime: editDepartureTime.value ? `${sanitizeDate(editDepartureTime.value.split('T')[0])}T${editDepartureTime.value.split('T')[1] || '00:00'}` : '',
             lastPort: editLastPort.value.trim(),
             khaihethong: editKhaiHethong.value.trim(),
             gcnImages: [...editGcnImages.value],
@@ -1156,21 +1172,33 @@ async function handleExcelImport(event: Event) {
         
         const formatDateCell = (cellValue: any): string => {
             if (!cellValue) return '';
+            let rawStr = '';
             if (cellValue instanceof Date) {
-                return cellValue.toISOString().slice(0, 10);
-            }
-            if (typeof cellValue === 'object' && cellValue.result instanceof Date) {
-                return cellValue.result.toISOString().slice(0, 10);
-            }
-            if (typeof cellValue === 'number') {
+                const y = cellValue.getFullYear();
+                const m = String(cellValue.getMonth() + 1).padStart(2, '0');
+                const d = String(cellValue.getDate()).padStart(2, '0');
+                rawStr = `${y}-${m}-${d}`;
+            } else if (typeof cellValue === 'object' && cellValue.result instanceof Date) {
+                const dateObj = cellValue.result;
+                const y = dateObj.getFullYear();
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                rawStr = `${y}-${m}-${d}`;
+            } else if (typeof cellValue === 'number') {
                 const date = new Date(Math.round((cellValue - 25569) * 86400 * 1000));
-                return date.toISOString().slice(0, 10);
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                rawStr = `${y}-${m}-${d}`;
+            } else {
+                const str = String(cellValue).trim();
+                if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+                    rawStr = str.slice(0, 10);
+                } else {
+                    rawStr = (str === 'undefined' || str === 'null') ? '' : str;
+                }
             }
-            const str = String(cellValue).trim();
-            if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-                return str.slice(0, 10);
-            }
-            return (str === 'undefined' || str === 'null') ? '' : str;
+            return sanitizeDate(rawStr);
         };
         
         const formatNumberCell = (cellValue: any): number | undefined => {
