@@ -528,6 +528,26 @@ export const WeighbridgeService = {
     },
 
     /**
+     * Delete all trucks for a barge (used when overwriting)
+     */
+    async deleteAllTrucksForBarge(bargeId: number): Promise<boolean> {
+        await dbContext.delete(`wb_trucks_${bargeId}`);
+        try {
+            const { error } = await supabase
+                .from('weighbridge_trucks')
+                .delete()
+                .eq('barge_id', bargeId);
+            if (error) {
+                console.warn('Supabase delete all trucks for barge failed:', error);
+            }
+            return true;
+        } catch (e) {
+            console.warn('Supabase offline, deleted all trucks locally:', e);
+            return true;
+        }
+    },
+
+    /**
      * Upsert multiple trucks (used in Excel import or bulk edits)
      */
     async saveTrucks(bargeId: number, trucks: any[]): Promise<boolean> {

@@ -2775,6 +2775,7 @@ const syncFromAllocatorActiveBarge = async () => {
         let currentSeed = cfgForm.ticketSeed || '1';
         let allTrucks: Truck[] = [];
         if (action === 'overwrite') {
+            await WeighbridgeService.deleteAllTrucksForBarge(bargeId);
             for (const tr of importedTrucks) {
                 if (!tr.ticketNo) {
                     tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, importedTrucks, currentSeed, tr.id);
