@@ -854,6 +854,8 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
         try {
             const list = await WeighbridgeService.getTrucks(bargeId);
             trucks.value = list;
+            // Auto sync allocator trips if available
+            await autoSyncAllBarges(false);
         } catch (e) {
             showToast('Lỗi tải danh sách xe cân!', 'error');
         } finally {
@@ -3640,6 +3642,13 @@ onMounted(async () => {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     window.addEventListener('barge-config-updated', loadVessels);
+    window.addEventListener('allocator_sync_event', async () => {
+        try {
+            await autoSyncAllBarges(false);
+        } catch (e) {
+            console.error('Lỗi khi tự động đồng bộ từ event:', e);
+        }
+    });
 });
 
 // Watch activeTab to dynamically register/deregister ResizeObserver when entering/leaving config tab
