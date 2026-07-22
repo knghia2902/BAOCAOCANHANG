@@ -271,6 +271,12 @@ function getRandomLimit(tttp: number, plate: string): number {
     return Math.round((tttp - curbWeight) * 100) / 100;
 }
 
+function isXuatDirection(dir?: string): boolean {
+    if (!dir) return true;
+    const d = String(dir).toUpperCase();
+    return d.includes('XUẤT') || d.includes('XUAT');
+}
+
 const vehicleLimitCache = new Map<string, { tttp: number; limit: number }>();
 
 // vehicleLimitCache is maintained locally
@@ -2223,7 +2229,7 @@ function regenerateAllocatedTrips() {
             const tareWeight = Math.round(baseTare + tareJitter);
             
             // Phân bổ cân lần 1 và lần 2 dựa trên hướng Xuất/Nhập
-            const isXuat = record.direction.toUpperCase().includes('XUẤT') || record.direction.toUpperCase().includes('XUAT');
+            const isXuat = isXuatDirection(record.direction);
             let tripWeight1 = 0;
             let tripWeight2 = 0;
             
@@ -4209,8 +4215,8 @@ async function compileAndDownload() {
                                 <td class="py-2 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelTime(trip.date2Obj) }}</td>
                                 <td class="py-2 px-3 text-gray-400 text-xs font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date2Obj) }}</td>
                                 <td class="py-2 px-3 text-center">
-                                    <span :class="['px-1.5 py-0.5 rounded text-xs font-black whitespace-nowrap', trip.direction.toUpperCase().includes('XUẤT') || trip.direction.toUpperCase().includes('XUAT') ? 'bg-primary/10 text-primary' : 'bg-teal-50 text-teal-600']">
-                                        {{ trip.direction.toUpperCase().includes('XUẤT') || trip.direction.toUpperCase().includes('XUAT') ? 'XUẤT' : 'NHẬP' }}
+                                    <span :class="['px-1.5 py-0.5 rounded text-xs font-black whitespace-nowrap', isXuatDirection(trip.direction) ? 'bg-primary/10 text-primary' : 'bg-teal-50 text-teal-600']">
+                                        {{ isXuatDirection(trip.direction) ? 'XUẤT' : 'NHẬP' }}
                                     </span>
                                 </td>
                                 <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.cargoType">{{ trip.cargoType }}</td>
