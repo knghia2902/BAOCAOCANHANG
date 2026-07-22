@@ -4307,32 +4307,32 @@ onUnmounted(() => {
                                         <button v-if="authStore.role === 'admin' || canCreate()"
                                             @click="openAddTruckDialog"
                                             :disabled="cfgForm.locked"
-                                            class="h-8 px-3 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all"
+                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
-                                            <span class="material-symbols-outlined text-xs">add</span>
+                                            <span class="material-symbols-outlined !text-[15px] leading-none">add</span>
                                             Thêm xe
                                         </button>
                                         <button v-if="authStore.role === 'admin' || canCreate()"
                                             @click="fileInput?.click()"
                                             :disabled="cfgForm.locked"
-                                            class="h-8 px-3 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all"
+                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
-                                            <span class="material-symbols-outlined text-xs">upload_file</span>
+                                            <span class="material-symbols-outlined !text-[15px] leading-none">upload_file</span>
                                             Nhập Excel
                                         </button>
                                         <button v-if="authStore.role === 'admin' || canDelete()"
                                             @click="clearTrucks"
                                             :disabled="cfgForm.locked"
-                                            class="h-8 px-3 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none shrink-0 box-border border-0"
                                         >
-                                            <span class="material-symbols-outlined text-xs">delete_sweep</span>
+                                            <span class="material-symbols-outlined !text-[15px] leading-none">delete_sweep</span>
                                             Xóa tất cả
                                         </button>
                                         <button 
                                             @click="triggerPrint()"
-                                            class="h-8 px-3 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs flex items-center gap-1 transition-all"
+                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
-                                            <span class="material-symbols-outlined text-xs">print</span>
+                                            <span class="material-symbols-outlined !text-[15px] leading-none">print</span>
                                             In hàng loạt (A5)
                                         </button>
                                     </div>
