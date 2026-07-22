@@ -1254,19 +1254,71 @@ async function saveTicketsToSupabase() {
         if (fetchError) throw fetchError;
         
         const currentSettings = current?.settings || {};
+
+        // Clean generated trips to minimal serializable payload
+        const cleanGenerated = (generatedTrips.value || []).map(g => ({
+            stt: g.stt,
+            timeStr: g.timeStr,
+            plateNumber: g.plateNumber,
+            ticketNo: g.ticketNo,
+            sourceTicketNo: g.sourceTicketNo || '',
+            cargoType: g.cargoType,
+            weight1: g.weight1,
+            weight2: g.weight2,
+            weightNet: g.weightNet,
+            direction: g.direction,
+            bargeName: g.bargeName,
+            orderNo: g.orderNo,
+            customer: g.customer,
+            date1Obj: g.date1Obj,
+            date2Obj: g.date2Obj,
+            notes: g.notes || ''
+        }));
+
+        // Clean history trips
+        const cleanHistory = (existingTrips.value || []).map(h => ({
+            stt: h.stt,
+            timeStr: h.timeStr,
+            plateNumber: h.plateNumber,
+            ticketNo: h.ticketNo,
+            sourceTicketNo: h.sourceTicketNo || '',
+            cargoType: h.cargoType,
+            weightNet: h.weightNet,
+            direction: h.direction,
+            bargeName: h.bargeName,
+            orderNo: h.orderNo,
+            customer: h.customer,
+            date1Obj: h.date1Obj,
+            date2Obj: h.date2Obj
+        }));
+
         const updatedSettings = {
             ...currentSettings,
             allocator_tickets: csvRecords.value,
-            allocator_history_trips: existingTrips.value,
-            allocator_generated_trips: generatedTrips.value
+            allocator_history_trips: cleanHistory,
+            allocator_generated_trips: cleanGenerated
         };
 
-        const { error: updateError } = await supabase
+        let { error: updateError } = await supabase
             .from('content')
             .update({ settings: updatedSettings })
             .eq('id', 'main');
 
-        if (updateError) throw updateError;
+        // Fallback: If payload is too large, update generated trips and tickets without re-sending full history
+        if (updateError) {
+            console.warn('Full Supabase update failed, retrying fallback payload without history:', updateError);
+            const fallbackSettings = {
+                ...currentSettings,
+                allocator_tickets: csvRecords.value,
+                allocator_generated_trips: cleanGenerated
+            };
+            const { error: fallbackErr } = await supabase
+                .from('content')
+                .update({ settings: fallbackSettings })
+                .eq('id', 'main');
+
+            if (fallbackErr) throw fallbackErr;
+        }
         
         syncStatus.value = 'synced';
         syncChannel.postMessage({ type: 'manual_sync_request' });
