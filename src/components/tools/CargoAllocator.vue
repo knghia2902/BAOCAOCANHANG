@@ -2482,44 +2482,7 @@ function getTripsWithoutMooc(): SplitTrip[] {
     });
 }
 
-async function triggerManualSyncToPrinter() {
-    try {
-        const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
-        if (savedVehicles && Array.isArray(savedVehicles)) {
-            vehiclesList.value = savedVehicles;
-        }
-    } catch (e) {
-        console.error('Lỗi khi tải lại danh sách xe trước khi đồng bộ:', e);
-    }
 
-    if (generatedTrips.value.length === 0) {
-        addToast('Không có dữ liệu phân bổ để đồng bộ!', 'info');
-        return;
-    }
-    
-    const missingMoocTrips = getTripsWithoutMooc();
-    if (missingMoocTrips.length > 0) {
-        const plates = missingMoocTrips.map(t => formatPlate(t.plateNumber)).join(', ');
-        await showConfirm({
-            title: 'Cảnh báo: Thiếu số moóc phương tiện',
-            message: `Có ${missingMoocTrips.length} xe chưa có số moóc:\n\n${plates}\n\nVui lòng cập nhật đầy đủ số moóc trước khi đồng bộ.`,
-            type: 'warning',
-            okText: 'Đã hiểu',
-            cancelText: ''
-        });
-        return;
-    }
-    
-    try {
-        await dbContext.set('allocator_generated_trips', generatedTrips.value);
-    } catch (e) {
-        console.error('Lỗi lưu IndexedDB trước đồng bộ:', e);
-    }
-    await saveTicketsToSupabase();
-    syncChannel.postMessage({ type: 'manual_sync_request' });
-    addToast('Đồng bộ dữ liệu thành công! Bản phân bổ đã được lưu lên đám mây và sẽ tự động cập nhật khi bạn mở trang DASHBOARD.', 'success');
-    await LogService.logAction('Đồng bộ dữ liệu', 'Đồng bộ bản phân bổ lên đám mây');
-}
 
 // Save generated temporary trips into history
 async function saveToHistory() {
@@ -3587,14 +3550,6 @@ async function compileAndDownload() {
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ totalSplitWeightTons.toFixed(2) }}t
                         </div>
-                        <button 
-                            @click="triggerManualSyncToPrinter"
-                            :disabled="generatedTrips.length === 0 || compiling"
-                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed animate-fade-in"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">sync</span>
-                            Update
-                        </button>
                         <button 
                             @click="saveToHistory"
                             :disabled="generatedTrips.length === 0 || isAlreadySaved"
