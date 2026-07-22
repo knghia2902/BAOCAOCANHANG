@@ -571,12 +571,16 @@ export const WeighbridgeService = {
                 note: t.note || null
             }));
 
-            const { error } = await supabase
-                .from('weighbridge_trucks')
-                .upsert(dbTrucks);
+            const chunkSize = 100;
+            for (let i = 0; i < dbTrucks.length; i += chunkSize) {
+                const chunk = dbTrucks.slice(i, i + chunkSize);
+                const { error } = await supabase
+                    .from('weighbridge_trucks')
+                    .upsert(chunk);
 
-            if (error) {
-                console.warn('Supabase save trucks failed, kept local cache:', error);
+                if (error) {
+                    console.warn(`Supabase save trucks chunk ${i}-${i + chunkSize} failed:`, error);
+                }
             }
             return true;
         } catch (e) {
