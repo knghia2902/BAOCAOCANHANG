@@ -4330,7 +4330,7 @@ onUnmounted(() => {
                                         </button>
                                         <button 
                                             @click="triggerPrint()"
-                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
+                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary/10 text-primary hover:bg-primary/20 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
                                             <span class="material-symbols-outlined !text-[15px] leading-none">print</span>
                                             In hàng loạt (A5)
