@@ -863,6 +863,7 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
         }
         
         const { added, updated, skipped } = mergeTickets(finalRecords);
+        regenerateAllocatedTrips();
         addToast(`Import Excel: ${added} mới, ${updated} cập nhật, ${skipped} bỏ qua (trùng)`, 'success');
         await LogService.logAction('Import Excel', `Import Excel phiếu cân: ${added} mới, ${updated} cập nhật`);
         await saveTicketsToSupabase();
@@ -2319,6 +2320,7 @@ function regenerateAllocatedTrips() {
     });
     
     generatedTrips.value = finalTrips;
+    saveTicketsToSupabase();
 }
 
 // Watch dependencies to automatically regenerate
