@@ -4315,11 +4315,11 @@ onUnmounted(() => {
                                     </div>
                                     <button 
                                         @click="syncFromAllocatorActiveBarge"
-                                        class="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] sm:text-xs font-bold rounded-[6px] sm:rounded-[8px] transition-all flex-shrink-0 border border-gray-200"
+                                        class="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-teal-600 text-white text-xs sm:text-xs font-black rounded-[6px] sm:rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0 shadow-sm"
                                         :disabled="cfgForm.locked"
                                         title="Bấm nếu muốn đồng bộ thủ công hoặc chọn Ghi đè"
                                     >
-                                        Khôi phục
+                                        Đồng bộ
                                     </button>
                                 </div>
                             </div>
