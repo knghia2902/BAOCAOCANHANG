@@ -1268,6 +1268,7 @@ async function saveTicketsToSupabase() {
         if (updateError) throw updateError;
         
         syncStatus.value = 'synced';
+        syncChannel.postMessage({ type: 'manual_sync_request' });
     } catch (e) {
         console.error('Lỗi khi lưu dữ liệu lên Supabase:', e);
         syncStatus.value = 'error';
