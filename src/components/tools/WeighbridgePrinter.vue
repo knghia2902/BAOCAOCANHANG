@@ -2681,10 +2681,7 @@ const syncFromAllocatorActiveBarge = async () => {
         showToast('Vui lòng chọn một sà lan trước!', 'error');
         return;
     }
-    if (cfgForm.locked) {
-        showToast('Sà lan đang bị khóa! Không thể nhập dữ liệu.', 'error');
-        return;
-    }
+
     
     const bargeOrderNo = activeBarge.value.config?.orderNo ? String(activeBarge.value.config.orderNo).trim() : '';
     if (!bargeOrderNo) {
@@ -4272,11 +4269,12 @@ onUnmounted(() => {
                                     </div>
                                 </div>
 
+
                                 <!-- Direct Sync Card (3 cols) -->
                                 <div v-if="authStore.role === 'admin' || canCreate()"
-                                    :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
+                                    class="col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50"
                                 >
-                                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="cfgForm.locked ? null : syncFromAllocatorActiveBarge()">
+                                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="syncFromAllocatorActiveBarge()">
                                         <div class="size-7 sm:size-9 bg-teal-500/10 text-teal-600 rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">sync_alt</span>
                                         </div>
@@ -4288,7 +4286,6 @@ onUnmounted(() => {
                                     <button 
                                         @click="syncFromAllocatorActiveBarge"
                                         class="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-teal-600 text-white text-xs sm:text-xs font-black rounded-[6px] sm:rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
-                                        :disabled="cfgForm.locked"
                                     >
                                         Đồng bộ
                                     </button>
