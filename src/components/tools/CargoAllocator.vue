@@ -2530,14 +2530,6 @@ const isAlreadySaved = computed(() => {
     });
 });
 
-async function triggerManualSyncToPrinter() {
-    if (generatedTrips.value.length === 0) {
-        addToast('Không có dữ liệu phân bổ để đồng bộ!', 'info');
-        return;
-    }
-    await saveTicketsToSupabase();
-    addToast('Đã lưu bản phân bổ lên đám mây! Bạn có thể qua tab Báo Cáo Tổng Quan để bấm nút Đồng bộ.', 'success');
-}
 
 // Paged trips
 const pagedTrips = computed(() => {
@@ -3662,14 +3654,7 @@ async function compileAndDownload() {
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ totalSplitWeightTons.toFixed(2) }}t
                         </div>
-                        <button 
-                            @click="triggerManualSyncToPrinter"
-                            :disabled="generatedTrips.length === 0 || compiling"
-                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">sync</span>
-                            Đồng bộ sang Sà lan
-                        </button>
+
                         <button 
                             @click="saveToHistory"
                             :disabled="generatedTrips.length === 0 || isAlreadySaved"
