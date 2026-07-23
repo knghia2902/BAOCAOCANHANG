@@ -1206,9 +1206,10 @@ async function loadTicketsFromSupabase() {
             // 2. Overwrite history trips
             const remoteHistory = data.settings.allocator_history_trips;
             if (Array.isArray(remoteHistory)) {
-                if (JSON.stringify(existingTrips.value) !== JSON.stringify(remoteHistory)) {
-                    existingTrips.value = remoteHistory;
-                    await dbContext.set('allocator_history_trips', remoteHistory);
+                const hydrated = hydrateTrips(remoteHistory);
+                if (JSON.stringify(existingTrips.value) !== JSON.stringify(hydrated)) {
+                    existingTrips.value = hydrated;
+                    await dbContext.set('allocator_history_trips', hydrated);
                 }
             } else {
                 if (existingTrips.value.length > 0) {
@@ -1229,9 +1230,10 @@ async function loadTicketsFromSupabase() {
             // 4. Overwrite generated trips
             const remoteGenerated = data.settings.allocator_generated_trips;
             if (Array.isArray(remoteGenerated)) {
-                if (JSON.stringify(generatedTrips.value) !== JSON.stringify(remoteGenerated)) {
-                    generatedTrips.value = remoteGenerated;
-                    await dbContext.set('allocator_generated_trips', remoteGenerated);
+                const hydrated = hydrateTrips(remoteGenerated);
+                if (JSON.stringify(generatedTrips.value) !== JSON.stringify(hydrated)) {
+                    generatedTrips.value = hydrated;
+                    await dbContext.set('allocator_generated_trips', hydrated);
                 }
             } else {
                 regenerateAllocatedTrips();
@@ -1270,6 +1272,7 @@ async function doExecuteSaveTicketsToSupabase() {
             ticketNo: r.ticketNo,
             sourceTicketNo: (r as any).sourceTicketNo || '',
             plateNumber: r.plateNumber,
+            customer: r.customer || '',
             weight1: r.weight1,
             weight2: r.weight2,
             weightNet: r.weightNet,
@@ -1277,6 +1280,10 @@ async function doExecuteSaveTicketsToSupabase() {
             dateOutStr: r.dateOutStr,
             date1Obj: (r as any).date1Obj,
             date2Obj: (r as any).date2Obj,
+            direction: r.direction || '',
+            cargoType: r.cargoType || '',
+            bargeName: r.bargeName || '',
+            driverName: r.driverName || '',
             notes: r.notes || '',
             orderNo: r.orderNo || ''
         }));
@@ -1286,12 +1293,15 @@ async function doExecuteSaveTicketsToSupabase() {
             stt: g.stt,
             timeStr: g.timeStr,
             plateNumber: g.plateNumber,
+            tttp: g.tttp,
+            limit: g.limit,
             ticketNo: g.ticketNo,
             sourceTicketNo: g.sourceTicketNo || '',
             cargoType: g.cargoType,
             weight1: g.weight1,
             weight2: g.weight2,
             weightNet: g.weightNet,
+            weightTons: typeof g.weightTons === 'number' ? g.weightTons : (Number(g.weightNet) / 1000 || 0),
             direction: g.direction,
             bargeName: g.bargeName,
             orderNo: g.orderNo,
@@ -1306,16 +1316,22 @@ async function doExecuteSaveTicketsToSupabase() {
             stt: h.stt,
             timeStr: h.timeStr,
             plateNumber: h.plateNumber,
+            tttp: h.tttp,
+            limit: h.limit,
             ticketNo: h.ticketNo,
             sourceTicketNo: h.sourceTicketNo || '',
             cargoType: h.cargoType,
+            weight1: h.weight1,
+            weight2: h.weight2,
             weightNet: h.weightNet,
+            weightTons: typeof h.weightTons === 'number' ? h.weightTons : (Number(h.weightNet) / 1000 || 0),
             direction: h.direction,
             bargeName: h.bargeName,
             orderNo: h.orderNo,
             customer: h.customer,
             date1Obj: h.date1Obj,
-            date2Obj: h.date2Obj
+            date2Obj: h.date2Obj,
+            notes: h.notes || ''
         }));
 
         const updatedSettings = {
@@ -2038,8 +2054,8 @@ onMounted(async () => {
             }
 
             csvRecords.value = savedTickets;
-            existingTrips.value = savedHistory;
-            generatedTrips.value = savedGenerated;
+            existingTrips.value = hydrateTrips(savedHistory);
+            generatedTrips.value = hydrateTrips(savedGenerated);
 
             // Load latest data from Supabase in the background
             await loadTicketsFromSupabase();
@@ -2120,6 +2136,19 @@ function getVehicleCapacity(plate: string): CapacityConfig {
     vehicleLimitCache.set(norm, { tttp: fallbackTTTP, limit });
     return { code: 0, tttp: fallbackTTTP, limit };
 }
+
+function hydrateTrips(trips: any[]): SplitTrip[] {
+    return (trips || []).map(t => {
+        const capacity = getVehicleCapacity(t.plateNumber);
+        return {
+            ...t,
+            tttp: typeof t.tttp === 'number' ? t.tttp : capacity.tttp,
+            limit: typeof t.limit === 'number' ? t.limit : capacity.limit,
+            weightTons: typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)
+        };
+    });
+}
+
 
 // Computed: Total CSV Weight in tons
 const totalCsvWeightTons = computed(() => {
@@ -2501,7 +2530,7 @@ const filteredTrips = computed(() => {
 
 // Computed: Total split weight tons
 const totalSplitWeightTons = computed(() => {
-    return generatedTrips.value.reduce((acc, t) => acc + t.weightTons, 0);
+    return generatedTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
 // Computed: Check if current generated trips are already saved to history
@@ -2809,7 +2838,7 @@ async function clearHistory() {
 
 // Total history cargo weight in tons
 const historyTotalWeightTons = computed(() => {
-    return existingTrips.value.reduce((sum, t) => sum + (t.weightTons || 0), 0);
+    return existingTrips.value.reduce((sum, t) => sum + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
 // Export source tickets (Tab 1) as Excel
