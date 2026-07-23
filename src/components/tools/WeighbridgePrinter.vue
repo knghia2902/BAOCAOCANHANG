@@ -158,6 +158,7 @@ const globalFilterMonth = ref<string>('');
 const globalBargesSummary = ref<BargeSummary[]>([]);
 const loadingGlobalSummary = ref(false);
 const exportingGlobalBarges = ref(false);
+const exportingActiveBargeTrucks = ref(false);
 const sortKey = ref<string>('');
 const sortOrder = ref<'asc' | 'desc'>('asc');
 
@@ -859,6 +860,184 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
         } finally {
             loading.value = false;
         }
+    }
+};
+
+const exportActiveBargeTrucksToExcel = () => {
+    const barge = activeBarge.value;
+    if (!barge) {
+        showToast('Vui lòng chọn một sà lan trước!', 'error');
+        return;
+    }
+    if (filteredTrucks.value.length === 0) {
+        showToast('Không có dữ liệu chuyến xe nào để xuất!', 'error');
+        return;
+    }
+
+    try {
+        exportingActiveBargeTrucks.value = true;
+        showToast('Đang chuẩn bị xuất tệp Excel danh sách xe...', 'success');
+        
+        import('exceljs').then(async (ExcelJS) => {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Chi tiết xe cân sà lan');
+            
+            sheet.pageSetup.margins = {
+                left: 0.7, right: 0.7,
+                top: 0.75, bottom: 0.75,
+                header: 0.3, footer: 0.3
+            };
+            
+            sheet.views = [{ showGridLines: true }];
+            
+            sheet.addRow([`DANH SÁCH CHI TIẾT XE CÂN SÀ LAN: ${barge.name.toUpperCase()}`]);
+            sheet.addRow([`Mã lệnh: ${barge.config?.orderNo || '-'} | Cảng Nguyên Ngọc - Xuất lúc: ${formatDateTimeStr(new Date().toISOString())} - Tổng số: ${filteredTrucks.value.length} xe`]);
+            sheet.addRow([]);
+            
+            const headerRow = sheet.addRow([
+                'STT', 
+                'Số phiếu', 
+                'Số xe (Biển số)', 
+                'Tài xế', 
+                'TL Lần 1 (kg)', 
+                'TL Lần 2 (kg)', 
+                'TL Hàng (Net) (kg)', 
+                'Giờ vào', 
+                'Giờ ra', 
+                'Ghi chú'
+            ]);
+            
+            sheet.mergeCells('A1:J1');
+            const titleCell = sheet.getCell('A1');
+            titleCell.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: '0F766E' } };
+            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            
+            sheet.mergeCells('A2:J2');
+            const subtitleCell = sheet.getCell('A2');
+            subtitleCell.font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: '666666' } };
+            subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            
+            headerRow.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFF' } };
+            headerRow.height = 25;
+            headerRow.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: '0D9488' }
+                };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    left: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'E5E7EB' } }
+                };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            });
+            
+            let totalWeightNet = 0;
+            
+            filteredTrucks.value.forEach((t, idx) => {
+                const row = sheet.addRow([
+                    idx + 1,
+                    t.ticketNo || '',
+                    t.plateNumber || '',
+                    t.driver || '',
+                    Number(t.weight1) || 0,
+                    Number(t.weight2) || 0,
+                    Number(t.weightNet) || 0,
+                    t.dateIn ? formatDateTimeStr(t.dateIn) : '',
+                    t.dateOut ? formatDateTimeStr(t.dateOut) : '',
+                    t.note || ''
+                ]);
+                totalWeightNet += (Number(t.weightNet) || 0);
+                
+                row.font = { name: 'Segoe UI', size: 11 };
+                row.height = 20;
+                row.eachCell((cell, colNumber) => {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'F3F4F6' } },
+                        left: { style: 'thin', color: { argb: 'F3F4F6' } },
+                        bottom: { style: 'thin', color: { argb: 'F3F4F6' } },
+                        right: { style: 'thin', color: { argb: 'F3F4F6' } }
+                    };
+                    
+                    if (colNumber === 1 || colNumber === 2 || colNumber === 3 || colNumber === 8 || colNumber === 9) {
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    } else if (colNumber === 5 || colNumber === 6 || colNumber === 7) {
+                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                        cell.numFmt = '#,##0';
+                    } else {
+                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    }
+                });
+            });
+            
+            const totalRow = sheet.addRow([
+                'TỔNG CỘNG',
+                '',
+                '',
+                '',
+                '',
+                '',
+                totalWeightNet,
+                '',
+                '',
+                ''
+            ]);
+            sheet.mergeCells(`A${totalRow.number}:F${totalRow.number}`);
+            
+            totalRow.font = { name: 'Segoe UI', size: 11, bold: true };
+            totalRow.height = 22;
+            totalRow.eachCell((cell, colNumber) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    left: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    bottom: { style: 'thin', color: { argb: 'E5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'E5E7EB' } }
+                };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFF5EBE6' }
+                };
+                if (colNumber === 1) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else if (colNumber === 7) {
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                    cell.numFmt = '#,##0';
+                }
+            });
+            
+            sheet.columns.forEach((col, idx) => {
+                let maxLen = 10;
+                sheet.eachRow((row, rowNumber) => {
+                    if (rowNumber >= 4) {
+                        const val = row.getCell(idx + 1).value;
+                        if (val) maxLen = Math.max(maxLen, String(val).length);
+                    }
+                });
+                col.width = maxLen + 4;
+            });
+            
+            const buffer = await workbook.xlsx.writeBuffer();
+            excelService.downloadFile(
+                buffer, 
+                `Danh_Sach_Xe_Can_Sa_Lan_${barge.name}_${new Date().toISOString().slice(0, 10)}.xlsx`, 
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            );
+            
+            showToast('Xuất tệp Excel danh sách xe thành công! 📊', 'success');
+            await LogService.logAction('Xuất Excel', `Xuất danh sách xe cân sà lan ${barge.name} ra Excel`);
+            exportingActiveBargeTrucks.value = false;
+        }).catch((err) => {
+            console.error('Error exporting active barge trucks:', err);
+            showToast('Có lỗi xảy ra khi xuất Excel!', 'error');
+            exportingActiveBargeTrucks.value = false;
+        });
+    } catch (e) {
+        console.error('Error in exportActiveBargeTrucksToExcel:', e);
+        showToast('Có lỗi xảy ra khi xuất Excel!', 'error');
+        exportingActiveBargeTrucks.value = false;
     }
 };
 
@@ -4331,6 +4510,15 @@ onUnmounted(() => {
                                         >
                                             <span class="material-symbols-outlined !text-[15px] leading-none">print</span>
                                             In hàng loạt (A5)
+                                        </button>
+                                        <button 
+                                            @click="exportActiveBargeTrucksToExcel"
+                                            :disabled="exportingActiveBargeTrucks || filteredTrucks.length === 0"
+                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
+                                        >
+                                            <span v-if="exportingActiveBargeTrucks" class="material-symbols-outlined !text-[15px] leading-none animate-spin">sync</span>
+                                            <span v-else class="material-symbols-outlined !text-[15px] leading-none">download</span>
+                                            Xuất Excel
                                         </button>
                                     </div>
                                 </div>
