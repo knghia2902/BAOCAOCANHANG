@@ -72,9 +72,12 @@ export interface BargeConfig {
     // Crew & Movement details
     captain?: string;
     captainGrade?: string;
+    captainCccd?: string;
     chiefEngineer?: string;
     chiefEngineerGrade?: string;
+    chiefEngineerCccd?: string;
     sailors?: string;
+    sailorsCccd?: string;
     hasCrewBook?: boolean;
     arrivalTime?: string;
     departureTime?: string;

@@ -52,9 +52,12 @@ const editBhExpiryDate = ref('');
 // New Crew & Movement fields
 const editCaptain = ref('');
 const editCaptainGrade = ref('');
+const editCaptainCccd = ref('');
 const editChiefEngineer = ref('');
 const editChiefEngineerGrade = ref('');
+const editChiefEngineerCccd = ref('');
 const editSailors = ref('');
+const editSailorsCccd = ref('');
 const editHasCrewBook = ref(false);
 const editArrivalTime = ref('');
 const editDepartureTime = ref('');
@@ -676,9 +679,12 @@ function openEdit(item: { barge: Barge; vesselName: string }) {
     // Set crew & movement fields
     editCaptain.value = config.captain || '';
     editCaptainGrade.value = config.captainGrade || '';
+    editCaptainCccd.value = config.captainCccd || '';
     editChiefEngineer.value = config.chiefEngineer || '';
     editChiefEngineerGrade.value = config.chiefEngineerGrade || '';
+    editChiefEngineerCccd.value = config.chiefEngineerCccd || '';
     editSailors.value = config.sailors || '';
+    editSailorsCccd.value = config.sailorsCccd || '';
     editHasCrewBook.value = config.hasCrewBook || false;
     editArrivalTime.value = config.arrivalTime || '';
     editDepartureTime.value = config.departureTime || '';
@@ -871,9 +877,12 @@ async function saveProfile() {
             
             captain: editCaptain.value.trim(),
             captainGrade: editCaptainGrade.value.trim(),
+            captainCccd: editCaptainCccd.value.trim(),
             chiefEngineer: editChiefEngineer.value.trim(),
             chiefEngineerGrade: editChiefEngineerGrade.value.trim(),
+            chiefEngineerCccd: editChiefEngineerCccd.value.trim(),
             sailors: editSailors.value.trim(),
+            sailorsCccd: editSailorsCccd.value.trim(),
             hasCrewBook: editHasCrewBook.value,
             arrivalTime: editArrivalTime.value ? `${sanitizeDate(editArrivalTime.value.split('T')[0])}T${editArrivalTime.value.split('T')[1] || '00:00'}` : '',
             departureTime: editDepartureTime.value ? `${sanitizeDate(editDepartureTime.value.split('T')[0])}T${editDepartureTime.value.split('T')[1] || '00:00'}` : '',
@@ -1781,14 +1790,18 @@ onUnmounted(() => {
                                 Thông tin thuyền viên
                             </span>
                             
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-3 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Thuyền trưởng</label>
                                     <input v-model="editCaptain" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
+                                    <label class="text-xs font-bold text-gray-400 uppercase">Số CCCD</label>
+                                    <input v-model="editCaptainCccd" type="text" placeholder="Số căn cước" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                </div>
+                                <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
-                                        <span>Hạng thuyền trưởng</span>
+                                        <span>Hạng</span>
                                         <span v-if="computedExpectedCaptainGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedCaptainGrade }}</span>
                                     </label>
                                     <div ref="captainGradeDropdownRef" class="relative">
@@ -1828,14 +1841,18 @@ onUnmounted(() => {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-3 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase">Máy trưởng</label>
                                     <input v-model="editChiefEngineer" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
+                                    <label class="text-xs font-bold text-gray-400 uppercase">Số CCCD</label>
+                                    <input v-model="editChiefEngineerCccd" type="text" placeholder="Số căn cước" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
+                                </div>
+                                <div class="space-y-1">
                                     <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
-                                        <span>Hạng máy trưởng</span>
+                                        <span>Hạng</span>
                                         <span v-if="computedExpectedChiefEngineerGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedChiefEngineerGrade }}</span>
                                     </label>
                                     <div ref="chiefEngineerGradeDropdownRef" class="relative">
@@ -1875,18 +1892,31 @@ onUnmounted(() => {
                                 </div>
                             </div>
 
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
-                                    <span>Thủy thủ</span>
-                                    <span v-if="isComputedSailorRequired" class="text-teal-600 font-bold normal-case">Bắt buộc (Trọng tải ≥ 500 tấn)</span>
-                                    <span v-else class="text-gray-400 font-normal normal-case">Không bắt buộc</span>
-                                </label>
-                                <textarea 
-                                    v-model="editSailors" 
-                                    rows="2" 
-                                    placeholder="Danh sách thủy thủ đoàn..." 
-                                    class="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] resize-none"
-                                ></textarea>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
+                                        <span>Thủy thủ</span>
+                                        <span v-if="isComputedSailorRequired" class="text-teal-600 font-bold normal-case">Bắt buộc (Trọng tải ≥ 500 tấn)</span>
+                                        <span v-else class="text-gray-400 font-normal normal-case">Không bắt buộc</span>
+                                    </label>
+                                    <textarea 
+                                        v-model="editSailors" 
+                                        rows="2" 
+                                        placeholder="Danh sách thủy thủ đoàn..." 
+                                        class="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] resize-none"
+                                    ></textarea>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
+                                        <span>Số CCCD Thủy thủ</span>
+                                    </label>
+                                    <textarea 
+                                        v-model="editSailorsCccd" 
+                                        rows="2" 
+                                        placeholder="Số CCCD tương ứng..." 
+                                        class="w-full p-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b] resize-none"
+                                    ></textarea>
+                                </div>
                             </div>
 
                             <div class="flex items-center gap-2 pt-1">
