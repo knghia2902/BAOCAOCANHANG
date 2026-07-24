@@ -1792,15 +1792,15 @@ onUnmounted(() => {
                             
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase">Thuyền trưởng</label>
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-end h-5">Thuyền trưởng</label>
                                     <input v-model="editCaptain" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase">Số CCCD</label>
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-end h-5">Số CCCD</label>
                                     <input v-model="editCaptainCccd" type="text" placeholder="Số căn cước" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-end justify-between h-5">
                                         <span>Hạng</span>
                                         <span v-if="computedExpectedCaptainGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedCaptainGrade }}</span>
                                     </label>
@@ -1843,15 +1843,15 @@ onUnmounted(() => {
 
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase">Máy trưởng</label>
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-end h-5">Máy trưởng</label>
                                     <input v-model="editChiefEngineer" type="text" placeholder="Họ và tên" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase">Số CCCD</label>
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-end h-5">Số CCCD</label>
                                     <input v-model="editChiefEngineerCccd" type="text" placeholder="Số căn cước" class="w-full h-8 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-[#1e293b]" />
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-center justify-between">
+                                    <label class="text-xs font-bold text-gray-400 uppercase flex items-end justify-between h-5">
                                         <span>Hạng</span>
                                         <span v-if="computedExpectedChiefEngineerGrade" class="text-teal-600 font-bold normal-case">Yêu cầu: {{ computedExpectedChiefEngineerGrade }}</span>
                                     </label>
