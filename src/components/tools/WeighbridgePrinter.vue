@@ -2760,25 +2760,16 @@ async function autoSyncAllBarges(isManual = false) {
 
                 const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
                 
-                // Count-based dedup: count trips per plate on existing barge
                 const normPlate = (p: string) => p.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-                const existingCountByPlate = new Map<string, number>();
-                currentTrucks.forEach(ct => {
-                    const plate = normPlate(ct.plateNumber || '');
-                    existingCountByPlate.set(plate, (existingCountByPlate.get(plate) || 0) + 1);
-                });
-
-                const seenByPlate = new Map<string, number>();
-                const tripsToAdd: Truck[] = [];
-                importedTrucks.forEach(tr => {
-                    const plate = normPlate(tr.plateNumber || '');
-                    const seen = (seenByPlate.get(plate) || 0) + 1;
-                    seenByPlate.set(plate, seen);
-
-                    const existingCount = existingCountByPlate.get(plate) || 0;
-                    if (seen > existingCount) {
-                        tripsToAdd.push(tr);
+                const tripsToAdd = importedTrucks.filter(tr => {
+                    if (tr.ticketNo) {
+                        return !currentTrucks.some(ct => ct.ticketNo === tr.ticketNo);
                     }
+                    return !currentTrucks.some(ct => 
+                        normPlate(ct.plateNumber || '') === normPlate(tr.plateNumber || '') && 
+                        ct.weightNet === tr.weightNet &&
+                        ct.dateOut === tr.dateOut
+                    );
                 });
 
                 const mergedTrucks = [...currentTrucks, ...tripsToAdd];
@@ -2972,31 +2963,16 @@ const syncFromAllocatorActiveBarge = async () => {
             }
             allTrucks = importedTrucks;
         } else {
-            // Count-based dedup: count trips per plate on existing barge
             const normPlate = (p: string) => p.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-            const existingCountByPlate = new Map<string, number>();
-            currentTrucks.forEach(ct => {
-                const plate = normPlate(ct.plateNumber || '');
-                existingCountByPlate.set(plate, (existingCountByPlate.get(plate) || 0) + 1);
-            });
-
-            // Track how many incoming trips we've seen per plate
-            const seenByPlate = new Map<string, number>();
-            const tripsToAdd: Truck[] = [];
-
-            // Incoming trips are chronologically sorted (day 20 before day 21),
-            // so the first N trips per plate match existing, anything beyond N is new
-            importedTrucks.forEach(tr => {
-                const plate = normPlate(tr.plateNumber || '');
-                const seen = (seenByPlate.get(plate) || 0) + 1;
-                seenByPlate.set(plate, seen);
-
-                const existingCount = existingCountByPlate.get(plate) || 0;
-                if (seen > existingCount) {
-                    // This trip is beyond what's already on the barge → genuinely new
-                    tripsToAdd.push(tr);
+            const tripsToAdd = importedTrucks.filter(tr => {
+                if (tr.ticketNo) {
+                    return !currentTrucks.some(ct => ct.ticketNo === tr.ticketNo);
                 }
-                // else: already represented on barge → skip
+                return !currentTrucks.some(ct => 
+                    normPlate(ct.plateNumber || '') === normPlate(tr.plateNumber || '') && 
+                    ct.weightNet === tr.weightNet &&
+                    ct.dateOut === tr.dateOut
+                );
             });
 
             allTrucks = [...currentTrucks, ...tripsToAdd];
