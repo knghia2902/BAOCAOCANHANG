@@ -8,6 +8,10 @@ A personal portfolio website and utility dashboard for Ngoc Anh. It displays her
 
 Enable serverless, high-performance client-side document processing and formatting tools directly within the browser, keeping user files private and secure.
 
+## Current State
+
+Shipped version **v1.0** containing PDF parsing, client-side OCR, and Word/Excel conversion pipelines. The site is fully functional, serverless, and runs directly in the user's browser.
+
 ## Requirements
 
 ### Validated
@@ -19,14 +23,15 @@ Enable serverless, high-performance client-side document processing and formatti
 - ✓ User can merge multiple Excel (.xlsx) files matching a primary key client-side — v0
 - ✓ User can convert Excel to CSV / JSON, and CSV to Excel client-side — v0
 - ✓ Unique visitors tracked via 30-day client-side localStorage checks — v0
+- ✓ User can convert digital and scanned PDF files to Excel (.xlsx) format client-side — v1.0 (Phase 2)
+- ✓ User can convert digital and scanned PDF files to Word (.docx) format client-side — v1.0 (Phase 2)
+- ✓ User can convert Word (.docx) and Excel (.xlsx) documents to PDF format client-side — v1.0 (Phase 3)
+- ✓ User can perform OCR on scanned PDF pages and uploaded images to extract text — v1.0 (Phase 2)
+- ✓ User interface displays status indicators, conversion progress bars, and document previews for PDF/OCR conversions — v1.0 (Phase 4)
 
 ### Active
 
-- [ ] User can convert digital and scanned PDF files to Excel (.xlsx) format client-side, reconstructing structured tables.
-- [ ] User can convert digital and scanned PDF files to Word (.docx) format client-side, preserving text layouts and headings.
-- [ ] User can convert Word (.docx) and Excel (.xlsx) documents to PDF format client-side.
-- [ ] User can perform OCR (Optical Character Recognition) on scanned PDF pages and uploaded images (PNG, JPG) to extract text and structure.
-- [ ] User interface displays status indicators, conversion progress bars, and document previews for the PDF/OCR conversions.
+(None - All milestone requirements completed. Ready for next milestone definitions.)
 
 ### Out of Scope
 
@@ -38,7 +43,7 @@ Enable serverless, high-performance client-side document processing and formatti
 - The codebase is a Vue 3 (Composition API) SPA built with TypeScript, Tailwind CSS, and Vite.
 - Supabase is used as a backend for portfolio content, message history, and visitor statistics.
 - Already contains client-side Excel tools built with `exceljs`.
-- The user wishes to expand the utility suite with client-side OCR and PDF conversions.
+- Shipped client-side OCR, PDF extraction, and document conversion pipelines under v1.0.
 
 ## Constraints
 
@@ -50,25 +55,9 @@ Enable serverless, high-performance client-side document processing and formatti
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Client-side OCR (Tesseract.js) | Serverless execution, no cloud hosting fees, high security for user documents | — Pending |
-| Client-side PDF Parsing (pdfjs-dist) | Powerful library to parse digital PDFs and render pages into canvases for OCR | — Pending |
-
-## Evolution
-
-This document evolves at phase transitions and milestone boundaries.
-
-**After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
+| Client-side OCR (Tesseract.js) | Serverless execution, no cloud hosting fees, high security for user documents | ✓ Good |
+| Client-side PDF Parsing (pdfjs-dist) | Powerful library to parse digital PDFs and render pages into canvases for OCR | ✓ Good |
+| ticketNo-based deduplication | Prevents skipping new trips when a plate number has existing trips on the barge | ✓ Good |
 
 ---
-*Last updated: 2026-05-29 after project initialization*
+*Last updated: 2026-07-25 after v1.0 milestone*
