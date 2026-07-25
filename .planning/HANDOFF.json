@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-25T09:06:05Z",
+  "phase": "4",
+  "phase_name": "ui-integration-formats-dashboard",
+  "phase_dir": ".planning/phases/04-ui-integration-formats-dashboard",
+  "plan": 2,
+  "task": 2,
+  "total_tasks": 2,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Integrate crew CCCD fields in UI and configuration", "status": "done", "commit": "3f18aa7"},
+    {"id": 2, "name": "Align crew profile form labels and fix sync deduplication logic", "status": "done", "commit": "bad320e"}
+  ],
+  "remaining_tasks": [],
+  "blockers": [],
+  "async_jobs": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Use ticketNo-based deduplication instead of count-based plate matching", "rationale": "Prevents skipping new trips when a plate number has existing trips on the barge but the new sync contains different trips", "phase": "4"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Complete and archive milestone v1.0 using the /gsd-complete-milestone command.",
+  "context_notes": "We successfully aligned all form input layouts, added Captain/Chief Engineer/Sailors CCCD fields, and fixed the sync deduplication bug. The system is fully working and verified."
+}
