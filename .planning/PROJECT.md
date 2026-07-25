@@ -8,6 +8,16 @@ A personal portfolio website and utility dashboard for Ngoc Anh. It displays her
 
 Enable serverless, high-performance client-side document processing and formatting tools directly within the browser, keeping user files private and secure.
 
+## Current Milestone: v1.1 Theo dõi Cân Kho và Container
+
+**Goal:** Quản lý dữ liệu cân hàng nhập kho và xuất/nhập container tập trung trên Supabase và hiển thị trong Tiện ích quản lý.
+
+**Target features:**
+- User can import Excel weight list files for warehouse receipt (factory to warehouse) and container shipments.
+- Database records are stored centrally in Supabase.
+- User can search/filter imported weighbridge records and export results back to Excel (.xlsx).
+- Access control for the new lookup interface integrated into the left sidebar menu of CargoAllocator.
+
 ## Current State
 
 Shipped version **v1.0** containing PDF parsing, client-side OCR, and Word/Excel conversion pipelines. The site is fully functional, serverless, and runs directly in the user's browser.
@@ -31,7 +41,10 @@ Shipped version **v1.0** containing PDF parsing, client-side OCR, and Word/Excel
 
 ### Active
 
-(None - All milestone requirements completed. Ready for next milestone definitions.)
+- [ ] User can import Excel (.xlsx) files for warehouse receipts (factory-to-warehouse) and container shipments (export/import) using the same weighbridge data format.
+- [ ] Database schema is created on Supabase to store imported warehouse/container weighbridge records centrally.
+- [ ] User can query/filter imported records by container number, plate number, date range, etc., and export the filtered results back to Excel.
+- [ ] The new lookup tool is integrated into the left sidebar menu of the "Tiện ích quản lý" (CargoAllocator.vue).
 
 ### Out of Scope
 
@@ -58,6 +71,23 @@ Shipped version **v1.0** containing PDF parsing, client-side OCR, and Word/Excel
 | Client-side OCR (Tesseract.js) | Serverless execution, no cloud hosting fees, high security for user documents | ✓ Good |
 | Client-side PDF Parsing (pdfjs-dist) | Powerful library to parse digital PDFs and render pages into canvases for OCR | ✓ Good |
 | ticketNo-based deduplication | Prevents skipping new trips when a plate number has existing trips on the barge | ✓ Good |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
 *Last updated: 2026-07-25 after v1.0 milestone*

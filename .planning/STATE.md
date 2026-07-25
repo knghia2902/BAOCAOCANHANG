@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Session resumed, proceeding to milestone completion or next task
-last_updated: "2026-07-25T09:10:37.342Z"
+milestone: v1.1
+milestone_name: Theo dõi Cân Kho và Container
+status: planning
+last_updated: "2026-07-25T09:42:24.293Z"
 last_activity: 2026-07-25
-last_activity_desc: Milestone v1.0 completed and archived
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-05-29)
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-25 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-25 — Milestone v1.1 started
 
 ## Performance Metrics
 
