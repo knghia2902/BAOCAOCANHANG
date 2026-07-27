@@ -10,8 +10,8 @@ const { addToast } = useToast();
 
 const activeTab = ref<'warehouse' | 'container'>('warehouse');
 const loading = ref(false);
-const tickets = ref<any[]>([]);
-const previewTickets = ref<any[]>([]);
+const tickets = ref<(WarehouseTicket | ContainerTicket)[]>([]);
+const previewTickets = ref<(WarehouseTicket | ContainerTicket)[]>([]);
 const searchQuery = ref('');
 
 // Pagination state
@@ -66,7 +66,7 @@ const filteredTickets = computed(() => {
         const driver = String(t.driver || '').toLowerCase();
         const goods = String(t.goodsName || '').toLowerCase();
         const note = String(t.note || '').toLowerCase();
-        const cont = activeTab.value === 'container' ? String(t.containerNo || '').toLowerCase() : '';
+        const cont = activeTab.value === 'container' ? String((t as any).containerNo || '').toLowerCase() : '';
 
         return (
             ticketNo.includes(query) ||
@@ -142,7 +142,7 @@ const processExcelFile = async (file: File) => {
         const parsed = await weighbridgeOtherService.parseExcelFile(arrayBuffer, activeTab.value);
         
         if (parsed.length === 0) {
-            addToast('Không tìm thấy dòng dữ liệu hợp lệ trong tệp Excel!', 'warning');
+            addToast('Không tìm thấy dòng dữ liệu hợp lệ trong tệp Excel!', 'info');
             previewTickets.value = [];
             selectedFileName.value = '';
         } else {
@@ -413,7 +413,7 @@ const formatDate = (isoString: any) => {
                             <td class="px-4 py-2.5 font-mono text-[11px] text-gray-500">{{ formatDate(t.dateIn) }}</td>
                             <td class="px-4 py-2.5 font-mono text-[11px] text-gray-500">{{ formatDate(t.dateOut) }}</td>
                             <td class="px-4 py-2.5 text-slate-600">{{ t.goodsName || '-' }}</td>
-                            <td v-if="activeTab === 'container'" class="px-4 py-2.5 font-mono font-bold text-slate-700">{{ t.containerNo || '-' }}</td>
+                            <td v-if="activeTab === 'container'" class="px-4 py-2.5 font-mono font-bold text-slate-700">{{ (t as any).containerNo || '-' }}</td>
                             <td class="px-4 py-2.5 text-slate-500 max-w-[200px] truncate" :title="t.note">{{ t.note || '-' }}</td>
                             <td class="px-4 py-2.5 text-center">
                                 <button

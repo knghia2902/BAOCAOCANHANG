@@ -105,8 +105,10 @@ export class WeighbridgeOtherService {
             const nameLower = String(cell).toLowerCase().trim();
 
             Object.keys(keywords).forEach((field) => {
-                if (mapping[field] !== -1) return;
-                if (keywords[field].some((kw) => nameLower.includes(kw))) {
+                const currentVal = mapping[field];
+                if (currentVal !== undefined && currentVal !== -1) return;
+                const kwList = keywords[field];
+                if (kwList && kwList.some((kw) => nameLower.includes(kw))) {
                     mapping[field] = idx;
                 }
             });
@@ -117,12 +119,24 @@ export class WeighbridgeOtherService {
             throw new Error('Tệp quá lớn, số lượng dòng tối đa cho phép là 50,000!');
         }
 
+        // Resolve mapped columns to local variables
+        const plateCol = mapping.plateNumber ?? -1;
+        const wNetCol = mapping.weightNet ?? -1;
+
         // Required columns validation
-        const required = ['plateNumber', 'weightNet'];
-        const missing = required.filter(f => mapping[f] === -1);
-        if (missing.length > 0) {
+        if (plateCol === -1 || wNetCol === -1) {
             throw new Error('File Excel thiếu các cột bắt buộc: Biển số xe hoặc Khối lượng tịnh!');
         }
+
+        const w1Col = mapping.weight1 ?? -1;
+        const w2Col = mapping.weight2 ?? -1;
+        const dateInCol = mapping.dateIn ?? -1;
+        const dateOutCol = mapping.dateOut ?? -1;
+        const driverCol = mapping.driver ?? -1;
+        const noteCol = mapping.note ?? -1;
+        const ticketNoCol = mapping.ticketNo ?? -1;
+        const goodsNameCol = mapping.goodsName ?? -1;
+        const containerNoCol = mapping.containerNo ?? -1;
 
         const tickets: any[] = [];
         const startRow = headerRowIndex + 1;
@@ -131,36 +145,36 @@ export class WeighbridgeOtherService {
             const row = rawRows[r];
             if (!row || row.length === 0) continue;
 
-            const plateRaw = mapping.plateNumber !== -1 ? row[mapping.plateNumber] : null;
+            const plateRaw = plateCol !== -1 ? row[plateCol] : null;
             if (plateRaw === undefined || plateRaw === null || String(plateRaw).trim() === '') continue;
 
             const plate = String(plateRaw).trim().toUpperCase();
 
             // Extract weights cleanly (T-05-02-02 sanitize inputs)
-            const w1 = mapping.weight1 !== -1 && row[mapping.weight1] !== undefined && row[mapping.weight1] !== null
-                ? parseFloat(String(row[mapping.weight1]).replace(/[^0-9.-]/g, '')) || 0
+            const w1 = w1Col !== -1 && row[w1Col] !== undefined && row[w1Col] !== null
+                ? parseFloat(String(row[w1Col]).replace(/[^0-9.-]/g, '')) || 0
                 : 0;
 
-            const w2 = mapping.weight2 !== -1 && row[mapping.weight2] !== undefined && row[mapping.weight2] !== null
-                ? parseFloat(String(row[mapping.weight2]).replace(/[^0-9.-]/g, '')) || 0
+            const w2 = w2Col !== -1 && row[w2Col] !== undefined && row[w2Col] !== null
+                ? parseFloat(String(row[w2Col]).replace(/[^0-9.-]/g, '')) || 0
                 : 0;
 
             let wNet = 0;
-            if (mapping.weightNet !== -1 && row[mapping.weightNet] !== undefined && row[mapping.weightNet] !== null) {
-                wNet = parseFloat(String(row[mapping.weightNet]).replace(/[^0-9.-]/g, '')) || 0;
+            if (wNetCol !== -1 && row[wNetCol] !== undefined && row[wNetCol] !== null) {
+                wNet = parseFloat(String(row[wNetCol]).replace(/[^0-9.-]/g, '')) || 0;
             }
             if (wNet === 0) {
                 wNet = Math.abs(w1 - w2);
             }
 
-            const dIn = mapping.dateIn !== -1 && row[mapping.dateIn] ? this.parseExcelDate(row[mapping.dateIn]) : null;
-            const dOut = mapping.dateOut !== -1 && row[mapping.dateOut] ? this.parseExcelDate(row[mapping.dateOut]) : null;
+            const dIn = dateInCol !== -1 && row[dateInCol] ? this.parseExcelDate(row[dateInCol]) : null;
+            const dOut = dateOutCol !== -1 && row[dateOutCol] ? this.parseExcelDate(row[dateOutCol]) : null;
 
-            const driver = mapping.driver !== -1 && row[mapping.driver] ? String(row[mapping.driver]).trim() : null;
-            const note = mapping.note !== -1 && row[mapping.note] ? String(row[mapping.note]).trim() : null;
+            const driver = driverCol !== -1 && row[driverCol] ? String(row[driverCol]).trim() : null;
+            const note = noteCol !== -1 && row[noteCol] ? String(row[noteCol]).trim() : null;
 
-            let ticketNo = mapping.ticketNo !== -1 && row[mapping.ticketNo] !== undefined && row[mapping.ticketNo] !== null
-                ? String(row[mapping.ticketNo]).trim()
+            let ticketNo = ticketNoCol !== -1 && row[ticketNoCol] !== undefined && row[ticketNoCol] !== null
+                ? String(row[ticketNoCol]).trim()
                 : '';
 
             if (!ticketNo) {
@@ -169,7 +183,7 @@ export class WeighbridgeOtherService {
             }
 
             if (type === 'warehouse') {
-                const goodsName = mapping.goodsName !== -1 && row[mapping.goodsName] ? String(row[mapping.goodsName]).trim() : null;
+                const goodsName = goodsNameCol !== -1 && row[goodsNameCol] ? String(row[goodsNameCol]).trim() : null;
                 const ticket: WarehouseTicket = {
                     ticketNo,
                     plateNumber: plate,
@@ -184,8 +198,8 @@ export class WeighbridgeOtherService {
                 };
                 tickets.push(ticket);
             } else {
-                const containerNo = mapping.containerNo !== -1 && row[mapping.containerNo] ? String(row[mapping.containerNo]).trim() : null;
-                const goodsName = mapping.goodsName !== -1 && row[mapping.goodsName] ? String(row[mapping.goodsName]).trim() : null;
+                const containerNo = containerNoCol !== -1 && row[containerNoCol] ? String(row[containerNoCol]).trim() : null;
+                const goodsName = goodsNameCol !== -1 && row[goodsNameCol] ? String(row[goodsNameCol]).trim() : null;
                 const ticket: ContainerTicket = {
                     ticketNo,
                     plateNumber: plate,
