@@ -83,3 +83,41 @@ export interface MergeResult {
     fuzzyMatches: number;
     error?: string;
 }
+
+/**
+ * Record of a warehouse weighbridge ticket (nhập hàng nhà máy -> kho)
+ */
+export interface WarehouseTicket {
+    id?: number;
+    ticketNo: string;
+    plateNumber: string;
+    driver?: string;
+    weight1?: number;
+    weight2?: number;
+    weightNet: number;
+    dateIn?: string | Date;
+    dateOut?: string | Date;
+    goodsName?: string;
+    note?: string;
+    createdAt?: string | Date;
+}
+
+/**
+ * Record of a container weighbridge ticket (xuất/nhập container)
+ */
+export interface ContainerTicket {
+    id?: number;
+    ticketNo: string;
+    plateNumber: string;
+    driver?: string;
+    weight1?: number;
+    weight2?: number;
+    weightNet: number;
+    dateIn?: string | Date;
+    dateOut?: string | Date;
+    containerNo?: string;
+    goodsName?: string;
+    note?: string;
+    createdAt?: string | Date;
+}
+
