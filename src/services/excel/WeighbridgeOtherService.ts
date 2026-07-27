@@ -1,7 +1,7 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
 import * as ExcelJS from 'exceljs';
-import { WarehouseTicket, ContainerTicket } from '@/types/excel';
+import type { WarehouseTicket, ContainerTicket } from '@/types/excel';
 
 export class WeighbridgeOtherService {
     /**

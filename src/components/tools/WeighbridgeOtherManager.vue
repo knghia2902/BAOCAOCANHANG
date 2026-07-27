@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { weighbridgeOtherService } from '@/services/excel/WeighbridgeOtherService';
-import { WarehouseTicket, ContainerTicket } from '@/types/excel';
+import type { WarehouseTicket, ContainerTicket } from '@/types/excel';
 import { authStore, canCreate, canDelete } from '@/stores/auth';
 import { LogService } from '@/services/storage/LogService';
 
