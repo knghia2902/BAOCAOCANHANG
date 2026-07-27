@@ -35,7 +35,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
     - 05-01: Create Supabase table schema and TypeScript models.
     - 05-02: Implement WeighbridgeOtherService.ts with Excel parsing and Supabase CRUD.
 
-- [ ] **Phase 6: UI Dashboard & Sidebar Navigation**
+- [x] **Phase 6: UI Dashboard & Sidebar Navigation**
   - **Goal**: Integrate the lookup dashboard into the left sidebar of CargoAllocator.vue and build the core import/table views.
   - **Depends on**: Phase 5
   - **Requirements**: UI-01, UI-02
@@ -67,5 +67,5 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 3. Pipelines | v1.0 | 2/2 | Complete | 2026-05-30 |
 | 4. UI Dashboard | v1.0 | 2/2 | Complete | 2026-06-01 |
 | 5. Schema & Service | v1.1 | 2/2 | Complete | 2026-07-27 |
-| 6. UI Integration | v1.1 | 0/2 | Not started | - |
+| 6. UI Integration | v1.1 | 2/2 | Complete | 2026-07-27 |
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
