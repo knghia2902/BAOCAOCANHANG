@@ -23,7 +23,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 
 ### 🚧 v1.1 Theo dõi Cân Kho và Container (In Progress / Planned)
 
-- [ ] **Phase 5: Supabase Schema & WeighbridgeOtherService**
+- [x] **Phase 5: Supabase Schema & WeighbridgeOtherService**
   - **Goal**: Create Supabase table `weighbridge_other_tickets` and implement `WeighbridgeOtherService.ts` for Excel import/parsing and Supabase CRUD.
   - **Depends on**: v1.0
   - **Requirements**: IMP-01, IMP-02, DB-01, DB-02
@@ -66,6 +66,6 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 2. Parsing & OCR | v1.0 | 3/3 | Complete | 2026-05-29 |
 | 3. Pipelines | v1.0 | 2/2 | Complete | 2026-05-30 |
 | 4. UI Dashboard | v1.0 | 2/2 | Complete | 2026-06-01 |
-| 5. Schema & Service | v1.1 | 0/2 | Not started | - |
+| 5. Schema & Service | v1.1 | 2/2 | Complete | 2026-07-27 |
 | 6. UI Integration | v1.1 | 0/2 | Not started | - |
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
