@@ -230,7 +230,7 @@ const deleteTicket = async (ticket: any) => {
 </script>
 
 <template>
-    <div class="w-full flex-1 flex flex-col gap-5">
+    <div class="w-full flex flex-col gap-5">
         
         <!-- ═══ Card 1: Header & Tab switcher ═══ -->
         <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
@@ -278,7 +278,7 @@ const deleteTicket = async (ticket: any) => {
         </div>
 
         <!-- ═══ Card 3: Data Table + Search + Import + Pagination ═══ -->
-        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5 flex-1 min-h-0">
+        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5">
             <!-- Hidden file input -->
             <input 
                 type="file" 

@@ -122,8 +122,8 @@ const showImportBtn = computed(() => authStore.role === 'admin' || canCreate());
     </div>
 
     <!-- Table / List view -->
-    <div class="flex-1 min-h-0 flex flex-col">
-        <div class="overflow-hidden border border-slate-200/80 rounded-2xl flex-1 min-h-0">
+    <div class="flex flex-col">
+        <div class="overflow-hidden border border-slate-200/80 rounded-2xl">
             <div class="overflow-x-auto h-full">
                 <table class="min-w-full divide-y divide-slate-100 text-left border-collapse">
                     <thead class="bg-slate-50 sticky top-0 z-10">
