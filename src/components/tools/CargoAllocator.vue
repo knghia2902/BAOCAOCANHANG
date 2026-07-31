@@ -3357,7 +3357,7 @@ async function compileAndDownload() {
                 </div>
 
                 <!-- Chế độ 4: Lịch sử cân Kho & Container -->
-                <div v-else-if="activeSubViewMode === 'other_tickets'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
+                <div v-else-if="activeSubViewMode === 'other_tickets'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0 overflow-y-auto">
                     <WeighbridgeOtherManager />
                 </div>
 

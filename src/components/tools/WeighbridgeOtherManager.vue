@@ -230,7 +230,7 @@ const deleteTicket = async (ticket: any) => {
 </script>
 
 <template>
-    <div class="w-full flex flex-col gap-5">
+    <div class="w-full flex flex-col gap-5 pb-6">
         
         <!-- ═══ Card 1: Header & Tab switcher ═══ -->
         <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">

@@ -92,30 +92,37 @@ const showImportBtn = computed(() => authStore.role === 'admin' || canCreate());
         </div>
     </div>
 
-    <!-- Search toolbar + Import button -->
+    <!-- Search toolbar + Import button per CargoAllocator -->
     <div class="flex items-center justify-between gap-3">
-        <div class="relative flex-1 max-w-md">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+        <div class="relative w-full sm:w-[260px] h-7 flex items-center">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm select-none">search</span>
             <input 
                 type="text" 
                 v-model="localSearch" 
-                placeholder="Tìm kiếm biển số xe, số phiếu, loại hàng..."
-                class="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-primary transition-all text-slate-700 font-semibold placeholder:text-slate-400"
+                placeholder="Tìm kiếm..."
+                class="w-full pl-9 pr-8 h-7 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all text-slate-700 placeholder:text-slate-400"
             />
+            <button 
+                v-if="localSearch" 
+                @click="localSearch = ''" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary flex items-center"
+            >
+                <span class="material-symbols-outlined text-xs">close</span>
+            </button>
         </div>
 
-        <div class="flex items-center gap-2.5 shrink-0">
-            <div class="text-xs text-slate-500 font-semibold">
-                Tìm thấy <span class="text-slate-800 font-display font-black">{{ totalFiltered }}</span> bản ghi
+        <div class="flex items-center gap-2 shrink-0 h-7">
+            <div class="h-7 px-2.5 bg-slate-50 rounded-[8px] border border-slate-200 text-slate-600 flex items-center font-bold text-xs">
+                Tìm thấy: {{ totalFiltered }}
             </div>
 
-            <!-- Import button -->
+            <!-- Import button matching CargoAllocator -->
             <button
                 v-if="showImportBtn"
                 @click="$emit('import')"
-                class="px-3.5 py-2 bg-white border border-primary/20 hover:border-primary text-primary text-xs font-bold rounded-xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center gap-1.5"
+                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
             >
-                <span class="material-symbols-outlined text-sm">upload_file</span>
+                <span class="material-symbols-outlined text-[14px]">upload_file</span>
                 Import
             </button>
         </div>
