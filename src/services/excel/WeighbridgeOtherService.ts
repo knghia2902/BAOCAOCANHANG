@@ -83,42 +83,30 @@ export class WeighbridgeOtherService {
             throw new Error('File Excel rỗng!');
         }
 
-        // Fuzzy match headers
-        const keywords: Record<string, string[]> = {
-            ticketNo: ["số phiếu", "phiếu số", "phieu", "ticket", "mã phiếu", "ma phieu", "so phieu"],
-            plateNumber: ["số xe", "biển số", "biển xe", "xe", "sks", "số kiểm soát", "plate", "phương tiện"],
-            weight1: ["lần 1", "trọng lượng 1", "tl 1", "cân 1", "lần một", "gross", "tổng"],
-            weight2: ["lần 2", "trọng lượng 2", "tl 2", "cân 2", "lần hai", "tare", "xe", "xác"],
-            weightNet: ["hàng", "khối lượng hàng", "trọng lượng hàng", "tịnh", "net", "khối lượng tịnh", "kl tịnh"],
-            dateIn: ["giờ vào", "ngày vào", "vào", "thời gian vào", "ngày giờ vào", "time in"],
-            dateOut: ["giờ ra", "ngày ra", "ra", "thời gian ra", "ngày giờ ra", "time out"],
-            driver: ["tài xế", "tài", "lái xe", "tên tài xế", "driver"],
-            note: ["ghi chú", "note", "diễn giải", "ghi chú thêm"],
-            containerNo: ["container", "số container", "số cont", "cont no", "cont"],
-            goodsName: ["hàng hóa", "loại hàng", "tên hàng", "mặt hàng", "goods"]
-        };
-
+        // Smart header row search
         let headerRowIndex = -1;
-        let maxMatches = 0;
+        let maxScore = 0;
 
         for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
             const row = rawRows[r];
             if (!row || !Array.isArray(row)) continue;
 
-            let matches = 0;
+            let score = 0;
             row.forEach((cell) => {
                 if (cell === null || cell === undefined) return;
                 const val = String(cell).toLowerCase().trim();
+                if (!val) return;
 
-                Object.values(keywords).forEach((kwList) => {
-                    if (kwList.some((kw) => val.includes(kw))) {
-                        matches++;
-                    }
-                });
+                if (val.includes('phiếu') || val.includes('phieu') || val.includes('ticket') || val.includes('stt')) score += 2;
+                if (val.includes('xe') || val.includes('biển') || val.includes('sks') || val.includes('plate')) score += 3;
+                if (val.includes('hàng') || val.includes('hang') || val.includes('kl') || val.includes('net') || val.includes('tịnh') || val.includes('gross') || val.includes('tare')) score += 3;
+                if (val.includes('tài') || val.includes('lái') || val.includes('driver')) score += 1;
+                if (val.includes('vào') || val.includes('ra') || val.includes('ngày') || val.includes('giờ') || val.includes('time')) score += 1;
+                if (val.includes('cont')) score += 2;
             });
 
-            if (matches > maxMatches) {
-                maxMatches = matches;
+            if (score > maxScore) {
+                maxScore = score;
                 headerRowIndex = r;
             }
         }
@@ -127,53 +115,93 @@ export class WeighbridgeOtherService {
             headerRowIndex = 0;
         }
 
-        const headerRow = rawRows[headerRowIndex];
-        if (!headerRow) {
-            throw new Error('Không đọc được tiêu đề Excel!');
-        }
+        const headerRow = rawRows[headerRowIndex] || [];
 
-        const mapping: Record<string, number> = {};
-        Object.keys(keywords).forEach(field => {
-            mapping[field] = -1;
-        });
-
-        headerRow.forEach((cell, idx) => {
-            if (cell === null || cell === undefined) return;
-            const nameLower = String(cell).toLowerCase().trim();
-
-            Object.keys(keywords).forEach((field) => {
-                const currentVal = mapping[field];
-                if (currentVal !== undefined && currentVal !== -1) return;
-                const kwList = keywords[field];
-                if (kwList && kwList.some((kw) => nameLower.includes(kw))) {
-                    mapping[field] = idx;
+        // Match columns specifically using prioritized matcher functions
+        const findCol = (matchers: ((s: string) => boolean)[]): number => {
+            for (const matcher of matchers) {
+                for (let idx = 0; idx < headerRow.length; idx++) {
+                    const cell = headerRow[idx];
+                    if (cell === null || cell === undefined) continue;
+                    const s = String(cell).toLowerCase().trim();
+                    if (matcher(s)) return idx;
                 }
-            });
-        });
+            }
+            return -1;
+        };
+
+        const plateCol = findCol([
+            s => s.includes('biển số') || s.includes('sks') || s.includes('số kiểm soát') || s.includes('plate'),
+            s => s.includes('số xe') || s.includes('biển xe'),
+            s => s.includes('xe') && !s.includes('lái xe') && !s.includes('lai xe') && !s.includes('loại xe') && !s.includes('tên xe') && !s.includes('xác xe'),
+            s => s.includes('phương tiện')
+        ]);
+
+        const goodsNameCol = findCol([
+            s => s.includes('loại hàng') || s.includes('tên hàng') || s.includes('hàng hóa') || s.includes('mặt hàng') || s.includes('goods'),
+            s => s.includes('loại') && s.includes('hàng')
+        ]);
+
+        const wNetCol = findCol([
+            s => s.includes('kl tịnh') || s.includes('kl hàng') || s.includes('khối lượng tịnh') || s.includes('khối lượng hàng') || s.includes('trọng lượng hàng') || s.includes('trọng lượng tịnh'),
+            s => (s.includes('kl') && s.includes('hàng')) || (s.includes('khối lượng') && s.includes('hàng')) || (s.includes('trọng lượng') && s.includes('hàng')),
+            s => s.includes('tịnh') || s.includes('net'),
+            s => (s.includes('khối lượng') || s.includes('trọng lượng')) && !s.includes('1') && !s.includes('2') && !s.includes('gross') && !s.includes('tare')
+        ]);
+
+        const w1Col = findCol([
+            s => s.includes('lần 1') || s.includes('cân 1') || s.includes('lần một') || s.includes('gross') || s.includes('tl 1') || s.includes('kl 1'),
+            s => s.includes('tổng') || s.includes('bì')
+        ]);
+
+        const w2Col = findCol([
+            s => s.includes('lần 2') || s.includes('cân 2') || s.includes('lần hai') || s.includes('tare') || s.includes('tl 2') || s.includes('kl 2'),
+            s => s.includes('xác xe') || s.includes('xác')
+        ]);
+
+        const driverCol = findCol([
+            s => s.includes('tài xế') || s.includes('lái xe') || s.includes('tên tài') || s.includes('driver'),
+            s => s.includes('tài')
+        ]);
+
+        const ticketNoCol = findCol([
+            s => s.includes('số phiếu') || s.includes('mã phiếu') || s.includes('ticket') || s.includes('phieu') || s.includes('số p'),
+            s => s.includes('stt')
+        ]);
+
+        const containerNoCol = findCol([
+            s => s.includes('container') || s.includes('số cont') || s.includes('cont no') || s.includes('cont')
+        ]);
+
+        const dateInCol = findCol([
+            s => s.includes('giờ vào') || s.includes('ngày vào') || s.includes('vào') || s.includes('time in'),
+            s => s.includes('ngày 1') || s.includes('ngay 1')
+        ]);
+
+        const dateOutCol = findCol([
+            s => s.includes('giờ ra') || s.includes('ngày ra') || s.includes('ra') || s.includes('time out'),
+            s => s.includes('ngày 2') || s.includes('ngay 2')
+        ]);
+
+        const noteCol = findCol([
+            s => s.includes('ghi chú') || s.includes('note') || s.includes('diễn giải')
+        ]);
 
         // Validation constraints check (T-05-02-01 limit file processing)
         if (rawRows.length > 50000) {
             throw new Error('Tệp quá lớn, số lượng dòng tối đa cho phép là 50,000!');
         }
 
-        // Resolve mapped columns to local variables
-        const plateCol = mapping.plateNumber ?? -1;
-        const wNetCol = mapping.weightNet ?? -1;
-
         // Required columns validation
-        if (plateCol === -1 || wNetCol === -1) {
-            throw new Error('File Excel thiếu các cột bắt buộc: Biển số xe hoặc Khối lượng tịnh!');
+        if (plateCol === -1) {
+            const detectedHeaders = headerRow.map(c => String(c || '').trim()).filter(Boolean).join(', ');
+            throw new Error(`File Excel thiếu cột 'Biển số xe'! Các cột tìm thấy trong tệp: [${detectedHeaders || 'Không có'}]`);
         }
 
-        const w1Col = mapping.weight1 ?? -1;
-        const w2Col = mapping.weight2 ?? -1;
-        const dateInCol = mapping.dateIn ?? -1;
-        const dateOutCol = mapping.dateOut ?? -1;
-        const driverCol = mapping.driver ?? -1;
-        const noteCol = mapping.note ?? -1;
-        const ticketNoCol = mapping.ticketNo ?? -1;
-        const goodsNameCol = mapping.goodsName ?? -1;
-        const containerNoCol = mapping.containerNo ?? -1;
+        if (wNetCol === -1 && (w1Col === -1 || w2Col === -1)) {
+            const detectedHeaders = headerRow.map(c => String(c || '').trim()).filter(Boolean).join(', ');
+            throw new Error(`File Excel thiếu cột 'Khối lượng tịnh' hoặc cặp 'Trọng lượng lần 1' và 'lần 2'! Các cột tìm thấy: [${detectedHeaders || 'Không có'}]`);
+        }
 
         const tickets: any[] = [];
         const startRow = headerRowIndex + 1;
