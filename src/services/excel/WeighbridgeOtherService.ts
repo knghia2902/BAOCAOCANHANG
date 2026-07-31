@@ -30,6 +30,17 @@ function parseCSVToRows(text: string): string[][] {
     });
 }
 
+function removeAccents(str: string): string {
+    if (!str) return '';
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .trim();
+}
+
 export class WeighbridgeOtherService {
     /**
      * Parses Excel/CSV file buffer into raw rows and extracts tickets based on mapping
@@ -94,15 +105,16 @@ export class WeighbridgeOtherService {
             let score = 0;
             row.forEach((cell) => {
                 if (cell === null || cell === undefined) return;
-                const val = String(cell).toLowerCase().trim();
-                if (!val) return;
+                const rawVal = String(cell).toLowerCase().trim();
+                const cleanVal = removeAccents(rawVal);
+                if (!cleanVal) return;
 
-                if (val.includes('phiếu') || val.includes('phieu') || val.includes('ticket') || val.includes('stt')) score += 2;
-                if (val.includes('xe') || val.includes('biển') || val.includes('sks') || val.includes('plate')) score += 3;
-                if (val.includes('hàng') || val.includes('hang') || val.includes('kl') || val.includes('net') || val.includes('tịnh') || val.includes('gross') || val.includes('tare')) score += 3;
-                if (val.includes('tài') || val.includes('lái') || val.includes('driver')) score += 1;
-                if (val.includes('vào') || val.includes('ra') || val.includes('ngày') || val.includes('giờ') || val.includes('time')) score += 1;
-                if (val.includes('cont')) score += 2;
+                if (cleanVal.includes('phieu') || cleanVal.includes('ticket') || cleanVal.includes('stt')) score += 2;
+                if (cleanVal.includes('xe') || cleanVal.includes('bien') || cleanVal.includes('sks') || cleanVal.includes('plate')) score += 3;
+                if (cleanVal.includes('hang') || cleanVal.includes('kl') || cleanVal.includes('net') || cleanVal.includes('tinh') || cleanVal.includes('gross') || cleanVal.includes('tare')) score += 3;
+                if (cleanVal.includes('tai') || cleanVal.includes('lai') || cleanVal.includes('driver')) score += 1;
+                if (cleanVal.includes('vao') || cleanVal.includes('ra') || cleanVal.includes('ngay') || cleanVal.includes('gio') || cleanVal.includes('time')) score += 1;
+                if (cleanVal.includes('cont')) score += 2;
             });
 
             if (score > maxScore) {
@@ -117,82 +129,83 @@ export class WeighbridgeOtherService {
 
         const headerRow = rawRows[headerRowIndex] || [];
 
-        // Match columns specifically using prioritized matcher functions
+        // Match columns specifically using prioritized matcher functions (unaccented normalized matching)
         const findCol = (matchers: ((s: string) => boolean)[]): number => {
             for (const matcher of matchers) {
                 for (let idx = 0; idx < headerRow.length; idx++) {
                     const cell = headerRow[idx];
                     if (cell === null || cell === undefined) continue;
-                    const s = String(cell).toLowerCase().trim();
-                    if (matcher(s)) return idx;
+                    const rawStr = String(cell).toLowerCase().trim();
+                    const cleanStr = removeAccents(rawStr);
+                    if (matcher(rawStr) || matcher(cleanStr)) return idx;
                 }
             }
             return -1;
         };
 
         const plateCol = findCol([
-            s => s.includes('biển số') || s.includes('sks') || s.includes('số kiểm soát') || s.includes('plate'),
-            s => s.includes('số xe') || s.includes('biển xe'),
-            s => s.includes('xe') && !s.includes('lái xe') && !s.includes('lai xe') && !s.includes('loại xe') && !s.includes('tên xe') && !s.includes('xác xe'),
-            s => s.includes('phương tiện')
+            s => s.includes('bien so') || s.includes('bien xe') || s.includes('so kiem soat') || s.includes('sks') || s.includes('plate'),
+            s => s.includes('so xe'),
+            s => s.includes('xe') && !s.includes('lai xe') && !s.includes('loai xe') && !s.includes('ten xe') && !s.includes('xac xe') && !s.includes('sa lan') && !s.includes('salan'),
+            s => s.includes('phuong tien')
         ]);
 
         const goodsNameCol = findCol([
-            s => s.includes('loại hàng') || s.includes('tên hàng') || s.includes('hàng hóa') || s.includes('mặt hàng') || s.includes('goods'),
-            s => s.includes('loại') && s.includes('hàng')
+            s => s.includes('loai hang') || s.includes('ten hang') || s.includes('hang hoa') || s.includes('mat hang') || s.includes('goods'),
+            s => s.includes('loai') && s.includes('hang')
         ]);
 
         const wNetCol = findCol([
-            s => s.includes('kl tịnh') || s.includes('kl hàng') || s.includes('khối lượng tịnh') || s.includes('khối lượng hàng') || s.includes('trọng lượng hàng') || s.includes('trọng lượng tịnh'),
-            s => (s.includes('kl') && s.includes('hàng')) || (s.includes('khối lượng') && s.includes('hàng')) || (s.includes('trọng lượng') && s.includes('hàng')),
-            s => s.includes('tịnh') || s.includes('net'),
-            s => (s.includes('khối lượng') || s.includes('trọng lượng')) && !s.includes('1') && !s.includes('2') && !s.includes('gross') && !s.includes('tare')
+            s => s.includes('kl tinh') || s.includes('kl hang') || s.includes('khoi luong tinh') || s.includes('khoi luong hang') || s.includes('trong luong hang') || s.includes('trong luong tinh'),
+            s => (s.includes('kl') && s.includes('hang')) || (s.includes('khoi luong') && s.includes('hang')) || (s.includes('trong luong') && s.includes('hang')),
+            s => s.includes('tinh') || s.includes('net'),
+            s => (s.includes('khoi luong') || s.includes('trong luong')) && !s.includes('1') && !s.includes('2') && !s.includes('gross') && !s.includes('tare')
         ]);
 
         const w1Col = findCol([
-            s => s.includes('lần 1') || s.includes('cân 1') || s.includes('lần một') || s.includes('gross') || s.includes('tl 1') || s.includes('kl 1'),
-            s => s.includes('tổng') || s.includes('bì')
+            s => s.includes('lan 1') || s.includes('can 1') || s.includes('lan mot') || s.includes('gross') || s.includes('tl 1') || s.includes('kl 1') || s.includes('kl can lan 1'),
+            s => s.includes('tong') || s.includes('bi')
         ]);
 
         const w2Col = findCol([
-            s => s.includes('lần 2') || s.includes('cân 2') || s.includes('lần hai') || s.includes('tare') || s.includes('tl 2') || s.includes('kl 2'),
-            s => s.includes('xác xe') || s.includes('xác')
+            s => s.includes('lan 2') || s.includes('can 2') || s.includes('lan hai') || s.includes('tare') || s.includes('tl 2') || s.includes('kl 2') || s.includes('kl can lan 2'),
+            s => s.includes('xac xe') || s.includes('xac')
         ]);
 
         const driverCol = findCol([
-            s => s.includes('tài xế') || s.includes('lái xe') || s.includes('tên tài') || s.includes('driver'),
-            s => s.includes('tài')
+            s => s.includes('tai xe') || s.includes('lai xe') || s.includes('ten tai') || s.includes('driver'),
+            s => s.includes('tai')
         ]);
 
         const ticketNoCol = findCol([
-            s => s.includes('số phiếu') || s.includes('mã phiếu') || s.includes('ticket') || s.includes('phieu') || s.includes('số p'),
+            s => s.includes('so phieu') || s.includes('ma phieu') || s.includes('ticket') || s.includes('phieu') || s.includes('so p'),
             s => s.includes('stt')
         ]);
 
         const containerNoCol = findCol([
-            s => s.includes('container') || s.includes('số cont') || s.includes('cont no') || s.includes('cont')
+            s => s.includes('container') || s.includes('so cont') || s.includes('cont no') || s.includes('cont')
         ]);
 
         const dateInCol = findCol([
-            s => s.includes('giờ vào') || s.includes('ngày vào') || s.includes('vào') || s.includes('time in'),
-            s => s.includes('ngày cân lần 1') || s.includes('ngay can lan 1') || s.includes('ngày 1') || s.includes('ngay 1')
+            s => s.includes('gio vao') || s.includes('ngay vao') || s.includes('time in'),
+            s => s.includes('ngay can lan 1') || s.includes('ngay 1') || s.includes('can lan 1')
         ]);
 
         const timeInCol = findCol([
-            s => s.includes('giờ cân lần 1') || s.includes('gio can lan 1') || s.includes('giờ cân 1') || s.includes('gio can 1')
+            s => s.includes('gio can lan 1') || s.includes('gio can 1') || s.includes('time 1')
         ]);
 
         const dateOutCol = findCol([
-            s => s.includes('giờ ra') || s.includes('ngày ra') || s.includes('ra') || s.includes('time out'),
-            s => s.includes('ngày cân lần 2') || s.includes('ngay can lan 2') || s.includes('ngày 2') || s.includes('ngay 2')
+            s => s.includes('gio ra') || s.includes('ngay ra') || s.includes('time out'),
+            s => s.includes('ngay can lan 2') || s.includes('ngay 2') || s.includes('can lan 2')
         ]);
 
         const timeOutCol = findCol([
-            s => s.includes('giờ cân lần 2') || s.includes('gio can lan 2') || s.includes('giờ cân 2') || s.includes('gio can 2')
+            s => s.includes('gio can lan 2') || s.includes('gio can 2') || s.includes('time 2')
         ]);
 
         const noteCol = findCol([
-            s => s.includes('ghi chú') || s.includes('note') || s.includes('diễn giải')
+            s => s.includes('ghi chu') || s.includes('note') || s.includes('dien giai')
         ]);
 
         // Validation constraints check (T-05-02-01 limit file processing)
