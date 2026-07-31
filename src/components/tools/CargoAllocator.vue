@@ -725,6 +725,7 @@ async function handleTicketImport(event: Event) {
             }
             
             const { added, updated, skipped } = mergeTickets(finalRecords);
+            regenerateAllocatedTrips();
             addToast(`Import CSV: ${added} mới, ${updated} cập nhật, ${skipped} bỏ qua (trùng)`, 'success');
             await LogService.logAction('Import CSV', `Import CSV: ${added} mới, ${updated} cập nhật`);
             await saveTicketsToSupabase();
@@ -734,10 +735,10 @@ async function handleTicketImport(event: Event) {
         } finally {
             loadingCSV.value = false;
         }
-    } else if (ext === 'xlsx') {
+    } else if (ext === 'xlsx' || ext === 'xls') {
         await handleTicketExcelUpload(file, importOrderNo.value);
     } else {
-        addToast('Định dạng tệp không được hỗ trợ (chỉ hỗ trợ .csv, .xlsx)', 'error');
+        addToast('Định dạng tệp không được hỗ trợ (chỉ hỗ trợ .csv, .xlsx, .xls)', 'error');
     }
 }
 
@@ -3663,7 +3664,7 @@ async function compileAndDownload() {
                         <input 
                             type="file" 
                             ref="ticketFileInput" 
-                            accept=".csv,.xlsx" 
+                            accept=".csv,.xlsx,.xls" 
                             @change="handleTicketImport" 
                             class="hidden"
                         >

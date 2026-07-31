@@ -124,8 +124,9 @@ const handleDrop = async (e: DragEvent) => {
 };
 
 const processExcelFile = async (file: File) => {
-    if (!file.name.endsWith('.xlsx')) {
-        addToast('Vui lòng chọn tệp định dạng Excel (.xlsx)!', 'error');
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
+        addToast('Vui lòng chọn tệp định dạng Excel (.xlsx, .xls) hoặc CSV (.csv)!', 'error');
         return;
     }
     
@@ -139,7 +140,7 @@ const processExcelFile = async (file: File) => {
     selectedFileName.value = file.name;
     try {
         const arrayBuffer = await file.arrayBuffer();
-        const parsed = await weighbridgeOtherService.parseExcelFile(arrayBuffer, activeTab.value);
+        const parsed = await weighbridgeOtherService.parseExcelFile(arrayBuffer, activeTab.value, file.name);
         
         if (parsed.length === 0) {
             addToast('Không tìm thấy dòng dữ liệu hợp lệ trong tệp Excel!', 'info');
@@ -303,12 +304,12 @@ const formatDate = (isoString: any) => {
                     type="file" 
                     ref="fileInput" 
                     @change="handleFileSelect" 
-                    accept=".xlsx" 
+                    accept=".xlsx,.xls,.csv" 
                     class="hidden" 
                 />
                 <span class="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-all">cloud_upload</span>
-                <div class="text-xs font-black text-slate-700">Kéo & Thả tệp Excel chứa phiếu cân vào đây</div>
-                <div class="text-[10px] text-gray-400 font-semibold">hoặc click để chọn file từ máy tính. Hỗ trợ file .xlsx &lt; 20MB.</div>
+                <div class="text-xs font-black text-slate-700">Kéo & Thả tệp Excel / CSV chứa phiếu cân vào đây</div>
+                <div class="text-[10px] text-gray-400 font-semibold">hoặc click để chọn file từ máy tính. Hỗ trợ file .xlsx, .xls, .csv &lt; 20MB.</div>
             </div>
 
             <!-- Preview panel if loaded -->

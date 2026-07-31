@@ -3,44 +3,81 @@ import { dbContext } from '@/services/storage/DBContext';
 import * as ExcelJS from 'exceljs';
 import type { WarehouseTicket, ContainerTicket } from '@/types/excel';
 
+function parseCSVToRows(text: string): string[][] {
+    const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+    return lines.map(line => {
+        const row: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"' || char === "'") {
+                if (inQuotes && line[i + 1] === char) {
+                    current += char;
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if ((char === ',' || char === ';' || char === '\t') && !inQuotes) {
+                row.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        row.push(current.trim());
+        return row;
+    });
+}
+
 export class WeighbridgeOtherService {
     /**
-     * Parses Excel file buffer into raw rows and extracts tickets based on mapping
+     * Parses Excel/CSV file buffer into raw rows and extracts tickets based on mapping
      */
     async parseExcelFile(
         fileBuffer: ArrayBuffer,
-        type: 'warehouse' | 'container'
+        type: 'warehouse' | 'container',
+        fileName: string = ''
     ): Promise<any[]> {
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(fileBuffer);
-        const worksheet = workbook.worksheets[0];
-        if (!worksheet) {
-            throw new Error('File Excel không có dữ liệu hoặc trống!');
-        }
+        let rawRows: any[][] = [];
+        const ext = fileName.split('.').pop()?.toLowerCase();
 
-        const rawRows: any[][] = [];
-        worksheet.eachRow({ includeEmpty: true }, (row) => {
-            const rowValues: any[] = [];
-            const values = (row.values as any[]) || [];
-            // values[1] is column A, copy to 0-based array
-            for (let col = 1; col < values.length; col++) {
-                const val = values[col];
-                if (val && typeof val === 'object') {
-                    if ('result' in val) {
-                        rowValues.push((val as any).result);
-                    } else if ('text' in val) {
-                        rowValues.push((val as any).text);
-                    } else if (val instanceof Date) {
-                        rowValues.push(val);
-                    } else {
-                        rowValues.push(val.toString());
-                    }
-                } else {
-                    rowValues.push(val);
+        if (ext === 'csv') {
+            const text = new TextDecoder('utf-8').decode(fileBuffer);
+            rawRows = parseCSVToRows(text);
+        } else {
+            try {
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(fileBuffer);
+                const worksheet = workbook.worksheets[0];
+                if (worksheet) {
+                    worksheet.eachRow({ includeEmpty: true }, (row) => {
+                        const rowValues: any[] = [];
+                        const values = (row.values as any[]) || [];
+                        for (let col = 1; col < values.length; col++) {
+                            const val = values[col];
+                            if (val && typeof val === 'object') {
+                                if ('result' in val) {
+                                    rowValues.push((val as any).result);
+                                } else if ('text' in val) {
+                                    rowValues.push((val as any).text);
+                                } else if (val instanceof Date) {
+                                    rowValues.push(val);
+                                } else {
+                                    rowValues.push(val.toString());
+                                }
+                            } else {
+                                rowValues.push(val);
+                            }
+                        }
+                        rawRows.push(rowValues);
+                    });
                 }
+            } catch (err) {
+                const text = new TextDecoder('utf-8').decode(fileBuffer);
+                rawRows = parseCSVToRows(text);
             }
-            rawRows.push(rowValues);
-        });
+        }
 
         if (rawRows.length === 0) {
             throw new Error('File Excel rỗng!');
