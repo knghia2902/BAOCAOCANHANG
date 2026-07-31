@@ -4099,7 +4099,7 @@ onUnmounted(() => {
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
                                             <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center w-20">Mã lệnh</th>
-                                            <th class="pl-10 pr-3 py-2 bg-gray-50 text-center w-44">Thuộc Tàu</th>
+                                            <th class="pl-24 pr-3 py-2 bg-gray-50 text-center w-44">Thuộc Tàu</th>
                                             <th class="pl-36 pr-0 py-2 bg-gray-50">Thời gian bắt đầu</th>
                                             <th class="pl-1 pr-2 py-2 bg-gray-50">Thời gian kết thúc</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center">Trạng thái</th>
@@ -4116,7 +4116,7 @@ onUnmounted(() => {
                                                 </span>
                                                 <span v-else class="text-gray-400 italic text-xs">-</span>
                                             </td>
-                                            <td class="pl-10 pr-3 py-2 w-44">
+                                            <td class="pl-24 pr-3 py-2 w-44">
                                                 <span class="w-full inline-flex items-center justify-start px-2.5 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black whitespace-nowrap truncate" :title="b.vesselName">
                                                     {{ b.vesselName }}
                                                 </span>
