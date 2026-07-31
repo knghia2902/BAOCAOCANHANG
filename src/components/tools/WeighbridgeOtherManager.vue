@@ -230,10 +230,10 @@ const deleteTicket = async (ticket: any) => {
 </script>
 
 <template>
-    <div class="w-full flex flex-col gap-5 pb-6">
+    <div class="w-full h-full flex-1 flex flex-col gap-4 min-h-0">
         
         <!-- ═══ Card 1: Header & Tab switcher ═══ -->
-        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
+        <div class="bg-white rounded-3xl p-5 border border-primary/5 shadow-soft shrink-0">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-2 mb-1">
@@ -269,7 +269,7 @@ const deleteTicket = async (ticket: any) => {
         </div>
 
         <!-- ═══ Card 2: KPI Summary ═══ -->
-        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
+        <div class="bg-white rounded-3xl p-5 border border-primary/5 shadow-soft shrink-0">
             <WbKpiCards
                 :total-tickets="totalTicketsCount"
                 :total-net-weight-tons="totalNetWeightTons"
@@ -278,7 +278,7 @@ const deleteTicket = async (ticket: any) => {
         </div>
 
         <!-- ═══ Card 3: Data Table + Search + Import + Pagination ═══ -->
-        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5">
+        <div class="bg-white rounded-3xl p-5 border border-primary/5 shadow-soft flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
             <!-- Hidden file input -->
             <input 
                 type="file" 
