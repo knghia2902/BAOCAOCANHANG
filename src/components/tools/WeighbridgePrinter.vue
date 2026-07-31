@@ -3935,7 +3935,7 @@ onUnmounted(() => {
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0">
                                         <div class="min-w-[24px] flex justify-center items-center shrink-0">
-                                            <span v-if="barge.config?.orderNo" :class="['px-1 py-0.2 text-[10px] border rounded font-black uppercase tracking-wider text-center', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
+                                            <span v-if="barge.config?.orderNo" :class="['size-[22px] rounded-full inline-flex items-center justify-center text-[10px] border font-black uppercase leading-none shrink-0 select-none', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
                                                 {{ barge.config.orderNo }}
                                             </span>
                                         </div>
