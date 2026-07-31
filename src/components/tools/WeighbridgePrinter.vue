@@ -3927,17 +3927,23 @@ onUnmounted(() => {
                                     v-for="barge in vessel.barges" 
                                     :key="barge.id"
                                     @click="selectBarge(vessel.id, barge.id)"
-                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100']"
+                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold gap-1.5', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100']"
                                 >
-                                    <div class="flex items-center gap-1.5 truncate">
-                                        <span class="material-symbols-outlined text-sm">layers</span>
+                                    <div class="flex items-center gap-1.5 min-w-0 flex-1 truncate">
+                                        <span class="material-symbols-outlined text-sm shrink-0">layers</span>
                                         <span class="truncate">{{ barge.name }}</span>
-                                        <span v-if="barge.config?.orderNo" :class="['ml-1.5 px-1 py-0.2 text-xs border rounded font-black uppercase tracking-wider', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
-                                            {{ barge.config.orderNo }}
-                                        </span>
-                                        <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
                                     </div>
-                                    <div v-if="authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()" class="flex items-center gap-0.5" @click.stopPropagation>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <div class="min-w-[24px] flex justify-center items-center shrink-0">
+                                            <span v-if="barge.config?.orderNo" :class="['px-1 py-0.2 text-[10px] border rounded font-black uppercase tracking-wider text-center', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
+                                                {{ barge.config.orderNo }}
+                                            </span>
+                                        </div>
+                                        <div class="w-4 h-4 flex justify-center items-center shrink-0">
+                                            <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
+                                        </div>
+                                    </div>
+                                    <div v-if="authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()" class="flex items-center gap-0.5 shrink-0" @click.stopPropagation>
                                         <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
                                             <span class="material-symbols-outlined text-xs">edit</span>
                                         </button>
