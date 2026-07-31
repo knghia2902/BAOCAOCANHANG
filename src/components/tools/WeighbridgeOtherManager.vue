@@ -236,75 +236,85 @@ const deleteTicket = async (ticket: any) => {
 </script>
 
 <template>
-    <div class="w-full flex-1 flex flex-col gap-6 bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
+    <div class="w-full flex-1 flex flex-col gap-5">
         
-        <!-- Header & Tab switcher -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-gray-100 pb-4">
-            <div>
-                <h3 class="text-lg font-display font-black text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-2xl">history</span>
-                    Lịch sử cân Kho & Container
-                </h3>
-                <p class="text-xs text-slate-500 font-semibold mt-1">
-                    Tra cứu và đồng bộ hóa phiếu cân dữ liệu từ Excel lên cơ sở dữ liệu đám mây Supabase.
-                </p>
-            </div>
-            
-            <!-- Tab switcher buttons -->
-            <div class="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shrink-0">
-                <button
-                    @click="activeTab = 'warehouse'"
-                    :class="['px-4 py-2 rounded-xl text-xs font-display font-bold transition-all flex items-center gap-2', activeTab === 'warehouse' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
-                >
-                    <span class="material-symbols-outlined text-base">store</span>
-                    Cân Kho Nhà Máy
-                </button>
-                <button
-                    @click="activeTab = 'container'"
-                    :class="['px-4 py-2 rounded-xl text-xs font-display font-bold transition-all flex items-center gap-2', activeTab === 'container' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
-                >
-                    <span class="material-symbols-outlined text-base">widgets</span>
-                    Cân Container
-                </button>
+        <!-- ═══ Card 1: Header & Tab switcher ═══ -->
+        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-primary/60 bg-primary/5 px-2.5 py-1 rounded-lg">Dữ liệu cân hàng</span>
+                    </div>
+                    <h3 class="text-lg font-display font-black text-primary flex items-center gap-2">
+                        <span class="material-symbols-outlined text-2xl">history</span>
+                        Lịch sử cân Kho & Container
+                    </h3>
+                    <p class="text-xs text-slate-500 font-semibold mt-1">
+                        Tra cứu và đồng bộ hóa phiếu cân dữ liệu từ Excel lên cơ sở dữ liệu đám mây Supabase.
+                    </p>
+                </div>
+                
+                <!-- Tab switcher buttons -->
+                <div class="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shrink-0">
+                    <button
+                        @click="activeTab = 'warehouse'"
+                        :class="['px-4 py-2 rounded-xl text-xs font-display font-bold transition-all flex items-center gap-2', activeTab === 'warehouse' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
+                    >
+                        <span class="material-symbols-outlined text-base">store</span>
+                        Cân Kho Nhà Máy
+                    </button>
+                    <button
+                        @click="activeTab = 'container'"
+                        :class="['px-4 py-2 rounded-xl text-xs font-display font-bold transition-all flex items-center gap-2', activeTab === 'container' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
+                    >
+                        <span class="material-symbols-outlined text-base">widgets</span>
+                        Cân Container
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- KPI Summary Cards -->
-        <WbKpiCards
-            :total-tickets="totalTicketsCount"
-            :total-net-weight-tons="totalNetWeightTons"
-            :unique-plates="uniquePlatesCount"
-        />
+        <!-- ═══ Card 2: KPI + File Upload ═══ -->
+        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5">
+            <!-- KPI Summary Cards -->
+            <WbKpiCards
+                :total-tickets="totalTicketsCount"
+                :total-net-weight-tons="totalNetWeightTons"
+                :unique-plates="uniquePlatesCount"
+            />
 
-        <!-- File Upload / Preview -->
-        <WbFileUpload
-            v-if="authStore.role === 'admin' || canCreate()"
-            :preview-count="previewTickets.length"
-            :file-name="selectedFileName"
-            :is-dragging="isDragging"
-            @file-selected="handleFileSelected"
-            @save="saveImportedTickets"
-            @cancel="cancelImport"
-            @drag-over="handleDragOver"
-            @drag-leave="handleDragLeave"
-            @drop="handleDrop"
-        />
+            <!-- File Upload / Preview -->
+            <WbFileUpload
+                v-if="authStore.role === 'admin' || canCreate()"
+                :preview-count="previewTickets.length"
+                :file-name="selectedFileName"
+                :is-dragging="isDragging"
+                @file-selected="handleFileSelected"
+                @save="saveImportedTickets"
+                @cancel="cancelImport"
+                @drag-over="handleDragOver"
+                @drag-leave="handleDragLeave"
+                @drop="handleDrop"
+            />
+        </div>
 
-        <!-- Ticket Table + Search + Pagination -->
-        <WbTicketTable
-            :tickets="paginatedTickets"
-            :loading="loading"
-            :active-tab="activeTab"
-            :search-query="searchQuery"
-            :current-page="currentPage"
-            :items-per-page="itemsPerPage"
-            :total-pages="totalPages"
-            :total-filtered="filteredTickets.length"
-            @update:search-query="searchQuery = $event"
-            @update:current-page="currentPage = $event"
-            @update:items-per-page="itemsPerPage = $event"
-            @delete="deleteTicket"
-        />
+        <!-- ═══ Card 3: Data Table + Search + Pagination ═══ -->
+        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5 flex-1 min-h-0">
+            <WbTicketTable
+                :tickets="paginatedTickets"
+                :loading="loading"
+                :active-tab="activeTab"
+                :search-query="searchQuery"
+                :current-page="currentPage"
+                :items-per-page="itemsPerPage"
+                :total-pages="totalPages"
+                :total-filtered="filteredTickets.length"
+                @update:search-query="searchQuery = $event"
+                @update:current-page="currentPage = $event"
+                @update:items-per-page="itemsPerPage = $event"
+                @delete="deleteTicket"
+            />
+        </div>
 
     </div>
 </template>
