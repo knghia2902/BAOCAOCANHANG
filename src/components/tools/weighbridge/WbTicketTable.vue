@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import type { WarehouseTicket, ContainerTicket } from '@/types/excel';
 import { authStore, canCreate, canDelete } from '@/stores/auth';
 
@@ -25,6 +25,41 @@ const emit = defineEmits<{
     (e: 'save-import'): void;
     (e: 'cancel-import'): void;
 }>();
+
+// Column sort state
+const sortKey = ref<string>('');
+const sortDesc = ref<boolean>(false);
+
+const toggleSort = (key: string) => {
+    if (sortKey.value === key) {
+        if (sortDesc.value) {
+            sortKey.value = '';
+            sortDesc.value = false;
+        } else {
+            sortDesc.value = true;
+        }
+    } else {
+        sortKey.value = key;
+        sortDesc.value = false;
+    }
+};
+
+const sortedTickets = computed(() => {
+    if (!sortKey.value) return props.tickets;
+
+    return [...props.tickets].sort((a: any, b: any) => {
+        let valA = a[sortKey.value] ?? '';
+        let valB = b[sortKey.value] ?? '';
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            return sortDesc.value ? valB - valA : valA - valB;
+        }
+
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        return sortDesc.value ? strB.localeCompare(strA) : strA.localeCompare(strB);
+    });
+});
 
 const formatWeight = (val: any) => {
     if (val === undefined || val === null || isNaN(Number(val))) return '-';
@@ -128,93 +163,148 @@ const showImportBtn = computed(() => authStore.role === 'admin' || canCreate());
         </div>
     </div>
 
-    <!-- Table / List view -->
+    <!-- Table / List view with sticky header and inner vertical scrolling -->
     <div class="flex flex-col">
-        <div class="overflow-hidden border border-slate-200/80 rounded-2xl">
-            <div class="overflow-x-auto h-full">
-                <table class="min-w-full divide-y divide-slate-100 text-left border-collapse">
-                    <thead class="bg-slate-50 sticky top-0 z-10">
-                        <tr>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider w-12 text-center">STT</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Mã / Số Phiếu</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Biển Số Xe</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">Tài Xế</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Cân Lần 1 (kg)</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Cân Lần 2 (kg)</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Khối Lượng Tịnh (kg)</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Ngày Vào</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Ngày Ra</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">Loại Hàng</th>
-                            <th v-if="activeTab === 'container'" class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">Số Container</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">Ghi Chú</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center w-16">Thao tác</th>
-                        </tr>
-                    </thead>
+        <div class="overflow-x-auto overflow-y-auto max-h-[520px] border border-slate-200/80 rounded-2xl">
+            <table class="min-w-full divide-y divide-slate-100 text-left border-collapse">
+                <thead class="bg-slate-50 sticky top-0 z-10">
+                    <tr>
+                        <th class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider w-12 text-center select-none">STT</th>
+                        
+                        <th @click="toggleSort('ticketNo')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Mã / Số Phiếu</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'ticketNo' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('plateNumber')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Biển Số Xe</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'plateNumber' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('driver')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center gap-1">
+                                <span>Tài Xế</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'driver' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('weight1')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Cân Lần 1 (kg)</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'weight1' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('weight2')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Cân Lần 2 (kg)</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'weight2' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('weightNet')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Khối Lượng Tịnh (kg)</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'weightNet' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('dateIn')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Ngày Vào</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'dateIn' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('dateOut')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Ngày Ra</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'dateOut' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th @click="toggleSort('goodsName')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                            <div class="flex items-center gap-1">
+                                <span>Loại Hàng</span>
+                                <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
+                                    {{ sortKey === 'goodsName' ? (sortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                </span>
+                            </div>
+                        </th>
+
+                        <th v-if="activeTab === 'container'" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center select-none">Số Container</th>
+                        <th class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider select-none">Ghi Chú</th>
+                        <th class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center w-16 select-none">Thao tác</th>
+                    </tr>
+                </thead>
+                
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    <tr v-if="loading" class="h-32">
+                        <td :colspan="activeTab === 'container' ? 13 : 12" class="text-center">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                <span class="text-xs font-semibold text-slate-500">Đang đồng bộ dữ liệu...</span>
+                            </div>
+                        </td>
+                    </tr>
                     
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        <tr v-if="loading" class="h-32">
-                            <td :colspan="activeTab === 'container' ? 13 : 12" class="text-center">
-                                <div class="flex flex-col items-center justify-center gap-2">
-                                    <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                    <span class="text-xs font-semibold text-slate-500">Đang đồng bộ dữ liệu...</span>
-                                </div>
-                            </td>
-                        </tr>
-                        
-                        <tr v-else-if="tickets.length === 0" class="h-32">
-                            <td :colspan="activeTab === 'container' ? 13 : 12" class="text-center text-xs text-slate-400 font-semibold">
-                                Không có dữ liệu phiếu cân nào được hiển thị.
-                            </td>
-                        </tr>
-                        
-                        <tr 
-                            v-else
-                            v-for="(t, idx) in tickets" 
-                            :key="t.ticketNo"
-                            class="hover:bg-slate-50/70 transition-all text-xs font-semibold text-slate-700"
-                        >
-                            <td class="px-4 py-2.5 text-center font-mono text-slate-400">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
-                            <td class="px-4 py-2.5 text-center">
-                                <span class="font-mono font-bold text-slate-800 bg-slate-100/80 px-2 py-0.5 rounded-lg border border-slate-200/60 inline-block text-[11px]">
-                                    {{ t.ticketNo }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2.5 text-center">
-                                <span class="font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-xl border border-primary/10 inline-block text-xs">
-                                    {{ t.plateNumber }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2.5 text-slate-600">{{ t.driver || '-' }}</td>
-                            <td class="px-4 py-2.5 text-center font-mono text-slate-600">{{ formatWeight(t.weight1) }}</td>
-                            <td class="px-4 py-2.5 text-center font-mono text-slate-600">{{ formatWeight(t.weight2) }}</td>
-                            <td class="px-4 py-2.5 text-center">
-                                <span class="font-mono font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-lg border border-teal-200/60 inline-block text-xs">
-                                    {{ formatWeight(t.weightNet) }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2.5 text-center font-mono text-[11px] text-slate-500">{{ formatDate(t.dateIn) }}</td>
-                            <td class="px-4 py-2.5 text-center font-mono text-[11px] text-slate-500">{{ formatDate(t.dateOut) }}</td>
-                            <td class="px-4 py-2.5 text-slate-600">{{ t.goodsName || '-' }}</td>
-                            <td v-if="activeTab === 'container'" class="px-4 py-2.5 text-center">
-                                <span class="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200/60 inline-block text-[11px]">
-                                    {{ (t as any).containerNo || '-' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2.5 text-slate-500 max-w-[180px] truncate" :title="t.note">{{ t.note || '-' }}</td>
-                            <td class="px-4 py-2.5 text-center">
-                                <button
-                                    v-if="authStore.role === 'admin' || canDelete()"
-                                    @click="$emit('delete', t)"
-                                    class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 mx-auto"
-                                    title="Xóa phiếu cân"
-                                >
-                                    <span class="material-symbols-outlined text-base">delete</span>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                    <tr v-else-if="sortedTickets.length === 0" class="h-32">
+                        <td :colspan="activeTab === 'container' ? 13 : 12" class="text-center text-xs text-slate-400 font-semibold">
+                            Không có dữ liệu phiếu cân nào được hiển thị.
+                        </td>
+                    </tr>
+                    
+                    <tr 
+                        v-else
+                        v-for="(t, idx) in sortedTickets" 
+                        :key="t.ticketNo"
+                        class="hover:bg-slate-50/70 transition-all text-xs font-semibold text-slate-700"
+                    >
+                        <td class="px-3 py-2.5 text-center font-mono text-slate-400">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono font-bold text-slate-800">{{ t.ticketNo }}</td>
+                        <td class="px-3 py-2.5 text-center font-bold text-slate-800">{{ t.plateNumber }}</td>
+                        <td class="px-3 py-2.5 text-slate-600">{{ t.driver || '-' }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono text-slate-600">{{ formatWeight(t.weight1) }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono text-slate-600">{{ formatWeight(t.weight2) }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono font-bold text-primary">{{ formatWeight(t.weightNet) }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono text-[11px] text-slate-500">{{ formatDate(t.dateIn) }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono text-[11px] text-slate-500">{{ formatDate(t.dateOut) }}</td>
+                        <td class="px-3 py-2.5 text-slate-600 uppercase">{{ t.goodsName || '-' }}</td>
+                        <td v-if="activeTab === 'container'" class="px-3 py-2.5 text-center font-mono font-bold text-slate-700">{{ (t as any).containerNo || '-' }}</td>
+                        <td class="px-3 py-2.5 text-slate-500 max-w-[180px] truncate" :title="t.note">{{ t.note || '-' }}</td>
+                        <td class="px-3 py-2.5 text-center">
+                            <button
+                                v-if="authStore.role === 'admin' || canDelete()"
+                                @click="$emit('delete', t)"
+                                class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 mx-auto"
+                                title="Xóa phiếu cân"
+                            >
+                                <span class="material-symbols-outlined text-base">delete</span>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <!-- Pagination footer -->
