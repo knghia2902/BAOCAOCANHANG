@@ -3776,8 +3776,8 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
+                                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
                                         <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'orderNo' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
@@ -3800,24 +3800,24 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-end gap-1">
+                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
                                         <span>Khối lượng (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'weightNet' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
+                                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'dateInStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
+                                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian ra</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'dateOutStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
@@ -3845,12 +3845,12 @@ async function compileAndDownload() {
                                     {{ (sourceCurrentPage - 1) * itemsPerPage + idx + 1 }}
                                 </td>
                                 <td class="py-2 px-3 font-semibold text-gray-700 whitespace-nowrap">{{ ticket.ticketNo }}</td>
-                                <td class="py-2 px-3 font-semibold text-teal-600 font-mono whitespace-nowrap">{{ ticket.orderNo || '-' }}</td>
+                                <td class="py-2 px-3 text-center font-semibold text-teal-600 font-mono whitespace-nowrap">{{ ticket.orderNo || '-' }}</td>
                                 <td class="py-2 px-3 font-bold text-gray-900 whitespace-nowrap">{{ formatPlate(ticket.plateNumber) }}</td>
                                 <td class="py-2 px-3 truncate max-w-[120px]" :title="ticket.cargoType">{{ ticket.cargoType }}</td>
-                                <td class="py-2 px-3 text-right font-black text-primary whitespace-nowrap">{{ ticket.weightNet.toLocaleString() }}</td>
-                                <td class="py-2 px-3 text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
-                                <td class="py-2 px-3 text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
+                                <td class="py-2 px-3 text-center font-black text-primary whitespace-nowrap">{{ ticket.weightNet.toLocaleString() }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
                                 <td class="py-2 px-3 text-gray-500 truncate max-w-[100px]" :title="ticket.driverName">{{ ticket.driverName || '-' }}</td>
                                 <td class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
