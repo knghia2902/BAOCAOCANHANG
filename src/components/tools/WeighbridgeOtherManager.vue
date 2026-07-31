@@ -7,7 +7,6 @@ import { authStore, canCreate, canDelete } from '@/stores/auth';
 import { LogService } from '@/services/storage/LogService';
 
 import WbKpiCards from './weighbridge/WbKpiCards.vue';
-import WbFileUpload from './weighbridge/WbFileUpload.vue';
 import WbTicketTable from './weighbridge/WbTicketTable.vue';
 
 const { addToast } = useToast();
@@ -23,7 +22,7 @@ const currentPage = ref(1);
 const itemsPerPage = ref(20);
 
 // File state
-const isDragging = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
 const selectedFileName = ref('');
 
 // Fetch records from database
@@ -141,24 +140,19 @@ const processExcelFile = async (file: File) => {
     }
 };
 
-const handleFileSelected = (file: File) => {
-    processExcelFile(file);
+const triggerFileInput = () => {
+    if (fileInput.value) {
+        fileInput.value.click();
+    }
 };
 
-const handleDragOver = () => {
-    isDragging.value = true;
-};
-
-const handleDragLeave = () => {
-    isDragging.value = false;
-};
-
-const handleDrop = (e: DragEvent) => {
-    isDragging.value = false;
-    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-        const file = e.dataTransfer.files[0];
+const handleFileInputChange = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+        const file = target.files[0];
         if (file) processExcelFile(file);
     }
+    if (fileInput.value) fileInput.value.value = '';
 };
 
 const saveImportedTickets = async () => {
@@ -274,32 +268,26 @@ const deleteTicket = async (ticket: any) => {
             </div>
         </div>
 
-        <!-- ═══ Card 2: KPI + File Upload ═══ -->
-        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5">
-            <!-- KPI Summary Cards -->
+        <!-- ═══ Card 2: KPI Summary ═══ -->
+        <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
             <WbKpiCards
                 :total-tickets="totalTicketsCount"
                 :total-net-weight-tons="totalNetWeightTons"
                 :unique-plates="uniquePlatesCount"
             />
-
-            <!-- File Upload / Preview -->
-            <WbFileUpload
-                v-if="authStore.role === 'admin' || canCreate()"
-                :preview-count="previewTickets.length"
-                :file-name="selectedFileName"
-                :is-dragging="isDragging"
-                @file-selected="handleFileSelected"
-                @save="saveImportedTickets"
-                @cancel="cancelImport"
-                @drag-over="handleDragOver"
-                @drag-leave="handleDragLeave"
-                @drop="handleDrop"
-            />
         </div>
 
-        <!-- ═══ Card 3: Data Table + Search + Pagination ═══ -->
+        <!-- ═══ Card 3: Data Table + Search + Import + Pagination ═══ -->
         <div class="bg-white rounded-3xl p-6 border border-primary/5 shadow-soft flex flex-col gap-5 flex-1 min-h-0">
+            <!-- Hidden file input -->
+            <input 
+                type="file" 
+                ref="fileInput" 
+                @change="handleFileInputChange" 
+                accept=".xlsx,.xls,.csv" 
+                class="hidden" 
+            />
+
             <WbTicketTable
                 :tickets="paginatedTickets"
                 :loading="loading"
@@ -309,10 +297,15 @@ const deleteTicket = async (ticket: any) => {
                 :items-per-page="itemsPerPage"
                 :total-pages="totalPages"
                 :total-filtered="filteredTickets.length"
+                :preview-count="previewTickets.length"
+                :file-name="selectedFileName"
                 @update:search-query="searchQuery = $event"
                 @update:current-page="currentPage = $event"
                 @update:items-per-page="itemsPerPage = $event"
                 @delete="deleteTicket"
+                @import="triggerFileInput"
+                @save-import="saveImportedTickets"
+                @cancel-import="cancelImport"
             />
         </div>
 
