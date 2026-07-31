@@ -3935,7 +3935,7 @@ onUnmounted(() => {
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0">
                                         <div class="min-w-[24px] flex justify-center items-center shrink-0">
-                                            <span v-if="barge.config?.orderNo" :class="['size-[22px] rounded-full inline-flex items-center justify-center text-[10px] border font-black uppercase leading-none shrink-0 select-none', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
+                                            <span v-if="barge.config?.orderNo" :class="['font-bold text-xs shrink-0 select-none', activeBargeId === barge.id ? 'text-white' : 'text-teal-700']">
                                                 {{ barge.config.orderNo }}
                                             </span>
                                         </div>
@@ -4099,7 +4099,7 @@ onUnmounted(() => {
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
                                             <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center w-20">Mã lệnh</th>
-                                            <th class="pl-24 pr-3 py-2 bg-gray-50 text-center w-[236px]">Thuộc Tàu</th>
+                                            <th class="pl-24 pr-3 py-2 bg-gray-50 text-center w-[216px]">Thuộc Tàu</th>
                                             <th class="pl-36 pr-0 py-2 bg-gray-50">Thời gian bắt đầu</th>
                                             <th class="pl-1 pr-2 py-2 bg-gray-50">Thời gian kết thúc</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center">Trạng thái</th>
@@ -4116,8 +4116,8 @@ onUnmounted(() => {
                                                 </span>
                                                 <span v-else class="text-gray-400 italic text-xs">-</span>
                                             </td>
-                                            <td class="pl-24 pr-3 py-2 w-[236px]">
-                                                <span class="w-[200px] inline-block text-primary font-bold text-xs whitespace-nowrap truncate" :title="b.vesselName">
+                                            <td class="pl-24 pr-3 py-2 w-[216px]">
+                                                <span class="w-[180px] inline-flex items-center justify-start px-2.5 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black whitespace-nowrap truncate" :title="b.vesselName">
                                                     {{ b.vesselName }}
                                                 </span>
                                             </td>
