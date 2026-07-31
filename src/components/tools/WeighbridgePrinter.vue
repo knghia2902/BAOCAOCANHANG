@@ -4117,7 +4117,7 @@ onUnmounted(() => {
                                                 <span v-else class="text-gray-400 italic text-xs">-</span>
                                             </td>
                                             <td class="pl-24 pr-3 py-2 w-[200px]">
-                                                <span class="w-full inline-block text-primary font-black text-xs whitespace-nowrap truncate" :title="b.vesselName">
+                                                <span class="w-full inline-flex items-center justify-start px-2.5 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black whitespace-nowrap truncate" :title="b.vesselName">
                                                     {{ b.vesselName }}
                                                 </span>
                                             </td>
