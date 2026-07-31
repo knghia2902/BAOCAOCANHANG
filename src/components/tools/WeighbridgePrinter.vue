@@ -4111,13 +4111,13 @@ onUnmounted(() => {
                                             <td class="px-3 py-2 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                             <td class="px-3 py-2 font-bold text-gray-900">{{ b.name }}</td>
                                             <td class="px-3 py-2 text-center w-20">
-                                                <span v-if="b.orderNo" class="size-[22px] rounded-full inline-flex items-center justify-center text-[10px] bg-teal-50 text-teal-600 border border-teal-200 font-black uppercase leading-none select-none">
+                                                <span v-if="b.orderNo" class="font-bold text-teal-700 text-xs select-none">
                                                     {{ b.orderNo }}
                                                 </span>
                                                 <span v-else class="text-gray-400 italic text-xs">-</span>
                                             </td>
                                             <td class="pl-24 pr-3 py-2 w-[236px]">
-                                                <span class="w-[200px] inline-flex items-center justify-start px-3 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black whitespace-nowrap truncate" :title="b.vesselName">
+                                                <span class="w-[200px] inline-block text-primary font-bold text-xs whitespace-nowrap truncate" :title="b.vesselName">
                                                     {{ b.vesselName }}
                                                 </span>
                                             </td>
