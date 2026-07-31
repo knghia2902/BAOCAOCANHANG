@@ -21,6 +21,7 @@ const emit = defineEmits<{
     (e: 'update:currentPage', val: number): void;
     (e: 'update:itemsPerPage', val: number): void;
     (e: 'delete', ticket: any): void;
+    (e: 'clear-all'): void;
     (e: 'import'): void;
     (e: 'save-import'): void;
     (e: 'cancel-import'): void;
@@ -93,6 +94,7 @@ const localItemsPerPage = computed({
 });
 
 const showImportBtn = computed(() => authStore.role === 'admin' || canCreate());
+const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete()) && props.tickets.length > 0);
 </script>
 
 <template>
@@ -127,7 +129,7 @@ const showImportBtn = computed(() => authStore.role === 'admin' || canCreate());
         </div>
     </div>
 
-    <!-- Search toolbar + Import button per CargoAllocator -->
+    <!-- Search toolbar + Import & Clear All buttons per CargoAllocator -->
     <div class="flex items-center justify-between gap-3">
         <div class="relative w-full sm:w-[260px] h-7 flex items-center">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm select-none">search</span>
@@ -159,6 +161,17 @@ const showImportBtn = computed(() => authStore.role === 'admin' || canCreate());
             >
                 <span class="material-symbols-outlined text-[14px]">upload_file</span>
                 Import
+            </button>
+
+            <!-- Xóa hết button matching CargoAllocator -->
+            <button
+                v-if="showDeleteAllBtn"
+                @click="$emit('clear-all')"
+                class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
+                title="Xóa toàn bộ phiếu cân trong tab này"
+            >
+                <span class="material-symbols-outlined text-[14px]">delete</span>
+                Xóa hết
             </button>
         </div>
     </div>

@@ -227,6 +227,43 @@ const deleteTicket = async (ticket: any) => {
         loading.value = false;
     }
 };
+
+const clearAllTickets = async () => {
+    if (!canDelete()) {
+        addToast('Bạn không có quyền xóa dữ liệu này!', 'error');
+        return;
+    }
+
+    const tabName = activeTab.value === 'warehouse' ? 'Cân Kho Nhà Máy' : 'Cân Container';
+    if (!confirm(`Bạn có chắc chắn muốn xóa TẤT CẢ ${filteredTickets.value.length} phiếu cân thuộc danh mục "${tabName}" không? Hành động này không thể hoàn tác!`)) {
+        return;
+    }
+
+    loading.value = true;
+    try {
+        let success = false;
+        if (activeTab.value === 'warehouse') {
+            success = await weighbridgeOtherService.clearAllWarehouseTickets();
+        } else {
+            success = await weighbridgeOtherService.clearAllContainerTickets();
+        }
+
+        if (success) {
+            addToast(`Đã xóa toàn bộ phiếu cân ${tabName}!`, 'success');
+            await LogService.logAction(
+                activeTab.value === 'warehouse' ? 'Xóa toàn bộ cân kho' : 'Xóa toàn bộ cân container',
+                `Đã xóa toàn bộ phiếu cân thuộc ${tabName}`
+            );
+            await fetchTickets();
+        } else {
+            addToast('Có lỗi xảy ra khi xóa dữ liệu!', 'error');
+        }
+    } catch (e: any) {
+        addToast('Sự cố hệ thống: ' + e.message, 'error');
+    } finally {
+        loading.value = false;
+    }
+};
 </script>
 
 <template>
@@ -248,20 +285,20 @@ const deleteTicket = async (ticket: any) => {
                     </p>
                 </div>
                 
-                <!-- Tab switcher buttons -->
-                <div class="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shrink-0">
+                <!-- Tab switcher buttons (Compact height matching toolbar) -->
+                <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center">
                     <button
                         @click="activeTab = 'warehouse'"
-                        :class="['px-4 py-2 rounded-xl text-xs font-display font-bold transition-all flex items-center gap-2', activeTab === 'warehouse' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
+                        :class="['px-3 py-1 rounded-lg text-xs font-display font-bold transition-all flex items-center gap-1.5 h-6.5', activeTab === 'warehouse' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
                     >
-                        <span class="material-symbols-outlined text-base">store</span>
+                        <span class="material-symbols-outlined text-sm">store</span>
                         Cân Kho Nhà Máy
                     </button>
                     <button
                         @click="activeTab = 'container'"
-                        :class="['px-4 py-2 rounded-xl text-xs font-display font-bold transition-all flex items-center gap-2', activeTab === 'container' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
+                        :class="['px-3 py-1 rounded-lg text-xs font-display font-bold transition-all flex items-center gap-1.5 h-6.5', activeTab === 'container' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
                     >
-                        <span class="material-symbols-outlined text-base">widgets</span>
+                        <span class="material-symbols-outlined text-sm">widgets</span>
                         Cân Container
                     </button>
                 </div>
@@ -303,6 +340,7 @@ const deleteTicket = async (ticket: any) => {
                 @update:current-page="currentPage = $event"
                 @update:items-per-page="itemsPerPage = $event"
                 @delete="deleteTicket"
+                @clear-all="clearAllTickets"
                 @import="triggerFileInput"
                 @save-import="saveImportedTickets"
                 @cancel-import="cancelImport"

@@ -87,3 +87,20 @@ Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt l
 *   **Cuộn bảng (Scroll)**: Phải giới hạn chiều cao tối đa của vùng chứa bảng và đặt `overflow-auto` để tự động xuất hiện thanh cuộn ngang/dọc trên màn hình nhỏ.
 *   **Hàng tiêu đề (thead)**: Tiêu đề cột dùng nền xám nhạt (`bg-gray-50`), luôn cố định trên cùng khi cuộn dọc (`sticky top-0 z-10`).
 *   **Các hàng dữ liệu (tbody tr)**: Đệm dòng rộng rãi (`py-2.5` hoặc `py-3`), hover vào dòng sẽ đổi nền xám dịu mắt (`hover:bg-gray-50`) để dễ theo dõi số liệu.
+
+---
+
+## 6. Quy Chuẩn Giao Diện Màn Hình Tra Cứu & Lịch Sử (3-Card Layout Spec)
+
+- **Cấu Trúc 3 Khối Card Độc Lập**:
+  - **Card 1 (Header Banner & Tab Switcher)**: `bg-white rounded-3xl p-5 border border-primary/5 shadow-soft shrink-0`. Chứa tiêu đề module và Tab switcher chuyển chế độ nhỏ gọn (`h-8 p-1 rounded-xl` chứa các button `px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5`).
+  - **Card 2 (KPI / Quick Summary)**: `bg-white rounded-3xl p-5 border border-primary/5 shadow-soft shrink-0`. Chứa các thẻ KPI chỉ số tổng quan nhanh (`Tổng phiếu`, `Tổng khối lượng tịnh`, `Số phương tiện`).
+  - **Card 3 (Toolbar + Table + Pagination)**: `bg-white rounded-3xl p-5 border border-primary/5 shadow-soft flex flex-col gap-4 flex-1 min-h-0 overflow-hidden`.
+- **Thanh Công Cụ Toolbar Chuẩn**:
+  - Search input: `h-7 px-3 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold`.
+  - Count badge: `h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold`.
+  - Nút **Import**: `h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98]`.
+  - Nút **Xóa hết**: `h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98]`.
+- **Căn Chỉnh Chiều Cao Đáy (Flex Height Alignment)**:
+  - Thẻ wrapper chính nhận `h-full flex-1 flex flex-col gap-4 min-h-0`. Card 3 nhận `flex-1 min-h-0` để kéo giãn vừa khít mép đáy của Sidebar bên trái.
+  - Bảng dữ liệu bên trong Card 3 nhận `flex-1 min-h-0 overflow-y-auto` với sticky header, chân trang phân trang ghim cố định bên dưới.
