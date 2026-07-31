@@ -175,12 +175,20 @@ export class WeighbridgeOtherService {
 
         const dateInCol = findCol([
             s => s.includes('giờ vào') || s.includes('ngày vào') || s.includes('vào') || s.includes('time in'),
-            s => s.includes('ngày 1') || s.includes('ngay 1')
+            s => s.includes('ngày cân lần 1') || s.includes('ngay can lan 1') || s.includes('ngày 1') || s.includes('ngay 1')
+        ]);
+
+        const timeInCol = findCol([
+            s => s.includes('giờ cân lần 1') || s.includes('gio can lan 1') || s.includes('giờ cân 1') || s.includes('gio can 1')
         ]);
 
         const dateOutCol = findCol([
             s => s.includes('giờ ra') || s.includes('ngày ra') || s.includes('ra') || s.includes('time out'),
-            s => s.includes('ngày 2') || s.includes('ngay 2')
+            s => s.includes('ngày cân lần 2') || s.includes('ngay can lan 2') || s.includes('ngày 2') || s.includes('ngay 2')
+        ]);
+
+        const timeOutCol = findCol([
+            s => s.includes('giờ cân lần 2') || s.includes('gio can lan 2') || s.includes('giờ cân 2') || s.includes('gio can 2')
         ]);
 
         const noteCol = findCol([
@@ -232,8 +240,11 @@ export class WeighbridgeOtherService {
                 wNet = Math.abs(w1 - w2);
             }
 
-            const dIn = dateInCol !== -1 && row[dateInCol] ? this.parseExcelDate(row[dateInCol]) : null;
-            const dOut = dateOutCol !== -1 && row[dateOutCol] ? this.parseExcelDate(row[dateOutCol]) : null;
+            const valTimeIn = timeInCol !== -1 ? row[timeInCol] : null;
+            const valTimeOut = timeOutCol !== -1 ? row[timeOutCol] : null;
+
+            const dIn = dateInCol !== -1 && row[dateInCol] ? this.parseExcelDate(row[dateInCol], valTimeIn) : null;
+            const dOut = dateOutCol !== -1 && row[dateOutCol] ? this.parseExcelDate(row[dateOutCol], valTimeOut) : null;
 
             const driver = driverCol !== -1 && row[driverCol] ? String(row[driverCol]).trim() : null;
             const note = noteCol !== -1 && row[noteCol] ? String(row[noteCol]).trim() : null;
@@ -285,17 +296,31 @@ export class WeighbridgeOtherService {
         return tickets;
     }
 
-    private parseExcelDate(val: any): string | null {
+    private parseExcelDate(val: any, valTime?: any): string | null {
         if (!val) return null;
+        let str = '';
+        const timeStr = valTime ? String(valTime).trim() : '';
+
         if (val instanceof Date) {
-            return val.toISOString();
-        }
-        if (typeof val === 'number') {
+            const d = String(val.getDate()).padStart(2, '0');
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const y = val.getFullYear();
+            const h = String(val.getHours()).padStart(2, '0');
+            const min = String(val.getMinutes()).padStart(2, '0');
+            str = `${d}/${m}/${y} ${timeStr || `${h}:${min}`}`;
+        } else if (typeof val === 'number') {
             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-            return date.toISOString();
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            str = `${d}/${m}/${y} ${timeStr || `${h}:${min}`}`;
+        } else {
+            str = String(val).trim() + (timeStr ? ' ' + timeStr : '');
         }
-        const str = String(val).trim();
-        const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{1,2})/);
+
+        const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
         if (dMyHm) {
             const date = new Date(
                 parseInt(dMyHm[3] || '0'),
