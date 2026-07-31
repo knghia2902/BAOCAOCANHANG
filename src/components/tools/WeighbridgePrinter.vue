@@ -4098,7 +4098,7 @@ onUnmounted(() => {
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
                                             <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
-                                            <th class="px-3 py-2 bg-gray-50">Mã lệnh</th>
+                                            <th class="px-3 py-2 bg-gray-50 text-center">Mã lệnh</th>
                                             <th class="px-3 py-2 bg-gray-50">Thuộc Tàu</th>
                                             <th class="px-3 py-2 bg-gray-50">Thời gian bắt đầu</th>
                                             <th class="px-3 py-2 bg-gray-50">Thời gian kết thúc</th>
@@ -4110,8 +4110,8 @@ onUnmounted(() => {
                                         <tr v-for="(b, idx) in filteredAllBarges" :key="b.id" class="hover:bg-gray-50 transition-colors">
                                             <td class="px-3 py-2 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                             <td class="px-3 py-2 font-bold text-gray-900">{{ b.name }}</td>
-                                            <td class="px-3 py-2">
-                                                <span v-if="b.orderNo" class="px-2 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-xs font-black whitespace-nowrap">
+                                            <td class="px-3 py-2 text-center">
+                                                <span v-if="b.orderNo" class="size-[22px] rounded-full inline-flex items-center justify-center text-[10px] bg-teal-50 text-teal-600 border border-teal-200 font-black uppercase leading-none select-none">
                                                     {{ b.orderNo }}
                                                 </span>
                                                 <span v-else class="text-gray-400 italic text-xs">-</span>

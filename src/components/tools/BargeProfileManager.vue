@@ -1508,7 +1508,7 @@ onUnmounted(() => {
                                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                     <th class="px-3 py-2.5 w-12 text-center bg-gray-50 sticky top-0 z-10">STT</th>
                                     <th class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Tên sà lan</th>
-                                    <th v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5 bg-gray-50 sticky top-0 z-10">Số lệnh</th>
+                                    <th v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Số lệnh</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Trọng tải (Tấn)</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian cập</th>
                                     <th class="px-3 py-2.5 text-center bg-gray-50 sticky top-0 z-10">Thời gian rời</th>
@@ -1523,8 +1523,8 @@ onUnmounted(() => {
                                 <tr v-for="(item, idx) in filteredBarges" :key="item.barge.id" class="hover:bg-gray-50 transition-colors">
                                     <td class="px-3 py-2.5 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                     <td class="px-3 py-2.5 font-bold text-gray-900">{{ item.barge.name }}</td>
-                                    <td v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5">
-                                        <span v-if="item.barge.config?.orderNo" class="px-2 py-0.5 bg-teal-50 text-teal-600 border border-teal-200 rounded-full text-xs font-black whitespace-nowrap">
+                                    <td v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5 text-center">
+                                        <span v-if="item.barge.config?.orderNo" class="size-[22px] rounded-full inline-flex items-center justify-center text-[10px] bg-teal-50 text-teal-600 border border-teal-200 font-black uppercase leading-none select-none">
                                             {{ item.barge.config.orderNo }}
                                         </span>
                                         <span v-else class="text-gray-400 italic text-xs">-</span>
