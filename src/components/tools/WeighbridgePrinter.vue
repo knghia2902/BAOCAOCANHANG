@@ -4100,7 +4100,7 @@ onUnmounted(() => {
                                             <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center w-20">Mã lệnh</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center w-44">Thuộc Tàu</th>
-                                            <th class="pl-20 pr-0 py-2 bg-gray-50">Thời gian bắt đầu</th>
+                                            <th class="pl-28 pr-0 py-2 bg-gray-50">Thời gian bắt đầu</th>
                                             <th class="pl-1 pr-2 py-2 bg-gray-50">Thời gian kết thúc</th>
                                             <th class="px-3 py-2 bg-gray-50 text-center">Trạng thái</th>
                                             <th class="px-3 py-2 text-center w-28 bg-gray-50">Thao tác</th>
@@ -4121,7 +4121,7 @@ onUnmounted(() => {
                                                     {{ b.vesselName }}
                                                 </span>
                                             </td>
-                                            <td class="pl-20 pr-0 py-2 text-gray-700 whitespace-nowrap">{{ b.dateStart ? formatDateTimeStr(b.dateStart) : '-' }}</td>
+                                            <td class="pl-28 pr-0 py-2 text-gray-700 whitespace-nowrap">{{ b.dateStart ? formatDateTimeStr(b.dateStart) : '-' }}</td>
                                             <td class="pl-1 pr-2 py-2 text-gray-700 whitespace-nowrap">{{ b.dateEnd ? formatDateTimeStr(b.dateEnd) : '-' }}</td>
                                             <td class="px-3 py-2 text-center">
                                                 <span v-if="b.locked" class="inline-flex px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-xs font-bold items-center gap-1 whitespace-nowrap">
