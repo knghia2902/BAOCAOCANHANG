@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { weighbridgeOtherService } from '@/services/excel/WeighbridgeOtherService';
 import type { WarehouseTicket, ContainerTicket } from '@/types/excel';
-import { authStore, canCreate, canDelete } from '@/stores/auth';
+import { canDelete } from '@/stores/auth';
 import { LogService } from '@/services/storage/LogService';
 
 import WbKpiCards from './weighbridge/WbKpiCards.vue';
