@@ -435,6 +435,66 @@ const dialogTimeOutTime = computed({
     set: (v: string) => { if (dialogDateOutDate.value) dialogTruck.dateOut = `${dialogDateOutDate.value}T${v || '00:00'}`; }
 });
 
+// Helper for flexible 24h time text input (HH:mm)
+const cleanTimeString = (inputStr: string): string => {
+    if (!inputStr) return '';
+    const str = inputStr.trim();
+    if (str.includes(':')) {
+        const parts = str.split(':');
+        let h = parseInt(parts[0] || '0', 10);
+        let m = parseInt(parts[1] || '0', 10);
+        if (isNaN(h)) h = 0;
+        if (isNaN(m)) m = 0;
+        if (h > 23) h = 23;
+        if (m > 59) m = 59;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    const digits = str.replace(/[^\d]/g, '');
+    if (!digits) return '';
+
+    let hours = 0;
+    let minutes = 0;
+
+    if (digits.length <= 2) {
+        hours = parseInt(digits, 10);
+        minutes = 0;
+    } else if (digits.length === 3) {
+        hours = parseInt(digits.slice(0, 1), 10);
+        minutes = parseInt(digits.slice(1, 3), 10);
+    } else {
+        hours = parseInt(digits.slice(0, 2), 10);
+        minutes = parseInt(digits.slice(2, 4), 10);
+    }
+
+    if (isNaN(hours) || hours > 23) hours = hours > 23 ? 23 : 0;
+    if (isNaN(minutes) || minutes > 59) minutes = minutes > 59 ? 59 : 0;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const onTimeInput = (event: Event, field: 'in' | 'out') => {
+    const input = event.target as HTMLInputElement;
+    let val = input.value.replace(/[^\d:]/g, '');
+    
+    // Auto insert colon if 4 digits typed without colon (e.g. 1939 -> 19:39)
+    if (/^\d{4}$/.test(val)) {
+        val = `${val.slice(0, 2)}:${val.slice(2, 4)}`;
+    }
+    
+    input.value = val;
+    if (field === 'in') dialogTimeInTime.value = val;
+    else dialogTimeOutTime.value = val;
+};
+
+const onTimeBlur = (event: Event, field: 'in' | 'out') => {
+    const input = event.target as HTMLInputElement;
+    const formatted = cleanTimeString(input.value);
+    input.value = formatted;
+    if (field === 'in') dialogTimeInTime.value = formatted;
+    else dialogTimeOutTime.value = formatted;
+};
+
 
 // Helper functions for filtering and sorting
 const removeAccents = (str: string): string => {
@@ -5350,16 +5410,34 @@ onUnmounted(() => {
                         <input v-model="dialogDateInDate" type="date" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold focus:outline-none focus:border-primary">
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label>Giờ vào</label>
-                        <input v-model="dialogTimeInTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                        <label>Giờ vào (24h)</label>
+                        <input 
+                            :value="dialogTimeInTime" 
+                            type="text" 
+                            inputmode="numeric" 
+                            maxlength="5" 
+                            placeholder="19:30" 
+                            @input="onTimeInput($event, 'in')" 
+                            @blur="onTimeBlur($event, 'in')" 
+                            class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary placeholder:text-gray-300"
+                        >
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày ra</label>
                         <input v-model="dialogDateOutDate" type="date" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold focus:outline-none focus:border-primary">
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label>Giờ ra</label>
-                        <input v-model="dialogTimeOutTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                        <label>Giờ ra (24h)</label>
+                        <input 
+                            :value="dialogTimeOutTime" 
+                            type="text" 
+                            inputmode="numeric" 
+                            maxlength="5" 
+                            placeholder="20:15" 
+                            @input="onTimeInput($event, 'out')" 
+                            @blur="onTimeBlur($event, 'out')" 
+                            class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary placeholder:text-gray-300"
+                        >
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
                         <label>Ghi chú</label>
