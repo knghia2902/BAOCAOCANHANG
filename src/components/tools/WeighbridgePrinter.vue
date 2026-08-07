@@ -3672,15 +3672,23 @@ const formatDateTimeStr = (isoString: string): string => {
 
         // 1. Direct YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm regex extraction
         const match = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[T\s]+(\d{1,2}):(\d{1,2})/);
-        if (match) {
-            const [, y, m, d, h, min] = match;
+        if (match && match[1] && match[2] && match[3] && match[4] && match[5]) {
+            const y = match[1];
+            const m = match[2];
+            const d = match[3];
+            const h = match[4];
+            const min = match[5];
             return `${h.padStart(2, '0')}:${min.padStart(2, '0')} ${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
         }
 
         // 2. Direct DD/MM/YYYY HH:mm regex extraction
         const matchDmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[T\s]+(\d{1,2}):(\d{1,2})/);
-        if (matchDmy) {
-            const [, d, m, y, h, min] = matchDmy;
+        if (matchDmy && matchDmy[1] && matchDmy[2] && matchDmy[3] && matchDmy[4] && matchDmy[5]) {
+            const d = matchDmy[1];
+            const m = matchDmy[2];
+            const y = matchDmy[3];
+            const h = matchDmy[4];
+            const min = matchDmy[5];
             return `${h.padStart(2, '0')}:${min.padStart(2, '0')} ${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
         }
 
@@ -5279,7 +5287,7 @@ onUnmounted(() => {
 
         <!-- DIALOG: ADD/EDIT TRUCK -->
         <div v-if="showTruckDialog" class="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4 animate-fade-in no-print font-display">
-            <div class="bg-white rounded-[16px] max-w-xl w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6">
+            <div class="bg-white rounded-[16px] max-w-md w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6">
                 <div>
                     <h3 class="text-xl font-black text-primary mb-1">{{ dialogTruck.id ? 'Sửa thông tin xe cân' : 'Thêm thông tin xe cân thủ công' }}</h3>
                     <p class="text-xs text-[#1b0d11]/60">Nhập đầy đủ thông tin chi tiết xe cân bên dưới.</p>
@@ -5308,18 +5316,20 @@ onUnmounted(() => {
                         <input :value="dialogTruck.weightNet" type="number" readonly class="px-4 py-2.5 rounded-[8px] border border-gray-200 text-sm font-black focus:outline-none bg-gray-50 text-teal-600">
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label>Ngày giờ vào</label>
-                        <div class="flex gap-2">
-                            <input v-model="dialogDateInDate" type="date" class="flex-[3] min-w-0 px-2.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold focus:outline-none focus:border-primary">
-                            <input v-model="dialogTimeInTime" type="time" class="flex-[2] min-w-0 px-1.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold text-center focus:outline-none focus:border-primary">
-                        </div>
+                        <label>Ngày vào</label>
+                        <input v-model="dialogDateInDate" type="date" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold focus:outline-none focus:border-primary">
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label>Ngày giờ ra</label>
-                        <div class="flex gap-2">
-                            <input v-model="dialogDateOutDate" type="date" class="flex-[3] min-w-0 px-2.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold focus:outline-none focus:border-primary">
-                            <input v-model="dialogTimeOutTime" type="time" class="flex-[2] min-w-0 px-1.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold text-center focus:outline-none focus:border-primary">
-                        </div>
+                        <label>Giờ vào</label>
+                        <input v-model="dialogTimeInTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label>Ngày ra</label>
+                        <input v-model="dialogDateOutDate" type="date" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold focus:outline-none focus:border-primary">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label>Giờ ra</label>
+                        <input v-model="dialogTimeOutTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
                         <label>Ghi chú</label>
