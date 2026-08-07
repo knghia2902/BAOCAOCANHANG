@@ -3091,14 +3091,14 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
 
     const keywords: Record<ExcelField, string[]> = {
         ticketNo: ["số phiếu", "phiếu số", "phieu", "ticket", "mã phiếu", "ma phieu", "so phieu"],
-        plateNumber: ["số xe", "biển số", "biển xe", "xe", "sks", "số kiểm soát", "plate", "phương tiện"],
-        weight1: ["lần 1", "trọng lượng 1", "tl 1", "cân 1", "lần một", "gross", "tổng"],
-        weight2: ["lần 2", "trọng lượng 2", "tl 2", "cân 2", "lần hai", "tare", "xe", "xác"],
-        weightNet: ["hàng", "khối lượng hàng", "trọng lượng hàng", "tịnh", "net", "khối lượng tịnh", "kl tịnh"],
-        dateIn: ["giờ vào", "ngày vào", "vào", "thời gian vào", "ngày giờ vào", "time in"],
-        dateOut: ["giờ ra", "ngày ra", "ra", "thời gian ra", "ngày giờ ra", "time out"],
-        driver: ["tài xế", "tài", "lái xe", "tên tài xế", "driver"],
-        note: ["ghi chú", "note", "diễn giải", "ghi chú thêm"]
+        plateNumber: ["biển số xe", "biển số", "số xe", "biển xe", "sks", "số kiểm soát", "plate", "phương tiện", "so xe", "bien so"],
+        weight1: ["lần 1", "trọng lượng 1", "tl 1", "cân 1", "lần một", "gross", "tổng", "lan 1", "kl can lan 1", "kl1"],
+        weight2: ["lần 2", "trọng lượng 2", "tl 2", "cân 2", "lần hai", "tare", "xác xe", "xác", "lan 2", "kl can lan 2", "kl2"],
+        weightNet: ["trọng lượng hàng", "khối lượng hàng", "hàng", "tịnh", "net", "khối lượng tịnh", "kl tịnh", "kl hang", "kl tinh"],
+        dateIn: ["ngày giờ vào", "thời gian vào", "giờ vào", "ngày vào", "vào", "time in", "ngay can lan 1"],
+        dateOut: ["ngày giờ ra", "thời gian ra", "giờ ra", "ngày ra", "ra", "time out", "ngay can lan 2"],
+        driver: ["tài xế", "tên tài xế", "tài", "lái xe", "driver", "tai xe"],
+        note: ["ghi chú", "note", "diễn giải", "ghi chú thêm", "ghi chu"]
     };
 
     for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
@@ -3108,10 +3108,10 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
         let matches = 0;
         row.forEach(cell => {
             if (cell === null || cell === undefined) return;
-            const val = String(cell).toLowerCase().trim();
+            const val = removeAccents(String(cell).toLowerCase().trim());
             
             Object.values(keywords).forEach(kwList => {
-                if (kwList.some(kw => val.includes(kw))) {
+                if (kwList.some(kw => val.includes(removeAccents(kw)))) {
                     matches++;
                 }
             });
@@ -3150,15 +3150,33 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
         note: -1
     };
 
-    columns.forEach(col => {
-        const nameLower = col.name.toLowerCase();
-        
-        (Object.keys(keywords) as ExcelField[]).forEach(field => {
-            if (mapping[field] !== -1) return;
-            if (keywords[field].some(kw => nameLower.includes(kw))) {
-                mapping[field] = col.index;
-            }
+    const usedColumns = new Set<number>();
+    const fieldPriority: ExcelField[] = ['plateNumber', 'weight1', 'weight2', 'ticketNo', 'weightNet', 'dateIn', 'dateOut', 'driver', 'note'];
+
+    fieldPriority.forEach(field => {
+        const fieldKwList = keywords[field];
+        let bestColIndex = -1;
+        let bestMatchLen = 0;
+
+        columns.forEach(col => {
+            if (usedColumns.has(col.index)) return;
+            const nameLower = removeAccents(col.name.toLowerCase());
+
+            fieldKwList.forEach(kw => {
+                const kwClean = removeAccents(kw);
+                if (nameLower.includes(kwClean)) {
+                    if (kwClean.length > bestMatchLen) {
+                        bestMatchLen = kwClean.length;
+                        bestColIndex = col.index;
+                    }
+                }
+            });
         });
+
+        if (bestColIndex !== -1) {
+            mapping[field] = bestColIndex;
+            usedColumns.add(bestColIndex);
+        }
     });
 
     pendingExcelData.value = {
@@ -5172,14 +5190,14 @@ onUnmounted(() => {
 
         <!-- COLUMN MAPPING MODAL -->
         <div v-if="showMappingModal && pendingExcelData" class="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4 animate-fade-in no-print font-display">
-            <div class="bg-white rounded-2xl max-w-xl w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6">
+            <div class="bg-white rounded-2xl max-w-xl w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6 max-h-[85vh]">
                 <div>
                     <h3 class="text-xl font-black text-primary mb-1">Cấu hình ánh xạ cột Excel</h3>
                     <p class="text-xs text-[#1b0d11]/60">Hệ thống đã nhận diện các cột. Vui lòng kiểm tra và sửa lại nếu chưa khớp.</p>
                 </div>
 
                 <!-- Fields grid -->
-                <div class="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                <div class="space-y-4 max-h-[500px] overflow-y-auto pr-2 flex-1">
                     <div v-for="field in mappingFields" :key="field.id" class="grid grid-cols-5 items-center gap-4">
                         <label class="col-span-2 text-xs font-bold text-gray-500">
                             {{ field.label }}
