@@ -3192,17 +3192,44 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
 const parseExcelDate = (val: any): string => {
     if (!val) return '';
     if (val instanceof Date) {
-        return val.toISOString().slice(0, 16);
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        const h = String(val.getHours()).padStart(2, '0');
+        const min = String(val.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${d}T${h}:${min}`;
     }
     if (typeof val === 'number') {
         const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-        return date.toISOString().slice(0, 16);
+        const y = date.getUTCFullYear();
+        const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(date.getUTCDate()).padStart(2, '0');
+        const h = String(date.getUTCHours()).padStart(2, '0');
+        const min = String(date.getUTCMinutes()).padStart(2, '0');
+        return `${y}-${m}-${d}T${h}:${min}`;
     }
     const str = String(val).trim();
     const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{1,2})/);
     if (dMyHm) {
-        const date = new Date(parseInt(dMyHm[3] || '0'), parseInt(dMyHm[2] || '1') - 1, parseInt(dMyHm[1] || '1'), parseInt(dMyHm[4] || '0'), parseInt(dMyHm[5] || '0'));
-        if (!isNaN(date.getTime())) return date.toISOString().slice(0, 16);
+        let p1 = parseInt(dMyHm[1] || '1');
+        let p2 = parseInt(dMyHm[2] || '1');
+        const y = dMyHm[3];
+        const h = String(dMyHm[4]).padStart(2, '0');
+        const min = String(dMyHm[5]).padStart(2, '0');
+
+        let month = p2;
+        let day = p1;
+        if (p1 <= 12 && p2 > 12) {
+            month = p1;
+            day = p2;
+        } else if (p1 <= 12 && p2 <= 12) {
+            month = p1;
+            day = p2;
+        }
+
+        const mStr = String(month).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        return `${y}-${mStr}-${dStr}T${h}:${min}`;
     }
     const iso = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     if (iso) return str.slice(0, 16);
@@ -3641,7 +3668,25 @@ function DocSoThanhChu(so: number): string {
 const formatDateTimeStr = (isoString: string): string => {
     if (!isoString) return '';
     try {
-        const date = new Date(isoString);
+        const str = String(isoString).trim();
+
+        // 1. Direct YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm regex extraction
+        const match = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[T\s]+(\d{1,2}):(\d{1,2})/);
+        if (match) {
+            const [, y, m, d, h, min] = match;
+            return `${h.padStart(2, '0')}:${min.padStart(2, '0')} ${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        }
+
+        // 2. Direct DD/MM/YYYY HH:mm regex extraction
+        const matchDmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[T\s]+(\d{1,2}):(\d{1,2})/);
+        if (matchDmy) {
+            const [, d, m, y, h, min] = matchDmy;
+            return `${h.padStart(2, '0')}:${min.padStart(2, '0')} ${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        }
+
+        // 3. Fallback: Parse using local Date (replacing T with space to force local parsing)
+        const localStr = str.replace('T', ' ');
+        const date = new Date(localStr);
         if (isNaN(date.getTime())) return isoString;
         const d = String(date.getDate()).padStart(2, '0');
         const m = String(date.getMonth() + 1).padStart(2, '0');
