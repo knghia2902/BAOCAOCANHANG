@@ -311,44 +311,49 @@ export class WeighbridgeOtherService {
 
     private parseExcelDate(val: any, valTime?: any): string | null {
         if (!val) return null;
-        let str = '';
-        const timeStr = valTime ? String(valTime).trim() : '';
-
         if (val instanceof Date) {
-            const d = String(val.getDate()).padStart(2, '0');
-            const m = String(val.getMonth() + 1).padStart(2, '0');
             const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const d = String(val.getDate()).padStart(2, '0');
             const h = String(val.getHours()).padStart(2, '0');
             const min = String(val.getMinutes()).padStart(2, '0');
-            str = `${d}/${m}/${y} ${timeStr || `${h}:${min}`}`;
-        } else if (typeof val === 'number') {
-            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-            const d = String(date.getDate()).padStart(2, '0');
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const y = date.getFullYear();
-            const h = String(date.getHours()).padStart(2, '0');
-            const min = String(date.getMinutes()).padStart(2, '0');
-            str = `${d}/${m}/${y} ${timeStr || `${h}:${min}`}`;
-        } else {
-            str = String(val).trim() + (timeStr ? ' ' + timeStr : '');
+            return `${y}-${m}-${d}T${h}:${min}`;
         }
+        if (typeof val === 'number') {
+            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+            const y = date.getUTCFullYear();
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            const h = String(date.getUTCHours()).padStart(2, '0');
+            const min = String(date.getUTCMinutes()).padStart(2, '0');
+            return `${y}-${m}-${d}T${h}:${min}`;
+        }
+        const timeStr = valTime ? String(valTime).trim() : '';
+        const str = String(val).trim() + (timeStr ? ' ' + timeStr : '');
 
         const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
-        if (dMyHm) {
-            const date = new Date(
-                parseInt(dMyHm[3] || '0'),
-                parseInt(dMyHm[2] || '1') - 1,
-                parseInt(dMyHm[1] || '1'),
-                parseInt(dMyHm[4] || '0'),
-                parseInt(dMyHm[5] || '0')
-            );
-            if (!isNaN(date.getTime())) return date.toISOString();
+        if (dMyHm && dMyHm[1] && dMyHm[2] && dMyHm[3]) {
+            let p1 = parseInt(dMyHm[1]);
+            let p2 = parseInt(dMyHm[2]);
+            const y = dMyHm[3];
+            const h = String(dMyHm[4] || '00').padStart(2, '0');
+            const min = String(dMyHm[5] || '00').padStart(2, '0');
+
+            let month = p2;
+            let day = p1;
+            if (p1 <= 12 && p2 > 12) {
+                month = p1;
+                day = p2;
+            } else if (p1 <= 12 && p2 <= 12) {
+                month = p1;
+                day = p2;
+            }
+            const mStr = String(month).padStart(2, '0');
+            const dStr = String(day).padStart(2, '0');
+            return `${y}-${mStr}-${dStr}T${h}:${min}`;
         }
         const iso = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
-        if (iso) return new Date(str).toISOString();
-
-        const parsed = Date.parse(str);
-        if (!isNaN(parsed)) return new Date(parsed).toISOString();
+        if (iso) return str.slice(0, 16);
 
         return null;
     }

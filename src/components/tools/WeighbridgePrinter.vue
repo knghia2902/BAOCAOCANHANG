@@ -2716,30 +2716,33 @@ async function autoSyncAllBarges(isManual = false) {
                     let dOut = '';
                     try {
                         if (t.date1Obj) {
-                            const date1 = new Date(t.date1Obj);
-                            if (!isNaN(date1.getTime())) {
-                                const offset = date1.getTimezoneOffset();
-                                const localDate = new Date(date1.getTime() - (offset * 60 * 1000));
-                                dIn = localDate.toISOString().slice(0, 16);
-                            }
+                            dIn = parseExcelDate(t.date1Obj);
                         }
                         if (t.date2Obj) {
-                            const date2 = new Date(t.date2Obj);
-                            if (!isNaN(date2.getTime())) {
-                                const offset = date2.getTimezoneOffset();
-                                const localDate = new Date(date2.getTime() - (offset * 60 * 1000));
-                                dOut = localDate.toISOString().slice(0, 16);
-                            }
+                            dOut = parseExcelDate(t.date2Obj);
                         }
                     } catch (e) {
                         console.warn('Error parsing date:', e);
                     }
 
-                    if (!dIn) dIn = new Date().toISOString().slice(0, 16);
+                    if (!dIn) {
+                        const now = new Date();
+                        const y = now.getFullYear();
+                        const m = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const h = String(now.getHours()).padStart(2, '0');
+                        const min = String(now.getMinutes()).padStart(2, '0');
+                        dIn = `${y}-${m}-${day}T${h}:${min}`;
+                    }
                     if (!dOut) {
                         const outDate = new Date();
                         outDate.setMinutes(outDate.getMinutes() + 30);
-                        dOut = outDate.toISOString().slice(0, 16);
+                        const y = outDate.getFullYear();
+                        const m = String(outDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(outDate.getDate()).padStart(2, '0');
+                        const h = String(outDate.getHours()).padStart(2, '0');
+                        const min = String(outDate.getMinutes()).padStart(2, '0');
+                        dOut = `${y}-${m}-${day}T${h}:${min}`;
                     }
 
                     return {
@@ -2906,32 +2909,33 @@ const syncFromAllocatorActiveBarge = async () => {
             let dOut = '';
             try {
                 if (t.date1Obj) {
-                    const date1 = new Date(t.date1Obj);
-                    if (!isNaN(date1.getTime())) {
-                        const offset = date1.getTimezoneOffset();
-                        const localDate = new Date(date1.getTime() - (offset * 60 * 1000));
-                        dIn = localDate.toISOString().slice(0, 16);
-                    }
+                    dIn = parseExcelDate(t.date1Obj);
                 }
                 if (t.date2Obj) {
-                    const date2 = new Date(t.date2Obj);
-                    if (!isNaN(date2.getTime())) {
-                        const offset = date2.getTimezoneOffset();
-                        const localDate = new Date(date2.getTime() - (offset * 60 * 1000));
-                        dOut = localDate.toISOString().slice(0, 16);
-                    }
+                    dOut = parseExcelDate(t.date2Obj);
                 }
             } catch (e) {
                 console.warn('Error parsing date:', e);
             }
 
             if (!dIn) {
-                dIn = new Date().toISOString().slice(0, 16);
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const h = String(now.getHours()).padStart(2, '0');
+                const min = String(now.getMinutes()).padStart(2, '0');
+                dIn = `${y}-${m}-${day}T${h}:${min}`;
             }
             if (!dOut) {
                 const outDate = new Date();
                 outDate.setMinutes(outDate.getMinutes() + 30);
-                dOut = outDate.toISOString().slice(0, 16);
+                const y = outDate.getFullYear();
+                const m = String(outDate.getMonth() + 1).padStart(2, '0');
+                const day = String(outDate.getDate()).padStart(2, '0');
+                const h = String(outDate.getHours()).padStart(2, '0');
+                const min = String(outDate.getMinutes()).padStart(2, '0');
+                dOut = `${y}-${m}-${day}T${h}:${min}`;
             }
 
             return {
