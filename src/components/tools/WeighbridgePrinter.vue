@@ -5279,7 +5279,7 @@ onUnmounted(() => {
 
         <!-- DIALOG: ADD/EDIT TRUCK -->
         <div v-if="showTruckDialog" class="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4 animate-fade-in no-print font-display">
-            <div class="bg-white rounded-[16px] max-w-md w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6">
+            <div class="bg-white rounded-[16px] max-w-xl w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6">
                 <div>
                     <h3 class="text-xl font-black text-primary mb-1">{{ dialogTruck.id ? 'Sửa thông tin xe cân' : 'Thêm thông tin xe cân thủ công' }}</h3>
                     <p class="text-xs text-[#1b0d11]/60">Nhập đầy đủ thông tin chi tiết xe cân bên dưới.</p>
@@ -5310,15 +5310,15 @@ onUnmounted(() => {
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày giờ vào</label>
                         <div class="flex gap-2">
-                            <input v-model="dialogDateInDate" type="date" class="flex-[3] min-w-0 px-3 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
-                            <input v-model="dialogTimeInTime" type="time" class="flex-[2] min-w-0 px-3 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
+                            <input v-model="dialogDateInDate" type="date" class="flex-[3] min-w-0 px-2.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold focus:outline-none focus:border-primary">
+                            <input v-model="dialogTimeInTime" type="time" class="flex-[2] min-w-0 px-1.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold text-center focus:outline-none focus:border-primary">
                         </div>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày giờ ra</label>
                         <div class="flex gap-2">
-                            <input v-model="dialogDateOutDate" type="date" class="flex-[3] min-w-0 px-3 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
-                            <input v-model="dialogTimeOutTime" type="time" class="flex-[2] min-w-0 px-3 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold text-center focus:outline-none focus:border-primary">
+                            <input v-model="dialogDateOutDate" type="date" class="flex-[3] min-w-0 px-2.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold focus:outline-none focus:border-primary">
+                            <input v-model="dialogTimeOutTime" type="time" class="flex-[2] min-w-0 px-1.5 py-2.5 rounded-[8px] border border-gray-200 text-xs sm:text-sm font-semibold text-center focus:outline-none focus:border-primary">
                         </div>
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
