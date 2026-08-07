@@ -70,14 +70,40 @@ const formatWeight = (val: any) => {
 const formatDate = (isoString: any) => {
     if (!isoString) return '-';
     try {
-        const date = new Date(isoString);
+        const str = String(isoString).trim();
+
+        // 1. Direct YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm regex extraction
+        const match = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[T\s]+(\d{1,2}):(\d{1,2})/);
+        if (match && match[1] && match[2] && match[3] && match[4] && match[5]) {
+            const y = match[1];
+            const m = match[2];
+            const d = match[3];
+            const h = match[4];
+            const min = match[5];
+            return `${h.padStart(2, '0')}:${min.padStart(2, '0')} ${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        }
+
+        // 2. Direct DD/MM/YYYY HH:mm regex extraction
+        const matchDmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[T\s]+(\d{1,2}):(\d{1,2})/);
+        if (matchDmy && matchDmy[1] && matchDmy[2] && matchDmy[3] && matchDmy[4] && matchDmy[5]) {
+            const d = matchDmy[1];
+            const m = matchDmy[2];
+            const y = matchDmy[3];
+            const h = matchDmy[4];
+            const min = matchDmy[5];
+            return `${h.padStart(2, '0')}:${min.padStart(2, '0')} ${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        }
+
+        // 3. Fallback: Parse using local Date (replacing T with space to force local parsing)
+        const localStr = str.replace('T', ' ');
+        const date = new Date(localStr);
         if (isNaN(date.getTime())) return isoString;
         const d = String(date.getDate()).padStart(2, '0');
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const y = date.getFullYear();
         const h = String(date.getHours()).padStart(2, '0');
         const min = String(date.getMinutes()).padStart(2, '0');
-        return `${d}/${m}/${y} ${h}:${min}`;
+        return `${h}:${min} ${d}/${m}/${y}`;
     } catch {
         return isoString;
     }
