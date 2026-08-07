@@ -435,34 +435,6 @@ const dialogTimeOutTime = computed({
     set: (v: string) => { if (dialogDateOutDate.value) dialogTruck.dateOut = `${dialogDateOutDate.value}T${v || '00:00'}`; }
 });
 
-// Auto-format time input for 24h HH:mm
-const onTimeInput = (event: Event, field: 'in' | 'out') => {
-    const input = event.target as HTMLInputElement;
-    let val = input.value.replace(/[^\d:]/g, '');
-    // Auto-insert colon after 2 digits
-    if (val.length === 2 && !val.includes(':')) {
-        val = val + ':';
-    }
-    // Clamp hours 0-23
-    if (val.length >= 2) {
-        const h = parseInt(val.substring(0, 2));
-        if (h > 23) val = '23' + val.substring(2);
-    }
-    // Clamp minutes 0-59
-    if (val.includes(':')) {
-        const parts = val.split(':');
-        const minutesPart = parts[1] || '';
-        const hoursPart = parts[0] || '00';
-        if (minutesPart.length >= 2) {
-            const m = parseInt(minutesPart.substring(0, 2));
-            if (m > 59) val = hoursPart + ':59';
-            else val = hoursPart + ':' + minutesPart.substring(0, 2);
-        }
-    }
-    input.value = val;
-    if (field === 'in') dialogTimeInTime.value = val;
-    else dialogTimeOutTime.value = val;
-};
 
 // Helper functions for filtering and sorting
 const removeAccents = (str: string): string => {
@@ -5379,7 +5351,7 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Giờ vào</label>
-                        <input v-model="dialogTimeInTime" type="text" inputmode="numeric" pattern="([01]?\d|2[0-3]):[0-5]\d" maxlength="5" placeholder="HH:mm" @input="onTimeInput($event, 'in')" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                        <input v-model="dialogTimeInTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày ra</label>
@@ -5387,7 +5359,7 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Giờ ra</label>
-                        <input v-model="dialogTimeOutTime" type="text" inputmode="numeric" pattern="([01]?\d|2[0-3]):[0-5]\d" maxlength="5" placeholder="HH:mm" @input="onTimeInput($event, 'out')" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                        <input v-model="dialogTimeOutTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
                         <label>Ghi chú</label>
