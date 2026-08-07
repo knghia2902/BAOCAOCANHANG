@@ -435,6 +435,34 @@ const dialogTimeOutTime = computed({
     set: (v: string) => { if (dialogDateOutDate.value) dialogTruck.dateOut = `${dialogDateOutDate.value}T${v || '00:00'}`; }
 });
 
+// Auto-format time input for 24h HH:mm
+const onTimeInput = (event: Event, field: 'in' | 'out') => {
+    const input = event.target as HTMLInputElement;
+    let val = input.value.replace(/[^\d:]/g, '');
+    // Auto-insert colon after 2 digits
+    if (val.length === 2 && !val.includes(':')) {
+        val = val + ':';
+    }
+    // Clamp hours 0-23
+    if (val.length >= 2) {
+        const h = parseInt(val.substring(0, 2));
+        if (h > 23) val = '23' + val.substring(2);
+    }
+    // Clamp minutes 0-59
+    if (val.includes(':')) {
+        const parts = val.split(':');
+        const minutesPart = parts[1] || '';
+        const hoursPart = parts[0] || '00';
+        if (minutesPart.length >= 2) {
+            const m = parseInt(minutesPart.substring(0, 2));
+            if (m > 59) val = hoursPart + ':59';
+            else val = hoursPart + ':' + minutesPart.substring(0, 2);
+        }
+    }
+    input.value = val;
+    if (field === 'in') dialogTimeInTime.value = val;
+    else dialogTimeOutTime.value = val;
+};
 
 // Helper functions for filtering and sorting
 const removeAccents = (str: string): string => {
@@ -3196,11 +3224,11 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
 const parseExcelDate = (val: any): string => {
     if (!val) return '';
     if (val instanceof Date) {
-        const y = val.getFullYear();
-        const m = String(val.getMonth() + 1).padStart(2, '0');
-        const d = String(val.getDate()).padStart(2, '0');
-        const h = String(val.getHours()).padStart(2, '0');
-        const min = String(val.getMinutes()).padStart(2, '0');
+        const y = val.getUTCFullYear();
+        const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(val.getUTCDate()).padStart(2, '0');
+        const h = String(val.getUTCHours()).padStart(2, '0');
+        const min = String(val.getUTCMinutes()).padStart(2, '0');
         return `${y}-${m}-${d}T${h}:${min}`;
     }
     if (typeof val === 'number') {
@@ -3213,13 +3241,18 @@ const parseExcelDate = (val: any): string => {
         return `${y}-${m}-${d}T${h}:${min}`;
     }
     const str = String(val).trim();
-    const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{1,2})/);
+    const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{1,2})(?::\d{1,2})?\s*(AM|PM|am|pm)?/i);
     if (dMyHm) {
         let p1 = parseInt(dMyHm[1] || '1');
         let p2 = parseInt(dMyHm[2] || '1');
         const y = dMyHm[3];
-        const h = String(dMyHm[4]).padStart(2, '0');
+        let hour = parseInt(dMyHm[4] || '0');
         const min = String(dMyHm[5]).padStart(2, '0');
+        const ampm = (dMyHm[6] || '').toUpperCase();
+
+        // AM/PM conversion to 24h
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
 
         let month = p2;
         let day = p1;
@@ -3233,7 +3266,8 @@ const parseExcelDate = (val: any): string => {
 
         const mStr = String(month).padStart(2, '0');
         const dStr = String(day).padStart(2, '0');
-        return `${y}-${mStr}-${dStr}T${h}:${min}`;
+        const hStr = String(hour).padStart(2, '0');
+        return `${y}-${mStr}-${dStr}T${hStr}:${min}`;
     }
     const iso = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     if (iso) return str.slice(0, 16);
@@ -3310,12 +3344,22 @@ const confirmExcelMapping = async () => {
 
             if (!dIn) {
                 const now = new Date();
-                dIn = now.toISOString().slice(0, 16);
+                const y = now.getFullYear();
+                const mo = String(now.getMonth() + 1).padStart(2, '0');
+                const dy = String(now.getDate()).padStart(2, '0');
+                const hr = String(now.getHours()).padStart(2, '0');
+                const mi = String(now.getMinutes()).padStart(2, '0');
+                dIn = `${y}-${mo}-${dy}T${hr}:${mi}`;
             }
             if (!dOut) {
                 const now = new Date();
                 now.setMinutes(now.getMinutes() + 30);
-                dOut = now.toISOString().slice(0, 16);
+                const y = now.getFullYear();
+                const mo = String(now.getMonth() + 1).padStart(2, '0');
+                const dy = String(now.getDate()).padStart(2, '0');
+                const hr = String(now.getHours()).padStart(2, '0');
+                const mi = String(now.getMinutes()).padStart(2, '0');
+                dOut = `${y}-${mo}-${dy}T${hr}:${mi}`;
             }
 
             const driver = driverCol !== undefined && driverCol !== -1 && row[driverCol] ? String(row[driverCol]).trim() : '';
@@ -3417,9 +3461,19 @@ const openAddTruckDialog = () => {
     dialogTruck.weightNet = 0;
     
     const now = new Date();
-    dialogTruck.dateIn = now.toISOString().slice(0, 16);
+    const y1 = now.getFullYear();
+    const mo1 = String(now.getMonth() + 1).padStart(2, '0');
+    const dy1 = String(now.getDate()).padStart(2, '0');
+    const hr1 = String(now.getHours()).padStart(2, '0');
+    const mi1 = String(now.getMinutes()).padStart(2, '0');
+    dialogTruck.dateIn = `${y1}-${mo1}-${dy1}T${hr1}:${mi1}`;
     now.setMinutes(now.getMinutes() + 30);
-    dialogTruck.dateOut = now.toISOString().slice(0, 16);
+    const y2 = now.getFullYear();
+    const mo2 = String(now.getMonth() + 1).padStart(2, '0');
+    const dy2 = String(now.getDate()).padStart(2, '0');
+    const hr2 = String(now.getHours()).padStart(2, '0');
+    const mi2 = String(now.getMinutes()).padStart(2, '0');
+    dialogTruck.dateOut = `${y2}-${mo2}-${dy2}T${hr2}:${mi2}`;
     
     dialogTruck.note = '';
     
@@ -5325,7 +5379,7 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Giờ vào</label>
-                        <input v-model="dialogTimeInTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                        <input v-model="dialogTimeInTime" type="text" inputmode="numeric" pattern="([01]?\d|2[0-3]):[0-5]\d" maxlength="5" placeholder="HH:mm" @input="onTimeInput($event, 'in')" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Ngày ra</label>
@@ -5333,7 +5387,7 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label>Giờ ra</label>
-                        <input v-model="dialogTimeOutTime" type="time" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
+                        <input v-model="dialogTimeOutTime" type="text" inputmode="numeric" pattern="([01]?\d|2[0-3]):[0-5]\d" maxlength="5" placeholder="HH:mm" @input="onTimeInput($event, 'out')" class="w-full px-3 py-2.5 rounded-[8px] border border-gray-200 text-xs font-semibold text-center focus:outline-none focus:border-primary">
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
                         <label>Ghi chú</label>

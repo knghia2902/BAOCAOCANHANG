@@ -312,11 +312,11 @@ export class WeighbridgeOtherService {
     private parseExcelDate(val: any, valTime?: any): string | null {
         if (!val) return null;
         if (val instanceof Date) {
-            const y = val.getFullYear();
-            const m = String(val.getMonth() + 1).padStart(2, '0');
-            const d = String(val.getDate()).padStart(2, '0');
-            const h = String(val.getHours()).padStart(2, '0');
-            const min = String(val.getMinutes()).padStart(2, '0');
+            const y = val.getUTCFullYear();
+            const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(val.getUTCDate()).padStart(2, '0');
+            const h = String(val.getUTCHours()).padStart(2, '0');
+            const min = String(val.getUTCMinutes()).padStart(2, '0');
             return `${y}-${m}-${d}T${h}:${min}`;
         }
         if (typeof val === 'number') {
@@ -331,13 +331,18 @@ export class WeighbridgeOtherService {
         const timeStr = valTime ? String(valTime).trim() : '';
         const str = String(val).trim() + (timeStr ? ' ' + timeStr : '');
 
-        const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+        const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::\d{1,2})?\s*(AM|PM|am|pm)?)?/i);
         if (dMyHm && dMyHm[1] && dMyHm[2] && dMyHm[3]) {
             let p1 = parseInt(dMyHm[1]);
             let p2 = parseInt(dMyHm[2]);
             const y = dMyHm[3];
-            const h = String(dMyHm[4] || '00').padStart(2, '0');
+            let hour = parseInt(dMyHm[4] || '0');
             const min = String(dMyHm[5] || '00').padStart(2, '0');
+            const ampm = (dMyHm[6] || '').toUpperCase();
+
+            // AM/PM conversion to 24h
+            if (ampm === 'PM' && hour < 12) hour += 12;
+            if (ampm === 'AM' && hour === 12) hour = 0;
 
             let month = p2;
             let day = p1;
@@ -350,7 +355,8 @@ export class WeighbridgeOtherService {
             }
             const mStr = String(month).padStart(2, '0');
             const dStr = String(day).padStart(2, '0');
-            return `${y}-${mStr}-${dStr}T${h}:${min}`;
+            const hStr = String(hour).padStart(2, '0');
+            return `${y}-${mStr}-${dStr}T${hStr}:${min}`;
         }
         const iso = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
         if (iso) return str.slice(0, 16);
