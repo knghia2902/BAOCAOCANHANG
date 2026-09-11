@@ -10,11 +10,11 @@ last_updated: "2026-07-27T19:50:00.000Z"
 last_activity: 2026-07-27
 last_activity_desc: Phase 06 execution completed
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 2
-  total_plans: 6
+  total_plans: 8
   completed_plans: 4
-  percent: 66
+  percent: 50
 ---
 
 # Project State
@@ -71,6 +71,11 @@ Recent decisions affecting current work:
 - [2026-05-29]: Selected Tesseract.js (OCR) and pdfjs-dist (PDF Parsing) to run client-side for zero cloud cost and offline reliability.
 - [2026-05-29]: CoordinateSorter uses dynamic font-height thresholds (D-01) for Y-grouping and 1D X-coordinate clustering (D-04) for tabular alignment.
 - [2026-05-29]: DocumentBuilder uses exceljs for XLSX and docx for DOCX output as ArrayBuffer.
+- [2026-09-11]: Phase 8 added - Phân loại tàu Đang làm hàng & Đã xong (read-only, chỉ Admin có quyền mở lại) để làm gọn Báo cáo tổng quan và Sidebar.
+
+### Roadmap Evolution
+
+- Phase 8 added: Phân loại tàu Đang làm hàng & Đã xong (Giao diện 2 Tab, chế độ Read-only, Admin mở lại)
 
 ### Pending Todos
 
