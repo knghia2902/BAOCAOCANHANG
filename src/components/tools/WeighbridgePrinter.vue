@@ -4320,40 +4320,6 @@ onUnmounted(() => {
                                     Báo cáo tổng quan hệ thống
                                 </h1>
                             </div>
-
-                            <!-- 2-Tab Status Filter -->
-                            <div class="inline-flex p-1 bg-gray-100 rounded-xl text-xs font-bold">
-                                <button 
-                                    @click="selectedVesselStatusTab = 'in_progress'"
-                                    :class="[
-                                        'py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all text-xs',
-                                        selectedVesselStatusTab === 'in_progress' 
-                                            ? 'bg-white text-primary shadow-sm' 
-                                            : 'text-gray-500 hover:text-gray-700'
-                                    ]"
-                                >
-                                    <span class="material-symbols-outlined text-sm">schedule</span>
-                                    <span>Đang làm hàng</span>
-                                    <span class="px-1.5 py-0.5 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'in_progress' ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-600'">
-                                        {{ inProgressVessels.length }}
-                                    </span>
-                                </button>
-                                <button 
-                                    @click="selectedVesselStatusTab = 'done'"
-                                    :class="[
-                                        'py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all text-xs',
-                                        selectedVesselStatusTab === 'done' 
-                                            ? 'bg-white text-emerald-600 shadow-sm' 
-                                            : 'text-gray-500 hover:text-gray-700'
-                                    ]"
-                                >
-                                    <span class="material-symbols-outlined text-sm">check_circle</span>
-                                    <span>Đã xong</span>
-                                    <span class="px-1.5 py-0.5 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'done' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'">
-                                        {{ doneVessels.length }}
-                                    </span>
-                                </button>
-                            </div>
                         </div>
 
                         <!-- Stats Row -->
