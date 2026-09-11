@@ -10,10 +10,10 @@ updated: 2026-09-11T14:55:00Z
 
 ## Current Test
 
-number: 4
-name: Chế độ Chỉ xem (Read-only) bảo vệ dữ liệu tàu đã xong
+number: 5
+name: Phân quyền Admin mở lại tàu "Đang làm hàng"
 expected: |
-  Khi mở xem sà lan của tàu "Đã xong", hệ thống hiển thị banner cảnh báo Chỉ xem. Các nút Thêm xe, Nhập Excel, Đồng bộ từ phân bổ, Xóa tất cả, Sửa xe, Xóa xe đều bị ẩn/vô hiệu hóa. Tính năng In phiếu (A5) và Xuất Excel vẫn hoạt động bình thường.
+  Nút "Mở lại: Đang làm hàng" chỉ hiển thị khi đăng nhập tài khoản Quản trị viên (Admin). Khi Admin bấm mở lại và xác nhận, tàu chuyển về "Đang làm hàng", các nút thêm/sửa/xóa và nhập liệu được mở khóa trở lại.
 awaiting: user response
 
 ## Tests
@@ -32,7 +32,7 @@ result: pass
 
 ### 4. Chế độ Chỉ xem (Read-only) bảo vệ dữ liệu tàu đã xong
 expected: Khi mở xem sà lan của tàu "Đã xong", hệ thống hiển thị banner cảnh báo Chỉ xem. Các nút Thêm xe, Nhập Excel, Đồng bộ từ phân bổ, Xóa tất cả, Sửa xe, Xóa xe đều bị ẩn/vô hiệu hóa. Tính năng In phiếu (A5) và Xuất Excel vẫn hoạt động bình thường.
-result: pending
+result: pass
 
 ### 5. Phân quyền Admin mở lại tàu "Đang làm hàng"
 expected: Nút "Mở lại: Đang làm hàng" chỉ hiển thị khi đăng nhập tài khoản Quản trị viên (Admin). Khi Admin bấm mở lại và xác nhận, tàu chuyển về "Đang làm hàng", các nút thêm/sửa/xóa và nhập liệu được mở khóa trở lại.
@@ -41,9 +41,9 @@ result: pending
 ## Summary
 
 total: 5
-passed: 3
+passed: 4
 issues: 0
-pending: 2
+pending: 1
 skipped: 0
 
 ## Gaps
