@@ -2581,7 +2581,9 @@ const handleCloseVessel = async (vesselId?: number) => {
             targetVessel.status = 'done';
             selectedVesselStatusTab.value = 'done';
             showToast(`Đã chốt số liệu tàu: ${targetVessel.name}`, 'success');
-            await LogService.logAction('Chốt số liệu tàu', `Chuyển tàu ${targetVessel.name} sang trạng thái Đã xong`);
+            LogService.logAction('Chốt số liệu tàu', `Chuyển tàu ${targetVessel.name} sang trạng thái Đã xong`).catch(err => {
+                console.warn('LogService logAction failed:', err);
+            });
         } else {
             showToast('Không thể cập nhật trạng thái tàu!', 'error');
         }
@@ -2618,7 +2620,9 @@ const handleReopenVessel = async (vesselId?: number) => {
             targetVessel.status = 'in_progress';
             selectedVesselStatusTab.value = 'in_progress';
             showToast(`Đã mở lại làm hàng cho tàu: ${targetVessel.name}`, 'success');
-            await LogService.logAction('Mở lại tàu', `Chuyển tàu ${targetVessel.name} về trạng thái Đang làm hàng`);
+            LogService.logAction('Mở lại tàu', `Chuyển tàu ${targetVessel.name} về trạng thái Đang làm hàng`).catch(err => {
+                console.warn('LogService logAction failed:', err);
+            });
         } else {
             showToast('Không thể mở lại tàu!', 'error');
         }

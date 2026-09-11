@@ -129,20 +129,12 @@ export const WeighbridgeService = {
      */
     async getVessels(): Promise<Vessel[]> {
         const local = await getLocalVessels();
+        let localStatusMap: Record<string, 'in_progress' | 'done'> = {};
         try {
-            // Fetch vessel statuses fallback from content.settings if table column is missing
-            let remoteVesselStatuses: Record<string | number, string> = {};
-            try {
-                const contentRes = await supabase
-                    .from('content')
-                    .select('settings')
-                    .eq('id', 'main')
-                    .single();
-                if (contentRes?.data?.settings?.vessel_statuses) {
-                    remoteVesselStatuses = contentRes.data.settings.vessel_statuses;
-                }
-            } catch (_) {}
+            localStatusMap = await dbContext.get<Record<string, 'in_progress' | 'done'>>('weighbridge_vessel_statuses') || {};
+        } catch (_) {}
 
+        try {
             const { data, error } = await supabase
                 .from('weighbridge_vessels')
                 .select('*, barges:weighbridge_barges(*)')
@@ -154,10 +146,10 @@ export const WeighbridgeService = {
             }
 
             const formatted = (data || []).map((vessel: any) => {
-                const localVessel = local.find(v => v.id === vessel.id);
+                const localVessel = local.find(v => String(v.id) === String(vessel.id));
                 const barges = (vessel.barges || []).map((remoteBarge: any) => {
                     // Search if local has a newer config
-                    const localBarge = localVessel?.barges?.find(b => b.id === remoteBarge.id);
+                    const localBarge = localVessel?.barges?.find(b => String(b.id) === String(remoteBarge.id));
                     if (localBarge && localBarge.config) {
                         const localTime = localBarge.config.updatedAt || 0;
                         const remoteTime = remoteBarge.config?.updatedAt || 0;
@@ -181,12 +173,12 @@ export const WeighbridgeService = {
                 });
 
                 // Status priority:
-                // 1. Direct column on weighbridge_vessels
-                // 2. Cloud settings fallback (content.settings.vessel_statuses)
-                // 3. Local IndexedDB cached vessel status
+                // 1. Direct column on weighbridge_vessels (if table column added)
+                // 2. Local status map (IndexedDB persistent)
+                // 3. Local cached vessel status
                 // 4. Default 'in_progress'
                 const resolvedStatus = (vessel.status as ('in_progress' | 'done') | undefined)
-                    || (remoteVesselStatuses[vessel.id] as ('in_progress' | 'done') | undefined)
+                    || localStatusMap[String(vessel.id)]
                     || localVessel?.status
                     || 'in_progress';
 
@@ -260,13 +252,20 @@ export const WeighbridgeService = {
      */
     async updateVesselStatus(id: number, status: 'in_progress' | 'done'): Promise<boolean> {
         const local = await getLocalVessels();
-        const vessel = local.find(v => v.id === id);
+        const vessel = local.find(v => String(v.id) === String(id));
         if (vessel) {
             vessel.status = status;
             await saveLocalVessels(local);
         }
 
-        // 1. Try updating weighbridge_vessels table directly
+        // Keep an isolated persistent status map in IndexedDB to survive any cache flushes
+        try {
+            const statusMap = await dbContext.get<Record<string, 'in_progress' | 'done'>>('weighbridge_vessel_statuses') || {};
+            statusMap[String(id)] = status;
+            await dbContext.set('weighbridge_vessel_statuses', statusMap);
+        } catch (_) {}
+
+        // Update weighbridge_vessels table directly in Supabase
         try {
             const { error } = await supabase
                 .from('weighbridge_vessels')
@@ -274,39 +273,10 @@ export const WeighbridgeService = {
                 .eq('id', id);
 
             if (error) {
-                console.warn('Supabase weighbridge_vessels.status update failed, using content.settings fallback:', error.message || error);
+                console.warn('Supabase weighbridge_vessels.status update skipped/failed (schema column might be pending):', error.message || error);
             }
         } catch (e) {
             console.warn('Supabase offline or update failed:', e);
-        }
-
-        // 2. Always persist to content.settings.vessel_statuses for robust cross-device sync & F5 reload
-        try {
-            const res = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-
-            const current = res?.data;
-            if (current?.settings) {
-                const currentStatuses = current.settings.vessel_statuses || {};
-                const updatedStatuses = {
-                    ...currentStatuses,
-                    [id]: status
-                };
-                await supabase
-                    .from('content')
-                    .update({
-                        settings: {
-                            ...current.settings,
-                            vessel_statuses: updatedStatuses
-                        }
-                    })
-                    .eq('id', 'main');
-            }
-        } catch (err) {
-            console.warn('Fallback sync to content.settings.vessel_statuses failed:', err);
         }
 
         return true;
