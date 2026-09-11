@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WeighbridgeService } from '@/services/excel/WeighbridgeService';
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
@@ -31,7 +31,7 @@ vi.mock('@/supabase', () => {
         insert: vi.fn(() => mockBuilder),
         update: vi.fn(() => mockBuilder),
         eq: vi.fn(() => mockBuilder),
-        single: vi.fn()
+        single: vi.fn().mockResolvedValue({ data: null, error: null })
     };
 
     return {

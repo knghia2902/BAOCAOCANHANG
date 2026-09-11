@@ -130,6 +130,19 @@ export const WeighbridgeService = {
     async getVessels(): Promise<Vessel[]> {
         const local = await getLocalVessels();
         try {
+            // Fetch vessel statuses fallback from content.settings if table column is missing
+            let remoteVesselStatuses: Record<string | number, string> = {};
+            try {
+                const contentRes = await supabase
+                    .from('content')
+                    .select('settings')
+                    .eq('id', 'main')
+                    .single();
+                if (contentRes?.data?.settings?.vessel_statuses) {
+                    remoteVesselStatuses = contentRes.data.settings.vessel_statuses;
+                }
+            } catch (_) {}
+
             const { data, error } = await supabase
                 .from('weighbridge_vessels')
                 .select('*, barges:weighbridge_barges(*)')
@@ -141,9 +154,9 @@ export const WeighbridgeService = {
             }
 
             const formatted = (data || []).map((vessel: any) => {
+                const localVessel = local.find(v => v.id === vessel.id);
                 const barges = (vessel.barges || []).map((remoteBarge: any) => {
                     // Search if local has a newer config
-                    const localVessel = local.find(v => v.id === vessel.id);
                     const localBarge = localVessel?.barges?.find(b => b.id === remoteBarge.id);
                     if (localBarge && localBarge.config) {
                         const localTime = localBarge.config.updatedAt || 0;
@@ -166,9 +179,20 @@ export const WeighbridgeService = {
                     const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
                     return dateA - dateB;
                 });
+
+                // Status priority:
+                // 1. Direct column on weighbridge_vessels
+                // 2. Cloud settings fallback (content.settings.vessel_statuses)
+                // 3. Local IndexedDB cached vessel status
+                // 4. Default 'in_progress'
+                const resolvedStatus = (vessel.status as ('in_progress' | 'done') | undefined)
+                    || (remoteVesselStatuses[vessel.id] as ('in_progress' | 'done') | undefined)
+                    || localVessel?.status
+                    || 'in_progress';
+
                 return {
                     ...vessel,
-                    status: vessel.status || 'in_progress',
+                    status: resolvedStatus,
                     barges
                 };
             });
@@ -193,11 +217,22 @@ export const WeighbridgeService = {
             barges: []
         };
         try {
-            const { data, error } = await supabase
+            let { data, error } = await supabase
                 .from('weighbridge_vessels')
                 .insert([{ id: newVessel.id, name: newVessel.name, status: 'in_progress' }])
                 .select()
                 .single();
+
+            // If table does not have 'status' column, retry without status
+            if (error && (error.code === 'PGRST204' || error.message?.includes('status'))) {
+                const retry = await supabase
+                    .from('weighbridge_vessels')
+                    .insert([{ id: newVessel.id, name: newVessel.name }])
+                    .select()
+                    .single();
+                data = retry.data;
+                error = retry.error;
+            }
 
             if (error) {
                 console.warn('Supabase create vessel failed, saving locally:', error);
@@ -231,6 +266,7 @@ export const WeighbridgeService = {
             await saveLocalVessels(local);
         }
 
+        // 1. Try updating weighbridge_vessels table directly
         try {
             const { error } = await supabase
                 .from('weighbridge_vessels')
@@ -238,13 +274,42 @@ export const WeighbridgeService = {
                 .eq('id', id);
 
             if (error) {
-                console.warn('Supabase update vessel status failed, kept local change:', error);
+                console.warn('Supabase weighbridge_vessels.status update failed, using content.settings fallback:', error.message || error);
             }
-            return true;
         } catch (e) {
-            console.warn('Supabase offline, updated vessel status locally:', e);
-            return true;
+            console.warn('Supabase offline or update failed:', e);
         }
+
+        // 2. Always persist to content.settings.vessel_statuses for robust cross-device sync & F5 reload
+        try {
+            const res = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+
+            const current = res?.data;
+            if (current?.settings) {
+                const currentStatuses = current.settings.vessel_statuses || {};
+                const updatedStatuses = {
+                    ...currentStatuses,
+                    [id]: status
+                };
+                await supabase
+                    .from('content')
+                    .update({
+                        settings: {
+                            ...current.settings,
+                            vessel_statuses: updatedStatuses
+                        }
+                    })
+                    .eq('id', 'main');
+            }
+        } catch (err) {
+            console.warn('Fallback sync to content.settings.vessel_statuses failed:', err);
+        }
+
+        return true;
     },
 
     /**
