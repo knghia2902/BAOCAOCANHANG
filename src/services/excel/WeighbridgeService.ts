@@ -6,6 +6,7 @@ export interface Vessel {
     name: string;
     created_at?: string;
     barges?: Barge[];
+    status?: 'in_progress' | 'done';
 }
 
 export interface CustomFieldConfig {
@@ -111,7 +112,11 @@ export interface Truck {
 
 // Local IndexedDB cache helpers
 async function getLocalVessels(): Promise<Vessel[]> {
-    return (await dbContext.get<Vessel[]>('wb_vessels')) || [];
+    const list = (await dbContext.get<Vessel[]>('wb_vessels')) || [];
+    return list.map(v => ({
+        ...v,
+        status: v.status || 'in_progress'
+    }));
 }
 
 async function saveLocalVessels(vessels: Vessel[]) {
@@ -163,6 +168,7 @@ export const WeighbridgeService = {
                 });
                 return {
                     ...vessel,
+                    status: vessel.status || 'in_progress',
                     barges
                 };
             });
@@ -183,12 +189,13 @@ export const WeighbridgeService = {
         const newVessel: Vessel = {
             id: Date.now(),
             name: name.trim().toUpperCase(),
+            status: 'in_progress',
             barges: []
         };
         try {
             const { data, error } = await supabase
                 .from('weighbridge_vessels')
-                .insert([{ id: newVessel.id, name: newVessel.name }])
+                .insert([{ id: newVessel.id, name: newVessel.name, status: 'in_progress' }])
                 .select()
                 .single();
 
@@ -199,7 +206,7 @@ export const WeighbridgeService = {
                 await saveLocalVessels(local);
                 return newVessel;
             }
-            const syncedVessel = { ...data, barges: [] };
+            const syncedVessel = { ...data, status: data?.status || 'in_progress', barges: [] };
             const local = await getLocalVessels();
             local.push(syncedVessel);
             await saveLocalVessels(local);
@@ -210,6 +217,33 @@ export const WeighbridgeService = {
             local.push(newVessel);
             await saveLocalVessels(local);
             return newVessel;
+        }
+    },
+
+    /**
+     * Update vessel status ('in_progress' | 'done')
+     */
+    async updateVesselStatus(id: number, status: 'in_progress' | 'done'): Promise<boolean> {
+        const local = await getLocalVessels();
+        const vessel = local.find(v => v.id === id);
+        if (vessel) {
+            vessel.status = status;
+            await saveLocalVessels(local);
+        }
+
+        try {
+            const { error } = await supabase
+                .from('weighbridge_vessels')
+                .update({ status })
+                .eq('id', id);
+
+            if (error) {
+                console.warn('Supabase update vessel status failed, kept local change:', error);
+            }
+            return true;
+        } catch (e) {
+            console.warn('Supabase offline, updated vessel status locally:', e);
+            return true;
         }
     },
 
