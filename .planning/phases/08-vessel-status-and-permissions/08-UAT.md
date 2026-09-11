@@ -10,10 +10,10 @@ updated: 2026-09-11T14:55:00Z
 
 ## Current Test
 
-number: 3
-name: Quy trình Chốt số liệu tàu ("Đã xong")
+number: 4
+name: Chế độ Chỉ xem (Read-only) bảo vệ dữ liệu tàu đã xong
 expected: |
-  Khi chọn một tàu đang làm hàng, trên tiêu đề báo cáo tổng hợp xuất hiện nút "Chốt số liệu: Đã xong". Bấm nút này sẽ hiển thị modal xác nhận cảnh báo. Khi đồng ý, trạng thái tàu chuyển thành "Đã xong" và xuất hiện badge "Đã xong" cùng thông báo Chỉ xem (Read-only).
+  Khi mở xem sà lan của tàu "Đã xong", hệ thống hiển thị banner cảnh báo Chỉ xem. Các nút Thêm xe, Nhập Excel, Đồng bộ từ phân bổ, Xóa tất cả, Sửa xe, Xóa xe đều bị ẩn/vô hiệu hóa. Tính năng In phiếu (A5) và Xuất Excel vẫn hoạt động bình thường.
 awaiting: user response
 
 ## Tests
@@ -28,7 +28,7 @@ result: pass
 
 ### 3. Quy trình Chốt số liệu tàu ("Đã xong")
 expected: Khi chọn một tàu "Đang làm hàng", trên tiêu đề báo cáo tổng hợp xuất hiện nút "Chốt số liệu: Đã xong". Bấm nút này sẽ hiển thị modal xác nhận cảnh báo. Khi đồng ý, trạng thái tàu chuyển thành "Đã xong" và xuất hiện badge "Đã xong" cùng thông báo Chỉ xem (Read-only).
-result: pending
+result: pass
 
 ### 4. Chế độ Chỉ xem (Read-only) bảo vệ dữ liệu tàu đã xong
 expected: Khi mở xem sà lan của tàu "Đã xong", hệ thống hiển thị banner cảnh báo Chỉ xem. Các nút Thêm xe, Nhập Excel, Đồng bộ từ phân bổ, Xóa tất cả, Sửa xe, Xóa xe đều bị ẩn/vô hiệu hóa. Tính năng In phiếu (A5) và Xuất Excel vẫn hoạt động bình thường.
@@ -41,9 +41,9 @@ result: pending
 ## Summary
 
 total: 5
-passed: 2
+passed: 3
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
 
 ## Gaps
