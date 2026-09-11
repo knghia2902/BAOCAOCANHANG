@@ -14,15 +14,15 @@ const handleLogin = async () => {
     error.value = '';
     
     try {
-        const success = await login(username.value, password.value);
-        if (success) {
+        const res = await login(username.value, password.value);
+        if (res.success) {
             if (authStore.role === 'admin') {
                 router.push('/admin');
             } else {
                 router.push('/');
             }
         } else {
-            error.value = 'Tên đăng nhập hoặc mật khẩu không đúng!';
+            error.value = res.error || 'Tên đăng nhập hoặc mật khẩu không đúng!';
         }
     } catch (e) {
         error.value = 'Đã có lỗi xảy ra. Vui lòng thử lại.';

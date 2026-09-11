@@ -148,10 +148,10 @@ export const ContentService = {
         return !error;
     },
 
-    // Accounts & Users management
+    // Accounts & Users management (Lưu trữ trực tiếp trên bảng users của Supabase)
     async loadAccounts(): Promise<any[]> {
         try {
-            // 1. Thử lấy từ bảng users trên database
+            // 1. Lấy trực tiếp từ bảng users trên database
             const { data: users, error: usersError } = await supabase
                 .from('users')
                 .select('*')
@@ -164,6 +164,7 @@ export const ContentService = {
                     displayName: u.display_name || u.username,
                     role: u.role || 'staff',
                     avatar: u.avatar || '',
+                    isActive: u.is_active !== false,
                     password: u.password_hash,
                     created_at: u.created_at
                 }));
@@ -172,7 +173,7 @@ export const ContentService = {
             console.warn('Lỗi load từ bảng users:', err);
         }
 
-        // 2. Fallback: Lấy từ settings.accounts trong bảng content
+        // 2. Fallback nếu bảng users chưa có dữ liệu
         try {
             const { data, error } = await supabase
                 .from('content')
@@ -180,7 +181,10 @@ export const ContentService = {
                 .eq('id', 'main')
                 .single();
             if (error || !data?.settings) return [];
-            return data.settings.accounts || [];
+            return (data.settings.accounts || []).map((acc: any) => ({
+                ...acc,
+                isActive: true
+            }));
         } catch (e) {
             console.error('Error loading accounts fallback', e);
             return [];
@@ -189,9 +193,7 @@ export const ContentService = {
 
     async createUser(account: { username: string; password: string; displayName?: string; role: string; avatar?: string }): Promise<boolean> {
         const usernameClean = account.username.trim().toLowerCase();
-        let success = false;
         try {
-            // 1. Thêm vào bảng users
             const { error: userError } = await supabase
                 .from('users')
                 .insert([{
@@ -199,106 +201,61 @@ export const ContentService = {
                     password_hash: account.password,
                     display_name: account.displayName || usernameClean,
                     role: account.role || 'staff',
-                    avatar: account.avatar || ''
+                    avatar: account.avatar || '',
+                    is_active: true
                 }]);
 
-            if (!userError) {
-                success = true;
-            } else {
-                console.warn('Cảnh báo khi thêm vào bảng users (có thể bảng chưa được tạo):', userError);
-            }
+            if (!userError) return true;
+            console.error('Lỗi khi thêm vào bảng users:', userError);
+            return false;
         } catch (err) {
-            console.warn('Không thể insert vào bảng users:', err);
+            console.error('Không thể insert vào bảng users:', err);
+            return false;
         }
-
-        // 2. Đồng thời đồng bộ vào settings.accounts để fallback an toàn
-        try {
-            const currentAccounts = await this.loadAccounts();
-            const exists = currentAccounts.some(a => a.username?.toLowerCase() === usernameClean);
-            if (!exists) {
-                const updated = [...currentAccounts, {
-                    username: usernameClean,
-                    password: account.password,
-                    displayName: account.displayName || usernameClean,
-                    role: account.role || 'staff',
-                    avatar: account.avatar || ''
-                }];
-                const saved = await this.saveAccounts(updated);
-                if (saved) success = true;
-            }
-        } catch (_) {}
-
-        return success;
     },
 
-    async updateUser(username: string, updates: { displayName?: string; role?: string; avatar?: string }): Promise<boolean> {
+    async updateUser(username: string, updates: { displayName?: string; role?: string; avatar?: string; isActive?: boolean }): Promise<boolean> {
         const usernameClean = username.trim().toLowerCase();
-        let success = false;
         try {
             const userUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
             if (updates.displayName !== undefined) userUpdates.display_name = updates.displayName;
             if (updates.role !== undefined) userUpdates.role = updates.role;
             if (updates.avatar !== undefined) userUpdates.avatar = updates.avatar;
+            if (updates.isActive !== undefined) userUpdates.is_active = updates.isActive;
 
             const { error: userError } = await supabase
                 .from('users')
                 .update(userUpdates)
                 .eq('username', usernameClean);
 
-            if (!userError) success = true;
+            return !userError;
         } catch (err) {
-            console.warn('Lỗi khi update bảng users:', err);
+            console.error('Lỗi khi update bảng users:', err);
+            return false;
         }
+    },
 
-        // Đồng bộ settings.accounts
-        try {
-            const currentAccounts = await this.loadAccounts();
-            const updated = currentAccounts.map(acc => {
-                if (acc.username?.toLowerCase() === usernameClean) {
-                    return {
-                        ...acc,
-                        displayName: updates.displayName !== undefined ? updates.displayName : acc.displayName,
-                        role: updates.role !== undefined ? updates.role : acc.role,
-                        avatar: updates.avatar !== undefined ? updates.avatar : acc.avatar
-                    };
-                }
-                return acc;
-            });
-            const saved = await this.saveAccounts(updated);
-            if (saved) success = true;
-        } catch (_) {}
-
-        return success;
+    async toggleUserStatus(username: string, isActive: boolean): Promise<boolean> {
+        return this.updateUser(username, { isActive });
     },
 
     async deleteUser(username: string): Promise<boolean> {
         const usernameClean = username.trim().toLowerCase();
-        let success = false;
         try {
             const { error: deleteError } = await supabase
                 .from('users')
                 .delete()
                 .eq('username', usernameClean);
 
-            if (!deleteError) success = true;
+            return !deleteError;
         } catch (err) {
-            console.warn('Lỗi xóa khỏi bảng users:', err);
+            console.error('Lỗi xóa khỏi bảng users:', err);
+            return false;
         }
-
-        // Đồng bộ settings.accounts
-        try {
-            const currentAccounts = await this.loadAccounts();
-            const updated = currentAccounts.filter(acc => acc.username?.toLowerCase() !== usernameClean);
-            const saved = await this.saveAccounts(updated);
-            if (saved) success = true;
-        } catch (_) {}
-
-        return success;
     },
 
     async resetUserPassword(username: string, passwordHash: string): Promise<boolean> {
         const usernameClean = username.trim().toLowerCase();
-        let success = false;
         try {
             const { error: resetError } = await supabase
                 .from('users')
@@ -308,49 +265,15 @@ export const ContentService = {
                 })
                 .eq('username', usernameClean);
 
-            if (!resetError) success = true;
+            return !resetError;
         } catch (err) {
-            console.warn('Lỗi reset mật khẩu trong bảng users:', err);
-        }
-
-        // Đồng bộ settings.accounts
-        try {
-            const currentAccounts = await this.loadAccounts();
-            const updated = currentAccounts.map(acc => {
-                if (acc.username?.toLowerCase() === usernameClean) {
-                    return { ...acc, password: passwordHash };
-                }
-                return acc;
-            });
-            const saved = await this.saveAccounts(updated);
-            if (saved) success = true;
-        } catch (_) {}
-
-        return success;
-    },
-
-    async saveAccounts(accounts: any[]): Promise<boolean> {
-        try {
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (fetchError || !current?.settings) return false;
-            
-            const newSettings = {
-                ...current.settings,
-                accounts
-            };
-            const { error } = await supabase
-                .from('content')
-                .update({ settings: newSettings })
-                .eq('id', 'main');
-            return !error;
-        } catch (e) {
-            console.error('Error saving accounts', e);
+            console.error('Lỗi reset mật khẩu trong bảng users:', err);
             return false;
         }
+    },
+
+    async saveAccounts(_accounts?: any[]): Promise<boolean> {
+        return true;
     },
 
     async loadStaffTools(): Promise<string[]> {

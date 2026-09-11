@@ -423,6 +423,21 @@ const handleResetPassword = async () => {
     }
 };
 
+const toggleUserStatus = async (account: any) => {
+    const newStatus = !account.isActive;
+    const actionText = newStatus ? 'mở khóa' : 'khóa';
+    if (confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản "${account.username}"?`)) {
+        const success = await ContentService.toggleUserStatus(account.username, newStatus);
+        if (success) {
+            await loadAccounts();
+            triggerToast(`Đã ${actionText} tài khoản thành công! ✨`);
+            await LogService.logAction('Đổi trạng thái', `${actionText} tài khoản: ` + account.username);
+        } else {
+            triggerToast('Có lỗi xảy ra khi đổi trạng thái tài khoản.');
+        }
+    }
+};
+
 
 
 const staffToolsConfig = ref<string[]>([]);
@@ -1266,12 +1281,13 @@ onMounted(async () => {
                                     <th class="pb-4 pl-4">Tên hiển thị</th>
                                     <th class="pb-4">Tên đăng nhập</th>
                                     <th class="pb-4">Vai trò</th>
+                                    <th class="pb-4">Trạng thái</th>
                                     <th class="pb-4 text-right pr-4">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-primary/5">
                                 <tr v-if="accountsList.length === 0">
-                                    <td colspan="4" class="py-12 text-center text-gray-400 italic font-medium">Chưa có tài khoản phụ nào được tạo.</td>
+                                    <td colspan="5" class="py-12 text-center text-gray-400 italic font-medium">Chưa có tài khoản nào được tạo.</td>
                                 </tr>
                                 <tr v-for="(acc, idx) in accountsList" :key="idx" class="hover:bg-soft-pink/5 transition-colors">
                                     <td class="py-4 pl-4 font-bold text-sm text-primary flex items-center gap-3">
@@ -1286,7 +1302,18 @@ onMounted(async () => {
                                             {{ acc.role || 'staff' }}
                                         </span>
                                     </td>
-                                    <td class="py-4 text-right pr-4 space-x-4">
+                                    <td class="py-4">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full"
+                                            :class="acc.isActive !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
+                                        >
+                                            <span class="size-1.5 rounded-full" :class="acc.isActive !== false ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                                            {{ acc.isActive !== false ? 'Hoạt động' : 'Đã khóa' }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 text-right pr-4 space-x-3">
+                                        <button @click="toggleUserStatus(acc)" class="text-xs font-black hover:underline" :class="acc.isActive !== false ? 'text-rose-500' : 'text-emerald-600'">
+                                            {{ acc.isActive !== false ? 'Khóa' : 'Mở khóa' }}
+                                        </button>
                                         <button @click="openEditAccountModal(acc)" class="text-xs font-black text-amber-500 hover:underline">Chỉnh sửa</button>
                                         <button @click="openResetPasswordModal(acc)" class="text-xs font-black text-primary hover:underline">Đổi mật khẩu</button>
                                         <button @click="deleteAccount(acc.username)" class="text-xs font-black text-red-400 hover:text-red-600 hover:underline">Xóa</button>

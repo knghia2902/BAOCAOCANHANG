@@ -91,7 +91,7 @@ watch(authStore, (state) => {
 
 import { ContentService } from '../services/ContentService';
 
-export const login = async (username: string, pass: string) => {
+export const login = async (username: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const res = await authService.login(username, pass);
     if (res.success && res.user) {
         authStore.isAuthenticated = true;
@@ -110,9 +110,9 @@ export const login = async (username: string, pass: string) => {
         
         // Log login action
         await LogService.logAction('Đăng nhập', 'Đăng nhập thành công vào hệ thống');
-        return true;
+        return { success: true };
     }
-    return false;
+    return { success: false, error: res.error || 'Tên đăng nhập hoặc mật khẩu không đúng!' };
 };
 
 export const logout = () => {
