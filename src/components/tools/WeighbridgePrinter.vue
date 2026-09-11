@@ -161,6 +161,8 @@ const exportingGlobalBarges = ref(false);
 const exportingActiveBargeTrucks = ref(false);
 const sortKey = ref<string>('');
 const sortOrder = ref<'asc' | 'desc'>('asc');
+const selectedVesselStatusTab = ref<'in_progress' | 'done'>('in_progress');
+const isUpdatingVesselStatus = ref(false);
 
 // UI elements and modals
 const expandedVesselIds = ref<Record<number, boolean>>({});
@@ -170,10 +172,10 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 // Toast state
 const toastMessage = ref<string | null>(null);
-const toastType = ref<'success' | 'error'>('success');
+const toastType = ref<'success' | 'error' | 'warning'>('success');
 let toastTimer: any = null;
 
-const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+const showToast = (msg: string, type: 'success' | 'error' | 'warning' = 'success') => {
     toastMessage.value = msg;
     toastType.value = type;
     if (toastTimer) clearTimeout(toastTimer);
@@ -518,9 +520,16 @@ const toggleSort = (key: string) => {
 const activeVessel = computed(() => vessels.value.find(v => v.id === activeVesselId.value) || null);
 const activeBarge = computed<Barge | null>(() => activeVessel.value?.barges?.find(b => b.id === activeBargeId.value) || null);
 
+// Vessel status lifecycle computed filters
+const inProgressVessels = computed(() => vessels.value.filter(v => (v.status || 'in_progress') === 'in_progress'));
+const doneVessels = computed(() => vessels.value.filter(v => v.status === 'done'));
+const filteredSidebarVessels = computed(() => selectedVesselStatusTab.value === 'done' ? doneVessels.value : inProgressVessels.value);
+const isCurrentVesselDone = computed(() => activeVessel.value?.status === 'done');
+
 const allBarges = computed(() => {
     const list: Array<{ id: number; name: string; vesselId: number; vesselName: string; created_at?: string; locked: boolean; orderNo: string }> = [];
-    vessels.value.forEach(v => {
+    const targetVessels = selectedVesselStatusTab.value === 'done' ? doneVessels.value : inProgressVessels.value;
+    targetVessels.forEach(v => {
         if (v.barges) {
             v.barges.forEach(b => {
                 list.push({
@@ -856,6 +865,13 @@ const loadVessels = async () => {
 const selectBarge = async (vesselId: number, bargeId: number) => {
     activeVesselId.value = vesselId;
     activeBargeId.value = bargeId;
+    
+    const currentV = vessels.value.find(v => v.id === vesselId);
+    if (currentV?.status === 'done') {
+        selectedVesselStatusTab.value = 'done';
+    } else if (currentV) {
+        selectedVesselStatusTab.value = 'in_progress';
+    }
     
     // Reset filters and sorting when switching barges
     searchQuery.value = '';
@@ -1288,6 +1304,13 @@ const selectVessel = async (vesselId: number) => {
     vesselFilterMonth.value = '';
     bargeSearchQuery.value = '';
 
+    const currentV = vessels.value.find(v => v.id === vesselId);
+    if (currentV?.status === 'done') {
+        selectedVesselStatusTab.value = 'done';
+    } else if (currentV) {
+        selectedVesselStatusTab.value = 'in_progress';
+    }
+
     if (isSameVessel && isBargeNull) {
         await refreshVesselSummary();
     }
@@ -1521,6 +1544,10 @@ const saveBargeConfigImmediately = async () => {
 };
 
 const toggleBargeLock = async () => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể thay đổi khóa sà lan!', 'warning');
+        return;
+    }
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
@@ -2532,8 +2559,83 @@ const deleteVessel = async (id: number, name: string) => {
     }
 };
 
+const handleCloseVessel = async (vesselId?: number) => {
+    const targetId = vesselId || activeVesselId.value;
+    if (!targetId) return;
+    const targetVessel = vessels.value.find(v => v.id === targetId);
+    if (!targetVessel) return;
+
+    const confirmed = await showConfirm({
+        title: 'Chốt số liệu tàu',
+        message: `Bạn có chắc chắn muốn chốt số liệu cho tàu "${targetVessel.name}"? Sau khi chốt, tàu sẽ chuyển sang trạng thái "Đã xong", toàn bộ dữ liệu sà lan và phiếu cân sẽ ở chế độ Chỉ xem (Read-only) để ngăn sửa/xóa/nhập dữ liệu. Chỉ tài khoản Admin mới có quyền mở lại tàu này.`,
+        type: 'warning',
+        okText: 'Chốt số liệu',
+        cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    isUpdatingVesselStatus.value = true;
+    try {
+        const success = await WeighbridgeService.updateVesselStatus(targetId, 'done');
+        if (success) {
+            targetVessel.status = 'done';
+            selectedVesselStatusTab.value = 'done';
+            showToast(`Đã chốt số liệu tàu: ${targetVessel.name}`, 'success');
+            await LogService.logAction('Chốt số liệu tàu', `Chuyển tàu ${targetVessel.name} sang trạng thái Đã xong`);
+        } else {
+            showToast('Không thể cập nhật trạng thái tàu!', 'error');
+        }
+    } catch (e) {
+        showToast('Lỗi khi chốt số liệu tàu!', 'error');
+    } finally {
+        isUpdatingVesselStatus.value = false;
+    }
+};
+
+const handleReopenVessel = async (vesselId?: number) => {
+    if (authStore.role !== 'admin') {
+        showToast('Chỉ tài khoản Quản trị viên (Admin) mới có quyền mở lại tàu!', 'error');
+        return;
+    }
+    const targetId = vesselId || activeVesselId.value;
+    if (!targetId) return;
+    const targetVessel = vessels.value.find(v => v.id === targetId);
+    if (!targetVessel) return;
+
+    const confirmed = await showConfirm({
+        title: 'Mở lại làm hàng cho tàu',
+        message: `Bạn có chắc chắn muốn mở lại tàu "${targetVessel.name}" về trạng thái "Đang làm hàng"? Sau khi mở lại, người dùng có thể tiếp tục thêm, sửa, xóa sà lan và phiếu cân.`,
+        type: 'info',
+        okText: 'Mở lại làm hàng',
+        cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    isUpdatingVesselStatus.value = true;
+    try {
+        const success = await WeighbridgeService.updateVesselStatus(targetId, 'in_progress');
+        if (success) {
+            targetVessel.status = 'in_progress';
+            selectedVesselStatusTab.value = 'in_progress';
+            showToast(`Đã mở lại làm hàng cho tàu: ${targetVessel.name}`, 'success');
+            await LogService.logAction('Mở lại tàu', `Chuyển tàu ${targetVessel.name} về trạng thái Đang làm hàng`);
+        } else {
+            showToast('Không thể mở lại tàu!', 'error');
+        }
+    } catch (e) {
+        showToast('Lỗi khi mở lại tàu!', 'error');
+    } finally {
+        isUpdatingVesselStatus.value = false;
+    }
+};
+
 // Barge CRUD
 const addBarge = async (vesselId: number) => {
+    const targetVessel = vessels.value.find(v => v.id === vesselId);
+    if (targetVessel?.status === 'done') {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể thêm sà lan mới!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thêm sà lan mới!', 'error');
         return;
@@ -2588,6 +2690,11 @@ const addBarge = async (vesselId: number) => {
 };
 
 const renameBarge = async (id: number, currentName: string) => {
+    const targetVessel = vessels.value.find(v => v.barges?.some(b => b.id === id));
+    if (targetVessel?.status === 'done') {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể chỉnh sửa sà lan!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -2650,6 +2757,11 @@ const renameBarge = async (id: number, currentName: string) => {
 };
 
 const deleteBarge = async (_vesselId: number, id: number, name: string) => {
+    const targetVessel = vessels.value.find(v => v.id === _vesselId || v.barges?.some(b => b.id === id));
+    if (targetVessel?.status === 'done') {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể xóa sà lan!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -2905,6 +3017,10 @@ async function autoSyncAllBarges(isManual = false) {
 
 // Sync allocator trips for a single active barge
 const syncFromAllocatorActiveBarge = async () => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể đồng bộ dữ liệu mới!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !canCreate()) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -3071,6 +3187,10 @@ const syncFromAllocatorActiveBarge = async () => {
 
 // Excel Upload and Analysis
 const handleExcelFile = async (file: File) => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể nhập Excel!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !canCreate()) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -3476,6 +3596,10 @@ const downloadSampleExcel = () => {
 
 // Truck CRUD Dialog Functions
 const openAddTruckDialog = () => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể thêm xe mới!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !canCreate()) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -3513,6 +3637,10 @@ const openAddTruckDialog = () => {
 };
 
 const openEditTruckDialog = (truck: Truck) => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể sửa thông tin xe!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !canUpdate()) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -3602,6 +3730,10 @@ const saveTruck = async () => {
 };
 
 const deleteTruck = async (id: number, plate: string) => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể xóa xe!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !canDelete()) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -3640,6 +3772,10 @@ const deleteTruck = async (id: number, plate: string) => {
 };
 
 const clearTrucks = async () => {
+    if (isCurrentVesselDone.value) {
+        showToast('Tàu này đã chốt số liệu (Đã xong), không thể xóa danh sách xe!', 'warning');
+        return;
+    }
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'delete')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
@@ -4048,13 +4184,49 @@ onUnmounted(() => {
                         </button>
                     </div>
 
+                    <!-- Vessel Status 2-Tabs -->
+                    <div class="px-2 pt-2 pb-1 border-b border-primary/5">
+                        <div class="grid grid-cols-2 p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
+                            <button 
+                                @click="selectedVesselStatusTab = 'in_progress'"
+                                :class="[
+                                    'py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs',
+                                    selectedVesselStatusTab === 'in_progress' 
+                                        ? 'bg-white text-primary shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-sm">schedule</span>
+                                <span>Đang làm</span>
+                                <span class="px-1.5 py-0.2 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'in_progress' ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-600'">
+                                    {{ inProgressVessels.length }}
+                                </span>
+                            </button>
+                            <button 
+                                @click="selectedVesselStatusTab = 'done'"
+                                :class="[
+                                    'py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs',
+                                    selectedVesselStatusTab === 'done' 
+                                        ? 'bg-white text-emerald-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+                                <span>Đã xong</span>
+                                <span class="px-1.5 py-0.2 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'done' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'">
+                                    {{ doneVessels.length }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Tree list -->
                     <div class="flex-1 overflow-y-auto p-2 space-y-1.5">
-                        <div v-if="vessels.length === 0" class="text-center py-6 text-gray-400 text-xs">
-                            Chưa có dữ liệu tàu. Nhấn nút bên dưới để thêm tàu mới.
+                        <div v-if="filteredSidebarVessels.length === 0" class="text-center py-6 text-gray-400 text-xs">
+                            {{ selectedVesselStatusTab === 'done' ? 'Chưa có tàu nào ở trạng thái Đã xong.' : 'Không có tàu nào đang làm hàng.' }}
                         </div>
 
-                        <div v-for="vessel in vessels" :key="vessel.id" class="border border-primary/5 rounded-[16px] overflow-hidden bg-gray-50">
+                        <div v-for="vessel in filteredSidebarVessels" :key="vessel.id" class="border border-primary/5 rounded-[16px] overflow-hidden bg-gray-50">
                             <!-- Vessel Header -->
                             <div 
                                 @click="selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
@@ -4063,17 +4235,18 @@ onUnmounted(() => {
                                 <div class="flex items-center gap-1.5 font-bold text-xs text-[#1e293b]">
                                     <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
                                     <span class="truncate max-w-[120px]">{{ vessel.name }}</span>
+                                    <span v-if="vessel.status === 'done'" class="text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.2 rounded font-bold uppercase shrink-0">Xong</span>
                                 </div>
                                 
                                 <!-- Vessel Actions -->
                                 <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" class="flex items-center gap-0.5" @click.stopPropagation>
-                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
+                                    <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')) && vessel.status !== 'done'" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
                                         <span class="material-symbols-outlined text-xs">add</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
+                                    <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done'" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
                                         <span class="material-symbols-outlined text-xs">edit</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
+                                    <button v-if="authStore.role === 'admin' || (hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete') && vessel.status !== 'done')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
                                         <span class="material-symbols-outlined text-xs">delete</span>
                                     </button>
                                 </div>
@@ -4104,7 +4277,7 @@ onUnmounted(() => {
                                             <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
                                         </div>
                                     </div>
-                                    <div v-if="authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()" class="flex items-center gap-0.5 shrink-0" @click.stopPropagation>
+                                    <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="flex items-center gap-0.5 shrink-0" @click.stopPropagation>
                                         <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
                                             <span class="material-symbols-outlined text-xs">edit</span>
                                         </button>
@@ -4147,6 +4320,40 @@ onUnmounted(() => {
                                     Báo cáo tổng quan hệ thống
                                 </h1>
                             </div>
+
+                            <!-- 2-Tab Status Filter -->
+                            <div class="inline-flex p-1 bg-gray-100 rounded-xl text-xs font-bold">
+                                <button 
+                                    @click="selectedVesselStatusTab = 'in_progress'"
+                                    :class="[
+                                        'py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all text-xs',
+                                        selectedVesselStatusTab === 'in_progress' 
+                                            ? 'bg-white text-primary shadow-sm' 
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">schedule</span>
+                                    <span>Đang làm hàng</span>
+                                    <span class="px-1.5 py-0.5 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'in_progress' ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-600'">
+                                        {{ inProgressVessels.length }}
+                                    </span>
+                                </button>
+                                <button 
+                                    @click="selectedVesselStatusTab = 'done'"
+                                    :class="[
+                                        'py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all text-xs',
+                                        selectedVesselStatusTab === 'done' 
+                                            ? 'bg-white text-emerald-600 shadow-sm' 
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                                    <span>Đã xong</span>
+                                    <span class="px-1.5 py-0.5 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'done' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'">
+                                        {{ doneVessels.length }}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Stats Row -->
@@ -4156,8 +4363,13 @@ onUnmounted(() => {
                                     <span class="material-symbols-outlined text-xl">directions_boat</span>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tổng số tàu</p>
-                                    <h4 class="text-lg font-black text-[#1e293b]">{{ vessels.length }} <span class="text-xs text-gray-400 font-bold">tàu</span></h4>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        {{ selectedVesselStatusTab === 'done' ? 'Tàu đã xong' : 'Tàu đang làm hàng' }}
+                                    </p>
+                                    <h4 class="text-lg font-black text-[#1e293b]">
+                                        {{ selectedVesselStatusTab === 'done' ? doneVessels.length : inProgressVessels.length }} 
+                                        <span class="text-xs text-gray-400 font-bold">tàu</span>
+                                    </h4>
                                 </div>
                             </div>
                             <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
@@ -4314,15 +4526,47 @@ onUnmounted(() => {
                             <div class="flex items-center gap-3">
                                 <div>
                                     <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Báo cáo tổng hợp tàu</div>
-                                    <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
+                                    <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5 flex-wrap">
                                         <span @click="activeVesselId = null; activeBargeId = null" class="text-gray-400 hover:text-primary cursor-pointer transition-colors flex items-center gap-0.5" title="Quay lại Tổng quan"><span class="material-symbols-outlined text-base">home</span>Tổng quan</span>
                                         <span class="text-gray-300">&rsaquo;</span>
                                         Tàu: <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black">{{ activeVessel?.name }}</span>
+                                        <span v-if="activeVessel?.status === 'done'" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-300 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-xs">check_circle</span>
+                                            Đã xong
+                                        </span>
+                                        <span v-else class="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-xs font-bold border border-sky-300 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-xs">schedule</span>
+                                            Đang làm hàng
+                                        </span>
                                     </h1>
                                 </div>
                             </div>
                             
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <!-- Close vessel button: available when vessel is in_progress -->
+                                <button 
+                                    v-if="activeVessel?.status !== 'done'"
+                                    @click="handleCloseVessel(activeVesselId!)"
+                                    :disabled="isUpdatingVesselStatus"
+                                    class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                    title="Chốt số liệu và khóa chỉnh sửa tàu"
+                                >
+                                    <span class="material-symbols-outlined text-sm">lock</span>
+                                    Chốt số liệu: Đã xong
+                                </button>
+
+                                <!-- Admin-only Re-open button: available when vessel is done -->
+                                <button 
+                                    v-if="activeVessel?.status === 'done' && authStore.role === 'admin'"
+                                    @click="handleReopenVessel(activeVesselId!)"
+                                    :disabled="isUpdatingVesselStatus"
+                                    class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                    title="Mở lại làm hàng cho tàu này (Chỉ Quản trị viên)"
+                                >
+                                    <span class="material-symbols-outlined text-sm">lock_open</span>
+                                    Mở lại: Đang làm hàng
+                                </button>
+
                                 <button 
                                     v-if="filteredVesselBarges.length > 0"
                                     @click="exportVesselSummaryExcel"
@@ -4332,6 +4576,19 @@ onUnmounted(() => {
                                     Xuất báo cáo (Excel)
                                 </button>
                             </div>
+                        </div>
+
+                        <!-- Warning Banner if vessel is done -->
+                        <div v-if="isCurrentVesselDone" class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-[20px] text-xs flex items-center justify-between shadow-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-amber-600 text-lg">lock</span>
+                                <span>
+                                    <strong>Tàu đã chốt số liệu (Đã xong):</strong> Toàn bộ dữ liệu tàu và các sà lan đang ở chế độ <strong>Chỉ xem (Read-only)</strong> nhằm bảo vệ dữ liệu. Mọi thao tác thêm/sửa/xóa sà lan và phiếu cân đều bị vô hiệu hóa.
+                                </span>
+                            </div>
+                            <span v-if="authStore.role !== 'admin'" class="text-[11px] text-amber-700 font-semibold italic shrink-0 ml-2">
+                                (Chỉ Quản trị viên mới có quyền mở lại tàu)
+                            </span>
                         </div>
 
                         <!-- Stats Row -->
@@ -4478,6 +4735,7 @@ onUnmounted(() => {
                                     <span class="text-gray-300">&rsaquo;</span>
                                     Sà lan: <span class="px-2 py-0.5 bg-teal-500/10 text-teal-600 rounded-full text-xs font-black">{{ activeBarge?.name }}</span>
                                     <button 
+                                        v-if="!isCurrentVesselDone"
                                         @click="toggleBargeLock" 
                                         :class="['ml-2 p-1 rounded-full flex items-center justify-center transition-all', cfgForm.locked ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']"
                                         :title="cfgForm.locked ? 'Mở khóa sà lan' : 'Khóa sà lan'"
@@ -4501,6 +4759,26 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <!-- Read-only Banner in Active Barge Workspace -->
+                        <div v-if="isCurrentVesselDone" class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-[20px] text-xs flex items-center justify-between shadow-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-amber-600 text-lg">lock</span>
+                                <span>
+                                    <strong>Chế độ Chỉ xem (Read-only):</strong> Tàu <strong>{{ activeVessel?.name }}</strong> đã chốt số liệu. Dữ liệu xe cân đang được bảo vệ. Bạn vẫn có thể in phiếu (A5) và xuất Excel bình thường.
+                                </span>
+                            </div>
+                            <button 
+                                v-if="authStore.role === 'admin'"
+                                @click="handleReopenVessel(activeVesselId!)"
+                                :disabled="isUpdatingVesselStatus"
+                                class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-[10px] text-xs flex items-center gap-1 shadow-sm transition-all disabled:opacity-50 shrink-0 ml-2"
+                                title="Mở lại làm hàng cho tàu (Chỉ Quản trị viên)"
+                            >
+                                <span class="material-symbols-outlined text-sm">lock_open</span>
+                                Mở lại tàu
+                            </button>
+                        </div>
+
                         <!-- Tab Navigation -->
                         <div class="flex gap-1.5 border-b border-primary/15 pb-1.5">
                             <button 
@@ -4510,23 +4788,21 @@ onUnmounted(() => {
                                 <span class="material-symbols-outlined text-sm">local_shipping</span>
                                 Danh sách xe & In ấn
                             </button>
-                            <button v-if="authStore.role === 'admin' || canUpdate()"
+                            <button v-if="(authStore.role === 'admin' || canUpdate()) && !isCurrentVesselDone"
                                 @click="activeTab = 'config'"
                                 :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'config' ? 'bg-primary text-white shadow-soft' : 'text-[#1e293b]/60 hover:bg-white/50']"
                             >
                                 <span class="material-symbols-outlined text-sm">settings</span>
                                 Cấu hình mẫu phiếu
                             </button>
-
-
                         </div>
 
                         <!-- TAB 1: DATA & PRINT -->
                         <div v-if="activeTab === 'data'" class="flex-1 flex flex-col gap-4 min-h-0 animate-fade-in">
                             <!-- Stats & Excel Upload Side-by-Side -->
                             <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 items-stretch">
-                                <!-- Stats Grid (6 cols / 12 cols depending on role) -->
-                                <div :class="(authStore.role === 'admin' || canCreate()) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <!-- Stats Grid (6 cols / 12 cols depending on role and read-only status) -->
+                                <div :class="((authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
                                         <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>
@@ -4557,7 +4833,7 @@ onUnmounted(() => {
                                 </div>
 
                                 <!-- Compact Excel Upload (3 cols) -->
-                                <div v-if="authStore.role === 'admin' || canCreate()"
+                                <div v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
                                     @dragover.prevent
                                     @drop="cfgForm.locked ? null : handleExcelDrop($event)"
                                     :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
@@ -4593,7 +4869,7 @@ onUnmounted(() => {
 
 
                                 <!-- Direct Sync Card (3 cols) -->
-                                <div v-if="authStore.role === 'admin' || canCreate()"
+                                <div v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
                                     class="col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50"
                                 >
                                     <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="syncFromAllocatorActiveBarge()">
@@ -4623,7 +4899,7 @@ onUnmounted(() => {
                                     </h3>
                                     
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <button v-if="authStore.role === 'admin' || canCreate()"
+                                        <button v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
                                             @click="openAddTruckDialog"
                                             :disabled="cfgForm.locked"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
@@ -4631,7 +4907,7 @@ onUnmounted(() => {
                                             <span class="material-symbols-outlined !text-[15px] leading-none">add</span>
                                             Thêm xe
                                         </button>
-                                        <button v-if="authStore.role === 'admin' || canCreate()"
+                                        <button v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
                                             @click="fileInput?.click()"
                                             :disabled="cfgForm.locked"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
@@ -4639,7 +4915,7 @@ onUnmounted(() => {
                                             <span class="material-symbols-outlined !text-[15px] leading-none">upload_file</span>
                                             Nhập Excel
                                         </button>
-                                        <button v-if="authStore.role === 'admin' || canDelete()"
+                                        <button v-if="(authStore.role === 'admin' || canDelete()) && !isCurrentVesselDone"
                                             @click="clearTrucks"
                                             :disabled="cfgForm.locked"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none shrink-0 box-border border-0"
@@ -4756,7 +5032,7 @@ onUnmounted(() => {
                                                     <span class="material-symbols-outlined text-[12px]">print</span>
                                                 </button>
                                                         <button 
-                                                    v-if="authStore.role === 'admin' || canUpdate()" 
+                                                    v-if="(authStore.role === 'admin' || canUpdate()) && !isCurrentVesselDone" 
                                                     @click="openEditTruckDialog(truck)" 
                                                     :disabled="cfgForm.locked" 
                                                     class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none"
@@ -4765,7 +5041,7 @@ onUnmounted(() => {
                                                     <span class="material-symbols-outlined text-[12px]">edit</span>
                                                 </button>
                                                         <button 
-                                                    v-if="authStore.role === 'admin' || canDelete()" 
+                                                    v-if="(authStore.role === 'admin' || canDelete()) && !isCurrentVesselDone" 
                                                     @click="deleteTruck(truck.id, truck.plateNumber)" 
                                                     :disabled="cfgForm.locked" 
                                                     class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none"
@@ -4783,7 +5059,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- TAB 2: CONFIGURATION -->
-                        <div v-if="activeTab === 'config' && (authStore.role === 'admin' || canUpdate())" class="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0 pb-6 pr-1 animate-fade-in custom-scrollbar">
+                        <div v-if="activeTab === 'config' && (authStore.role === 'admin' || canUpdate()) && !isCurrentVesselDone" class="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0 pb-6 pr-1 animate-fade-in custom-scrollbar">
                             <!-- Banner lock warning -->
                             <div v-if="cfgForm.locked" class="bg-red-50 text-red-700 text-xs font-bold p-3 rounded-lg border border-red-200 mb-2 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-sm">warning</span>
@@ -5464,8 +5740,8 @@ onUnmounted(() => {
         </div>
 
         <!-- GLOBAL TOAST BANNER -->
-        <div v-if="toastMessage" :class="['fixed bottom-8 right-8 z-[200] px-6 py-4 rounded-[16px] shadow-lg border text-sm font-bold flex items-center gap-2 animate-fade-in no-print', toastType === 'success' ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-red-50 border-red-200 text-red-700']">
-            <span class="material-symbols-outlined text-lg">{{ toastType === 'success' ? 'check_circle' : 'error' }}</span>
+        <div v-if="toastMessage" :class="['fixed bottom-8 right-8 z-[200] px-6 py-4 rounded-[16px] shadow-lg border text-sm font-bold flex items-center gap-2 animate-fade-in no-print', toastType === 'success' ? 'bg-teal-50 border-teal-200 text-teal-700' : (toastType === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-red-50 border-red-200 text-red-700')]">
+            <span class="material-symbols-outlined text-lg">{{ toastType === 'success' ? 'check_circle' : (toastType === 'warning' ? 'warning' : 'error') }}</span>
             <span>{{ toastMessage }}</span>
         </div>
 

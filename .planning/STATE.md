@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Theo dõi Cân Kho và Container
-current_phase: 07
-current_phase_name: Filtering & Export
-status: planning
-stopped_at: Phase 08 planned
-last_updated: "2026-09-11T13:51:01.229Z"
-last_activity: 2026-07-27
-last_activity_desc: Phase 06 execution completed
+current_phase: 08
+current_phase_name: Phân loại tàu Đang làm hàng & Đã xong
+status: completed
+stopped_at: Phase 08 completed
+last_updated: "2026-09-11T14:06:00.000Z"
+last_activity: 2026-09-11
+last_activity_desc: Phase 08 execution completed (2/2 plans)
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 4
-  percent: 67
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 07 — Filtering & Export
+**Current focus:** Phase 08 — Phân loại tàu Đang làm hàng & Đã xong (Completed)
 
 ## Current Position
 
-Phase: 07 (Filtering & Export) — Not started
-Plan: —
-Status: Awaiting Phase 07 planning
-Last activity: 2026-07-27 — Phase 06 execution completed
+Phase: 08 (Phân loại tàu Đang làm hàng & Đã xong) — Completed (2/2 plans)
+Plan: 08-02 — Completed
+Status: Phase 08 complete
+Last activity: 2026-09-11 — Phase 08 completed (UI 2-Tabs, Read-only Mode & Admin Re-open)
 
 ## Performance Metrics
 

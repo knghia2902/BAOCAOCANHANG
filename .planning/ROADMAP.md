@@ -58,7 +58,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
     - 07-01: Implement search filters in WeighbridgeOtherManager.vue.
     - 07-02: Add Excel export logic to WeighbridgeOtherService.ts and hook up download button.
 
-- [ ] **Phase 8: Phân loại tàu Đang làm hàng & Đã xong**
+- [x] **Phase 8: Phân loại tàu Đang làm hàng & Đã xong**
   - **Goal**: Tách riêng tàu Đang làm hàng và Đã xong với giao diện 2 tab tại Báo cáo tổng quan / Sidebar, hỗ trợ chốt trạng thái Đã xong (chuyển sang Read-only) và chỉ cho phép Admin mở lại.
   - **Depends on**: Phase 7
   - **Requirements**: VESSEL-01, VESSEL-02
@@ -68,8 +68,8 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
     3. Chỉ tài khoản Admin mới có quyền bấm nút "Mở lại: Đang làm hàng".
     4. Trang Báo cáo tổng quan và Sidebar phân tách rõ ràng thành 2 tab: "Đang làm hàng" và "Đã xong".
   - **Plans**: 2 plans
-    - 08-01: Cập nhật cấu trúc dữ liệu Tàu (status) và logic phân quyền Admin / Read-only trong WeighbridgeService.ts.
-    - 08-02: Tích hợp 2 tab chuyển đổi ở Báo cáo tổng quan & Sidebar, gắn nút chuyển trạng thái trên tiêu đề tàu trong WeighbridgePrinter.vue.
+    - [x] 08-01: Cập nhật cấu trúc dữ liệu Tàu (status) và logic phân quyền Admin / Read-only trong WeighbridgeService.ts.
+    - [x] 08-02: Tích hợp 2 tab chuyển đổi ở Báo cáo tổng quan & Sidebar, gắn nút chuyển trạng thái trên tiêu đề tàu trong WeighbridgePrinter.vue.
 
 ## Progress
 
@@ -82,4 +82,4 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 5. Schema & Service | v1.1 | 2/2 | Complete | 2026-07-27 |
 | 6. UI Integration | v1.1 | 2/2 | Complete | 2026-07-27 |
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
-| 8. Phân loại tàu | v1.1 | 0/2 | Not started | - |
+| 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
