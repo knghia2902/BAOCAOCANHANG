@@ -29,8 +29,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Vessel Classification & Permissions (VESSEL)
 
-- [ ] **VESSEL-01**: Tàu có hai trạng thái: "Đang làm hàng" và "Đã xong". Người dùng có thể bấm nút chốt "Đã xong" để khóa tàu ở chế độ Chỉ xem (Read-only); chỉ Admin mới có quyền bấm nút "Mở lại: Đang làm hàng".
-- [ ] **VESSEL-02**: Màn hình Báo cáo tổng quan và thanh danh sách bên trái được phân tách thành 2 tab rõ ràng: Tab "Đang làm hàng" (mặc định) và Tab "Đã xong".
+- [x] **VESSEL-01**: Tàu có hai trạng thái: "Đang làm hàng" và "Đã xong". Người dùng có thể bấm nút chốt "Đã xong" để khóa tàu ở chế độ Chỉ xem (Read-only); chỉ Admin mới có quyền bấm nút "Mở lại: Đang làm hàng".
+- [x] **VESSEL-02**: Màn hình Báo cáo tổng quan và thanh danh sách bên trái được phân tách thành 2 tab rõ ràng: Tab "Đang làm hàng" (mặc định) và Tab "Đã xong".
 
 ## Future Requirements (v2+)
 
@@ -56,8 +56,8 @@ Which phases cover which requirements.
 | QRY-02 | Phase 7 | Pending |
 | UI-01 | Phase 6 | Pending |
 | UI-02 | Phase 6 | Pending |
-| VESSEL-01 | Phase 8 | Pending |
-| VESSEL-02 | Phase 8 | Pending |
+| VESSEL-01 | Phase 8 | Complete |
+| VESSEL-02 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 10 total

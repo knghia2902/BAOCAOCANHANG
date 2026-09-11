@@ -1,20 +1,12 @@
 ---
-status: testing
+status: complete
 phase: 08-vessel-status-and-permissions
 source:
   - .planning/phases/08-vessel-status-and-permissions/08-01-SUMMARY.md
   - .planning/phases/08-vessel-status-and-permissions/08-02-SUMMARY.md
 started: 2026-09-11T14:07:00Z
-updated: 2026-09-11T14:55:00Z
+updated: 2026-09-11T15:25:00Z
 ---
-
-## Current Test
-
-number: 5
-name: Phân quyền Admin mở lại tàu "Đang làm hàng"
-expected: |
-  Nút "Mở lại: Đang làm hàng" chỉ hiển thị khi đăng nhập tài khoản Quản trị viên (Admin). Khi Admin bấm mở lại và xác nhận, tàu chuyển về "Đang làm hàng", các nút thêm/sửa/xóa và nhập liệu được mở khóa trở lại.
-awaiting: user response
 
 ## Tests
 
@@ -36,14 +28,14 @@ result: pass
 
 ### 5. Phân quyền Admin mở lại tàu "Đang làm hàng"
 expected: Nút "Mở lại: Đang làm hàng" chỉ hiển thị khi đăng nhập tài khoản Quản trị viên (Admin). Khi Admin bấm mở lại và xác nhận, tàu chuyển về "Đang làm hàng", các nút thêm/sửa/xóa và nhập liệu được mở khóa trở lại.
-result: pending
+result: pass
 
 ## Summary
 
 total: 5
-passed: 4
+passed: 5
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 
 ## Gaps
