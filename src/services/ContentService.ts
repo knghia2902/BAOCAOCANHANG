@@ -148,8 +148,31 @@ export const ContentService = {
         return !error;
     },
 
-    // Accounts management
+    // Accounts & Users management
     async loadAccounts(): Promise<any[]> {
+        try {
+            // 1. Thử lấy từ bảng users trên database
+            const { data: users, error: usersError } = await supabase
+                .from('users')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (!usersError && users && users.length > 0) {
+                return users.map(u => ({
+                    id: u.id,
+                    username: u.username,
+                    displayName: u.display_name || u.username,
+                    role: u.role || 'staff',
+                    avatar: u.avatar || '',
+                    password: u.password_hash,
+                    created_at: u.created_at
+                }));
+            }
+        } catch (err) {
+            console.warn('Lỗi load từ bảng users:', err);
+        }
+
+        // 2. Fallback: Lấy từ settings.accounts trong bảng content
         try {
             const { data, error } = await supabase
                 .from('content')
@@ -159,9 +182,151 @@ export const ContentService = {
             if (error || !data?.settings) return [];
             return data.settings.accounts || [];
         } catch (e) {
-            console.error('Error loading accounts', e);
+            console.error('Error loading accounts fallback', e);
             return [];
         }
+    },
+
+    async createUser(account: { username: string; password: string; displayName?: string; role: string; avatar?: string }): Promise<boolean> {
+        const usernameClean = account.username.trim().toLowerCase();
+        let success = false;
+        try {
+            // 1. Thêm vào bảng users
+            const { error: userError } = await supabase
+                .from('users')
+                .insert([{
+                    username: usernameClean,
+                    password_hash: account.password,
+                    display_name: account.displayName || usernameClean,
+                    role: account.role || 'staff',
+                    avatar: account.avatar || ''
+                }]);
+
+            if (!userError) {
+                success = true;
+            } else {
+                console.warn('Cảnh báo khi thêm vào bảng users (có thể bảng chưa được tạo):', userError);
+            }
+        } catch (err) {
+            console.warn('Không thể insert vào bảng users:', err);
+        }
+
+        // 2. Đồng thời đồng bộ vào settings.accounts để fallback an toàn
+        try {
+            const currentAccounts = await this.loadAccounts();
+            const exists = currentAccounts.some(a => a.username?.toLowerCase() === usernameClean);
+            if (!exists) {
+                const updated = [...currentAccounts, {
+                    username: usernameClean,
+                    password: account.password,
+                    displayName: account.displayName || usernameClean,
+                    role: account.role || 'staff',
+                    avatar: account.avatar || ''
+                }];
+                const saved = await this.saveAccounts(updated);
+                if (saved) success = true;
+            }
+        } catch (_) {}
+
+        return success;
+    },
+
+    async updateUser(username: string, updates: { displayName?: string; role?: string; avatar?: string }): Promise<boolean> {
+        const usernameClean = username.trim().toLowerCase();
+        let success = false;
+        try {
+            const userUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+            if (updates.displayName !== undefined) userUpdates.display_name = updates.displayName;
+            if (updates.role !== undefined) userUpdates.role = updates.role;
+            if (updates.avatar !== undefined) userUpdates.avatar = updates.avatar;
+
+            const { error: userError } = await supabase
+                .from('users')
+                .update(userUpdates)
+                .eq('username', usernameClean);
+
+            if (!userError) success = true;
+        } catch (err) {
+            console.warn('Lỗi khi update bảng users:', err);
+        }
+
+        // Đồng bộ settings.accounts
+        try {
+            const currentAccounts = await this.loadAccounts();
+            const updated = currentAccounts.map(acc => {
+                if (acc.username?.toLowerCase() === usernameClean) {
+                    return {
+                        ...acc,
+                        displayName: updates.displayName !== undefined ? updates.displayName : acc.displayName,
+                        role: updates.role !== undefined ? updates.role : acc.role,
+                        avatar: updates.avatar !== undefined ? updates.avatar : acc.avatar
+                    };
+                }
+                return acc;
+            });
+            const saved = await this.saveAccounts(updated);
+            if (saved) success = true;
+        } catch (_) {}
+
+        return success;
+    },
+
+    async deleteUser(username: string): Promise<boolean> {
+        const usernameClean = username.trim().toLowerCase();
+        let success = false;
+        try {
+            const { error: deleteError } = await supabase
+                .from('users')
+                .delete()
+                .eq('username', usernameClean);
+
+            if (!deleteError) success = true;
+        } catch (err) {
+            console.warn('Lỗi xóa khỏi bảng users:', err);
+        }
+
+        // Đồng bộ settings.accounts
+        try {
+            const currentAccounts = await this.loadAccounts();
+            const updated = currentAccounts.filter(acc => acc.username?.toLowerCase() !== usernameClean);
+            const saved = await this.saveAccounts(updated);
+            if (saved) success = true;
+        } catch (_) {}
+
+        return success;
+    },
+
+    async resetUserPassword(username: string, passwordHash: string): Promise<boolean> {
+        const usernameClean = username.trim().toLowerCase();
+        let success = false;
+        try {
+            const { error: resetError } = await supabase
+                .from('users')
+                .update({ 
+                    password_hash: passwordHash,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('username', usernameClean);
+
+            if (!resetError) success = true;
+        } catch (err) {
+            console.warn('Lỗi reset mật khẩu trong bảng users:', err);
+        }
+
+        // Đồng bộ settings.accounts
+        try {
+            const currentAccounts = await this.loadAccounts();
+            const updated = currentAccounts.map(acc => {
+                if (acc.username?.toLowerCase() === usernameClean) {
+                    return { ...acc, password: passwordHash };
+                }
+                return acc;
+            });
+            const saved = await this.saveAccounts(updated);
+            if (saved) success = true;
+        } catch (_) {}
+
+        return success;
     },
 
     async saveAccounts(accounts: any[]): Promise<boolean> {

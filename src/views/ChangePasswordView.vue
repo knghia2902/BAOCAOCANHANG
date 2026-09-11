@@ -22,7 +22,7 @@ const handleChangePassword = async () => {
     }
 
     try {
-        await authService.changePassword(newPassword.value);
+        await authService.changePassword(newPassword.value, authStore.user || undefined);
         authStore.isFirstLogin = false; // Update local state immediately
         success.value = true;
         await LogService.logAction('Đổi mật khẩu', 'Đổi mật khẩu lần đăng nhập đầu tiên');

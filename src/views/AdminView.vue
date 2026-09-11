@@ -318,15 +318,8 @@ const handleCreateAccount = async () => {
         triggerToast('Mật khẩu không được để trống!');
         return;
     }
-    const { data: currentSettings } = await supabase.from('content').select('settings').eq('id', 'main').single();
-    const settings = currentSettings?.settings || {};
     
-    if (usernameClean === settings.username) {
-        triggerToast('Trùng với tên đăng nhập của Admin chính!');
-        return;
-    }
-    
-    const exists = accountsList.value.some(acc => acc.username === usernameClean);
+    const exists = accountsList.value.some(acc => acc.username?.toLowerCase() === usernameClean);
     if (exists) {
         triggerToast('Tên đăng nhập này đã tồn tại!');
         return;
@@ -345,10 +338,9 @@ const handleCreateAccount = async () => {
         avatar: avatarUrl
     };
     
-    const updatedAccounts = [...accountsList.value, newAcc];
-    const success = await ContentService.saveAccounts(updatedAccounts);
+    const success = await ContentService.createUser(newAcc);
     if (success) {
-        accountsList.value = updatedAccounts;
+        await loadAccounts();
         showAccountModal.value = false;
         triggerToast('Tạo tài khoản thành công! ✨');
         await LogService.logAction('Tạo tài khoản', 'Tạo tài khoản mới: ' + usernameClean);
@@ -375,21 +367,14 @@ const handleEditAccount = async () => {
     
     const avatarUrl = editAccountForm.value.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(editAccountForm.value.displayName.trim())}`;
     
-    const updatedAccounts = accountsList.value.map(acc => {
-        if (acc.username === editAccountForm.value.username) {
-            return {
-                ...acc,
-                displayName: editAccountForm.value.displayName.trim(),
-                role: editAccountForm.value.role,
-                avatar: avatarUrl
-            };
-        }
-        return acc;
+    const success = await ContentService.updateUser(editAccountForm.value.username, {
+        displayName: editAccountForm.value.displayName.trim(),
+        role: editAccountForm.value.role,
+        avatar: avatarUrl
     });
     
-    const success = await ContentService.saveAccounts(updatedAccounts);
     if (success) {
-        accountsList.value = updatedAccounts;
+        await loadAccounts();
         showEditAccountModal.value = false;
         triggerToast('Cập nhật tài khoản thành công! ✨');
         await LogService.logAction('Sửa tài khoản', 'Cập nhật thông tin tài khoản: ' + editAccountForm.value.username);
@@ -400,10 +385,9 @@ const handleEditAccount = async () => {
 
 const deleteAccount = async (username: string) => {
     if (confirm(`Bạn có chắc chắn muốn xóa tài khoản "${username}"?`)) {
-        const updatedAccounts = accountsList.value.filter(acc => acc.username !== username);
-        const success = await ContentService.saveAccounts(updatedAccounts);
+        const success = await ContentService.deleteUser(username);
         if (success) {
-            accountsList.value = updatedAccounts;
+            await loadAccounts();
             triggerToast('Xóa tài khoản thành công! 🗑️');
             await LogService.logAction('Xóa tài khoản', 'Xóa tài khoản: ' + username);
         } else {
@@ -427,19 +411,10 @@ const handleResetPassword = async () => {
     }
     
     const passwordHash = await sha256(resetPasswordForm.value.newPassword);
-    const updatedAccounts = accountsList.value.map(acc => {
-        if (acc.username === resetPasswordForm.value.username) {
-            return {
-                ...acc,
-                password: passwordHash
-            };
-        }
-        return acc;
-    });
+    const success = await ContentService.resetUserPassword(resetPasswordForm.value.username, passwordHash);
     
-    const success = await ContentService.saveAccounts(updatedAccounts);
     if (success) {
-        accountsList.value = updatedAccounts;
+        await loadAccounts();
         showResetPasswordModal.value = false;
         triggerToast('Đặt lại mật khẩu thành công! ✨');
         await LogService.logAction('Đổi mật khẩu', 'Đặt lại mật khẩu cho tài khoản: ' + resetPasswordForm.value.username);

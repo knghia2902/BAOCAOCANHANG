@@ -5,15 +5,15 @@ source:
   - .planning/phases/08-vessel-status-and-permissions/08-01-SUMMARY.md
   - .planning/phases/08-vessel-status-and-permissions/08-02-SUMMARY.md
 started: 2026-09-11T14:07:00Z
-updated: 2026-09-11T14:11:00Z
+updated: 2026-09-11T14:18:00Z
 ---
 
 ## Current Test
 
-number: 2
-name: Tab lọc trạng thái tại Báo cáo tổng quan hệ thống
+number: 3
+name: Quy trình Chốt số liệu tàu ("Đã xong")
 expected: |
-  Khi ở trang Tổng quan (chưa chọn tàu cụ thể), trên tiêu đề banner xuất hiện 2 nút tab "Đang làm hàng" và "Đã xong". Khi bấm đổi tab, số liệu thẻ "Tổng số tàu" và bảng danh sách sà lan tự động cập nhật tương ứng theo tab đang chọn.
+  Khi chọn một tàu đang làm hàng, trên tiêu đề báo cáo tổng hợp xuất hiện nút "Chốt số liệu: Đã xong". Bấm nút này sẽ hiển thị modal xác nhận cảnh báo. Khi đồng ý, trạng thái tàu chuyển thành "Đã xong" và xuất hiện badge "Đã xong" cùng thông báo Chỉ xem (Read-only).
 awaiting: user response
 
 ## Tests
@@ -23,8 +23,8 @@ expected: Trong công cụ In phiếu cân (WeighbridgePrinter), trên thanh dan
 result: pass
 
 ### 2. Tab lọc trạng thái tại Báo cáo tổng quan hệ thống
-expected: Khi ở trang Tổng quan (chưa chọn tàu cụ thể), trên tiêu đề banner xuất hiện 2 nút tab "Đang làm hàng" và "Đã xong". Khi bấm đổi tab, số liệu thẻ "Tổng số tàu" và bảng danh sách sà lan tự động cập nhật tương ứng theo tab đang chọn.
-result: pending
+expected: Khi ở trang Tổng quan (chưa chọn tàu cụ thể), khi bấm đổi tab "Đang làm" hoặc "Đã xong" ở Sidebar, số liệu thẻ "Tổng số tàu" và bảng danh sách sà lan tự động cập nhật tương ứng theo tab đang chọn. Cụm tab trùng lặp ở banner Tổng quan đã được gỡ bỏ để tinh gọn giao diện.
+result: pass
 
 ### 3. Quy trình Chốt số liệu tàu ("Đã xong")
 expected: Khi chọn một tàu "Đang làm hàng", trên tiêu đề báo cáo tổng hợp xuất hiện nút "Chốt số liệu: Đã xong". Bấm nút này sẽ hiển thị modal xác nhận cảnh báo. Khi đồng ý, trạng thái tàu chuyển thành "Đã xong" và xuất hiện badge "Đã xong" cùng thông báo Chỉ xem (Read-only).
@@ -41,9 +41,9 @@ result: pending
 ## Summary
 
 total: 5
-passed: 1
+passed: 2
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 
 ## Gaps
