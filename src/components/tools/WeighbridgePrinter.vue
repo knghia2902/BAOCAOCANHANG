@@ -4111,17 +4111,17 @@ onUnmounted(() => {
     <div class="weighbridge-printer-wrapper flex-1 flex flex-col min-h-0 overflow-hidden font-display">
         <div v-if="!hideCard" class="bg-white rounded-[24px] p-8 md:p-10 soft-shadow border border-primary/5 relative overflow-hidden flex flex-col justify-between h-full group">
             <div class="absolute -top-6 -right-6 p-8 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all pointer-events-none">
-                <span class="material-symbols-outlined text-[120px] text-primary">print</span>
+                <span class="material-symbols-outlined text-[120px] text-primary">monitoring</span>
             </div>
             <div>
-                <h3 class="text-2xl font-display font-black text-primary mb-3">In Phiếu Cân Xe 🚢</h3>
+                <h3 class="text-2xl font-display font-black text-primary mb-3">Báo Cáo Tổng Quan 🚢</h3>
                 <p class="text-sm font-bold text-[#1b0d11]/60 leading-relaxed mb-6">
-                    Quản lý danh sách tàu, sà lan và nhập xe từ Excel. Hỗ trợ tạo và in phiếu cân tự động định dạng A5 chuyên nghiệp.
+                    Báo cáo tổng quan tiến độ làm hàng của các tàu mẹ, theo dõi danh sách sà lan và thống kê khối lượng toàn cảng.
                 </p>
                 <div class="flex flex-wrap gap-2 mb-6">
-                    <span class="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">Supabase Cloud</span>
-                    <span class="text-xs font-bold px-3 py-1 bg-teal-500/10 text-teal-600 rounded-full">In A5</span>
-                    <span class="text-xs font-bold px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full">Excel Smart Match</span>
+                    <span class="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">Tổng quan</span>
+                    <span class="text-xs font-bold px-3 py-1 bg-teal-500/10 text-teal-600 rounded-full">Tiến độ tàu</span>
+                    <span class="text-xs font-bold px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full">Điều độ cảng</span>
                 </div>
             </div>
             
@@ -4130,7 +4130,7 @@ onUnmounted(() => {
                 class="w-full py-4 puffy-button flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
                 <span class="material-symbols-outlined">open_in_new</span>
-                Mở công cụ In Phiếu Cân
+                Mở Báo Cáo Tổng Quan
             </button>
         </div>
 
@@ -4140,10 +4140,10 @@ onUnmounted(() => {
             <header v-if="!hideCard" class="bg-white px-6 py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="size-11 bg-primary rounded-full flex items-center justify-center text-white shadow-soft shrink-0">
-                        <span class="material-symbols-outlined text-[20px]">print</span>
+                        <span class="material-symbols-outlined text-[20px]">monitoring</span>
                     </div>
                     <div class="flex flex-col gap-0.5">
-                        <h2 class="text-base font-black text-primary leading-tight">PHẦN MỀM IN PHIẾU CÂN XE</h2>
+                        <h2 class="text-base font-black text-primary leading-tight">BÁO CÁO TỔNG QUAN 🚢</h2>
                         <p class="text-xs font-semibold text-[#1b0d11]/50 leading-none">Cảng Nguyên Ngọc - Đồng bộ đám mây</p>
                     </div>
                 </div>
@@ -4319,9 +4319,9 @@ onUnmounted(() => {
                         <!-- Welcome Header banner -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div>
-                                <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống in phiếu cân xe</div>
+                                <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Báo cáo & điều độ cảng</div>
                                 <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
-                                    Báo cáo tổng quan hệ thống
+                                    Báo cáo tổng quan hệ thống 🚢
                                 </h1>
                             </div>
                         </div>

@@ -43,8 +43,17 @@ const handleToolSelect = (event: Event) => {
     
     newTool.value.tool = val;
     if (val === '/tools?tool=weighbridge') {
-        newTool.value.icon = 'print';
-        newTool.value.label = 'In Phiếu Cân Xe';
+        newTool.value.icon = 'monitoring';
+        newTool.value.label = 'Báo Cáo Tổng Quan 🚢';
+    } else if (val === '/tools?tool=allocator') {
+        newTool.value.icon = 'balance';
+        newTool.value.label = 'Dữ Liệu Cân Hàng 🚢';
+    } else if (val === '/tools?tool=vehicles') {
+        newTool.value.icon = 'directions_boat';
+        newTool.value.label = 'Quản Lý Hồ Sơ Phương Tiện 🚢';
+    } else if (val === '/tools?tool=minutes') {
+        newTool.value.icon = 'description';
+        newTool.value.label = 'Biên Bản Sà Lan 🚢';
     } else if (val === '/tools?tool=merger') {
         newTool.value.icon = 'layers';
         newTool.value.label = 'Gộp Excel';
@@ -461,10 +470,10 @@ const selectedRoleToConfigure = ref<string>('staff');
 const activeSubsystem = ref<string>('weighbridge');
 
 const allToolsWithMinutes = [
-  { id: 'weighbridge', name: 'In Phiếu Cân Xe 🚢', description: 'Vận hành làn cân điện tử, lưu trữ và in phiếu cân tự động' },
-  { id: 'allocator', name: 'Báo cáo cân hàng 🚛', description: 'Phân bổ tải trọng, điều phối xe và gộp dữ liệu chuyến hàng' },
-  { id: 'vehicles', name: 'Hồ sơ phương tiện sà lan 🚢', description: 'Quản lý hồ sơ sà lan, thông tin thuyền viên và đăng kiểm' },
-  { id: 'minutes', name: 'Biên Bản Sà Lan 📝', description: 'Tạo biên bản giao nhận sà lan tự động dựa trên file dữ liệu cân' },
+  { id: 'weighbridge', name: 'Báo Cáo Tổng Quan 🚢', description: 'Báo cáo tổng quan tiến độ làm hàng tàu mẹ, theo dõi sà lan và điều độ toàn cảng' },
+  { id: 'allocator', name: 'Dữ Liệu Cân Hàng 🚢', description: 'Quản lý dữ liệu cân hàng, theo dõi sổ lịch sử cân và phân bổ trọng lượng xe sà lan tự động' },
+  { id: 'vehicles', name: 'Quản Lý Hồ Sơ Phương Tiện 🚢', description: 'Quản lý thông tin kỹ thuật, giấy tờ đăng kiểm, bảo hiểm và hồ sơ thuyền viên phương tiện' },
+  { id: 'minutes', name: 'Biên Bản Sà Lan 🚢', description: 'Tự động tính toán số liệu xuất kho, xá thẳng và lập bộ 4 biên bản làm hàng sà lan' },
   { id: 'utilities', name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️', description: 'Chuyển đổi định dạng file, gộp Excel thông minh và trích xuất dữ liệu OCR' }
 ];
 
@@ -1683,12 +1692,15 @@ onMounted(async () => {
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-black text-gray-400 uppercase tracking-wider text-left">Chọn liên kết nhanh công cụ</label>
                         <select 
-                            :value="['/tools?tool=weighbridge', '/tools?tool=merger', '/tools?tool=converter', '/tools?tool=ocr'].includes(newTool.tool) ? newTool.tool : ''"
+                            :value="['/tools?tool=weighbridge', '/tools?tool=allocator', '/tools?tool=vehicles', '/tools?tool=minutes', '/tools?tool=merger', '/tools?tool=converter', '/tools?tool=ocr'].includes(newTool.tool) ? newTool.tool : ''"
                             @change="handleToolSelect"
                             class="w-full bg-gray-50 px-4 py-3.5 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                         >
                             <option value="">-- Nhập tùy chỉnh thủ công dưới đây --</option>
-                            <option value="/tools?tool=weighbridge">In Phiếu Cân Xe (Mã lệnh & Sà lan)</option>
+                            <option value="/tools?tool=weighbridge">Báo Cáo Tổng Quan 🚢</option>
+                            <option value="/tools?tool=allocator">Dữ Liệu Cân Hàng 🚢</option>
+                            <option value="/tools?tool=vehicles">Quản Lý Hồ Sơ Phương Tiện 🚢</option>
+                            <option value="/tools?tool=minutes">Biên Bản Sà Lan 🚢</option>
                             <option value="/tools?tool=merger">Gộp Excel Thông Minh</option>
                             <option value="/tools?tool=converter">Chuyển Đổi Định Dạng File</option>
                             <option value="/tools?tool=ocr">PDF & OCR Tools</option>

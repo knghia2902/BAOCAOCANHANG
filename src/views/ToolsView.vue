@@ -101,26 +101,26 @@ const allTools = [
   {
     id: 'weighbridge',
     name: 'Báo Cáo Tổng Quan 🚢',
-    desc: 'Truy cập trực tiếp trang in ấn phiếu cân A5 cho các xe.',
-    icon: 'print',
+    desc: 'Báo cáo tổng quan tiến độ làm hàng của các tàu mẹ, theo dõi danh sách sà lan và thống kê khối lượng toàn cảng.',
+    icon: 'monitoring',
     bgIcon: 'bg-primary/10 text-primary',
-    tags: ['In A5', 'Supabase Cloud', 'Trạm cân']
+    tags: ['Tổng quan', 'Tiến độ tàu', 'Sà lan', 'Dashboard']
   },
   {
     id: 'allocator',
     name: 'Dữ Liệu Cân Hàng 🚢',
-    desc: 'Tạo các lệnh phân bổ trọng lượng xe sà lan tự động.',
-    icon: 'shuffle',
+    desc: 'Quản lý dữ liệu cân hàng, theo dõi sổ lịch sử cân và phân bổ trọng lượng xe sà lan tự động.',
+    icon: 'balance',
     bgIcon: 'bg-primary/10 text-primary',
-    tags: ['Phân bổ', 'Sà lan', 'Excel']
+    tags: ['Dữ liệu cân', 'Phân bổ', 'Lịch sử cân', 'Excel']
   },
   {
     id: 'vehicles',
     name: 'Quản Lý Hồ Sơ Phương Tiện 🚢',
     desc: 'Quản lý thông tin kỹ thuật, giấy tờ đăng kiểm, bảo hiểm và hồ sơ thuyền trưởng, thuyền viên của các phương tiện.',
-    icon: 'local_shipping',
+    icon: 'directions_boat',
     bgIcon: 'bg-amber-500/10 text-amber-600',
-    tags: ['Phương tiện', 'Sà lan', 'Thuyền viên', 'Đăng kiểm']
+    tags: ['Hồ sơ phương tiện', 'Sà lan', 'Thuyền viên', 'Đăng kiểm']
   },
   {
     id: 'minutes',

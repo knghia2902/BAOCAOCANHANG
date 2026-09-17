@@ -166,52 +166,52 @@ onMounted(async () => {
                 <div class="h-1.5 w-24 bg-primary rounded-full glow-primary"></div>
             </div>
             <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4" v-if="!loadingTools">
-                <!-- Dashboard / Báo cáo tổng quan -->
+                <!-- Báo Cáo Tổng Quan -->
                 <router-link
                     v-if="allowedTools.includes('weighbridge')"
-                    to="/tools/printer"
+                    to="/tools/weighbridge"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
-                        <span class="material-symbols-outlined text-3xl">print</span>
+                        <span class="material-symbols-outlined text-3xl">monitoring</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Dashboard</p>
+                        <p class="font-bold text-lg leading-none">Báo Cáo Tổng Quan</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
-                <!-- Dữ liệu cân hàng -->
+                <!-- Dữ Liệu Cân Hàng -->
                 <router-link
                     v-if="allowedTools.includes('allocator')"
                     to="/tools/allocator"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
-                        <span class="material-symbols-outlined text-3xl">shuffle</span>
+                        <span class="material-symbols-outlined text-3xl">balance</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Cân hàng</p>
+                        <p class="font-bold text-lg leading-none">Dữ Liệu Cân Hàng</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
-                <!-- Quản lý hồ sơ phương tiện -->
+                <!-- Quản Lý Hồ Sơ Phương Tiện -->
                 <router-link
                     v-if="allowedTools.includes('vehicles')"
                     to="/tools/vehicles"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
-                        <span class="material-symbols-outlined text-3xl">local_shipping</span>
+                        <span class="material-symbols-outlined text-3xl">directions_boat</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Phương tiện</p>
+                        <p class="font-bold text-lg leading-none">Quản Lý Hồ Sơ Phương Tiện</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
-                <!-- Biên bản sà lan -->
+                <!-- Biên Bản Sà Lan -->
                 <router-link
                     to="/tools?tool=minutes"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
@@ -220,7 +220,7 @@ onMounted(async () => {
                         <span class="material-symbols-outlined text-3xl">description</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Biên bản</p>
+                        <p class="font-bold text-lg leading-none">Biên Bản Sà Lan</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>

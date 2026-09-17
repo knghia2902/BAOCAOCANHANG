@@ -32,11 +32,11 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
     <header class="bg-white px-6 py-2.5 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 no-print">
       <div class="flex items-center gap-2.5">
         <div class="size-9 rounded-full bg-primary flex items-center justify-center text-white shadow-soft">
-          <span class="material-symbols-outlined text-base">local_shipping</span>
+          <span class="material-symbols-outlined text-base">directions_boat</span>
         </div>
         <div>
           <h2 class="text-base font-black text-primary leading-tight">
-            QUẢN LÝ HỒ SƠ PHƯƠNG TIỆN
+            QUẢN LÝ HỒ SƠ PHƯƠNG TIỆN 🚢
           </h2>
           <p class="text-xs font-medium text-[#1b0d11]/60 leading-none">
             Cảng Nguyên Ngọc - Đồng bộ đám mây

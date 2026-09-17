@@ -3429,7 +3429,7 @@ async function compileAndDownload() {
                     <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích quản lý</div>
                     <h2 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-base">balance</span>
-                        Báo cáo cân hàng
+                        Dữ Liệu Cân Hàng 🚢
                     </h2>
                 </div>
 

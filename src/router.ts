@@ -34,6 +34,10 @@ const router = createRouter({
             redirect: '/tools?tool=allocator'
         },
         {
+            path: '/tools/weighbridge',
+            redirect: '/tools?tool=weighbridge'
+        },
+        {
             path: '/tools/printer',
             redirect: '/tools?tool=weighbridge'
         },

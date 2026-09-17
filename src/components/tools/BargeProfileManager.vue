@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { WeighbridgeService, type Vessel, type Barge, type BargeConfig } from '@/services/excel/WeighbridgeService';
+import { type Barge, type BargeConfig } from '@/services/excel/WeighbridgeService';
+import { VehicleProfileService, type VehicleProfile } from '@/services/excel/VehicleProfileService';
 import { StorageService } from '@/services/storage/StorageService';
 import { useToast } from '@/composables/useToast';
 import { LogService } from '../../services/storage/LogService';
 import { authStore, hasDetailPermission } from '@/stores/auth';
 
 const { addToast } = useToast();
-const vessels = ref<Vessel[]>([]);
+const vehicleProfiles = ref<VehicleProfile[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const searchQuery = ref('');
@@ -211,8 +212,6 @@ const previewImageUrl = ref<string | null>(null);
 
 const activePopover = ref<{ bargeId: number; type: 'doc' | 'crew' } | null>(null);
 
-const expandedVesselIds = ref<Record<number, boolean>>({});
-
 const isOnline = ref(navigator.onLine);
 const updateOnlineStatus = () => {
     isOnline.value = navigator.onLine;
@@ -233,43 +232,68 @@ interface CustomMeta {
 }
 const customMetas = ref<CustomMeta[]>([]);
 
-// Fetch all barges from all vessels
+// Fetch all barges from vehicle_profiles
 const allBarges = computed(() => {
     const list: Array<{ barge: Barge; vesselName: string }> = [];
-    vessels.value.forEach(v => {
-        if (v.barges) {
-            v.barges.forEach(b => {
-                const bSite = b.config?.site || 'NguyenNgoc';
-                const isPhuMy = bSite === 'PhuMy' || v.name === 'KHU VỰC PHÚ MỸ';
-                
-                if (activeSite.value === 'PhuMy' && isPhuMy) {
-                    list.push({
-                        barge: b,
-                        vesselName: v.name
-                    });
-                } else if (activeSite.value === 'NguyenNgoc' && !isPhuMy) {
-                    list.push({
-                        barge: b,
-                        vesselName: v.name
-                    });
-                }
-            });
-        }
+    vehicleProfiles.value.forEach(p => {
+        const pSite = p.site || 'NguyenNgoc';
+        if (pSite !== activeSite.value) return;
+
+        const bConfig: BargeConfig = {
+            goods: '',
+            goodsCode: '',
+            owner: '',
+            operator: '',
+            xn: '',
+            ticketPrefix: '',
+            ticketSeed: '',
+            chinhpham: '',
+            phupham: '',
+            ketluan: '',
+            site: p.site,
+            tonnage: p.tonnage ?? undefined,
+            hp: p.hp ?? undefined,
+            gcnNo: p.gcn_no || '',
+            gcnIssuedDate: p.gcn_issued_date || '',
+            gcnExpiryDate: p.gcn_expiry_date || '',
+            gcnImages: p.gcn_images || [],
+            dkNo: p.dk_no || '',
+            dkIssuedDate: p.dk_issued_date || '',
+            dkExpiryDate: p.dk_expiry_date || '',
+            dkImages: p.dk_images || [],
+            bhNo: p.bh_no || '',
+            bhIssuedDate: p.bh_issued_date || '',
+            bhExpiryDate: p.bh_expiry_date || '',
+            bhImages: p.bh_images || [],
+            captain: p.captain || '',
+            captainGrade: p.captain_grade || '',
+            captainCccd: p.captain_cccd || '',
+            chiefEngineer: p.chief_engineer || '',
+            chiefEngineerGrade: p.chief_engineer_grade || '',
+            chiefEngineerCccd: p.chief_engineer_cccd || '',
+            sailors: p.sailors || '',
+            sailorsCccd: p.sailors_cccd || '',
+            hasCrewBook: p.has_crew_book || false,
+            crewImages: p.crew_images || [],
+            arrivalTime: p.arrival_time || '',
+            departureTime: p.departure_time || '',
+            lastPort: p.last_port || '',
+            khaihethong: p.khai_he_thong || '',
+            notes: p.notes || ''
+        };
+
+        list.push({
+            barge: {
+                id: p.id,
+                name: p.vehicle_name,
+                vessel_id: 0,
+                config: bConfig
+            },
+            vesselName: p.vessel_name || (p.site === 'NguyenNgoc' ? 'Cảng Nguyên Ngọc' : 'Khu vực Phú Mỹ')
+        });
     });
-    
-    // Sap xep giong "Danh sach quan ly tat ca sa lan"
-    return list.sort((a, b) => {
-        const orderA = a.barge.config?.orderNo ? String(a.barge.config.orderNo).trim() : '';
-        const orderB = b.barge.config?.orderNo ? String(b.barge.config.orderNo).trim() : '';
-        
-        if (!orderA && orderB) return 1;
-        if (orderA && !orderB) return -1;
-        if (!orderA && !orderB) {
-            return a.barge.name.localeCompare(b.barge.name);
-        }
-        
-        return orderA.localeCompare(orderB, undefined, { numeric: true, sensitivity: 'base' });
-    });
+
+    return list.sort((a, b) => a.barge.name.localeCompare(b.barge.name));
 });
 
 // Filtered list
@@ -548,15 +572,10 @@ watch(
 async function loadData() {
     loading.value = true;
     try {
-        vessels.value = await WeighbridgeService.getVessels() || [];
-        vessels.value.forEach(v => {
-            if (expandedVesselIds.value[v.id] === undefined) {
-                expandedVesselIds.value[v.id] = true;
-            }
-        });
+        vehicleProfiles.value = await VehicleProfileService.getProfiles() || [];
     } catch (e) {
-        console.error('Loi tai danh sach:', e);
-        addToast('Loi khi tai danh sach phuong tien!', 'error');
+        console.error('Lỗi tải danh sách hồ sơ phương tiện:', e);
+        addToast('Lỗi khi tải danh sách hồ sơ phương tiện!', 'error');
     } finally {
         loading.value = false;
     }
@@ -569,48 +588,28 @@ const addPhuMyBarge = async () => {
     }
     const name = newBargeName.value.trim().toUpperCase();
     if (!name) {
-        addToast('Vui lòng nhập tên sà lan!', 'info');
+        addToast('Vui lòng nhập tên phương tiện!', 'info');
         return;
     }
     
     loading.value = true;
     try {
-        // Find or create the 'KHU VỰC PHÚ MỸ' vessel
-        let pmVessel = vessels.value.find(v => v.name === 'KHU VỰC PHÚ MỸ');
-        let vesselId: number;
-        if (pmVessel) {
-            vesselId = pmVessel.id;
-        } else {
-            const newV = await WeighbridgeService.createVessel('KHU VỰC PHÚ MỸ');
-            if (newV) {
-                vesselId = newV.id;
-            } else {
-                throw new Error('Không thể tạo tàu KHU VỰC PHÚ MỸ');
-            }
-        }
-        
-        // Create the sà lan without an order number
-        const data = await WeighbridgeService.createBarge(vesselId, name, '');
-        if (data) {
-            // Update config site to 'PhuMy' and ensure orderNo is empty
-            const updatedConfig = {
-                ...(data.config || {}),
-                site: 'PhuMy',
-                orderNo: ''
-            };
-            await WeighbridgeService.updateBargeConfig(data.id, updatedConfig);
-            
+        const created = await VehicleProfileService.createProfile({
+            vehicle_name: name,
+            site: activeSite.value,
+            vessel_name: activeSite.value === 'NguyenNgoc' ? 'Cảng Nguyên Ngọc' : 'Khu vực Phú Mỹ'
+        });
+        if (created) {
             showAddBargeModal.value = false;
             newBargeName.value = '';
-            
             await loadData();
-            addToast(`Đã thêm sà lan Phú Mỹ: ${name}`, 'success');
+            addToast(`Đã thêm phương tiện: ${name}`, 'success');
         } else {
-            addToast('Không thể tạo sà lan mới!', 'error');
+            addToast('Không thể tạo hồ sơ phương tiện mới!', 'error');
         }
     } catch (e) {
-        console.error('Lỗi khi tạo sà lan Phú Mỹ:', e);
-        addToast('Lỗi khi thêm sà lan Phú Mỹ!', 'error');
+        console.error('Lỗi khi tạo phương tiện:', e);
+        addToast('Lỗi khi thêm phương tiện mới!', 'error');
     } finally {
         loading.value = false;
     }
@@ -621,21 +620,21 @@ const deletePhuMyBarge = async (barge: Barge) => {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
-    if (!confirm(`Bạn có chắc chắn muốn xóa sà lan "${barge.name}"?`)) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa phương tiện "${barge.name}"?`)) return;
     
     loading.value = true;
     try {
-        const success = await WeighbridgeService.deleteBarge(barge.id);
+        const success = await VehicleProfileService.deleteProfile(barge.id);
         if (success) {
-            addToast(`Đã xóa sà lan: ${barge.name}`, 'success');
-            await LogService.logAction('Xóa sà lan', 'Xóa hồ sơ sà lan: ' + barge.name);
+            addToast(`Đã xóa phương tiện: ${barge.name}`, 'success');
+            await LogService.logAction('Xóa phương tiện', 'Xóa hồ sơ: ' + barge.name);
             await loadData();
         } else {
-            addToast('Không thể xóa sà lan!', 'error');
+            addToast('Không thể xóa phương tiện!', 'error');
         }
     } catch (e) {
-        console.error('Lỗi khi xóa sà lan:', e);
-        addToast('Lỗi khi xóa sà lan!', 'error');
+        console.error('Lỗi khi xóa phương tiện:', e);
+        addToast('Lỗi khi xóa hồ sơ phương tiện!', 'error');
     } finally {
         loading.value = false;
     }
@@ -833,82 +832,56 @@ async function saveProfile() {
         const id = selectedBarge.value.id;
         const name = editBargeName.value.trim().toUpperCase();
         if (!name) {
-            addToast('Ten sa lan khong duoc de trong!', 'info');
+            addToast('Tên phương tiện không được để trống!', 'info');
             saving.value = false;
             return;
         }
         
-        const customProfileInfo: Record<string, string> = {};
-        customMetas.value.forEach(m => {
-            const k = m.key.trim();
-            if (k) {
-                customProfileInfo[k] = m.value.trim();
-            }
-        });
-        
-        const updatedConfig: BargeConfig = {
-            ...(selectedBarge.value.config || {}),
-            orderNo: editOrderNo.value.trim().toUpperCase(),
-            goods: editGoods.value.trim() ? (editGoods.value.trim().charAt(0).toUpperCase() + editGoods.value.trim().slice(1).toLowerCase()) : '',
-            goodsCode: editGoodsCode.value.trim().toUpperCase(),
-            owner: editOwner.value.trim(),
-            operator: editOperator.value.trim(),
-            xn: editXn.value.trim().toUpperCase(),
-            ticketPrefix: editTicketPrefix.value.trim().toUpperCase(),
-            ticketSeed: editTicketSeed.value,
-            chinhpham: editChinhpham.value,
-            phupham: editPhupham.value,
-            ketluan: editKetluan.value.trim(),
-            locked: editLocked.value,
-            
-            tonnage: editTonnage.value !== '' ? Number(editTonnage.value) : undefined,
-            hp: editHp.value !== '' ? Number(editHp.value) : undefined,
-            gcnNo: editGcnNo.value.trim(),
-            gcnIssuedDate: sanitizeDate(editGcnIssuedDate.value),
-            gcnExpiryDate: sanitizeDate(editGcnExpiryDate.value),
-            dkNo: editDkNo.value.trim(),
-            dkIssuedDate: sanitizeDate(editDkIssuedDate.value),
-            dkExpiryDate: sanitizeDate(editDkExpiryDate.value),
-            bhNo: editBhNo.value.trim(),
-            bhIssuedDate: sanitizeDate(editBhIssuedDate.value),
-            bhExpiryDate: sanitizeDate(editBhExpiryDate.value),
-            
-            customProfileInfo: customProfileInfo,
-            
+        const updatedData: Partial<VehicleProfile> = {
+            vehicle_name: name,
+            tonnage: editTonnage.value !== '' ? Number(editTonnage.value) : null,
+            hp: editHp.value !== '' ? Number(editHp.value) : null,
+            gcn_no: editGcnNo.value.trim(),
+            gcn_issued_date: sanitizeDate(editGcnIssuedDate.value),
+            gcn_expiry_date: sanitizeDate(editGcnExpiryDate.value),
+            gcn_images: [...editGcnImages.value],
+            dk_no: editDkNo.value.trim(),
+            dk_issued_date: sanitizeDate(editDkIssuedDate.value),
+            dk_expiry_date: sanitizeDate(editDkExpiryDate.value),
+            dk_images: [...editDkImages.value],
+            bh_no: editBhNo.value.trim(),
+            bh_issued_date: sanitizeDate(editBhIssuedDate.value),
+            bh_expiry_date: sanitizeDate(editBhExpiryDate.value),
+            bh_images: [...editBhImages.value],
             captain: editCaptain.value.trim(),
-            captainGrade: editCaptainGrade.value.trim(),
-            captainCccd: editCaptainCccd.value.trim(),
-            chiefEngineer: editChiefEngineer.value.trim(),
-            chiefEngineerGrade: editChiefEngineerGrade.value.trim(),
-            chiefEngineerCccd: editChiefEngineerCccd.value.trim(),
+            captain_grade: editCaptainGrade.value.trim(),
+            captain_cccd: editCaptainCccd.value.trim(),
+            chief_engineer: editChiefEngineer.value.trim(),
+            chief_engineer_grade: editChiefEngineerGrade.value.trim(),
+            chief_engineer_cccd: editChiefEngineerCccd.value.trim(),
             sailors: editSailors.value.trim(),
-            sailorsCccd: editSailorsCccd.value.trim(),
-            hasCrewBook: editHasCrewBook.value,
-            arrivalTime: editArrivalTime.value ? `${sanitizeDate(editArrivalTime.value.split('T')[0])}T${editArrivalTime.value.split('T')[1] || '00:00'}` : '',
-            departureTime: editDepartureTime.value ? `${sanitizeDate(editDepartureTime.value.split('T')[0])}T${editDepartureTime.value.split('T')[1] || '00:00'}` : '',
-            lastPort: editLastPort.value.trim(),
-            khaihethong: editKhaiHethong.value.trim(),
-            gcnImages: [...editGcnImages.value],
-            dkImages: [...editDkImages.value],
-            bhImages: [...editBhImages.value],
-            crewImages: [...editCrewImages.value]
+            sailors_cccd: editSailorsCccd.value.trim(),
+            has_crew_book: editHasCrewBook.value,
+            crew_images: [...editCrewImages.value],
+            arrival_time: editArrivalTime.value ? `${sanitizeDate(editArrivalTime.value.split('T')[0])}T${editArrivalTime.value.split('T')[1] || '00:00'}` : '',
+            departure_time: editDepartureTime.value ? `${sanitizeDate(editDepartureTime.value.split('T')[0])}T${editDepartureTime.value.split('T')[1] || '00:00'}` : '',
+            last_port: editLastPort.value.trim(),
+            khai_he_thong: editKhaiHethong.value.trim()
         };
         
-        if (selectedBarge.value.name !== name) {
-            await WeighbridgeService.updateBarge(id, name);
+        const ok = await VehicleProfileService.updateProfile(id, updatedData);
+        if (ok) {
+            addToast('Lưu hồ sơ phương tiện thành công!', 'success');
+            await LogService.logAction('Lưu hồ sơ phương tiện', 'Cập nhật hồ sơ: ' + name);
+            window.dispatchEvent(new CustomEvent('barge-config-updated', { detail: { profileId: id } }));
+            activeBargeId.value = null;
+            await loadData();
+        } else {
+            addToast('Không thể cập nhật hồ sơ phương tiện!', 'error');
         }
-        
-        await WeighbridgeService.updateBargeConfig(id, updatedConfig);
-        
-        addToast('Luu ho so sa lan thanh cong!', 'success');
-        await LogService.logAction('Lưu hồ sơ sà lan', 'Cập nhật hồ sơ: ' + editBargeName.value);
-        window.dispatchEvent(new CustomEvent('barge-config-updated', { detail: { bargeId: id } }));
-        
-        activeBargeId.value = null;
-        await loadData();
     } catch (e) {
-        console.error('Loi khi luu ho so:', e);
-        addToast('Gap su co khi luu ho so sa lan!', 'error');
+        console.error('Lỗi khi lưu hồ sơ:', e);
+        addToast('Gặp sự cố khi lưu hồ sơ phương tiện!', 'error');
     } finally {
         saving.value = false;
     }
@@ -1276,67 +1249,50 @@ async function handleExcelImport(event: Event) {
             return (val === 'undefined' || val === 'null') ? '' : val;
         };
 
-        const normalizeBargeName = (name: string): string => {
-            return name.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        };
-        
-        const systemBargesMap = new Map<string, Barge>();
-        vessels.value.forEach(v => {
-            if (v.barges) {
-                v.barges.forEach(b => {
-                    systemBargesMap.set(normalizeBargeName(b.name), b);
-                });
-            }
-        });
-        
+        const profilesToUpsert: Partial<VehicleProfile>[] = [];
         for (let r = 2; r <= sheet.rowCount; r++) {
             const row = sheet.getRow(r);
             const rawName = formatStringCell(row.getCell(2).value);
             if (!rawName) continue;
             
-            const normName = normalizeBargeName(rawName);
-            const barge = systemBargesMap.get(normName);
+            const tonnage = formatNumberCell(row.getCell(3).value);
+            const hp = formatNumberCell(row.getCell(4).value);
+            const gcnNo = formatStringCell(row.getCell(5).value);
+            const gcnIssuedDate = formatDateCell(row.getCell(6).value);
+            const gcnExpiryDate = formatDateCell(row.getCell(7).value);
+            const dkNo = formatStringCell(row.getCell(8).value);
+            const dkIssuedDate = formatDateCell(row.getCell(9).value);
+            const dkExpiryDate = formatDateCell(row.getCell(10).value);
+            const bhNo = formatStringCell(row.getCell(11).value);
+            const bhIssuedDate = formatDateCell(row.getCell(12).value);
+            const bhExpiryDate = formatDateCell(row.getCell(13).value);
             
-            if (barge) {
-                const tonnage = formatNumberCell(row.getCell(3).value);
-                const hp = formatNumberCell(row.getCell(4).value);
-                const gcnNo = formatStringCell(row.getCell(5).value);
-                const gcnIssuedDate = formatDateCell(row.getCell(6).value);
-                const gcnExpiryDate = formatDateCell(row.getCell(7).value);
-                const dkNo = formatStringCell(row.getCell(8).value);
-                const dkIssuedDate = formatDateCell(row.getCell(9).value);
-                const dkExpiryDate = formatDateCell(row.getCell(10).value);
-                const bhNo = formatStringCell(row.getCell(11).value);
-                const bhIssuedDate = formatDateCell(row.getCell(12).value);
-                const bhExpiryDate = formatDateCell(row.getCell(13).value);
-                
-                const updatedConfig: BargeConfig = {
-                    ...(barge.config || {}),
-                    tonnage,
-                    hp,
-                    gcnNo,
-                    gcnIssuedDate,
-                    gcnExpiryDate,
-                    dkNo,
-                    dkIssuedDate,
-                    dkExpiryDate,
-                    bhNo,
-                    bhIssuedDate,
-                    bhExpiryDate,
-                    updatedAt: Date.now()
-                };
-                
-                await WeighbridgeService.updateBargeConfig(barge.id, updatedConfig);
-                matchCount++;
-            }
+            profilesToUpsert.push({
+                vehicle_name: rawName.trim().toUpperCase(),
+                site: activeSite.value,
+                vessel_name: activeSite.value === 'NguyenNgoc' ? 'Cảng Nguyên Ngọc' : 'Khu vực Phú Mỹ',
+                tonnage: tonnage !== undefined ? tonnage : null,
+                hp: hp !== undefined ? hp : null,
+                gcn_no: gcnNo,
+                gcn_issued_date: gcnIssuedDate,
+                gcn_expiry_date: gcnExpiryDate,
+                dk_no: dkNo,
+                dk_issued_date: dkIssuedDate,
+                dk_expiry_date: dkExpiryDate,
+                bh_no: bhNo,
+                bh_issued_date: bhIssuedDate,
+                bh_expiry_date: bhExpiryDate
+            });
+            matchCount++;
         }
         
-        if (matchCount > 0) {
-            addToast(`Da nap ho so thanh cong cho ${matchCount} sa lan!`, 'success');
+        if (profilesToUpsert.length > 0) {
+            await VehicleProfileService.upsertProfiles(profilesToUpsert);
+            addToast(`Đã nạp hồ sơ thành công cho ${matchCount} phương tiện!`, 'success');
             window.dispatchEvent(new CustomEvent('barge-config-updated', { detail: { batch: true } }));
             await loadData();
         } else {
-            addToast('Khong tim thay sa lan trung khop ten!', 'info');
+            addToast('Không tìm thấy dữ liệu phương tiện hợp lệ trong file Excel!', 'info');
         }
     } catch (e) {
         console.error('Loi nhap Excel:', e);
@@ -1391,9 +1347,9 @@ onUnmounted(() => {
                 <!-- Welcome Header banner -->
                 <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-4 shrink-0">
                     <div>
-                        <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Hệ thống quản lý hồ sơ phương tiện</div>
+                        <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Quản Lý Hồ Sơ Phương Tiện 🚢</div>
                         <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5 select-none">
-                            Báo cáo tổng quan hệ thống hồ sơ phương tiện sà lan
+                            Danh sách hồ sơ phương tiện sà lan
                         </h1>
                     </div>
                     
@@ -1463,15 +1419,14 @@ onUnmounted(() => {
                             accept=".xlsx" 
                             class="hidden" 
                         />
-                        <!-- Add Barge (Only for Phu My area) -->
+                        <!-- Add Vehicle Profile -->
                         <button 
-                            v-if="activeSite === 'PhuMy'"
                             @click="newBargeName = ''; showAddBargeModal = true"
                             class="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10 shrink-0"
-                            title="Tạo sà lan mới thuộc khu vực Phú Mỹ"
+                            title="Tạo hồ sơ phương tiện mới"
                         >
                             <span class="material-symbols-outlined text-sm">add</span>
-                            Thêm sà lan mới
+                            Thêm phương tiện mới
                         </button>
                         <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'create')"
                             @click="triggerExcelUpload"
@@ -1499,8 +1454,8 @@ onUnmounted(() => {
                         <span>Đang tải thông tin sà lan...</span>
                     </div>
                     <div v-else-if="filteredBarges.length === 0" class="flex-grow flex flex-col justify-center items-center text-gray-400 text-xs italic gap-1">
-                        <span class="material-symbols-outlined text-3xl text-gray-300">sailing</span>
-                        <span>Không tìm thấy sà lan nào. Vui lòng thêm sà lan mới bên tab "In Phiếu Cân Xe".</span>
+                        <span class="material-symbols-outlined text-3xl text-gray-300">directions_boat</span>
+                        <span>Không tìm thấy phương tiện nào. Vui lòng bấm "Thêm phương tiện mới" để tạo hồ sơ.</span>
                     </div>
                     <div v-else class="flex-grow overflow-auto rounded-[16px] border border-gray-100 min-h-0">
                         <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
@@ -1691,10 +1646,10 @@ onUnmounted(() => {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
-                                            v-if="activeSite === 'PhuMy'" 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'delete')" 
                                             @click="deletePhuMyBarge(item.barge)" 
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
-                                            title="Xóa sà lan"
+                                            title="Xóa phương tiện"
                                         >
                                             <span class="material-symbols-outlined text-[12px]">delete</span>
                                         </button>
@@ -2319,7 +2274,7 @@ onUnmounted(() => {
                 <div class="flex items-center justify-between border-b border-gray-150 pb-3">
                     <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
                         <span class="material-symbols-outlined text-lg">add_box</span>
-                        Thêm sà lan Phú Mỹ mới
+                        Thêm phương tiện mới
                     </h3>
                     <button @click="showAddBargeModal = false" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors">
                         <span class="material-symbols-outlined text-lg">close</span>
@@ -2328,11 +2283,11 @@ onUnmounted(() => {
                 
                 <div class="space-y-4">
                     <div class="space-y-1">
-                        <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Tên sà lan *</label>
+                        <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Tên phương tiện *</label>
                         <input 
                             v-model="newBargeName" 
                             type="text" 
-                            placeholder="Nhập tên sà lan..." 
+                            placeholder="Nhập tên phương tiện..." 
                             class="w-full h-9 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#1e293b] font-black placeholder:font-normal"
                             @keyup.enter="addPhuMyBarge"
                         />
