@@ -92,6 +92,22 @@ export interface Barge {
     config: BargeConfig;
     created_at?: string;
     trucks?: Truck[];
+    order_no?: string;
+    goods?: string;
+    goods_code?: string;
+    owner?: string;
+    operator?: string;
+    tonnage?: number;
+    hp?: number;
+    gcn_no?: string;
+    gcn_expiry_date?: string;
+    dk_no?: string;
+    bh_no?: string;
+    bh_expiry_date?: string;
+    captain?: string;
+    chief_engineer?: string;
+    arrival_time?: string;
+    departure_time?: string;
 }
 
 export interface Truck {
@@ -165,7 +181,31 @@ export const WeighbridgeService = {
                             };
                         }
                     }
-                    return remoteBarge;
+
+                    const mergedConfig = {
+                        ...(remoteBarge.config || {}),
+                        ...(remoteBarge.order_no ? { orderNo: remoteBarge.order_no } : {}),
+                        ...(remoteBarge.goods ? { goods: remoteBarge.goods } : {}),
+                        ...(remoteBarge.goods_code ? { goodsCode: remoteBarge.goods_code } : {}),
+                        ...(remoteBarge.owner ? { owner: remoteBarge.owner } : {}),
+                        ...(remoteBarge.operator ? { operator: remoteBarge.operator } : {}),
+                        ...(remoteBarge.tonnage !== undefined && remoteBarge.tonnage !== null ? { tonnage: remoteBarge.tonnage } : {}),
+                        ...(remoteBarge.hp !== undefined && remoteBarge.hp !== null ? { hp: remoteBarge.hp } : {}),
+                        ...(remoteBarge.gcn_no ? { gcnNo: remoteBarge.gcn_no } : {}),
+                        ...(remoteBarge.gcn_expiry_date ? { gcnExpiryDate: remoteBarge.gcn_expiry_date } : {}),
+                        ...(remoteBarge.dk_no ? { dkNo: remoteBarge.dk_no } : {}),
+                        ...(remoteBarge.bh_no ? { bhNo: remoteBarge.bh_no } : {}),
+                        ...(remoteBarge.bh_expiry_date ? { bhExpiryDate: remoteBarge.bh_expiry_date } : {}),
+                        ...(remoteBarge.captain ? { captain: remoteBarge.captain } : {}),
+                        ...(remoteBarge.chief_engineer ? { chiefEngineer: remoteBarge.chief_engineer } : {}),
+                        ...(remoteBarge.arrival_time ? { arrivalTime: remoteBarge.arrival_time } : {}),
+                        ...(remoteBarge.departure_time ? { departureTime: remoteBarge.departure_time } : {})
+                    };
+
+                    return {
+                        ...remoteBarge,
+                        config: mergedConfig
+                    };
                 }).sort((a: any, b: any) => {
                     const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
                     const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -407,16 +447,35 @@ export const WeighbridgeService = {
         }
 
         try {
-            const { data, error } = await supabase
+            const rowData: Record<string, any> = {
+                id: newBarge.id,
+                vessel_id: vesselId,
+                name: newBarge.name,
+                config: defaultConfig,
+                order_no: nextOrderNo
+            };
+
+            let { data, error } = await supabase
                 .from('weighbridge_barges')
-                .insert([{
-                    id: newBarge.id,
-                    vessel_id: vesselId,
-                    name: newBarge.name,
-                    config: defaultConfig
-                }])
+                .insert([rowData])
                 .select()
                 .single();
+
+            // If order_no column doesn't exist yet, retry with just config
+            if (error && (error.code === 'PGRST204' || error.message?.includes('order_no'))) {
+                const retry = await supabase
+                    .from('weighbridge_barges')
+                    .insert([{
+                        id: newBarge.id,
+                        vessel_id: vesselId,
+                        name: newBarge.name,
+                        config: defaultConfig
+                    }])
+                    .select()
+                    .single();
+                data = retry.data;
+                error = retry.error;
+            }
 
             if (error) {
                 console.warn('Supabase create barge failed, saved locally:', error);
@@ -505,10 +564,37 @@ export const WeighbridgeService = {
 
         // 4. Update Supabase
         try {
-            const { error } = await supabase
+            const updates: Record<string, any> = { config: finalConfig };
+            if (finalConfig.orderNo !== undefined) updates.order_no = String(finalConfig.orderNo);
+            if (finalConfig.goods !== undefined) updates.goods = finalConfig.goods;
+            if (finalConfig.goodsCode !== undefined) updates.goods_code = finalConfig.goodsCode;
+            if (finalConfig.owner !== undefined) updates.owner = finalConfig.owner;
+            if (finalConfig.operator !== undefined) updates.operator = finalConfig.operator;
+            if (finalConfig.tonnage !== undefined) updates.tonnage = finalConfig.tonnage ? Number(finalConfig.tonnage) || null : null;
+            if (finalConfig.hp !== undefined) updates.hp = finalConfig.hp ? Number(finalConfig.hp) || null : null;
+            if (finalConfig.gcnNo !== undefined) updates.gcn_no = finalConfig.gcnNo;
+            if (finalConfig.gcnExpiryDate !== undefined) updates.gcn_expiry_date = finalConfig.gcnExpiryDate;
+            if (finalConfig.dkNo !== undefined) updates.dk_no = finalConfig.dkNo;
+            if (finalConfig.bhNo !== undefined) updates.bh_no = finalConfig.bhNo;
+            if (finalConfig.bhExpiryDate !== undefined) updates.bh_expiry_date = finalConfig.bhExpiryDate;
+            if (finalConfig.captain !== undefined) updates.captain = finalConfig.captain;
+            if (finalConfig.chiefEngineer !== undefined) updates.chief_engineer = finalConfig.chiefEngineer;
+            if (finalConfig.arrivalTime !== undefined) updates.arrival_time = finalConfig.arrivalTime;
+            if (finalConfig.departureTime !== undefined) updates.departure_time = finalConfig.departureTime;
+
+            let { error } = await supabase
                 .from('weighbridge_barges')
-                .update({ config: finalConfig })
+                .update(updates)
                 .eq('id', id);
+
+            // Fallback if columns not yet added on Supabase
+            if (error && (error.code === 'PGRST204' || error.message?.includes('column'))) {
+                const retry = await supabase
+                    .from('weighbridge_barges')
+                    .update({ config: finalConfig })
+                    .eq('id', id);
+                error = retry.error;
+            }
 
             if (error) {
                 console.warn('Supabase update config failed, kept local change:', error);
