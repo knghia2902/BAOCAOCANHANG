@@ -83,7 +83,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 6. UI Integration | v1.1 | 2/2 | Complete | 2026-07-27 |
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
 | 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
-| 9. Allocator DB & Recovery | v1.1 | 0/2 | Planned | - |
+| 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -94,6 +94,6 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 
 Plans:
 
-- [ ] 09-01: Tạo bảng Supabase `allocator_history_trips`, script migrate 16,303 trips cũ và script khôi phục 1,657 trips thiếu với kiểm tra đối chiếu (verification check).
-- [ ] 09-02: Cập nhật `CargoAllocator.vue` và các service liên quan để load/save Tab 3 (Theo dõi) trực tiếp từ bảng Supabase mới, xóa bỏ phụ thuộc vào JSON blob 7MB.
+- [x] 09-01: Tạo bảng Supabase `allocator_history_trips`, script migrate 16,303 trips cũ và script khôi phục 1,657 trips thiếu với kiểm tra đối chiếu (verification check).
+- [x] 09-02: Cập nhật `CargoAllocator.vue` và các service liên quan để load/save Tab 3 (Theo dõi) trực tiếp từ bảng Supabase mới, xóa bỏ phụ thuộc vào JSON blob 7MB.
 

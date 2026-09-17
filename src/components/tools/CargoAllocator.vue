@@ -8,6 +8,7 @@ import VehicleManager from '@/components/tools/VehicleManager.vue';
 import GoodsManager from '@/components/tools/GoodsManager.vue';
 import WeighbridgeOtherManager from '@/components/tools/WeighbridgeOtherManager.vue';
 import { LogService } from '@/services/storage/LogService';
+import { AllocatorService } from '@/services/excel/AllocatorService';
 
 const { addToast } = useToast();
 
@@ -152,6 +153,8 @@ interface SplitTrip {
     date1Obj: Date;
     date2Obj: Date;
     orderNo?: string;
+    id?: number;
+    isRecovered?: boolean;
 }
 
 // Local State
@@ -1311,18 +1314,23 @@ async function loadTicketsFromSupabase() {
                 }
             }
 
-            // 2. Overwrite history trips
-            const remoteHistory = data.settings.allocator_history_trips;
-            if (Array.isArray(remoteHistory)) {
-                const hydrated = hydrateTrips(remoteHistory);
-                if (JSON.stringify(existingTrips.value) !== JSON.stringify(hydrated)) {
-                    existingTrips.value = hydrated;
-                    await dbContext.set('allocator_history_trips', hydrated);
+            // 2. Load recent 30-day history trips from dedicated table allocator_history_trips
+            try {
+                const recentTrips = await AllocatorService.getRecentTrips(30);
+                if (recentTrips && recentTrips.length > 0) {
+                    existingTrips.value = recentTrips as SplitTrip[];
+                    await dbContext.set('allocator_history_trips', recentTrips);
+                } else if (existingTrips.value.length === 0) {
+                    const cachedHistory = await dbContext.get<any[]>('allocator_history_trips');
+                    if (cachedHistory && Array.isArray(cachedHistory)) {
+                        existingTrips.value = hydrateTrips(cachedHistory);
+                    }
                 }
-            } else {
-                if (existingTrips.value.length > 0) {
-                    existingTrips.value = [];
-                    await dbContext.set('allocator_history_trips', []);
+            } catch (errHistory) {
+                console.warn('Lỗi khi tải lịch sử từ AllocatorService, sử dụng bộ nhớ đệm cục bộ:', errHistory);
+                const cachedHistory = await dbContext.get<any[]>('allocator_history_trips');
+                if (cachedHistory && Array.isArray(cachedHistory)) {
+                    existingTrips.value = hydrateTrips(cachedHistory);
                 }
             }
 
@@ -1419,56 +1427,18 @@ async function doExecuteSaveTicketsToSupabase() {
             notes: g.notes || ''
         }));
 
-        // Clean history trips
-        const cleanHistory = (existingTrips.value || []).map(h => ({
-            stt: h.stt,
-            timeStr: h.timeStr,
-            plateNumber: h.plateNumber,
-            tttp: h.tttp,
-            limit: h.limit,
-            ticketNo: h.ticketNo,
-            sourceTicketNo: h.sourceTicketNo || '',
-            cargoType: h.cargoType,
-            weight1: h.weight1,
-            weight2: h.weight2,
-            weightNet: h.weightNet,
-            weightTons: typeof h.weightTons === 'number' ? h.weightTons : (Number(h.weightNet) / 1000 || 0),
-            direction: h.direction,
-            bargeName: h.bargeName,
-            orderNo: h.orderNo,
-            customer: h.customer,
-            date1Obj: h.date1Obj,
-            date2Obj: h.date2Obj,
-            notes: h.notes || ''
-        }));
-
         const updatedSettings = {
             ...currentSettings,
             allocator_tickets: cleanTickets,
-            allocator_history_trips: cleanHistory,
             allocator_generated_trips: cleanGenerated
         };
 
-        let { error: updateError } = await supabase
+        const { error: updateError } = await supabase
             .from('content')
             .update({ settings: updatedSettings })
             .eq('id', 'main');
 
-        // Fallback: If payload is too large, update generated trips and tickets without re-sending full history
-        if (updateError) {
-            console.warn('Full Supabase update failed, retrying fallback payload without history:', updateError);
-            const fallbackSettings = {
-                ...currentSettings,
-                allocator_tickets: cleanTickets,
-                allocator_generated_trips: cleanGenerated
-            };
-            const { error: fallbackErr } = await supabase
-                .from('content')
-                .update({ settings: fallbackSettings })
-                .eq('id', 'main');
-
-            if (fallbackErr) throw fallbackErr;
-        }
+        if (updateError) throw updateError;
         
         syncStatus.value = 'synced';
     } catch (e) {
@@ -2698,6 +2668,30 @@ watch(searchQuery, () => {
 const historySearchQuery = ref('');
 const historyFilterDate = ref('');
 const historyCurrentPage = ref(1);
+const isFullHistoryLoaded = ref(false);
+const isLoadingFullHistory = ref(false);
+const fullHistoryProgress = ref(0);
+const isDateFetching = ref(false);
+
+async function loadFullHistory() {
+    if (isLoadingFullHistory.value || isFullHistoryLoaded.value) return;
+    isLoadingFullHistory.value = true;
+    fullHistoryProgress.value = existingTrips.value.length;
+    try {
+        const allTrips = await AllocatorService.getAllTrips((loaded) => {
+            fullHistoryProgress.value = loaded;
+        });
+        existingTrips.value = allTrips as SplitTrip[];
+        isFullHistoryLoaded.value = true;
+        await dbContext.set('allocator_history_trips', allTrips);
+        addToast(`Đã tải toàn bộ ${allTrips.length} chuyến xe lịch sử!`, 'success');
+    } catch (e: any) {
+        console.error('Lỗi khi tải toàn bộ lịch sử:', e);
+        addToast('Lỗi khi tải toàn bộ lịch sử: ' + (e.message || 'Lỗi mạng'), 'error');
+    } finally {
+        isLoadingFullHistory.value = false;
+    }
+}
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
@@ -2731,8 +2725,29 @@ watch(historySearchQuery, () => {
     historyCurrentPage.value = 1;
 });
 
-watch(historyFilterDate, () => {
+watch(historyFilterDate, async (newDate) => {
     historyCurrentPage.value = 1;
+    if (newDate && !isFullHistoryLoaded.value) {
+        const hasDate = existingTrips.value.some(t => matchTripDate(t, newDate));
+        if (!hasDate) {
+            isDateFetching.value = true;
+            try {
+                const dateTrips = await AllocatorService.getTripsByDate(newDate);
+                if (dateTrips && dateTrips.length > 0) {
+                    const existingSet = new Set(existingTrips.value.map(t => t.id ? `id_${t.id}` : (t.ticketNo || `${t.plateNumber}_${t.weightNet}`)));
+                    const toAdd = (dateTrips as SplitTrip[]).filter(t => !existingSet.has(t.id ? `id_${t.id}` : (t.ticketNo || `${t.plateNumber}_${t.weightNet}`)));
+                    if (toAdd.length > 0) {
+                        existingTrips.value = [...existingTrips.value, ...toAdd];
+                        addToast(`Đã nạp ${toAdd.length} chuyến xe ngày ${newDate}`, 'info');
+                    }
+                }
+            } catch (err) {
+                console.warn('Lỗi khi tải chuyến xe theo ngày ngoài khoảng:', err);
+            } finally {
+                isDateFetching.value = false;
+            }
+        }
+    }
 });
 
 function getTripsWithoutMooc(): SplitTrip[] {
@@ -2829,24 +2844,34 @@ async function saveToHistory() {
             ticketStart.value = ticketStart.value + generatedTrips.value.length;
         }
 
-        // Append generated trips to history
-        existingTrips.value = [...existingTrips.value, ...generatedTrips.value];
+        // 1. Bulk insert to Supabase table allocator_history_trips
+        const tripsToSave = [...generatedTrips.value];
+        const insertRes = await AllocatorService.insertTrips(tripsToSave);
+        if (insertRes.error) {
+            addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
+            return;
+        }
+
+        // 2. Prepend newly saved trips to existingTrips in memory so Tab 3 shows them immediately
+        existingTrips.value = [...tripsToSave, ...existingTrips.value];
+        await dbContext.set('allocator_history_trips', existingTrips.value);
         
-        // Clear active tickets in Tab 1 without clearing Tab 2
+        // 3. Clear active tickets in Tab 1 and Tab 2
         isSavingToHistory.value = true;
         csvRecords.value = [];
         csvFile.value = null;
+        generatedTrips.value = [];
         
         nextTick(() => {
             isSavingToHistory.value = false;
         });
         
-        // Save empty tickets list to Supabase
-        saveTicketsToSupabase();
+        // 4. Save empty tickets & generated trips to Supabase content.settings (atomic, minimal)
+        await doExecuteSaveTicketsToSupabase();
         
-        // Switch tab to Tab 3 (Theo dõi)
+        // 5. Switch tab to Tab 3 (Theo dõi)
         activeDataTab.value = 'generated';
-        addToast('Đã lưu thành công vào Sổ Theo Dõi!', 'success');
+        addToast(`Đã lưu thành công ${tripsToSave.length} chuyến xe vào Sổ Theo Dõi!`, 'success');
     }
 }
 
@@ -2879,13 +2904,18 @@ async function editHistoryTripOrderNo(trip: SplitTrip) {
     
     trip.orderNo = newOrderNo.trim();
     
-    const idx = existingTrips.value.findIndex(t => t.stt === trip.stt || (t.ticketNo && t.ticketNo === trip.ticketNo));
+    const idx = existingTrips.value.findIndex(t => (trip.id && t.id === trip.id) || (t.ticketNo && t.ticketNo === trip.ticketNo) || t.stt === trip.stt);
     if (idx !== -1) {
         existingTrips.value[idx] = { ...trip };
     }
     
-    await saveTicketsToSupabase();
-    addToast('Cập nhật mã lệnh thành công!', 'success');
+    const ok = await AllocatorService.updateTripOrderNo({ id: trip.id, ticketNo: trip.ticketNo, stt: trip.stt }, trip.orderNo);
+    if (ok) {
+        await dbContext.set('allocator_history_trips', existingTrips.value);
+        addToast('Cập nhật mã lệnh thành công!', 'success');
+    } else {
+        addToast('Lỗi khi cập nhật mã lệnh trên máy chủ!', 'error');
+    }
 }
 
 async function deleteHistoryTrip(trip: SplitTrip) {
@@ -2902,9 +2932,14 @@ async function deleteHistoryTrip(trip: SplitTrip) {
     });
     if (!proceed) return;
     
-    existingTrips.value = existingTrips.value.filter(t => t.stt !== trip.stt && (!t.ticketNo || t.ticketNo !== trip.ticketNo));
-    await saveTicketsToSupabase();
-    addToast('Đã xóa bản ghi khỏi Sổ theo dõi!', 'success');
+    const ok = await AllocatorService.deleteTrip({ id: trip.id, ticketNo: trip.ticketNo, stt: trip.stt });
+    if (ok) {
+        existingTrips.value = existingTrips.value.filter(t => (trip.id ? t.id !== trip.id : true) && (!t.ticketNo || t.ticketNo !== trip.ticketNo) && t.stt !== trip.stt);
+        await dbContext.set('allocator_history_trips', existingTrips.value);
+        addToast('Đã xóa bản ghi khỏi Sổ theo dõi!', 'success');
+    } else {
+        addToast('Lỗi khi xóa bản ghi trên máy chủ!', 'error');
+    }
 }
 
 async function editGeneratedTripOrderNo(trip: SplitTrip) {
@@ -2956,8 +2991,13 @@ async function clearHistory() {
         cancelText: 'Hủy'
     });
     if (confirmClearHistory) {
+        const { error } = await supabase.from('allocator_history_trips').delete().neq('id', 0);
+        if (error) {
+            addToast('Lỗi khi xóa bảng lịch sử trên máy chủ: ' + error.message, 'error');
+            return;
+        }
         existingTrips.value = [];
-        saveTicketsToSupabase();
+        await dbContext.set('allocator_history_trips', []);
         addToast('Đã xóa sạch lịch sử Sổ Theo Dõi!', 'info');
     }
 }
@@ -3818,8 +3858,9 @@ async function compileAndDownload() {
                                     class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
                                     title="Lọc theo ngày"
                                 >
+                                <span v-if="isDateFetching" class="material-symbols-outlined text-xs text-primary animate-spin" title="Đang tải dữ liệu ngày...">sync</span>
                                 <button 
-                                    v-if="historyFilterDate" 
+                                    v-if="historyFilterDate && !isDateFetching" 
                                     @click="historyFilterDate = ''" 
                                     class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
                                     title="Xóa lọc ngày"
@@ -3914,6 +3955,21 @@ async function compileAndDownload() {
                     <template v-if="activeDataTab === 'generated'">
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ historyTotalWeightTons.toFixed(2) }}t
+                        </div>
+                        <button 
+                            v-if="!isFullHistoryLoaded"
+                            @click="loadFullHistory"
+                            :disabled="isLoadingFullHistory"
+                            class="h-7 px-3 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-[8px] hover:bg-indigo-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            title="Mặc định nạp 30 ngày gần nhất. Bấm để nạp toàn bộ lịch sử."
+                        >
+                            <span v-if="isLoadingFullHistory" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-[14px]">cloud_download</span>
+                            <span>{{ isLoadingFullHistory ? `Đang tải (${fullHistoryProgress})...` : 'Tải toàn bộ lịch sử' }}</span>
+                        </button>
+                        <div v-else class="h-7 px-2.5 bg-green-50 rounded-[8px] border border-green-200 text-green-700 flex items-center font-bold text-xs gap-1">
+                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            <span>Đã tải đủ ({{ existingTrips.length }})</span>
                         </div>
                         <button v-if="authStore.role === 'admin'"
                             @click="clearHistory"
