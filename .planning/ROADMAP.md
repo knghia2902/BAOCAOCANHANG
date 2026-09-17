@@ -83,7 +83,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 6. UI Integration | v1.1 | 2/2 | Complete | 2026-07-27 |
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
 | 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
-| 9. Allocator DB & Recovery | v1.1 | 0/2 | Not started | - |
+| 9. Allocator DB & Recovery | v1.1 | 0/2 | Planned | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
