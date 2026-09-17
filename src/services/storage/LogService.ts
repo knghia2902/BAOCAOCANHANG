@@ -12,12 +12,35 @@ export interface ActivityLog {
 }
 
 export class LogService {
+    static readonly TABLE_NAME = 'activity_logs';
+
     /**
-     * Records a new activity log entry in the Supabase database under content.stats.logs
+     * Records a new activity log entry in the dedicated activity_logs table
      */
     static async logAction(action: string, details: string): Promise<boolean> {
         try {
-            // 1. Fetch current stats
+            const username = authStore.user || 'system';
+            const displayName = authStore.displayName || 'Hệ thống';
+            const role = authStore.role || 'system';
+
+            // 1. Try writing directly to dedicated activity_logs table
+            const { error: insertError } = await supabase
+                .from(LogService.TABLE_NAME)
+                .insert([{
+                    username,
+                    display_name: displayName,
+                    role,
+                    action,
+                    details
+                }]);
+
+            if (!insertError) {
+                return true;
+            }
+
+            console.warn('[LogService] Dedicated table insert failed, falling back to content.stats:', insertError.message);
+
+            // 2. Fallback to legacy content.stats.logs if table not yet created
             const { data, error: fetchError } = await supabase
                 .from('content')
                 .select('stats')
@@ -25,39 +48,36 @@ export class LogService {
                 .single();
 
             if (fetchError) {
-                console.error('[LogService] Failed to fetch stats:', fetchError);
+                console.error('[LogService] Failed to fetch stats for fallback:', fetchError);
                 return false;
             }
 
             const currentStats = data?.stats || {};
             const logs: ActivityLog[] = currentStats.logs || [];
 
-            // 2. Create new log entry
             const newLog: ActivityLog = {
                 id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
                 timestamp: new Date().toISOString(),
-                username: authStore.user || 'system',
-                displayName: authStore.displayName || 'Hệ thống',
-                role: authStore.role || 'system',
+                username,
+                displayName,
+                role,
                 action,
                 details
             };
 
-            // 3. Prepend and limit to 300 logs
             const updatedLogs = [newLog, ...logs].slice(0, 300);
             const newStats = {
                 ...currentStats,
                 logs: updatedLogs
             };
 
-            // 4. Save back to Supabase
             const { error: updateError } = await supabase
                 .from('content')
                 .update({ stats: newStats })
                 .eq('id', 'main');
 
             if (updateError) {
-                console.error('[LogService] Failed to update stats with logs:', updateError);
+                console.error('[LogService] Failed to update stats with fallback log:', updateError);
                 return false;
             }
 
@@ -69,10 +89,34 @@ export class LogService {
     }
 
     /**
-     * Retrieve all activity logs from the Supabase database
+     * Retrieve activity logs from the Supabase database
      */
-    static async getLogs(): Promise<ActivityLog[]> {
+    static async getLogs(limit: number = 500): Promise<ActivityLog[]> {
         try {
+            // 1. Try fetching from dedicated activity_logs table
+            const { data: tableData, error: tableError } = await supabase
+                .from(LogService.TABLE_NAME)
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+            if (!tableError && tableData) {
+                return tableData.map((row: any) => ({
+                    id: String(row.id),
+                    timestamp: row.created_at,
+                    username: row.username || 'system',
+                    displayName: row.display_name || row.username || 'Hệ thống',
+                    role: row.role || 'system',
+                    action: row.action || '',
+                    details: row.details || ''
+                }));
+            }
+
+            if (tableError) {
+                console.warn('[LogService] Table fetch failed, falling back to content.stats.logs:', tableError.message);
+            }
+
+            // 2. Fallback to content.stats.logs
             const { data, error } = await supabase
                 .from('content')
                 .select('stats')
@@ -80,7 +124,7 @@ export class LogService {
                 .single();
 
             if (error) {
-                console.error('[LogService] Failed to fetch logs:', error);
+                console.error('[LogService] Failed to fetch fallback logs:', error);
                 return [];
             }
 

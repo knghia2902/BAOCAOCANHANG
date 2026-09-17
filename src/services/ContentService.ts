@@ -134,7 +134,10 @@ export const ContentService = {
         if (fetchError || !data?.stats) return false;
 
         const currentVisitors = data.stats.visitors || 0;
-        const newStats = { visitors: currentVisitors + 1 };
+        const newStats = {
+            ...data.stats,
+            visitors: currentVisitors + 1
+        };
 
         // Update with new count
         const { error } = await supabase

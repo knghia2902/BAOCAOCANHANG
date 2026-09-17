@@ -9,6 +9,7 @@ import GoodsManager from '@/components/tools/GoodsManager.vue';
 import WeighbridgeOtherManager from '@/components/tools/WeighbridgeOtherManager.vue';
 import { LogService } from '@/services/storage/LogService';
 import { AllocatorService } from '@/services/excel/AllocatorService';
+import { VehicleService } from '@/services/excel/VehicleService';
 
 const { addToast } = useToast();
 
@@ -1334,13 +1335,17 @@ async function loadTicketsFromSupabase() {
                 }
             }
 
-            // 3. Overwrite vehicles list
-            const remoteVehicles = data.settings.allocator_vehicles;
-            if (Array.isArray(remoteVehicles)) {
-                if (JSON.stringify(vehiclesList.value) !== JSON.stringify(remoteVehicles)) {
-                    vehiclesList.value = remoteVehicles;
-                    await dbContext.set('allocator_vehicles', remoteVehicles);
+            // 3. Overwrite vehicles list from VehicleService
+            try {
+                const remoteVehicles = await VehicleService.getVehicles();
+                if (Array.isArray(remoteVehicles) && remoteVehicles.length > 0) {
+                    if (JSON.stringify(vehiclesList.value) !== JSON.stringify(remoteVehicles)) {
+                        vehiclesList.value = remoteVehicles;
+                        await dbContext.set('allocator_vehicles', remoteVehicles);
+                    }
                 }
+            } catch (eVehicles) {
+                console.warn('Lỗi khi tải danh sách xe từ VehicleService:', eVehicles);
             }
 
             // 4. Overwrite generated trips

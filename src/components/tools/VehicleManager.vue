@@ -84,13 +84,17 @@ onUnmounted(() => {
     }
 });
 
+import { VehicleService } from '@/services/excel/VehicleService';
+
 interface Vehicle {
+    id?: number;
     plateNumber: string;
     moocNumber: string;
+    notes?: string;
 }
 
 function normalizePlate(plate: string): string {
-    return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return VehicleService.normalizePlate(plate);
 }
 
 const vehicles = ref<Vehicle[]>([]);
@@ -108,29 +112,12 @@ const loadingCloud = ref(false);
 async function loadVehiclesFromSupabase() {
     loadingCloud.value = true;
     try {
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        if (error) throw error;
-        
-        if (data?.settings) {
-            const remoteVehicles = data.settings.allocator_vehicles;
-            if (Array.isArray(remoteVehicles)) {
-                if (JSON.stringify(vehicles.value) !== JSON.stringify(remoteVehicles)) {
-                    vehicles.value = remoteVehicles;
-                    await dbContext.set('allocator_vehicles', remoteVehicles);
-                }
-                syncStatus.value = 'synced';
-            } else {
-                if (vehicles.value.length > 0) {
-                    await saveVehiclesToSupabase();
-                } else {
-                    syncStatus.value = 'synced';
-                }
-            }
+        const list = await VehicleService.getVehicles();
+        if (list && list.length > 0) {
+            vehicles.value = list;
+            await dbContext.set('allocator_vehicles', list);
         }
+        syncStatus.value = 'synced';
     } catch (e) {
         console.warn('Lỗi khi tải danh sách xe từ Supabase:', e);
         syncStatus.value = 'error';
@@ -142,27 +129,27 @@ async function loadVehiclesFromSupabase() {
 async function saveVehiclesToSupabase() {
     syncStatus.value = 'saving';
     try {
-        const { data: current, error: fetchError } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        
-        if (fetchError) throw fetchError;
-        
-        const currentSettings = current?.settings || {};
-        const updatedSettings = {
-            ...currentSettings,
-            allocator_vehicles: vehicles.value
-        };
-
-        const { error: updateError } = await supabase
-            .from('content')
-            .update({ settings: updatedSettings })
-            .eq('id', 'main');
-
-        if (updateError) throw updateError;
-        
+        const { error } = await VehicleService.bulkUpsertVehicles(vehicles.value);
+        if (error) {
+            // Fallback to content.settings if table not created
+            const { data: current, error: fetchError } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+            if (!fetchError) {
+                const currentSettings = current?.settings || {};
+                await supabase
+                    .from('content')
+                    .update({
+                        settings: {
+                            ...currentSettings,
+                            allocator_vehicles: vehicles.value
+                        }
+                    })
+                    .eq('id', 'main');
+            }
+        }
         syncStatus.value = 'synced';
     } catch (e) {
         console.error('Lỗi khi lưu danh sách xe lên Supabase:', e);
@@ -288,6 +275,7 @@ const deleteVehicle = async (index: number) => {
     });
     if (confirm) {
         vehicles.value.splice(index, 1);
+        await VehicleService.deleteVehicle(v.plateNumber);
         await saveVehicles();
         addToast('Đã xóa xe khỏi danh sách!', 'info');
         await LogService.logAction('Xóa xe', 'Xóa xe: ' + v.plateNumber);
@@ -317,6 +305,7 @@ const clearAll = async () => {
         editingIndex.value = null;
         plateInput.value = '';
         moocInput.value = '';
+        await VehicleService.clearAllVehicles();
         await saveVehicles();
         addToast('Đã xóa sạch danh sách xe!', 'info');
         await LogService.logAction('Xóa tất cả xe', 'Xóa sạch danh sách xe');
