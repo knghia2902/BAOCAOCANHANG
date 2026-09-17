@@ -657,6 +657,43 @@ function ensureDate(d: any): Date {
     return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+function matchDateFilter(dateVal: any, targetYMD: string): boolean {
+    if (!targetYMD) return true;
+    if (!dateVal) return false;
+    
+    const [tYear, tMonth, tDay] = targetYMD.split('-').map(Number);
+    if (!tYear || !tMonth || !tDay) return true;
+    
+    if (typeof dateVal === 'string') {
+        const trimmed = dateVal.trim();
+        if (trimmed.startsWith(targetYMD)) return true;
+        
+        const datePart = trimmed.split(' ')[0] || '';
+        const norm = datePart.replace(/-/g, '/');
+        const parts = norm.split('/');
+        if (parts.length === 3) {
+            let d = parseInt(parts[0] || '0', 10);
+            let m = parseInt(parts[1] || '0', 10);
+            let y = parseInt(parts[2] || '0', 10);
+            if (y < 100) y += 2000;
+            if (d === tDay && m === tMonth && y === tYear) return true;
+        }
+    }
+    
+    try {
+        const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+        if (!isNaN(d.getTime())) {
+            if (d.getFullYear() === tYear && (d.getMonth() + 1) === tMonth && d.getDate() === tDay) {
+                return true;
+            }
+        }
+    } catch {
+        // ignore
+    }
+    
+    return false;
+}
+
 // Format Date object to "HH:mm:ss\nDD/MM/YYYY"
 function formatExcelDateTime(date: any): string {
     const d = ensureDate(date);
@@ -1103,6 +1140,7 @@ async function clearAllTickets() {
 const activeDataTab = ref<'source' | 'generated' | 'template'>('source');
 const sourceCurrentPage = ref(1);
 const sourceSearchQuery = ref('');
+const sourceFilterDate = ref('');
 
 // Sorting Helper Function
 function compareValues(a: any, b: any, key: string, desc: boolean): number {
@@ -1175,6 +1213,14 @@ function toggleHistorySort(key: string) {
 
 const filteredSourceTickets = computed(() => {
     let list = csvRecords.value;
+    if (sourceFilterDate.value) {
+        list = list.filter(t => 
+            matchDateFilter(t.dateInStr, sourceFilterDate.value) || 
+            matchDateFilter(t.dateOutStr, sourceFilterDate.value) ||
+            matchDateFilter((t as any).date1Obj, sourceFilterDate.value) ||
+            matchDateFilter((t as any).date2Obj, sourceFilterDate.value)
+        );
+    }
     if (sourceSearchQuery.value.trim()) {
         const q = sourceSearchQuery.value.toLowerCase();
         list = list.filter(t => 
@@ -1199,6 +1245,10 @@ const sourceTotalPages = computed(() => {
 });
 
 watch(sourceSearchQuery, () => {
+    sourceCurrentPage.value = 1;
+});
+
+watch(sourceFilterDate, () => {
     sourceCurrentPage.value = 1;
 });
 
@@ -2180,7 +2230,7 @@ function hydrateTrips(trips: any[]): SplitTrip[] {
 
 // Computed: Total CSV Weight in tons
 const totalCsvWeightTons = computed(() => {
-    const kg = csvRecords.value.reduce((acc, r) => acc + r.weightNet, 0);
+    const kg = filteredSourceTickets.value.reduce((acc, r) => acc + r.weightNet, 0);
     return kg / 1000;
 });
 
@@ -2511,6 +2561,7 @@ const nextSTT = computed(() => {
 });
 
 const selectedCustomer = ref('');
+const templateFilterDate = ref('');
 
 const uniqueCustomers = computed(() => {
     const customers = generatedTrips.value
@@ -2520,6 +2571,10 @@ const uniqueCustomers = computed(() => {
 });
 
 watch(selectedCustomer, () => {
+    currentPage.value = 1;
+});
+
+watch(templateFilterDate, () => {
     currentPage.value = 1;
 });
 
@@ -2536,6 +2591,16 @@ const filteredTrips = computed(() => {
     // Filter by customer dropdown
     if (selectedCustomer.value) {
         list = list.filter(t => t.customer === selectedCustomer.value);
+    }
+
+    // Filter by date
+    if (templateFilterDate.value) {
+        list = list.filter(t => 
+            matchDateFilter(t.date1Obj, templateFilterDate.value) || 
+            matchDateFilter(t.date2Obj, templateFilterDate.value) ||
+            matchDateFilter((t as any).dateObj, templateFilterDate.value) ||
+            matchDateFilter((t as any).timeStr, templateFilterDate.value)
+        );
     }
     
     // Filter by search query text
@@ -2558,7 +2623,7 @@ const filteredTrips = computed(() => {
 
 // Computed: Total split weight tons
 const totalSplitWeightTons = computed(() => {
-    return generatedTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
+    return filteredTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
 // Computed: Check if current generated trips are already saved to history
@@ -2606,10 +2671,21 @@ watch(searchQuery, () => {
 
 // History panel states
 const historySearchQuery = ref('');
+const historyFilterDate = ref('');
 const historyCurrentPage = ref(1);
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
+    if (historyFilterDate.value) {
+        list = list.filter(t => 
+            matchDateFilter(t.date1Obj, historyFilterDate.value) || 
+            matchDateFilter(t.date2Obj, historyFilterDate.value) ||
+            matchDateFilter((t as any).dateObj, historyFilterDate.value) ||
+            matchDateFilter(t.timeStr, historyFilterDate.value) ||
+            matchDateFilter((t as any).dateInStr, historyFilterDate.value) ||
+            matchDateFilter((t as any).dateOutStr, historyFilterDate.value)
+        );
+    }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase();
         list = list.filter(t => 
@@ -2634,6 +2710,10 @@ const historyTotalPages = computed(() => {
 });
 
 watch(historySearchQuery, () => {
+    historyCurrentPage.value = 1;
+});
+
+watch(historyFilterDate, () => {
     historyCurrentPage.value = 1;
 });
 
@@ -2866,7 +2946,7 @@ async function clearHistory() {
 
 // Total history cargo weight in tons
 const historyTotalWeightTons = computed(() => {
-    return existingTrips.value.reduce((sum, t) => sum + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
+    return filteredHistoryTrips.value.reduce((sum, t) => sum + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
 // Export source tickets (Tab 1) as Excel
@@ -3603,28 +3683,46 @@ async function compileAndDownload() {
                 <!-- Controls, Search, and Action Buttons (Aligned Row) -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 xl:justify-end min-w-0">
                     <!-- Search Input container -->
-                    <div class="flex-grow sm:flex-initial min-w-0 flex items-center h-7">
-                        <!-- Tab 1 Search -->
-                        <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[240px] h-7 flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
-                            <input 
-                                type="text" 
-                                v-model="sourceSearchQuery" 
-                                placeholder="Tìm kiếm..." 
-                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
-                            >
-                            <button 
-                                v-if="sourceSearchQuery" 
-                                @click="sourceSearchQuery = ''" 
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
-                            >
-                                <span class="material-symbols-outlined text-xs">close</span>
-                            </button>
+                    <div class="flex-grow sm:flex-initial min-w-0 flex items-center">
+                        <!-- Tab 1 Search & Date Filter -->
+                        <div v-if="activeDataTab === 'source'" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-[200px] h-7 flex items-center">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+                                <input 
+                                    type="text" 
+                                    v-model="sourceSearchQuery" 
+                                    placeholder="Tìm kiếm..." 
+                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                                >
+                                <button 
+                                    v-if="sourceSearchQuery" 
+                                    @click="sourceSearchQuery = ''" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0 h-7">
+                                <input 
+                                    type="date" 
+                                    v-model="sourceFilterDate" 
+                                    class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
+                                    title="Lọc theo ngày"
+                                >
+                                <button 
+                                    v-if="sourceFilterDate" 
+                                    @click="sourceFilterDate = ''" 
+                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
+                                    title="Xóa lọc ngày"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Tab 2 Search & Filter -->
-                        <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto h-7">
-                            <div class="relative w-full sm:w-[220px] h-7 flex items-center">
+                        <div v-if="activeDataTab === 'template'" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-[170px] h-7 flex items-center">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                                 <input 
                                     type="text" 
@@ -3643,40 +3741,74 @@ async function compileAndDownload() {
                             <div class="flex items-center gap-1.5 shrink-0 h-7">
                                 <select 
                                     v-model="selectedCustomer"
-                                    class="px-2.5 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[120px] max-w-[150px] shadow-sm text-gray-700"
+                                    class="px-2.5 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[110px] max-w-[140px] shadow-sm text-gray-700"
                                 >
-                                    <option value="">Tất cả khách hàng</option>
+                                    <option value="">Tất cả khách</option>
                                     <option v-for="customer in uniqueCustomers" :key="customer" :value="customer">
                                         {{ customer }}
                                     </option>
                                 </select>
                                 <button 
-                                    v-if="selectedCustomer"
-                                    @click="selectedCustomer = ''"
+                                    v-if="selectedCustomer" 
+                                    @click="selectedCustomer = ''" 
                                     class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
                                     title="Xóa lọc khách hàng"
                                 >
                                     <span class="material-symbols-outlined text-xs">close</span>
                                 </button>
                             </div>
+                            <div class="flex items-center gap-1 shrink-0 h-7">
+                                <input 
+                                    type="date" 
+                                    v-model="templateFilterDate" 
+                                    class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
+                                    title="Lọc theo ngày"
+                                >
+                                <button 
+                                    v-if="templateFilterDate" 
+                                    @click="templateFilterDate = ''" 
+                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
+                                    title="Xóa lọc ngày"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Tab 3 Search -->
-                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[240px] h-7 flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
-                            <input 
-                                type="text" 
-                                v-model="historySearchQuery" 
-                                placeholder="Tìm kiếm..." 
-                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
-                            >
-                            <button 
-                                v-if="historySearchQuery" 
-                                @click="historySearchQuery = ''" 
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
-                            >
-                                <span class="material-symbols-outlined text-xs">close</span>
-                            </button>
+                        <!-- Tab 3 Search & Date Filter -->
+                        <div v-if="activeDataTab === 'generated'" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-[200px] h-7 flex items-center">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+                                <input 
+                                    type="text" 
+                                    v-model="historySearchQuery" 
+                                    placeholder="Tìm kiếm..." 
+                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                                >
+                                <button 
+                                    v-if="historySearchQuery" 
+                                    @click="historySearchQuery = ''" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0 h-7">
+                                <input 
+                                    type="date" 
+                                    v-model="historyFilterDate" 
+                                    class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
+                                    title="Lọc theo ngày"
+                                >
+                                <button 
+                                    v-if="historyFilterDate" 
+                                    @click="historyFilterDate = ''" 
+                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
+                                    title="Xóa lọc ngày"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
