@@ -657,40 +657,75 @@ function ensureDate(d: any): Date {
     return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
-function matchDateFilter(dateVal: any, targetYMD: string): boolean {
-    if (!targetYMD) return true;
-    if (!dateVal) return false;
-    
-    const [tYear, tMonth, tDay] = targetYMD.split('-').map(Number);
-    if (!tYear || !tMonth || !tDay) return true;
-    
-    if (typeof dateVal === 'string') {
-        const trimmed = dateVal.trim();
-        if (trimmed.startsWith(targetYMD)) return true;
-        
-        const datePart = trimmed.split(' ')[0] || '';
-        const norm = datePart.replace(/-/g, '/');
-        const parts = norm.split('/');
-        if (parts.length === 3) {
-            let d = parseInt(parts[0] || '0', 10);
-            let m = parseInt(parts[1] || '0', 10);
-            let y = parseInt(parts[2] || '0', 10);
-            if (y < 100) y += 2000;
-            if (d === tDay && m === tMonth && y === tYear) return true;
-        }
+function extractDateYMD(val: any): string | null {
+    if (!val) return null;
+    if (val instanceof Date) {
+        if (isNaN(val.getTime())) return null;
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
-    
-    try {
-        const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
-        if (!isNaN(d.getTime())) {
-            if (d.getFullYear() === tYear && (d.getMonth() + 1) === tMonth && d.getDate() === tDay) {
-                return true;
+    if (typeof val === 'string') {
+        const str = val.trim();
+        if (!str) return null;
+        
+        // 1. Check if string contains DD/MM/YYYY or D/M/YYYY (e.g. "05:08:13\n01/09/2026" or "14/09/2026")
+        const dmyMatch = str.match(/(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
+        if (dmyMatch && dmyMatch[1] && dmyMatch[2] && dmyMatch[3]) {
+            const day = String(parseInt(dmyMatch[1], 10)).padStart(2, '0');
+            const month = String(parseInt(dmyMatch[2], 10)).padStart(2, '0');
+            const year = dmyMatch[3];
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 2. If it's an ISO timestamp with time (e.g. "2026-08-31T21:47:28.079Z"), parse to local time
+        if (str.includes('T') || str.endsWith('Z')) {
+            const parsed = new Date(str);
+            if (!isNaN(parsed.getTime())) {
+                const y = parsed.getFullYear();
+                const m = String(parsed.getMonth() + 1).padStart(2, '0');
+                const d = String(parsed.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
             }
         }
-    } catch {
-        // ignore
+        
+        // 3. Check for standard YYYY-MM-DD
+        const ymdMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (ymdMatch && ymdMatch[1] && ymdMatch[2] && ymdMatch[3]) {
+            return `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
+        }
+        
+        // Fallback: parse Date
+        const parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) {
+            const y = parsed.getFullYear();
+            const m = String(parsed.getMonth() + 1).padStart(2, '0');
+            const d = String(parsed.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
     }
-    
+    return null;
+}
+
+function matchSourceTicketDate(ticket: CSVRecord, targetYMD: string): boolean {
+    if (!targetYMD) return true;
+    const dIn = extractDateYMD(ticket.dateInStr);
+    if (dIn && dIn === targetYMD) return true;
+    const dOut = extractDateYMD(ticket.dateOutStr);
+    if (dOut && dOut === targetYMD) return true;
+    return false;
+}
+
+function matchTripDate(trip: SplitTrip, targetYMD: string): boolean {
+    if (!targetYMD) return true;
+    // Prefer authoritative timeStr date if available (e.g. "05:08:13\n01/09/2026")
+    const dTime = extractDateYMD(trip.timeStr);
+    if (dTime) return dTime === targetYMD;
+    const d1 = extractDateYMD(trip.date1Obj);
+    if (d1) return d1 === targetYMD;
+    const d2 = extractDateYMD(trip.date2Obj);
+    if (d2) return d2 === targetYMD;
     return false;
 }
 
@@ -1214,12 +1249,7 @@ function toggleHistorySort(key: string) {
 const filteredSourceTickets = computed(() => {
     let list = csvRecords.value;
     if (sourceFilterDate.value) {
-        list = list.filter(t => 
-            matchDateFilter(t.dateInStr, sourceFilterDate.value) || 
-            matchDateFilter(t.dateOutStr, sourceFilterDate.value) ||
-            matchDateFilter((t as any).date1Obj, sourceFilterDate.value) ||
-            matchDateFilter((t as any).date2Obj, sourceFilterDate.value)
-        );
+        list = list.filter(t => matchSourceTicketDate(t, sourceFilterDate.value));
     }
     if (sourceSearchQuery.value.trim()) {
         const q = sourceSearchQuery.value.toLowerCase();
@@ -2595,12 +2625,7 @@ const filteredTrips = computed(() => {
 
     // Filter by date
     if (templateFilterDate.value) {
-        list = list.filter(t => 
-            matchDateFilter(t.date1Obj, templateFilterDate.value) || 
-            matchDateFilter(t.date2Obj, templateFilterDate.value) ||
-            matchDateFilter((t as any).dateObj, templateFilterDate.value) ||
-            matchDateFilter((t as any).timeStr, templateFilterDate.value)
-        );
+        list = list.filter(t => matchTripDate(t, templateFilterDate.value));
     }
     
     // Filter by search query text
@@ -2677,14 +2702,7 @@ const historyCurrentPage = ref(1);
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
     if (historyFilterDate.value) {
-        list = list.filter(t => 
-            matchDateFilter(t.date1Obj, historyFilterDate.value) || 
-            matchDateFilter(t.date2Obj, historyFilterDate.value) ||
-            matchDateFilter((t as any).dateObj, historyFilterDate.value) ||
-            matchDateFilter(t.timeStr, historyFilterDate.value) ||
-            matchDateFilter((t as any).dateInStr, historyFilterDate.value) ||
-            matchDateFilter((t as any).dateOutStr, historyFilterDate.value)
-        );
+        list = list.filter(t => matchTripDate(t, historyFilterDate.value));
     }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase();
@@ -3654,7 +3672,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        1. Phiếu cân ({{ csvRecords.length }})
+                        1. Phiếu cân ({{ filteredSourceTickets.length !== csvRecords.length ? `${filteredSourceTickets.length}/${csvRecords.length}` : csvRecords.length }})
                     </button>
                     <button 
                         @click="activeDataTab = 'template'"
@@ -3665,7 +3683,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        2. Phân bổ ({{ generatedTrips.length }})
+                        2. Phân bổ ({{ filteredTrips.length !== generatedTrips.length ? `${filteredTrips.length}/${generatedTrips.length}` : generatedTrips.length }})
                     </button>
                     <button 
                         @click="activeDataTab = 'generated'"
@@ -3676,7 +3694,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        3. Theo dõi ({{ existingTrips.length }})
+                        3. Theo dõi ({{ filteredHistoryTrips.length !== existingTrips.length ? `${filteredHistoryTrips.length}/${existingTrips.length}` : existingTrips.length }})
                     </button>
                 </div>
 
