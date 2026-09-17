@@ -32,6 +32,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **VESSEL-01**: Tàu có hai trạng thái: "Đang làm hàng" và "Đã xong". Người dùng có thể bấm nút chốt "Đã xong" để khóa tàu ở chế độ Chỉ xem (Read-only); chỉ Admin mới có quyền bấm nút "Mở lại: Đang làm hàng".
 - [x] **VESSEL-02**: Màn hình Báo cáo tổng quan và thanh danh sách bên trái được phân tách thành 2 tab rõ ràng: Tab "Đang làm hàng" (mặc định) và Tab "Đã xong".
 
+### Allocator Database Migration & Data Recovery (PHASE-09)
+
+- [ ] **DB-MIGRATE-01**: Thiết kế bảng quan hệ riêng `allocator_history_trips` trên Supabase, migrate 16,303 trips lịch sử từ `content.settings` JSON blob sang bảng mới.
+- [ ] **DATA-RECOVER-01**: Khôi phục an toàn 1,657 chuyến xe bị thiếu (từ ngày 11/09 - 15/09) từ `weighbridge_trucks` và cấu hình sà lan sang bảng `allocator_history_trips`.
+- [ ] **ALLOCATOR-SYNC-01**: Cập nhật `CargoAllocator.vue` để load/save Tab 3 (Theo dõi) trực tiếp trên bảng Supabase mới, không còn lỗi 500 timeout và đồng bộ realtime/phân trang chuẩn.
+
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -58,11 +65,15 @@ Which phases cover which requirements.
 | UI-02 | Phase 6 | Pending |
 | VESSEL-01 | Phase 8 | Complete |
 | VESSEL-02 | Phase 8 | Complete |
+| DB-MIGRATE-01 | Phase 9 | Pending |
+| DATA-RECOVER-01 | Phase 9 | Pending |
+| ALLOCATOR-SYNC-01 | Phase 9 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 10 total
-- Mapped to phases: 10
+- v1.1 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0 ✓
+
 
 ---
 *Requirements defined: 2026-07-25*

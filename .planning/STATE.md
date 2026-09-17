@@ -76,6 +76,7 @@ Recent decisions affecting current work:
 ### Roadmap Evolution
 
 - Phase 8 added: Phân loại tàu Đang làm hàng & Đã xong (Giao diện 2 Tab, chế độ Read-only, Admin mở lại)
+- Phase 9 added: Thiết kế lại database & khôi phục dữ liệu Tab Theo Dõi (bảng Supabase riêng, migrate 16,303 trips, khôi phục 1,657 trips)
 
 ### Pending Todos
 
