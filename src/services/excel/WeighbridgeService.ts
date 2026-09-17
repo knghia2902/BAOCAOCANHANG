@@ -564,7 +564,26 @@ export const WeighbridgeService = {
 
         // 4. Update Supabase
         try {
-            const updates: Record<string, any> = { config: finalConfig };
+            // Clean config so it doesn't duplicate relational columns on remote DB
+            const cleanConfig: any = { ...finalConfig };
+            delete cleanConfig.orderNo;
+            delete cleanConfig.goods;
+            delete cleanConfig.goodsCode;
+            delete cleanConfig.owner;
+            delete cleanConfig.operator;
+            delete cleanConfig.tonnage;
+            delete cleanConfig.hp;
+            delete cleanConfig.gcnNo;
+            delete cleanConfig.gcnExpiryDate;
+            delete cleanConfig.dkNo;
+            delete cleanConfig.bhNo;
+            delete cleanConfig.bhExpiryDate;
+            delete cleanConfig.captain;
+            delete cleanConfig.chiefEngineer;
+            delete cleanConfig.arrivalTime;
+            delete cleanConfig.departureTime;
+
+            const updates: Record<string, any> = { config: cleanConfig };
             if (finalConfig.orderNo !== undefined) updates.order_no = String(finalConfig.orderNo);
             if (finalConfig.goods !== undefined) updates.goods = finalConfig.goods;
             if (finalConfig.goodsCode !== undefined) updates.goods_code = finalConfig.goodsCode;
