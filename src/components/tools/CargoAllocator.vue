@@ -1314,12 +1314,12 @@ async function loadTicketsFromSupabase() {
                 }
             }
 
-            // 2. Load recent 30-day history trips from dedicated table allocator_history_trips
+            // 2. Load all history trips from dedicated table weighbridge_tracking
             try {
-                const recentTrips = await AllocatorService.getRecentTrips(30);
-                if (recentTrips && recentTrips.length > 0) {
-                    existingTrips.value = recentTrips as SplitTrip[];
-                    await dbContext.set('allocator_history_trips', recentTrips);
+                const allTrips = await AllocatorService.getAllTrips();
+                if (allTrips && allTrips.length > 0) {
+                    existingTrips.value = allTrips as SplitTrip[];
+                    await dbContext.set('allocator_history_trips', allTrips);
                 } else if (existingTrips.value.length === 0) {
                     const cachedHistory = await dbContext.get<any[]>('allocator_history_trips');
                     if (cachedHistory && Array.isArray(cachedHistory)) {
@@ -2668,30 +2668,6 @@ watch(searchQuery, () => {
 const historySearchQuery = ref('');
 const historyFilterDate = ref('');
 const historyCurrentPage = ref(1);
-const isFullHistoryLoaded = ref(false);
-const isLoadingFullHistory = ref(false);
-const fullHistoryProgress = ref(0);
-const isDateFetching = ref(false);
-
-async function loadFullHistory() {
-    if (isLoadingFullHistory.value || isFullHistoryLoaded.value) return;
-    isLoadingFullHistory.value = true;
-    fullHistoryProgress.value = existingTrips.value.length;
-    try {
-        const allTrips = await AllocatorService.getAllTrips((loaded) => {
-            fullHistoryProgress.value = loaded;
-        });
-        existingTrips.value = allTrips as SplitTrip[];
-        isFullHistoryLoaded.value = true;
-        await dbContext.set('allocator_history_trips', allTrips);
-        addToast(`Đã tải toàn bộ ${allTrips.length} chuyến xe lịch sử!`, 'success');
-    } catch (e: any) {
-        console.error('Lỗi khi tải toàn bộ lịch sử:', e);
-        addToast('Lỗi khi tải toàn bộ lịch sử: ' + (e.message || 'Lỗi mạng'), 'error');
-    } finally {
-        isLoadingFullHistory.value = false;
-    }
-}
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
@@ -2725,29 +2701,8 @@ watch(historySearchQuery, () => {
     historyCurrentPage.value = 1;
 });
 
-watch(historyFilterDate, async (newDate) => {
+watch(historyFilterDate, () => {
     historyCurrentPage.value = 1;
-    if (newDate && !isFullHistoryLoaded.value) {
-        const hasDate = existingTrips.value.some(t => matchTripDate(t, newDate));
-        if (!hasDate) {
-            isDateFetching.value = true;
-            try {
-                const dateTrips = await AllocatorService.getTripsByDate(newDate);
-                if (dateTrips && dateTrips.length > 0) {
-                    const existingSet = new Set(existingTrips.value.map(t => t.id ? `id_${t.id}` : (t.ticketNo || `${t.plateNumber}_${t.weightNet}`)));
-                    const toAdd = (dateTrips as SplitTrip[]).filter(t => !existingSet.has(t.id ? `id_${t.id}` : (t.ticketNo || `${t.plateNumber}_${t.weightNet}`)));
-                    if (toAdd.length > 0) {
-                        existingTrips.value = [...existingTrips.value, ...toAdd];
-                        addToast(`Đã nạp ${toAdd.length} chuyến xe ngày ${newDate}`, 'info');
-                    }
-                }
-            } catch (err) {
-                console.warn('Lỗi khi tải chuyến xe theo ngày ngoài khoảng:', err);
-            } finally {
-                isDateFetching.value = false;
-            }
-        }
-    }
 });
 
 function getTripsWithoutMooc(): SplitTrip[] {
@@ -3858,9 +3813,8 @@ async function compileAndDownload() {
                                     class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
                                     title="Lọc theo ngày"
                                 >
-                                <span v-if="isDateFetching" class="material-symbols-outlined text-xs text-primary animate-spin" title="Đang tải dữ liệu ngày...">sync</span>
                                 <button 
-                                    v-if="historyFilterDate && !isDateFetching" 
+                                    v-if="historyFilterDate" 
                                     @click="historyFilterDate = ''" 
                                     class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
                                     title="Xóa lọc ngày"
@@ -3955,21 +3909,6 @@ async function compileAndDownload() {
                     <template v-if="activeDataTab === 'generated'">
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ historyTotalWeightTons.toFixed(2) }}t
-                        </div>
-                        <button 
-                            v-if="!isFullHistoryLoaded"
-                            @click="loadFullHistory"
-                            :disabled="isLoadingFullHistory"
-                            class="h-7 px-3 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-[8px] hover:bg-indigo-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
-                            title="Mặc định nạp 30 ngày gần nhất. Bấm để nạp toàn bộ lịch sử."
-                        >
-                            <span v-if="isLoadingFullHistory" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[14px]">cloud_download</span>
-                            <span>{{ isLoadingFullHistory ? `Đang tải (${fullHistoryProgress})...` : 'Tải toàn bộ lịch sử' }}</span>
-                        </button>
-                        <div v-else class="h-7 px-2.5 bg-green-50 rounded-[8px] border border-green-200 text-green-700 flex items-center font-bold text-xs gap-1">
-                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
-                            <span>Đã tải đủ ({{ existingTrips.length }})</span>
                         </div>
                         <button v-if="authStore.role === 'admin'"
                             @click="clearHistory"
