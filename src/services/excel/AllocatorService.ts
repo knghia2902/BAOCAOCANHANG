@@ -51,6 +51,8 @@ export interface AllocatorTripItem {
 }
 
 export class AllocatorService {
+    public static readonly TABLE_NAME = 'weighbridge_tracking';
+
     /**
      * Chuyển đổi từ row trong cơ sở dữ liệu sang đối tượng ứng dụng
      */
@@ -144,7 +146,7 @@ export class AllocatorService {
 
         while (true) {
             const { data, error } = await supabase
-                .from('allocator_history_trips')
+                .from(AllocatorService.TABLE_NAME)
                 .select('*')
                 .gte('date1_obj', cutoffIso)
                 .order('date1_obj', { ascending: false })
@@ -174,7 +176,7 @@ export class AllocatorService {
 
         while (true) {
             const { data, error } = await supabase
-                .from('allocator_history_trips')
+                .from(AllocatorService.TABLE_NAME)
                 .select('*')
                 .order('date1_obj', { ascending: false })
                 .range(from, from + pageSize - 1);
@@ -209,7 +211,7 @@ export class AllocatorService {
 
         while (true) {
             const { data, error } = await supabase
-                .from('allocator_history_trips')
+                .from(AllocatorService.TABLE_NAME)
                 .select('*')
                 .gte('date1_obj', startIso)
                 .lte('date1_obj', endIso)
@@ -243,7 +245,7 @@ export class AllocatorService {
         for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
             const chunk = rows.slice(i, i + CHUNK_SIZE);
             const { error } = await supabase
-                .from('allocator_history_trips')
+                .from(AllocatorService.TABLE_NAME)
                 .insert(chunk);
 
             if (error) {
@@ -260,7 +262,7 @@ export class AllocatorService {
      * Cập nhật mã lệnh cho một chuyến xe
      */
     static async updateTripOrderNo(identifier: { id?: number; ticketNo?: string; stt?: number }, orderNo: string): Promise<boolean> {
-        let query = supabase.from('allocator_history_trips').update({ order_no: orderNo });
+        let query = supabase.from(AllocatorService.TABLE_NAME).update({ order_no: orderNo });
         if (identifier.id) {
             query = query.eq('id', identifier.id);
         } else if (identifier.ticketNo) {
@@ -283,7 +285,7 @@ export class AllocatorService {
      * Xóa một bản ghi chuyến xe
      */
     static async deleteTrip(identifier: { id?: number; ticketNo?: string; stt?: number }): Promise<boolean> {
-        let query = supabase.from('allocator_history_trips').delete();
+        let query = supabase.from(AllocatorService.TABLE_NAME).delete();
         if (identifier.id) {
             query = query.eq('id', identifier.id);
         } else if (identifier.ticketNo) {

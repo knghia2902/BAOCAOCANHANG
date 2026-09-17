@@ -2991,7 +2991,7 @@ async function clearHistory() {
         cancelText: 'Hủy'
     });
     if (confirmClearHistory) {
-        const { error } = await supabase.from('allocator_history_trips').delete().neq('id', 0);
+        const { error } = await supabase.from(AllocatorService.TABLE_NAME).delete().neq('id', 0);
         if (error) {
             addToast('Lỗi khi xóa bảng lịch sử trên máy chủ: ' + error.message, 'error');
             return;
