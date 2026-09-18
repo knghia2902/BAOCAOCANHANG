@@ -612,7 +612,7 @@ function formatPlate(plate: string | null | undefined): string {
     return formattedMain;
 }
 
-// Convert DD/MM/YYYY and HH:mm:ss strings to Date object
+// Convert DD/MM/YYYY or YYYY-MM-DD and HH:mm:ss strings to Date object
 function parseDateTime(dateStr: string, timeStr: string): Date {
     try {
         if (!dateStr) return new Date();
@@ -628,12 +628,28 @@ function parseDateTime(dateStr: string, timeStr: string): Date {
         const normalizedDate = dateStr.replace(/-/g, '/');
         const dParts = normalizedDate.split('/');
         
-        let day = parseInt(dParts[0] || '0', 10);
-        let month = parseInt(dParts[1] || '0', 10) - 1; // 0-indexed
-        let year = parseInt(dParts[2] || '0', 10);
-        
-        if (year < 100) {
-            year += 2000;
+        let day = 1;
+        let month = 0;
+        let year = new Date().getFullYear();
+
+        if (dParts.length >= 3) {
+            const p0 = dParts[0] || '';
+            const p1 = dParts[1] || '';
+            const p2 = dParts[2] || '';
+            // Check if first part is 4-digit year (YYYY/MM/DD)
+            if (p0.length === 4) {
+                year = parseInt(p0, 10);
+                month = parseInt(p1 || '1', 10) - 1;
+                day = parseInt(p2 || '1', 10);
+            } else {
+                // DD/MM/YYYY
+                day = parseInt(p0 || '1', 10);
+                month = parseInt(p1 || '1', 10) - 1;
+                year = parseInt(p2 || '0', 10);
+                if (year < 100) {
+                    year += 2000;
+                }
+            }
         }
         
         let hour = 0;
@@ -647,7 +663,8 @@ function parseDateTime(dateStr: string, timeStr: string): Date {
             second = parseInt(tParts[2] || '0', 10);
         }
         
-        return new Date(year, month, day, hour, minute, second);
+        const d = new Date(year, month, day, hour, minute, second);
+        return isNaN(d.getTime()) ? new Date() : d;
     } catch (e) {
         return new Date();
     }
@@ -1129,6 +1146,7 @@ async function saveTicket() {
     }
     
     csvRecords.value = currentList;
+    regenerateAllocatedTrips();
     showTicketDialog.value = false;
     saveTicketsToSupabase();
 }
@@ -1149,6 +1167,7 @@ async function deleteTicket(ticket: CSVRecord) {
         csvRecords.value = csvRecords.value.filter(t => t.id !== ticket.id);
         addToast('Đã xóa phiếu cân!', 'info');
         await LogService.logAction('Xóa phiếu cân', 'Xóa phiếu cân: ' + (ticket.ticketNo || ticket.plateNumber));
+        regenerateAllocatedTrips();
         saveTicketsToSupabase();
     }
 }
@@ -1168,6 +1187,7 @@ async function clearAllTickets() {
     });
     if (confirm) {
         csvRecords.value = [];
+        generatedTrips.value = [];
         csvFile.value = null;
         addToast('Đã xóa sạch danh sách phiếu cân!', 'info');
         await LogService.logAction('Xóa tất cả phiếu cân', 'Xóa toàn bộ danh sách phiếu cân');
@@ -1350,14 +1370,14 @@ async function loadTicketsFromSupabase() {
 
             // 4. Overwrite generated trips
             const remoteGenerated = data.settings.allocator_generated_trips;
-            if (Array.isArray(remoteGenerated)) {
+            if (Array.isArray(remoteGenerated) && remoteGenerated.length > 0) {
                 const hydrated = hydrateTrips(remoteGenerated);
                 if (JSON.stringify(generatedTrips.value) !== JSON.stringify(hydrated)) {
                     generatedTrips.value = hydrated;
                     await dbContext.set('allocator_generated_trips', hydrated);
                 }
-            } else {
-                regenerateAllocatedTrips();
+            } else if (csvRecords.value.length > 0) {
+                generatedTrips.value = [];
             }
 
             syncStatus.value = 'synced';
@@ -1368,6 +1388,9 @@ async function loadTicketsFromSupabase() {
     } finally {
         isSyncingFromChannel = false;
         isInitLoading.value = false;
+        if (csvRecords.value.length > 0 && generatedTrips.value.length === 0) {
+            regenerateAllocatedTrips();
+        }
     }
 }
 
@@ -2144,6 +2167,9 @@ onMounted(async () => {
             await loadTicketsFromSupabase();
         } finally {
             isInitLoading.value = false;
+            if (csvRecords.value.length > 0 && generatedTrips.value.length === 0) {
+                regenerateAllocatedTrips();
+            }
         }
     } catch (e) {
         console.error('Lỗi khi nạp cấu hình:', e);
@@ -2235,14 +2261,20 @@ function hydrateTrips(trips: any[]): SplitTrip[] {
 
 // Computed: Total CSV Weight in tons
 const totalCsvWeightTons = computed(() => {
-    const kg = filteredSourceTickets.value.reduce((acc, r) => acc + r.weightNet, 0);
+    const kg = csvRecords.value.reduce((acc, r) => {
+        let net = r.weightNet || 0;
+        if (net <= 0 && r.weight1 && r.weight2) {
+            net = Math.abs(r.weight1 - r.weight2);
+        }
+        return acc + net;
+    }, 0);
     return kg / 1000;
 });
 
 function regenerateAllocatedTrips() {
     if (isSavingToHistory.value || isInitLoading.value) return;
     
-    if (filteredSourceTickets.value.length === 0) {
+    if (csvRecords.value.length === 0) {
         generatedTrips.value = [];
         return;
     }
@@ -2271,16 +2303,21 @@ function regenerateAllocatedTrips() {
     
     const tempTrips: TempTrip[] = [];
     
-    filteredSourceTickets.value.forEach(record => {
+    csvRecords.value.forEach(record => {
         const capacity = getVehicleCapacity(record.plateNumber);
-        const weightTons = record.weightNet / 1000;
+        let recordWeightNet = record.weightNet || 0;
+        if (recordWeightNet <= 0 && record.weight1 && record.weight2) {
+            recordWeightNet = Math.abs(record.weight1 - record.weight2);
+        }
+        const weightTons = recordWeightNet / 1000;
+        if (weightTons <= 0) return;
         
         // Calculate trips count
         const tripLimit = capacity.limit;
-        const numTrips = Math.ceil(weightTons / tripLimit);
+        const numTrips = Math.max(1, Math.ceil(weightTons / tripLimit));
         
         // Seed based on ticket number or ticket properties for deterministic generation
-        const seed = record.ticketNo || `${record.plateNumber}_${record.weightNet}_${record.timeInStr}`;
+        const seed = record.ticketNo || `${record.plateNumber}_${recordWeightNet}_${record.timeInStr}`;
         const rand = createSeededRandom(seed);
         
         // Weight split strategy
@@ -2555,6 +2592,15 @@ watch(
     }, 
     { deep: true }
 );
+
+function manualRegenerate() {
+    if (csvRecords.value.length === 0) {
+        addToast('Chưa có phiếu cân nào để phân bổ! Vui lòng nhập hoặc import phiếu cân ở Tab 1.', 'info');
+        return;
+    }
+    regenerateAllocatedTrips();
+    addToast(`Đã hoàn tất phân bổ: ${generatedTrips.value.length} chuyến xe!`, 'success');
+}
 
 // Computed: Next STT start number
 const nextSTT = computed(() => {
@@ -3791,6 +3837,14 @@ async function compileAndDownload() {
                                     <span class="material-symbols-outlined text-xs">close</span>
                                 </button>
                             </div>
+                            <button 
+                                @click="manualRegenerate" 
+                                class="h-7 px-2.5 rounded-[8px] bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold flex items-center gap-1 transition-colors border border-teal-200 shadow-sm shrink-0"
+                                title="Chạy lại thuật toán phân bổ từ danh sách phiếu cân"
+                            >
+                                <span class="material-symbols-outlined text-sm">autorenew</span>
+                                <span>Phân bổ lại</span>
+                            </button>
                         </div>
 
                         <!-- Tab 3 Search & Date Filter -->
@@ -4459,9 +4513,30 @@ async function compileAndDownload() {
                 </div>
                 <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
                     <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
-                    <p class="text-xs font-semibold max-w-[320px] leading-relaxed">
-                        Không tìm thấy bản ghi nào khớp bộ lọc!
-                    </p>
+                    <div class="text-xs font-semibold max-w-[360px] leading-relaxed">
+                        <template v-if="generatedTrips.length === 0">
+                            <span>Chưa có chuyến xe nào được phân bổ.</span>
+                            <div class="mt-2.5 not-italic">
+                                <button 
+                                    @click="manualRegenerate" 
+                                    class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-[8px] text-xs font-bold inline-flex items-center gap-1 shadow-sm transition-colors"
+                                >
+                                    <span class="material-symbols-outlined text-sm">autorenew</span> Chạy phân bổ ngay
+                                </button>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <span>Không tìm thấy bản ghi nào khớp bộ lọc!</span>
+                            <div class="mt-2 not-italic">
+                                <button 
+                                    @click="searchQuery = ''; selectedCustomer = ''; templateFilterDate = ''" 
+                                    class="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline"
+                                >
+                                    Xóa tất cả bộ lọc
+                                </button>
+                            </div>
+                        </template>
+                    </div>
                 </div>
 
                 <!-- Table Pagination -->
