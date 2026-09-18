@@ -2524,11 +2524,14 @@ function manualRegenerate() {
 
 // Computed: Next STT start number
 const nextSTT = computed(() => {
-    if (existingTrips.value.length > 0) {
-        const lastTrip = existingTrips.value[existingTrips.value.length - 1];
-        return (lastTrip?.stt || 0) + 1;
+    if (existingTrips.value.length === 0) return 1;
+    let max = 0;
+    for (const trip of existingTrips.value) {
+        if (!trip) continue;
+        const val = Number(trip.stt || 0);
+        if (val > max) max = val;
     }
-    return 1;
+    return max + 1;
 });
 
 const selectedCustomer = ref('');
@@ -2584,27 +2587,30 @@ const totalSplitWeightTons = computed(() => {
 
 // Computed: Check if current generated trips are already saved to history
 const isAlreadySaved = computed(() => {
-    if (generatedTrips.value.length === 0) return false;
+    if (generatedTrips.value.length === 0 || existingTrips.value.length === 0) return false;
+    
+    // Chỉ đối chiếu với 500 chuyến xe gần nhất trong lịch sử
+    const recentLimit = Math.min(existingTrips.value.length, 500);
+    const recentTrips = existingTrips.value.slice(0, recentLimit);
+    
+    const ticketSet = new Set<string>();
+    const signatureSet = new Set<string>();
+    
+    for (const et of recentTrips) {
+        if (!et) continue;
+        if (et.ticketNo && et.ticketNo.trim()) {
+            ticketSet.add(et.ticketNo.trim());
+        }
+        const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
+        signatureSet.add(`${normalizePlate(et.plateNumber)}_${et.weightNet}_${etDateStr}`);
+    }
+    
     return generatedTrips.value.every(gt => {
-        return existingTrips.value.some(et => {
-            // Nếu dùng số phiếu tự động, ta kiểm tra thêm biển số, trọng lượng và ngày giờ để tránh trùng lặp giả do số phiếu bị lặp
-            if (useAutoTicketNo.value) {
-                const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-                const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-                return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
-                       gt.weightNet === et.weightNet &&
-                       gtDateStr === etDateStr;
-            }
-            
-            if (gt.ticketNo && et.ticketNo && gt.ticketNo === et.ticketNo) {
-                return true;
-            }
-            const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-            const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-            return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
-                   gt.weightNet === et.weightNet &&
-                   gtDateStr === etDateStr;
-        });
+        if (!useAutoTicketNo.value && gt.ticketNo && gt.ticketNo.trim() && ticketSet.has(gt.ticketNo.trim())) {
+            return true;
+        }
+        const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
+        return signatureSet.has(`${normalizePlate(gt.plateNumber)}_${gt.weightNet}_${gtDateStr}`);
     });
 });
 
@@ -2668,6 +2674,7 @@ function getTripsWithoutMooc(): SplitTrip[] {
 
 // Save generated temporary trips into history
 async function saveToHistory() {
+    if (isSavingToHistory.value) return;
     if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
         addToast('Bạn không có quyền lưu dữ liệu vào Sổ Theo Dõi!', 'error');
         return;
@@ -2699,27 +2706,32 @@ async function saveToHistory() {
         return;
     }
     
-    // Check duplicates
+    // Check duplicates against recent trips (top 1000)
     const duplicates: string[] = [];
+    const checkLimit = Math.min(existingTrips.value.length, 1000);
+    const recentTrips = existingTrips.value.slice(0, checkLimit);
+    
+    const ticketSet = new Set<string>();
+    const signatureSet = new Set<string>();
+    for (const et of recentTrips) {
+        if (!et) continue;
+        if (et.ticketNo && et.ticketNo.trim()) {
+            ticketSet.add(et.ticketNo.trim());
+        }
+        const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
+        signatureSet.add(`${normalizePlate(et.plateNumber)}_${et.weightNet}_${etDateStr}`);
+    }
+
     generatedTrips.value.forEach(gt => {
-        const isDup = existingTrips.value.some(et => {
-            if (useAutoTicketNo.value) {
-                const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-                const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-                return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
-                       gt.weightNet === et.weightNet &&
-                       gtDateStr === etDateStr;
-            }
-            if (gt.ticketNo && et.ticketNo && gt.ticketNo === et.ticketNo) {
-                return true;
-            }
-            // Fallback match: Plate + Net Weight + Date1 Time
+        let isDup = false;
+        if (!useAutoTicketNo.value && gt.ticketNo && gt.ticketNo.trim() && ticketSet.has(gt.ticketNo.trim())) {
+            isDup = true;
+        } else {
             const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-            const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-            return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
-                   gt.weightNet === et.weightNet &&
-                   gtDateStr === etDateStr;
-        });
+            if (signatureSet.has(`${normalizePlate(gt.plateNumber)}_${gt.weightNet}_${gtDateStr}`)) {
+                isDup = true;
+            }
+        }
         if (isDup) {
             duplicates.push(gt.ticketNo || `${formatPlate(gt.plateNumber)} (${gt.weightNet} kg)`);
         }
@@ -2747,39 +2759,48 @@ async function saveToHistory() {
         cancelText: 'Hủy'
     });
     if (confirmSave) {
-        // Tự động tăng số phiếu bắt đầu nếu đang dùng tự động sinh số phiếu
-        if (useAutoTicketNo.value) {
-            ticketStart.value = ticketStart.value + generatedTrips.value.length;
-        }
-
-        // 1. Bulk insert to Supabase table allocator_history_trips
-        const tripsToSave = [...generatedTrips.value];
-        const insertRes = await AllocatorService.insertTrips(tripsToSave);
-        if (insertRes.error) {
-            addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
-            return;
-        }
-
-        // 2. Prepend newly saved trips to existingTrips in memory so Tab 3 shows them immediately
-        existingTrips.value = [...tripsToSave, ...existingTrips.value];
-        await dbContext.set('allocator_history_trips', existingTrips.value);
-        
-        // 3. Clear active tickets in Tab 1 and Tab 2
         isSavingToHistory.value = true;
-        csvRecords.value = [];
-        csvFile.value = null;
-        generatedTrips.value = [];
-        
-        nextTick(() => {
+        try {
+            // Tự động tăng số phiếu bắt đầu nếu đang dùng tự động sinh số phiếu
+            if (useAutoTicketNo.value) {
+                ticketStart.value = ticketStart.value + generatedTrips.value.length;
+                try {
+                    await dbContext.set('allocator_ticket_start', ticketStart.value);
+                } catch (e) {}
+            }
+
+            // 1. Bulk insert to Supabase table
+            const tripsToSave = [...generatedTrips.value];
+            const insertRes = await AllocatorService.insertTrips(tripsToSave);
+            if (insertRes.error) {
+                addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
+                return;
+            }
+
+            // 2. Prepend newly saved trips (with real DB IDs) to existingTrips in memory so Tab 3 shows them immediately
+            const savedItems = (insertRes.data && insertRes.data.length === tripsToSave.length)
+                ? insertRes.data
+                : tripsToSave;
+            existingTrips.value = [...savedItems, ...existingTrips.value];
+            await dbContext.set('allocator_history_trips', existingTrips.value);
+            
+            // 3. Clear active tickets in Tab 1 and Tab 2
+            csvRecords.value = [];
+            csvFile.value = null;
+            generatedTrips.value = [];
+            
+            // 4. Save empty tickets & generated trips to Supabase content.settings (atomic, minimal)
+            await doExecuteSaveTicketsToSupabase();
+            
+            // 5. Switch tab to Tab 3 (Theo dõi)
+            activeDataTab.value = 'generated';
+            addToast(`Đã lưu thành công ${tripsToSave.length} chuyến xe vào Sổ Theo Dõi!`, 'success');
+        } catch (err: any) {
+            console.error('Lỗi khi lưu vào Sổ Theo Dõi:', err);
+            addToast('Lỗi khi lưu vào Sổ Theo Dõi: ' + (err?.message || err), 'error');
+        } finally {
             isSavingToHistory.value = false;
-        });
-        
-        // 4. Save empty tickets & generated trips to Supabase content.settings (atomic, minimal)
-        await doExecuteSaveTicketsToSupabase();
-        
-        // 5. Switch tab to Tab 3 (Theo dõi)
-        activeDataTab.value = 'generated';
-        addToast(`Đã lưu thành công ${tripsToSave.length} chuyến xe vào Sổ Theo Dõi!`, 'success');
+        }
     }
 }
 
@@ -3788,11 +3809,12 @@ async function compileAndDownload() {
 
                         <button 
                             @click="saveToHistory"
-                            :disabled="generatedTrips.length === 0 || isAlreadySaved"
+                            :disabled="generatedTrips.length === 0 || isSavingToHistory || isAlreadySaved"
                             class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            <span class="material-symbols-outlined text-[14px]">save</span>
-                            {{ isAlreadySaved ? 'Đã lưu' : 'Lưu' }}
+                            <span v-if="isSavingToHistory" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-[14px]">save</span>
+                            {{ isSavingToHistory ? 'Đang lưu...' : (isAlreadySaved ? 'Đã lưu' : 'Lưu') }}
                         </button>
                         <button 
                             v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"

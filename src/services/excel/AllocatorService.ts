@@ -235,27 +235,33 @@ export class AllocatorService {
     /**
      * Chèn danh sách chuyến xe mới (phân đợt 500 bản ghi để tối ưu hiệu năng)
      */
-    static async insertTrips(trips: any[]): Promise<{ count: number; error: any }> {
-        if (!trips || trips.length === 0) return { count: 0, error: null };
+    static async insertTrips(trips: any[]): Promise<{ count: number; data?: AllocatorTripItem[]; error: any }> {
+        if (!trips || trips.length === 0) return { count: 0, data: [], error: null };
 
         const rows = trips.map(this.tripToRow);
         const CHUNK_SIZE = 500;
         let insertedCount = 0;
+        const insertedRows: AllocatorTripRow[] = [];
 
         for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
             const chunk = rows.slice(i, i + CHUNK_SIZE);
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from(AllocatorService.TABLE_NAME)
-                .insert(chunk);
+                .insert(chunk)
+                .select('*');
 
             if (error) {
                 console.error(`Lỗi chèn đợt ${i} - ${i + chunk.length}:`, error);
                 return { count: insertedCount, error };
             }
+            if (data && Array.isArray(data)) {
+                insertedRows.push(...(data as AllocatorTripRow[]));
+            }
             insertedCount += chunk.length;
         }
 
-        return { count: insertedCount, error: null };
+        const insertedItems = insertedRows.map(r => this.rowToTrip(r));
+        return { count: insertedCount, data: insertedItems, error: null };
     }
 
     /**
