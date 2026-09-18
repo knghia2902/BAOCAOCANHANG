@@ -2513,14 +2513,6 @@ watch(
     { deep: true }
 );
 
-function manualRegenerate() {
-    if (csvRecords.value.length === 0) {
-        addToast('Chưa có phiếu cân nào để phân bổ! Vui lòng nhập hoặc import phiếu cân ở Tab 1.', 'info');
-        return;
-    }
-    regenerateAllocatedTrips();
-    addToast(`Đã hoàn tất phân bổ: ${generatedTrips.value.length} chuyến xe!`, 'success');
-}
 
 // Computed: Next STT start number
 const nextSTT = computed(() => {
@@ -3726,14 +3718,6 @@ async function compileAndDownload() {
                                     <span class="material-symbols-outlined text-xs">close</span>
                                 </button>
                             </div>
-                            <button 
-                                @click="manualRegenerate" 
-                                class="h-7 px-2.5 rounded-[8px] bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold flex items-center gap-1 transition-colors border border-teal-200 shadow-sm shrink-0"
-                                title="Chạy lại thuật toán phân bổ từ danh sách phiếu cân"
-                            >
-                                <span class="material-symbols-outlined text-sm">autorenew</span>
-                                <span>Phân bổ lại</span>
-                            </button>
                         </div>
 
                         <!-- Tab 3 Search -->
@@ -4388,14 +4372,6 @@ async function compileAndDownload() {
                     <div class="text-xs font-semibold max-w-[360px] leading-relaxed">
                         <template v-if="generatedTrips.length === 0">
                             <span>Chưa có chuyến xe nào được phân bổ.</span>
-                            <div class="mt-2.5 not-italic">
-                                <button 
-                                    @click="manualRegenerate" 
-                                    class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-[8px] text-xs font-bold inline-flex items-center gap-1 shadow-sm transition-colors"
-                                >
-                                    <span class="material-symbols-outlined text-sm">autorenew</span> Chạy phân bổ ngay
-                                </button>
-                            </div>
                         </template>
                         <template v-else>
                             <span>Không tìm thấy bản ghi nào khớp bộ lọc!</span>
