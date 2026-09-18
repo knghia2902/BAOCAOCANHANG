@@ -678,78 +678,6 @@ function ensureDate(d: any): Date {
     return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
-function extractDateYMD(val: any): string | null {
-    if (!val) return null;
-    if (val instanceof Date) {
-        if (isNaN(val.getTime())) return null;
-        const y = val.getFullYear();
-        const m = String(val.getMonth() + 1).padStart(2, '0');
-        const d = String(val.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    }
-    if (typeof val === 'string') {
-        const str = val.trim();
-        if (!str) return null;
-        
-        // 1. Check if string contains DD/MM/YYYY or D/M/YYYY (e.g. "05:08:13\n01/09/2026" or "14/09/2026")
-        const dmyMatch = str.match(/(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
-        if (dmyMatch && dmyMatch[1] && dmyMatch[2] && dmyMatch[3]) {
-            const day = String(parseInt(dmyMatch[1], 10)).padStart(2, '0');
-            const month = String(parseInt(dmyMatch[2], 10)).padStart(2, '0');
-            const year = dmyMatch[3];
-            return `${year}-${month}-${day}`;
-        }
-        
-        // 2. If it's an ISO timestamp with time (e.g. "2026-08-31T21:47:28.079Z"), parse to local time
-        if (str.includes('T') || str.endsWith('Z')) {
-            const parsed = new Date(str);
-            if (!isNaN(parsed.getTime())) {
-                const y = parsed.getFullYear();
-                const m = String(parsed.getMonth() + 1).padStart(2, '0');
-                const d = String(parsed.getDate()).padStart(2, '0');
-                return `${y}-${m}-${d}`;
-            }
-        }
-        
-        // 3. Check for standard YYYY-MM-DD
-        const ymdMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (ymdMatch && ymdMatch[1] && ymdMatch[2] && ymdMatch[3]) {
-            return `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
-        }
-        
-        // Fallback: parse Date
-        const parsed = new Date(str);
-        if (!isNaN(parsed.getTime())) {
-            const y = parsed.getFullYear();
-            const m = String(parsed.getMonth() + 1).padStart(2, '0');
-            const d = String(parsed.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
-        }
-    }
-    return null;
-}
-
-function matchSourceTicketDate(ticket: CSVRecord, targetYMD: string): boolean {
-    if (!targetYMD) return true;
-    const dIn = extractDateYMD(ticket.dateInStr);
-    if (dIn && dIn === targetYMD) return true;
-    const dOut = extractDateYMD(ticket.dateOutStr);
-    if (dOut && dOut === targetYMD) return true;
-    return false;
-}
-
-function matchTripDate(trip: SplitTrip, targetYMD: string): boolean {
-    if (!targetYMD) return true;
-    // Prefer authoritative timeStr date if available (e.g. "05:08:13\n01/09/2026")
-    const dTime = extractDateYMD(trip.timeStr);
-    if (dTime) return dTime === targetYMD;
-    const d1 = extractDateYMD(trip.date1Obj);
-    if (d1) return d1 === targetYMD;
-    const d2 = extractDateYMD(trip.date2Obj);
-    if (d2) return d2 === targetYMD;
-    return false;
-}
-
 // Format Date object to "HH:mm:ss\nDD/MM/YYYY"
 function formatExcelDateTime(date: any): string {
     const d = ensureDate(date);
@@ -1199,7 +1127,6 @@ async function clearAllTickets() {
 const activeDataTab = ref<'source' | 'generated' | 'template'>('source');
 const sourceCurrentPage = ref(1);
 const sourceSearchQuery = ref('');
-const sourceFilterDate = ref('');
 
 // Sorting Helper Function
 function compareValues(a: any, b: any, key: string, desc: boolean): number {
@@ -1272,9 +1199,6 @@ function toggleHistorySort(key: string) {
 
 const filteredSourceTickets = computed(() => {
     let list = csvRecords.value;
-    if (sourceFilterDate.value) {
-        list = list.filter(t => matchSourceTicketDate(t, sourceFilterDate.value));
-    }
     if (sourceSearchQuery.value.trim()) {
         const q = sourceSearchQuery.value.toLowerCase();
         list = list.filter(t => 
@@ -1299,10 +1223,6 @@ const sourceTotalPages = computed(() => {
 });
 
 watch(sourceSearchQuery, () => {
-    sourceCurrentPage.value = 1;
-});
-
-watch(sourceFilterDate, () => {
     sourceCurrentPage.value = 1;
 });
 
@@ -2612,7 +2532,6 @@ const nextSTT = computed(() => {
 });
 
 const selectedCustomer = ref('');
-const templateFilterDate = ref('');
 
 const uniqueCustomers = computed(() => {
     const customers = generatedTrips.value
@@ -2622,10 +2541,6 @@ const uniqueCustomers = computed(() => {
 });
 
 watch(selectedCustomer, () => {
-    currentPage.value = 1;
-});
-
-watch(templateFilterDate, () => {
     currentPage.value = 1;
 });
 
@@ -2644,11 +2559,6 @@ const filteredTrips = computed(() => {
         list = list.filter(t => t.customer === selectedCustomer.value);
     }
 
-    // Filter by date
-    if (templateFilterDate.value) {
-        list = list.filter(t => matchTripDate(t, templateFilterDate.value));
-    }
-    
     // Filter by search query text
     if (searchQuery.value.trim()) {
         const q = searchQuery.value.toLowerCase();
@@ -2669,7 +2579,7 @@ const filteredTrips = computed(() => {
 
 // Computed: Total split weight tons
 const totalSplitWeightTons = computed(() => {
-    return filteredTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
+    return generatedTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
 // Computed: Check if current generated trips are already saved to history
@@ -2717,14 +2627,10 @@ watch(searchQuery, () => {
 
 // History panel states
 const historySearchQuery = ref('');
-const historyFilterDate = ref('');
 const historyCurrentPage = ref(1);
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
-    if (historyFilterDate.value) {
-        list = list.filter(t => matchTripDate(t, historyFilterDate.value));
-    }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase();
         list = list.filter(t => 
@@ -2749,10 +2655,6 @@ const historyTotalPages = computed(() => {
 });
 
 watch(historySearchQuery, () => {
-    historyCurrentPage.value = 1;
-});
-
-watch(historyFilterDate, () => {
     historyCurrentPage.value = 1;
 });
 
@@ -3010,7 +2912,7 @@ async function clearHistory() {
 
 // Total history cargo weight in tons
 const historyTotalWeightTons = computed(() => {
-    return filteredHistoryTrips.value.reduce((sum, t) => sum + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
+    return existingTrips.value.reduce((sum, t) => sum + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
 // Export source tickets (Tab 1) as Excel
@@ -3718,7 +3620,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        1. Phiếu cân ({{ filteredSourceTickets.length !== csvRecords.length ? `${filteredSourceTickets.length}/${csvRecords.length}` : csvRecords.length }})
+                        1. Phiếu cân ({{ csvRecords.length }})
                     </button>
                     <button 
                         @click="activeDataTab = 'template'"
@@ -3729,7 +3631,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        2. Phân bổ ({{ filteredTrips.length !== generatedTrips.length ? `${filteredTrips.length}/${generatedTrips.length}` : generatedTrips.length }})
+                        2. Phân bổ ({{ generatedTrips.length }})
                     </button>
                     <button 
                         @click="activeDataTab = 'generated'"
@@ -3740,53 +3642,35 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        3. Theo dõi ({{ filteredHistoryTrips.length !== existingTrips.length ? `${filteredHistoryTrips.length}/${existingTrips.length}` : existingTrips.length }})
+                        3. Theo dõi ({{ existingTrips.length }})
                     </button>
                 </div>
 
                 <!-- Controls, Search, and Action Buttons (Aligned Row) -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 xl:justify-end min-w-0">
                     <!-- Search Input container -->
-                    <div class="flex-grow sm:flex-initial min-w-0 flex items-center">
-                        <!-- Tab 1 Search & Date Filter -->
-                        <div v-if="activeDataTab === 'source'" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-                            <div class="relative w-full sm:w-[200px] h-7 flex items-center">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
-                                <input 
-                                    type="text" 
-                                    v-model="sourceSearchQuery" 
-                                    placeholder="Tìm kiếm..." 
-                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
-                                >
-                                <button 
-                                    v-if="sourceSearchQuery" 
-                                    @click="sourceSearchQuery = ''" 
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0 h-7">
-                                <input 
-                                    type="date" 
-                                    v-model="sourceFilterDate" 
-                                    class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
-                                    title="Lọc theo ngày"
-                                >
-                                <button 
-                                    v-if="sourceFilterDate" 
-                                    @click="sourceFilterDate = ''" 
-                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
-                                    title="Xóa lọc ngày"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
+                    <div class="flex-grow sm:flex-initial min-w-0 flex items-center h-7">
+                        <!-- Tab 1 Search -->
+                        <div v-if="activeDataTab === 'source'" class="relative w-full sm:w-[240px] h-7 flex items-center">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+                            <input 
+                                type="text" 
+                                v-model="sourceSearchQuery" 
+                                placeholder="Tìm kiếm..." 
+                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                            >
+                            <button 
+                                v-if="sourceSearchQuery" 
+                                @click="sourceSearchQuery = ''" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+                            >
+                                <span class="material-symbols-outlined text-xs">close</span>
+                            </button>
                         </div>
 
                         <!-- Tab 2 Search & Filter -->
-                        <div v-if="activeDataTab === 'template'" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-                            <div class="relative w-full sm:w-[170px] h-7 flex items-center">
+                        <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto h-7">
+                            <div class="relative w-full sm:w-[220px] h-7 flex items-center">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                                 <input 
                                     type="text" 
@@ -3805,9 +3689,9 @@ async function compileAndDownload() {
                             <div class="flex items-center gap-1.5 shrink-0 h-7">
                                 <select 
                                     v-model="selectedCustomer"
-                                    class="px-2.5 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[110px] max-w-[140px] shadow-sm text-gray-700"
+                                    class="px-2.5 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[120px] max-w-[150px] shadow-sm text-gray-700"
                                 >
-                                    <option value="">Tất cả khách</option>
+                                    <option value="">Tất cả khách hàng</option>
                                     <option v-for="customer in uniqueCustomers" :key="customer" :value="customer">
                                         {{ customer }}
                                     </option>
@@ -3817,22 +3701,6 @@ async function compileAndDownload() {
                                     @click="selectedCustomer = ''" 
                                     class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
                                     title="Xóa lọc khách hàng"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0 h-7">
-                                <input 
-                                    type="date" 
-                                    v-model="templateFilterDate" 
-                                    class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
-                                    title="Lọc theo ngày"
-                                >
-                                <button 
-                                    v-if="templateFilterDate" 
-                                    @click="templateFilterDate = ''" 
-                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
-                                    title="Xóa lọc ngày"
                                 >
                                     <span class="material-symbols-outlined text-xs">close</span>
                                 </button>
@@ -3847,40 +3715,22 @@ async function compileAndDownload() {
                             </button>
                         </div>
 
-                        <!-- Tab 3 Search & Date Filter -->
-                        <div v-if="activeDataTab === 'generated'" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
-                            <div class="relative w-full sm:w-[200px] h-7 flex items-center">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
-                                <input 
-                                    type="text" 
-                                    v-model="historySearchQuery" 
-                                    placeholder="Tìm kiếm..." 
-                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
-                                >
-                                <button 
-                                    v-if="historySearchQuery" 
-                                    @click="historySearchQuery = ''" 
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0 h-7">
-                                <input 
-                                    type="date" 
-                                    v-model="historyFilterDate" 
-                                    class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold text-gray-700 focus:outline-none focus:border-primary transition-all shadow-sm"
-                                    title="Lọc theo ngày"
-                                >
-                                <button 
-                                    v-if="historyFilterDate" 
-                                    @click="historyFilterDate = ''" 
-                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
-                                    title="Xóa lọc ngày"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
+                        <!-- Tab 3 Search -->
+                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[240px] h-7 flex items-center">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+                            <input 
+                                type="text" 
+                                v-model="historySearchQuery" 
+                                placeholder="Tìm kiếm..." 
+                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                            >
+                            <button 
+                                v-if="historySearchQuery" 
+                                @click="historySearchQuery = ''" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+                            >
+                                <span class="material-symbols-outlined text-xs">close</span>
+                            </button>
                         </div>
                     </div>
 
@@ -4529,7 +4379,7 @@ async function compileAndDownload() {
                             <span>Không tìm thấy bản ghi nào khớp bộ lọc!</span>
                             <div class="mt-2 not-italic">
                                 <button 
-                                    @click="searchQuery = ''; selectedCustomer = ''; templateFilterDate = ''" 
+                                    @click="searchQuery = ''; selectedCustomer = ''" 
                                     class="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline"
                                 >
                                     Xóa tất cả bộ lọc
