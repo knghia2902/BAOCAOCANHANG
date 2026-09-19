@@ -84,6 +84,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
 | 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
 | 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
+| 10. Enterprise Upgrade | v1.1 | 0/4 | Planned | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -97,3 +98,16 @@ Plans:
 - [x] 09-01: Tạo bảng Supabase `allocator_history_trips`, script migrate 16,303 trips cũ và script khôi phục 1,657 trips thiếu với kiểm tra đối chiếu (verification check).
 - [x] 09-02: Cập nhật `CargoAllocator.vue` và các service liên quan để load/save Tab 3 (Theo dõi) trực tiếp từ bảng Supabase mới, xóa bỏ phụ thuộc vào JSON blob 7MB.
 
+### Phase 10: Enterprise Architecture Upgrade
+
+**Goal:** Tái cấu trúc toàn diện kiến trúc enterprise: bảo mật Supabase Auth & khóa RLS policies, cài đặt Pinia với các domain stores tập trung, module hóa service layer (UserService, PermissionService, WeighbridgeService), phân rã mega-component WeighbridgePrinter thành sub-components (<500 dòng), chuẩn hóa BaseConfirmModal và thiết lập pipeline CI/CD với GitHub Actions.
+**Requirements**: SEC-01, SEC-02, STATE-01, STATE-02, SVC-01, SVC-02, COMP-01, COMP-02
+**Depends on:** Phase 9
+**Plans:** 4 plans
+
+Plans:
+
+- [ ] 10-01: Bảo mật và chuyển đổi Supabase Auth (SQL RLS migration, cập nhật AuthService & session JWT).
+- [ ] 10-02: Cài đặt Pinia và xây dựng các domain store tập trung (useWeighbridgeStore, useAllocatorStore, useAuthStore).
+- [ ] 10-03: Tách god-service ContentService và tổ chức lại thư mục domain services (auth, cms, weighbridge).
+- [ ] 10-04: Phân rã mega-component WeighbridgePrinter, tích hợp BaseConfirmModal và thiết lập GitHub Actions CI workflow.
