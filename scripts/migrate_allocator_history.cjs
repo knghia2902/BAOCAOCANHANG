@@ -3,32 +3,27 @@
  * Di chuyển 16,303 bản ghi từ file sao lưu JSON vào bảng Supabase allocator_history_trips
  */
 
+// Load env or fallback
 const fs = require('fs');
 const path = require('path');
-
-// Load env or fallback
-let supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://kiyxwskilrhhikieabtp.supabase.co';
-let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpeXh3c2tpbHJoaGlraWVhYnRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMjk0MDAsImV4cCI6MjA5NzYwNTQwMH0._hlrV0JwSfBNp8SDuiyTraCGdnmPvMYuCtTaViFCotE';
-
 try {
-    const envContent = fs.readFileSync(path.resolve(__dirname, '../.env'), 'utf8');
-    const urlMatch = envContent.match(/VITE_SUPABASE_URL\s*=\s*(.+)/);
-    const keyMatch = envContent.match(/VITE_SUPABASE_ANON_KEY\s*=\s*(.+)/);
-    if (urlMatch) supabaseUrl = urlMatch[1].trim();
-    if (keyMatch) supabaseAnonKey = keyMatch[1].trim();
-} catch (e) {
-    // Fallback in place
+    const envPath = path.resolve(__dirname, '..', '.env');
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+        const match = line.match(/^([^=]+)=(.*)$/);
+        if (match && !process.env[match[1].trim()]) {
+            process.env[match[1].trim()] = match[2].trim();
+        }
+    });
+} catch (e) { /* .env file not found, rely on process.env */ }
+
+if (!process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_ANON_KEY) {
+    console.error('Missing environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    process.exit(1);
 }
 
-const BACKUP_FILE = path.resolve(__dirname, '../.planning/backups/allocator_history_trips_backup_16303.json');
-const CHUNK_SIZE = 500;
-
-function mapTripToDb(trip) {
-    let date1Iso = null;
-    let date2Iso = null;
-    try {
-        if (trip.date1Obj) date1Iso = new Date(trip.date1Obj).toISOString();
-    } catch (e) {}
+let supabaseUrl = process.env.VITE_SUPABASE_URL;
+let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
     try {
         if (trip.date2Obj) date2Iso = new Date(trip.date2Obj).toISOString();
     } catch (e) {}

@@ -3,23 +3,29 @@
  * Sao lưu an toàn 16,303 bản ghi lịch sử phân bổ từ content.settings ra file JSON tĩnh
  */
 
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 
 // Load env or fallback
-let supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://kiyxwskilrhhikieabtp.supabase.co';
-let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpeXh3c2tpbHJoaGlraWVhYnRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMjk0MDAsImV4cCI6MjA5NzYwNTQwMH0._hlrV0JwSfBNp8SDuiyTraCGdnmPvMYuCtTaViFCotE';
-
+const fs = require('fs');
+const path = require('path');
 try {
-    const envContent = fs.readFileSync(path.resolve(__dirname, '../.env'), 'utf8');
-    const urlMatch = envContent.match(/VITE_SUPABASE_URL\s*=\s*(.+)/);
-    const keyMatch = envContent.match(/VITE_SUPABASE_ANON_KEY\s*=\s*(.+)/);
-    if (urlMatch) supabaseUrl = urlMatch[1].trim();
-    if (keyMatch) supabaseAnonKey = keyMatch[1].trim();
-} catch (e) {
-    // Fallback in place
+    const envPath = path.resolve(__dirname, '..', '.env');
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+        const match = line.match(/^([^=]+)=(.*)$/);
+        if (match && !process.env[match[1].trim()]) {
+            process.env[match[1].trim()] = match[2].trim();
+        }
+    });
+} catch (e) { /* .env file not found, rely on process.env */ }
+
+if (!process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_ANON_KEY) {
+    console.error('Missing environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    process.exit(1);
 }
+
+let supabaseUrl = process.env.VITE_SUPABASE_URL;
+let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
 
 const BACKUP_DIR = path.resolve(__dirname, '../.planning/backups');
 const BACKUP_FILE = path.join(BACKUP_DIR, 'allocator_history_trips_backup_16303.json');

@@ -1,12 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from './views/HomeView.vue'
-import ToolsView from './views/ToolsView.vue'
-import AdminView from './views/AdminView.vue'
-import AboutView from './views/AboutView.vue'
-import DocumentsView from './views/DocumentsView.vue'
-import LoginView from './views/LoginView.vue'
-import ChangePasswordView from './views/ChangePasswordView.vue'
-import { authStore } from './stores/auth'
+import { createRouter, createWebHistory } from 'vue-router';
+import { authStore } from './stores/auth';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,73 +7,81 @@ const router = createRouter({
         {
             path: '/',
             name: 'home',
-            component: HomeView,
+            component: () => import('./views/HomeView.vue'),
             meta: { requiresAuth: true }
         },
         {
             path: '/tools',
             name: 'tools',
-            component: ToolsView,
+            component: () => import('./views/ToolsView.vue'),
             meta: { requiresAuth: true }
         },
         {
-            path: '/documents',
-            name: 'documents',
-            component: DocumentsView,
+            path: '/tools/weighbridge',
+            name: 'tools-weighbridge',
+            component: () => import('./views/tools/WeighbridgeView.vue'),
             meta: { requiresAuth: true }
         },
         {
             path: '/tools/allocator',
-            redirect: '/tools?tool=allocator'
-        },
-        {
-            path: '/tools/weighbridge',
-            redirect: '/tools?tool=weighbridge'
-        },
-        {
-            path: '/tools/printer',
-            redirect: '/tools?tool=weighbridge'
+            name: 'tools-allocator',
+            component: () => import('./views/tools/AllocatorView.vue'),
+            meta: { requiresAuth: true }
         },
         {
             path: '/tools/vehicles',
-            redirect: '/tools?tool=vehicles'
+            name: 'tools-vehicles',
+            component: () => import('./views/tools/VehiclesView.vue'),
+            meta: { requiresAuth: true }
         },
         {
-            path: '/tools/converter',
-            redirect: '/tools?tool=converter'
+            path: '/tools/minutes',
+            name: 'tools-minutes',
+            component: () => import('./views/tools/MinutesView.vue'),
+            meta: { requiresAuth: true }
         },
         {
-            path: '/tools/merger',
-            redirect: '/tools?tool=merger'
+            path: '/tools/utilities',
+            name: 'tools-utilities',
+            component: () => import('./views/tools/UtilitiesView.vue'),
+            meta: { requiresAuth: true }
         },
+        // Legacy redirects for backward compatibility
+        { path: '/tools/printer', redirect: '/tools/weighbridge' },
+        { path: '/tools/converter', redirect: '/tools/utilities?tab=converter' },
+        { path: '/tools/merger', redirect: '/tools/utilities?tab=merger' },
+        { path: '/tools/ocr', redirect: '/tools/utilities?tab=ocr' },
         {
-            path: '/tools/ocr',
-            redirect: '/tools?tool=ocr'
+            path: '/documents',
+            name: 'documents',
+            component: () => import('./views/DocumentsView.vue'),
+            meta: { requiresAuth: true }
         },
         {
             path: '/admin',
             name: 'admin',
-            component: AdminView,
+            component: () => import('./views/AdminView.vue'),
             meta: { requiresAuth: true }
         },
         {
             path: '/about',
             name: 'about',
-            component: AboutView,
+            component: () => import('./views/AboutView.vue'),
             meta: { requiresAuth: true }
         },
         {
             path: '/login',
             name: 'login',
-            component: LoginView
+            component: () => import('./views/LoginView.vue')
         },
         {
             path: '/change-password',
             name: 'change-password',
-            component: ChangePasswordView
+            component: () => import('./views/ChangePasswordView.vue'),
+            meta: { requiresAuth: true }
         }
     ]
-})
+});
 
 router.beforeEach((to, _from, next) => {
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
@@ -94,4 +95,4 @@ router.beforeEach((to, _from, next) => {
     }
 });
 
-export default router
+export default router;

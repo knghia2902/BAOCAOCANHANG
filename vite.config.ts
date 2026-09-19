@@ -12,6 +12,15 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router'],
+          'excel-vendor': ['exceljs'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+        }
+      }
+    }
   },
   optimizeDeps: {
     esbuildOptions: {

@@ -52,10 +52,13 @@ const allBarges = computed(() => {
 
 const loadToolsConfig = async () => {
     loadingTools.value = true;
-    if (authStore.role === 'staff') {
+    if (authStore.role === 'admin') {
+        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes'];
+    } else if (authStore.role === 'staff') {
         allowedTools.value = await ContentService.loadStaffTools();
     } else {
-        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
+        // Least privilege: unknown roles get no tools
+        allowedTools.value = [];
     }
     loadingTools.value = false;
 };
@@ -213,7 +216,7 @@ onMounted(async () => {
 
                 <!-- Biên Bản Sà Lan -->
                 <router-link
-                    to="/tools?tool=minutes"
+                    to="/tools/minutes"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
@@ -227,7 +230,7 @@ onMounted(async () => {
 
                 <!-- Bộ công cụ Excel/PDF -->
                 <router-link
-                    to="/tools?tool=utilities"
+                    to="/tools/utilities"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">

@@ -8,8 +8,25 @@ export const StorageService = {
      */
     async uploadImage(file: File, folder: string = 'general'): Promise<string | null> {
         try {
+            const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+            const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            const ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+            if (file.size > MAX_SIZE) {
+                console.error('File too large. Maximum size is 5MB.');
+                throw new Error('File too large. Maximum size is 5MB.');
+            }
+            if (!ALLOWED_MIME.includes(file.type)) {
+                console.error('Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed.');
+                throw new Error('Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed.');
+            }
+            const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+            if (!ALLOWED_EXT.includes(fileExt)) {
+                console.error('Invalid file extension. Only jpg, jpeg, png, webp, and gif are allowed.');
+                throw new Error('Invalid file extension. Only jpg, jpeg, png, webp, and gif are allowed.');
+            }
+
             // Create a unique file name
-            const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
             const filePath = `${folder}/${fileName}`;
 

@@ -1,21 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
-import FormatConverter from '../components/tools/FormatConverter.vue';
-import PdfOcrTools from '../components/tools/PdfOcrTools.vue';
-import ExcelMerger from '../components/tools/ExcelMerger.vue';
-import WeighbridgePrinter from '../components/tools/WeighbridgePrinter.vue';
-import CargoAllocator from '../components/tools/CargoAllocator.vue';
-import BargeMinutes from '../components/tools/BargeMinutes.vue';
-import BargeProfileManager from '../components/tools/BargeProfileManager.vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { authStore } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
 
+const router = useRouter();
 const route = useRoute();
 
-// Active tool and utility tabs
-const activeToolId = ref<string | null>(null);
-const activeUtilityTab = ref<'converter' | 'merger' | 'ocr'>('converter');
 const allowedStaffTools = ref<string[]>([]);
 const loading = ref(true);
 
@@ -46,59 +37,16 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
 
 onMounted(async () => {
     await loadTools();
-
-    // 1. Restore utility tab if saved
-    const savedUtil = localStorage.getItem('active_utility_tab');
-    if (savedUtil) {
-        activeUtilityTab.value = savedUtil as any;
-    }
-
-    // 2. Check query param first (for external redirects like from HomeView)
+    
+    // Check query param for legacy redirects (e.g. ?tool=weighbridge)
     const toolParam = route.query.tool;
     if (typeof toolParam === 'string' && toolParam) {
-        openTool(toolParam);
-    } else {
-        // 3. If no query, check localStorage for last active tool
-        const savedTool = localStorage.getItem('active_tool_id');
-        if (savedTool) {
-            openTool(savedTool);
+        if (['converter', 'merger', 'ocr'].includes(toolParam)) {
+            router.replace({ path: '/tools/utilities', query: { tab: toolParam } });
         } else {
-            // 4. Default to show catalog grid (no redirect)
-            activeToolId.value = null;
+            router.replace(`/tools/${toolParam}`);
         }
     }
-});
-
-watch(activeToolId, (newVal) => {
-    if (newVal) {
-        localStorage.setItem('active_tool_id', newVal);
-    } else {
-        localStorage.removeItem('active_tool_id');
-    }
-
-    const isWeighbridge = newVal === 'weighbridge';
-    window.dispatchEvent(new CustomEvent('weighbridge-status', { detail: isWeighbridge }));
-
-    if (newVal) {
-        if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-    } else {
-        document.body.style.overflow = '';
-    }
-}, { immediate: true });
-
-watch(activeUtilityTab, (newVal) => {
-    if (newVal) {
-        localStorage.setItem('active_utility_tab', newVal);
-    }
-});
-
-onUnmounted(() => {
-    document.body.style.overflow = '';
-    window.dispatchEvent(new CustomEvent('weighbridge-status', { detail: false }));
 });
 
 const allTools = [
@@ -144,24 +92,6 @@ const allTools = [
   }
 ];
 
-const utilitySubTools = [
-  {
-    id: 'converter',
-    name: 'Chuyển Đổi Định Dạng',
-    icon: 'swap_horiz'
-  },
-  {
-    id: 'merger',
-    name: 'Gộp Excel Thông Minh',
-    icon: 'layers'
-  },
-  {
-    id: 'ocr',
-    name: 'Trích Xuất PDF & OCR',
-    icon: 'document_scanner'
-  }
-] as const;
-
 const toolsList = computed(() => {
   if (authStore.role === 'admin') {
     return allTools;
@@ -177,36 +107,9 @@ const toolsList = computed(() => {
   });
 });
 
-const utilitySubToolsList = computed(() => {
-  if (authStore.role === 'admin') {
-    return utilitySubTools;
-  }
-  return utilitySubTools.filter(sub => allowedStaffTools.value.includes(sub.id));
-});
-
-const activeToolMetadata = computed(() => {
-  return toolsList.value.find(t => t.id === activeToolId.value) || null;
-});
-
 const openTool = (id: string) => {
-  if (id === 'converter' || id === 'merger' || id === 'ocr') {
-    activeToolId.value = 'utilities';
-    activeUtilityTab.value = id as 'converter' | 'merger' | 'ocr';
-  } else {
-    activeToolId.value = id;
-  }
+  router.push(`/tools/${id}`);
 };
-
-
-watch(allowedStaffTools, (newVal) => {
-    if (activeToolId.value === 'utilities' && !newVal.includes(activeUtilityTab.value)) {
-        const firstAllowed = utilitySubToolsList.value[0]?.id;
-        if (firstAllowed) {
-            activeUtilityTab.value = firstAllowed;
-        }
-    }
-});
-
 </script>
 
 <template>
@@ -291,134 +194,5 @@ watch(allowedStaffTools, (newVal) => {
         </p>
       </div>
     </div>
-
-    <!-- Fullscreen Workspace Overlay for all tools -->
-    <div 
-      v-if="activeToolId && activeToolMetadata" 
-      :class="[
-        (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-          ? 'fixed inset-0 bg-white z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print font-display' 
-          : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print animate-fade-in font-display'
-      ]"
-    >
-      
-      <!-- Workspace Header bar -->
-      <header class="bg-white px-4 md:px-6 py-3 md:py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 sticky top-0 z-30">
-        <div class="flex items-center gap-3">
-          <div :class="['size-11 rounded-full flex items-center justify-center text-white shadow-soft shrink-0', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
-            <span class="material-symbols-outlined text-[20px]">
-              {{ activeToolId === 'utilities' 
-                 ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.icon || 'construction')
-                 : activeToolMetadata.icon 
-              }}
-            </span>
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <h2 class="text-base font-black text-primary leading-tight">
-              {{ activeToolId === 'utilities'
-                 ? (utilitySubTools.find(s => s.id === activeUtilityTab)?.name || 'CÔNG CỤ TIỆN ÍCH').toUpperCase()
-                 : activeToolMetadata.name.toUpperCase() 
-              }}
-            </h2>
-            <p class="text-xs font-semibold text-[#1b0d11]/50 leading-none">
-              {{ (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'Cảng Nguyên Ngọc - Đồng bộ đám mây' : 'Công cụ tiện ích - Xử lý offline an toàn' }}
-            </p>
-          </div>
-        </div>
-        
-        <button 
-          @click="activeToolId = null" 
-          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-full text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <span class="material-symbols-outlined text-sm font-black">close</span>
-          Đóng
-        </button>
-      </header>
-
-      <!-- Workspace Body -->
-      <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden">
-        
-        <!-- Left Sidebar: Utility sub-tools list (Desktop Only) -->
-        <aside v-if="activeToolId === 'utilities'" class="hidden md:flex w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
-          <div class="p-3 border-b border-primary/5 flex items-center justify-between">
-            <span class="text-xs font-black text-gray-400 uppercase tracking-wider">
-              Danh sách tiện ích
-            </span>
-          </div>
-
-          <div class="flex-1 overflow-y-auto p-2 space-y-1">
-            <button 
-              v-for="sub in utilitySubToolsList" 
-              :key="sub.id"
-              @click="activeUtilityTab = sub.id"
-              :class="['w-full flex items-center gap-2 p-2 rounded-lg text-left text-xs font-bold transition-all', activeUtilityTab === sub.id ? 'bg-primary text-white shadow-soft' : 'text-gray-600 hover:bg-gray-100']"
-            >
-              <span class="material-symbols-outlined text-sm">{{ sub.icon }}</span>
-              <span class="truncate">{{ sub.name }}</span>
-            </button>
-          </div>
-
-          <!-- Back to Catalog button -->
-          <div class="p-3 border-t border-primary/10 bg-gray-50">
-            <button 
-              @click="activeToolId = null" 
-              class="w-full py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 hover:bg-primary/10 transition-all shadow-sm"
-            >
-              <span class="material-symbols-outlined text-xs">arrow_back</span>
-              Về Danh Mục
-            </button>
-          </div>
-        </aside>
-
-        <!-- Top Navigation Bar (Mobile Only) -->
-        <div v-if="activeToolId === 'utilities'" class="flex md:hidden bg-white border-b border-primary/10 p-2 overflow-x-auto gap-2 shrink-0 scrollbar-none whitespace-nowrap">
-            <button 
-              v-for="sub in utilitySubToolsList" 
-              :key="sub.id"
-              @click="activeUtilityTab = sub.id"
-              :class="['flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0', activeUtilityTab === sub.id ? 'bg-primary text-white shadow-soft' : 'bg-slate-50 text-gray-600 border border-gray-150']"
-            >
-              <span class="material-symbols-outlined text-sm">{{ sub.icon }}</span>
-              <span>{{ sub.name }}</span>
-            </button>
-        </div>
-
-        <!-- Main Content Area -->
-        <main 
-          :class="[
-            (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-              ? 'flex-1 flex flex-col bg-cute-gradient md:overflow-hidden' 
-              : 'flex-1 overflow-y-auto p-4 md:p-6 bg-cute-gradient flex flex-col items-center'
-          ]"
-        >
-          <div 
-            :class="[
-              (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-                ? 'w-full flex-1 flex flex-col md:h-full md:overflow-hidden' 
-                : 'w-full max-w-[1200px] h-full flex flex-col mx-auto'
-            ]"
-          >
-            <FormatConverter v-if="activeToolId === 'utilities' && activeUtilityTab === 'converter'" />
-            <ExcelMerger v-else-if="activeToolId === 'utilities' && activeUtilityTab === 'merger'" />
-            <PdfOcrTools v-else-if="activeToolId === 'utilities' && activeUtilityTab === 'ocr'" />
-            <BargeMinutes v-else-if="activeToolId === 'minutes'" />
-            <BargeProfileManager v-else-if="activeToolId === 'vehicles'" />
-            <CargoAllocator v-else-if="activeToolId === 'allocator'" />
-            <WeighbridgePrinter v-else-if="activeToolId === 'weighbridge'" :hide-card="true" />
-          </div>
-        </main>
-
-      </div>
-    </div>
   </main>
 </template>
-
-<style scoped>
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-    animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-</style>

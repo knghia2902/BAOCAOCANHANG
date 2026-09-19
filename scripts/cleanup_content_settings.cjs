@@ -7,20 +7,27 @@
  *   2. Bảng allocator_history_trips trên Supabase phải có >= 17,900 bản ghi.
  */
 
+// Load env or fallback
 const fs = require('fs');
 const path = require('path');
-
-// Load env or fallback
-let supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://kiyxwskilrhhikieabtp.supabase.co';
-let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpeXh3c2tpbHJoaGlraWVhYnRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMjk0MDAsImV4cCI6MjA5NzYwNTQwMH0._hlrV0JwSfBNp8SDuiyTraCGdnmPvMYuCtTaViFCotE';
-
 try {
-    const envContent = fs.readFileSync(path.resolve(__dirname, '../.env'), 'utf8');
-    const urlMatch = envContent.match(/VITE_SUPABASE_URL\s*=\s*(.+)/);
-    const keyMatch = envContent.match(/VITE_SUPABASE_ANON_KEY\s*=\s*(.+)/);
-    if (urlMatch) supabaseUrl = urlMatch[1].trim();
-    if (keyMatch) supabaseAnonKey = keyMatch[1].trim();
-} catch (e) {}
+    const envPath = path.resolve(__dirname, '..', '.env');
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+        const match = line.match(/^([^=]+)=(.*)$/);
+        if (match && !process.env[match[1].trim()]) {
+            process.env[match[1].trim()] = match[2].trim();
+        }
+    });
+} catch (e) { /* .env file not found, rely on process.env */ }
+
+if (!process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_ANON_KEY) {
+    console.error('Missing environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    process.exit(1);
+}
+
+let supabaseUrl = process.env.VITE_SUPABASE_URL;
+let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
 
 const BACKUP_FILE = path.resolve(__dirname, '../.planning/backups/allocator_history_trips_backup_16303.json');
 
