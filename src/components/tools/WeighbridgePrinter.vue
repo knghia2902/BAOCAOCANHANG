@@ -4522,7 +4522,7 @@ onUnmounted(() => {
                                     title="Chốt số liệu và khóa chỉnh sửa tàu"
                                 >
                                     <span class="material-symbols-outlined text-sm">lock</span>
-                                    Chốt số liệu: Đã xong
+                                    Chốt số liệu
                                 </button>
 
                                 <!-- Admin-only Re-open button: available when vessel is done -->
@@ -4534,7 +4534,7 @@ onUnmounted(() => {
                                     title="Mở lại làm hàng cho tàu này (Chỉ Quản trị viên)"
                                 >
                                     <span class="material-symbols-outlined text-sm">lock_open</span>
-                                    Mở lại: Đang làm hàng
+                                    Mở lại
                                 </button>
 
                                 <button 
@@ -4543,22 +4543,9 @@ onUnmounted(() => {
                                     class="px-4 py-2 bg-teal-600 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
                                 >
                                     <span class="material-symbols-outlined text-sm">download</span>
-                                    Xuất báo cáo (Excel)
+                                    Xuất báo cáo
                                 </button>
                             </div>
-                        </div>
-
-                        <!-- Warning Banner if vessel is done -->
-                        <div v-if="isCurrentVesselDone" class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-[20px] text-xs flex items-center justify-between shadow-sm">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-amber-600 text-lg">lock</span>
-                                <span>
-                                    <strong>Tàu đã chốt số liệu (Đã xong):</strong> Toàn bộ dữ liệu tàu và các sà lan đang ở chế độ <strong>Chỉ xem (Read-only)</strong> nhằm bảo vệ dữ liệu. Mọi thao tác thêm/sửa/xóa sà lan và phiếu cân đều bị vô hiệu hóa.
-                                </span>
-                            </div>
-                            <span v-if="authStore.role !== 'admin'" class="text-[11px] text-amber-700 font-semibold italic shrink-0 ml-2">
-                                (Chỉ Quản trị viên mới có quyền mở lại tàu)
-                            </span>
                         </div>
 
                         <!-- Stats Row -->
