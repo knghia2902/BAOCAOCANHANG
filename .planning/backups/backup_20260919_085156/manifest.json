@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-09-19T01:51:56.558Z",
+  "backupDir": "c:\\Users\\TVPL-NgocAnh\\Desktop\\Tools\\BAOCAOCANHANG\\.planning\\backups\\backup_20260919_085156",
+  "tables": {
+    "content": {
+      "records": 1,
+      "sizeBytes": 4193,
+      "sizeFormatted": "4.09 KB",
+      "md5": "f1b91f19d2300bb81c93b124e67d12af",
+      "timeSeconds": 0.54
+    },
+    "weighbridge_vessels": {
+      "records": 18,
+      "sizeBytes": 2534,
+      "sizeFormatted": "2.47 KB",
+      "md5": "f6f0240d87e9e6aee39050e6762e86ea",
+      "timeSeconds": 0.2
+    },
+    "weighbridge_barges": {
+      "records": 105,
+      "sizeBytes": 1496071,
+      "sizeFormatted": "1461.01 KB",
+      "md5": "09843878f18e613a4f111e1152ceeeb1",
+      "timeSeconds": 0.47
+    },
+    "weighbridge_trucks": {
+      "records": 19255,
+      "sizeBytes": 7296010,
+      "sizeFormatted": "7125.01 KB",
+      "md5": "58976d9961788aead71d06c0168f7666",
+      "timeSeconds": 3.17
+    },
+    "weighbridge_tracking": {
+      "records": 0,
+      "sizeBytes": 2,
+      "sizeFormatted": "0.00 KB",
+      "md5": "d751713988987e9331980363e24189ce",
+      "timeSeconds": 0.1
+    },
+    "vehicle_profiles": {
+      "records": 42,
+      "sizeBytes": 72790,
+      "sizeFormatted": "71.08 KB",
+      "md5": "1855e6ef30464dfc4091509a4dd3d737",
+      "timeSeconds": 0.54
+    },
+    "weighbridge_vehicles": {
+      "records": 156,
+      "sizeBytes": 32894,
+      "sizeFormatted": "32.12 KB",
+      "md5": "882de7267b33904e55629b01384775a0",
+      "timeSeconds": 0.1
+    },
+    "activity_logs": {
+      "records": 43,
+      "sizeBytes": 11912,
+      "sizeFormatted": "11.63 KB",
+      "md5": "128242cad61d814cbfbfb17a2c24a839",
+      "timeSeconds": 0.12
+    },
+    "users": {
+      "records": 6,
+      "sizeBytes": 2702,
+      "sizeFormatted": "2.64 KB",
+      "md5": "f0ec754a193afdb7e0fa7d8af15591a4",
+      "timeSeconds": 0.11
+    }
+  },
+  "totalRecords": 19626,
+  "totalSizeBytes": 8919108
+}

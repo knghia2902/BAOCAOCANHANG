@@ -1,0 +1,68 @@
+[
+  {
+    "id": "06dc6edb-4635-4c42-832c-392fb0fbe13a",
+    "username": "admin",
+    "password_hash": "6e2d4a0e910cb1d74d93d9a67c3fff4327856f373ff43a0f9179bdb09a544a1d",
+    "role": "admin",
+    "display_name": "Admin",
+    "avatar": "https://kiyxwskilrhhikieabtp.supabase.co/storage/v1/object/public/portfolio-assets/avatars/1784369466634_qt7ll.JPG",
+    "is_active": true,
+    "created_at": "2026-09-11T14:34:43.656086+00:00",
+    "updated_at": "2026-09-11T14:34:43.656086+00:00"
+  },
+  {
+    "id": "01a3d43c-decc-4356-a51d-0164dee02610",
+    "username": "huenhan",
+    "password_hash": "213d2c282dbbb109938b80c8b02ea6f7c5e20616590f7142bc36109802bbbb35",
+    "role": "staff",
+    "display_name": "Huệ Nhàn",
+    "avatar": "",
+    "is_active": true,
+    "created_at": "2026-09-11T14:34:43.656086+00:00",
+    "updated_at": "2026-09-11T14:34:43.656086+00:00"
+  },
+  {
+    "id": "10fd5dfd-256c-4472-9a7b-4e711c701ea1",
+    "username": "quantri",
+    "password_hash": "612a9bbd55f300a18e5c3c29080cd9fb6f87d58351b0bad0b29e5db5c41b0078",
+    "role": "admin",
+    "display_name": "Huỳnh Vi",
+    "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=Hu%E1%BB%B3nh%20Vi",
+    "is_active": true,
+    "created_at": "2026-09-11T14:34:43.656086+00:00",
+    "updated_at": "2026-09-11T14:34:43.656086+00:00"
+  },
+  {
+    "id": "f8bfac90-ba2b-49b9-bf09-9ad1ec5e981a",
+    "username": "tanthanh",
+    "password_hash": "613977de0abeecb67ab015504991139c515df93d418178027e845495b79a2096",
+    "role": "staff",
+    "display_name": "Tấn Thành",
+    "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=T%E1%BA%A5n%20Th%C3%A0nh",
+    "is_active": true,
+    "created_at": "2026-09-11T14:34:43.656086+00:00",
+    "updated_at": "2026-09-11T14:34:43.656086+00:00"
+  },
+  {
+    "id": "892e8d8f-9d2c-408f-8d33-788497e6d98f",
+    "username": "khacnghia",
+    "password_hash": "ff64d7f3c547fa59d156bea92eb690066f38832176f44f2b6b03995001f07346",
+    "role": "staff",
+    "display_name": "Bùi Khắc Nghĩa",
+    "avatar": "https://kiyxwskilrhhikieabtp.supabase.co/storage/v1/object/public/portfolio-assets/avatars/1782365790245_wdolp.png",
+    "is_active": true,
+    "created_at": "2026-09-11T14:34:43.656086+00:00",
+    "updated_at": "2026-09-11T14:34:43.656086+00:00"
+  },
+  {
+    "id": "4bd174c4-f266-40ba-8c03-ed9adc03b0b2",
+    "username": "lamoanh",
+    "password_hash": "2243c926fe3711cad6ceae965efcdcbb4f06f09a4cfc414fc2ef9b21d1611cdf",
+    "role": "staff",
+    "display_name": "Lâm Oanh",
+    "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=L%C3%A2m%20Oanh",
+    "is_active": true,
+    "created_at": "2026-09-15T04:23:42.815938+00:00",
+    "updated_at": "2026-09-15T04:23:42.815938+00:00"
+  }
+]

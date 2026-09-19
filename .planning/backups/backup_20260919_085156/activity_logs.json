@@ -1,0 +1,389 @@
+[
+  {
+    "id": "ae8f6ca7-6ee8-432c-9539-6fccd127ec61",
+    "created_at": "2026-09-17T08:36:05.215+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "7edd22dc-33bb-47bd-a0dd-3f0e0dcfc6c2",
+    "created_at": "2026-09-17T03:08:28.698+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "e4675fc4-122b-47bf-a310-8b65279ddad5",
+    "created_at": "2026-09-17T09:13:56.362392+00:00",
+    "username": "system",
+    "display_name": "Hệ thống",
+    "role": "system",
+    "action": "Di cư dữ liệu",
+    "details": "Hoàn tất chuyển đổi danh mục xe và nhật ký sang bảng chuyên trách"
+  },
+  {
+    "id": "c9be1e24-3e7b-443a-a8f6-ac34f4ba4e02",
+    "created_at": "2026-09-17T10:26:52.721876+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TN-LA - 06789"
+  },
+  {
+    "id": "91150bdc-9ad0-4104-adfe-e321e6d4b7d1",
+    "created_at": "2026-09-17T10:28:25.404355+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "201ba2a7-48ec-41db-8500-c1e608643090",
+    "created_at": "2026-09-17T10:29:08.902821+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 9439"
+  },
+  {
+    "id": "dbedbcc5-73e7-463d-b6d7-db1634fa5a4d",
+    "created_at": "2026-09-17T10:34:00.143725+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "03fba8b6-8fee-4311-9bcc-b36506ab0f15",
+    "created_at": "2026-09-17T10:34:22.175226+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 90 mới, 0 cập nhật"
+  },
+  {
+    "id": "2a9b8a61-c2a6-41a6-92b3-6ac67f38febc",
+    "created_at": "2026-09-17T10:34:58.410757+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 17759"
+  },
+  {
+    "id": "c3b4cf7f-2c10-4f5f-8561-ec27456beb57",
+    "created_at": "2026-09-17T10:36:22.776367+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TN-LA - 06789"
+  },
+  {
+    "id": "e1a9436c-f9df-4eac-a452-d4ba2f1fc9c6",
+    "created_at": "2026-09-18T09:05:47.255961+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "bb12906c-4ed0-48a6-a376-913af5c12d7f",
+    "created_at": "2026-09-18T09:08:03.872899+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm xe",
+    "details": "Thêm xe mới: 61C 01923"
+  },
+  {
+    "id": "9bde9c28-5fe3-4bac-bc79-e0b22168714c",
+    "created_at": "2026-09-18T09:18:36.987735+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "3ffb8c83-9cb7-4e01-9c57-374890ac39fa",
+    "created_at": "2026-09-18T09:19:27.802087+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "52d5d7c7-9d9f-4b88-b3f4-dffa9aa52490",
+    "created_at": "2026-09-18T09:19:37.608245+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 112 mới, 0 cập nhật"
+  },
+  {
+    "id": "02bc9228-2da2-4d80-9d74-f5580c5402df",
+    "created_at": "2026-09-18T09:19:43.290194+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "ae590c7a-d340-4eb3-a781-89e4cf38dfa9",
+    "created_at": "2026-09-18T09:22:35.387152+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT-TG 15769"
+  },
+  {
+    "id": "58a22ea9-f168-4cba-8c07-885a4fdeeb54",
+    "created_at": "2026-09-18T09:23:30.281779+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "8cebc158-af4b-4416-b4e6-656d013e38ff",
+    "created_at": "2026-09-18T10:20:24.080749+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "8f7a0f5a-dba3-47bb-8eca-5dc39823cf99",
+    "created_at": "2026-09-18T10:20:29.715827+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 31 mới, 0 cập nhật"
+  },
+  {
+    "id": "78d0fc21-ade2-4895-a822-030d94a54335",
+    "created_at": "2026-09-18T10:53:03.604143+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "16570b54-01bc-485b-953c-b814fc59332a",
+    "created_at": "2026-09-18T10:55:11.221279+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 0 mới, 0 cập nhật"
+  },
+  {
+    "id": "8ed173b6-cd9b-4c97-9d62-4d36a52c4262",
+    "created_at": "2026-09-18T10:55:21.526021+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "17f70d66-b963-42b7-b146-54ab2ccddd61",
+    "created_at": "2026-09-18T10:55:27.718054+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 31 mới, 0 cập nhật"
+  },
+  {
+    "id": "2e81c6b8-8504-40ae-b5ab-1b70835e9b75",
+    "created_at": "2026-09-18T14:24:55.421088+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "9a9f08e6-97db-4cfe-a99c-1504fac6a7d1",
+    "created_at": "2026-09-18T14:25:03.654861+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "8c567101-b071-4b68-a80c-c9cdadde3fca",
+    "created_at": "2026-09-18T14:35:49.008198+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 10678"
+  },
+  {
+    "id": "781b899c-b61d-401f-8724-49d2ded7f305",
+    "created_at": "2026-09-18T14:37:43.993999+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7666"
+  },
+  {
+    "id": "f48fbbd4-45f7-4f95-a665-e0b8d7862bee",
+    "created_at": "2026-09-18T14:38:39.408454+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8019"
+  },
+  {
+    "id": "ab352533-e571-4460-b5d1-174bd72ebaeb",
+    "created_at": "2026-09-18T14:45:19.703887+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "fb16097f-f83f-4685-be77-968c998db872",
+    "created_at": "2026-09-18T14:46:13.065791+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "d62a322b-abed-4375-a9c5-a6a0109ebc8b",
+    "created_at": "2026-09-18T15:16:15.884195+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm phiếu cân",
+    "details": "Thêm phiếu cân mới: 123"
+  },
+  {
+    "id": "833c48cc-8c01-4ffe-b5c6-7667283b6dc6",
+    "created_at": "2026-09-18T15:16:34.338902+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa phiếu cân",
+    "details": "Cập nhật phiếu cân: 123"
+  },
+  {
+    "id": "186d6aef-28d4-4e1a-8fcd-06924d090cdb",
+    "created_at": "2026-09-18T15:17:17.833727+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa phiếu cân",
+    "details": "Cập nhật phiếu cân: 60c 01923"
+  },
+  {
+    "id": "93ba4b84-31b5-44d2-91d7-a419fc8c8103",
+    "created_at": "2026-09-18T15:17:49.536973+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa phiếu cân",
+    "details": "Cập nhật phiếu cân: 29K05483"
+  },
+  {
+    "id": "27666f45-1739-4380-b424-9dc3a806d0c1",
+    "created_at": "2026-09-18T15:21:00.771471+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "fd6af028-e176-4057-810c-d3d4b4912cd3",
+    "created_at": "2026-09-18T15:22:45.201896+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 0 mới, 0 cập nhật"
+  },
+  {
+    "id": "db6542f8-9b5c-4fa8-9e0e-197dddd3b64a",
+    "created_at": "2026-09-18T15:50:44.450834+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "e1ddbbea-6926-475d-9d94-6d324077178c",
+    "created_at": "2026-09-18T16:12:14.193633+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "615eb622-3896-41c5-a1ec-f204d7b69cce",
+    "created_at": "2026-09-18T16:42:21.977059+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "44b4d7e4-aa29-4c3a-ad62-59e4feaeed97",
+    "created_at": "2026-09-19T01:34:39.12918+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "70c9730b-9adf-4b8a-84bc-f85500f8ecf2",
+    "created_at": "2026-09-19T01:35:15.25196+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng xuất",
+    "details": "Đăng xuất khỏi hệ thống"
+  },
+  {
+    "id": "ce28cca5-dcd3-4ac1-8a0c-3ebb3637e5a5",
+    "created_at": "2026-09-19T01:35:20.631594+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  }
+]

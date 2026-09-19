@@ -1,0 +1,147 @@
+[
+  {
+    "id": "main",
+    "hero": {
+      "image": "https://kiyxwskilrhhikieabtp.supabase.co/storage/v1/object/public/portfolio-assets/hero/1784036852400_5d13k.png",
+      "title": "Hi, I'm TVPL!",
+      "avatar": "https://kiyxwskilrhhikieabtp.supabase.co/storage/v1/object/public/portfolio-assets/hero/1784036852400_5d13k.png",
+      "position": {
+        "x": 50,
+        "y": 50
+      },
+      "subtitle": "Designing digital dreams with a touch of magic. I create whimsical experiences that spark joy for people everywhere.",
+      "primaryButton": "See my tools",
+      "secondaryButton": "My Story"
+    },
+    "visibility": {
+      "hero": true,
+      "skills": true,
+      "projects": true,
+      "sparkles": false
+    },
+    "stats": {
+      "visitors": 25
+    },
+    "about": {
+      "email": "ngocanh.mai247@gmail.com",
+      "social": [
+        {
+          "id": 1,
+          "url": "#https://www.facebook.com/mai.ngoc.anh.704677",
+          "icon": "facebook",
+          "isSvg": true,
+          "platform": "Facebook"
+        },
+        {
+          "id": 2,
+          "url": "#",
+          "icon": "instagram",
+          "isSvg": true,
+          "platform": "Instagram"
+        }
+      ]
+    },
+    "updated_at": "2026-07-14T13:47:37.355+00:00",
+    "settings": {
+      "avatar": "https://kiyxwskilrhhikieabtp.supabase.co/storage/v1/object/public/portfolio-assets/avatars/1784369466634_qt7ll.JPG",
+      "is_first": false,
+      "displayName": "Admin",
+      "staff_tools": [
+        "weighbridge",
+        "allocator",
+        "vehicles"
+      ],
+      "allocator_goods": [
+        "Viên nén gỗ",
+        "Lúa mì",
+        "Bắp hạt",
+        "Bã nành",
+        "Giấy phế liệu",
+        "VIÊN NÉN GỖ (SBP Compliant Biomass)",
+        "VIÊN NÉN GỖ (FSC Mix 1%/SBP Controlled Biomass)"
+      ],
+      "role_permissions": {
+        "admin": {
+          "tools": [
+            "converter",
+            "merger",
+            "weighbridge",
+            "allocator",
+            "vehicles",
+            "ocr"
+          ],
+          "canCreate": true,
+          "canDelete": true,
+          "canUpdate": true
+        },
+        "staff": {
+          "tools": [
+            "weighbridge",
+            "allocator",
+            "vehicles"
+          ],
+          "canCreate": true,
+          "canDelete": false,
+          "canUpdate": true,
+          "detailPermissions": {
+            "vehicles": [
+              "veh_barge_profile:read",
+              "veh_barge_profile:create",
+              "veh_barge_profile:update",
+              "veh_barge_profile:delete",
+              "veh_crew_profile:read",
+              "veh_crew_profile:create",
+              "veh_crew_profile:update",
+              "veh_crew_profile:delete",
+              "veh_registry_insurance:read",
+              "veh_registry_insurance:create",
+              "veh_registry_insurance:update",
+              "veh_registry_insurance:delete"
+            ],
+            "allocator": [
+              "al_barge_manage:read",
+              "al_barge_manage:create",
+              "al_data_manage:read",
+              "al_export:read",
+              "al_rules_manage:read"
+            ],
+            "weighbridge": [
+              "wb_print_export:read"
+            ]
+          }
+        },
+        "viewer": {
+          "tools": [
+            "weighbridge",
+            "allocator",
+            "vehicles"
+          ],
+          "canCreate": false,
+          "canDelete": false,
+          "canUpdate": false,
+          "detailPermissions": {
+            "vehicles": [
+              "veh_barge_profile:read",
+              "veh_crew_profile:read",
+              "veh_registry_insurance:read"
+            ],
+            "allocator": [
+              "al_barge_manage:read",
+              "al_rules_manage:read",
+              "al_data_manage:read",
+              "al_export:read"
+            ],
+            "weighbridge": [
+              "wb_vessel_manage:read",
+              "wb_truck_manage:read",
+              "wb_print_export:read",
+              "wb_layout_config:read"
+            ]
+          }
+        }
+      },
+      "allocator_tickets": [],
+      "allocator_generated_trips": []
+    }
+  }
+]
