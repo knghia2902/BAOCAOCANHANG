@@ -266,7 +266,11 @@ onUnmounted(() => {
  
     <!-- Main Workspace / View Content -->
     <div class="flex-1 flex flex-col min-h-0">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <KeepAlive :max="10">
+          <component :is="Component" />
+        </KeepAlive>
+      </RouterView>
     </div>
 
     <!-- Edit Profile Modal -->

@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, defineAsyncComponent, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { authStore } from '@/stores/auth';
 import ToolLayout from '../../layouts/ToolLayout.vue';
-
-const FormatConverter = defineAsyncComponent(() => import('../../components/tools/FormatConverter.vue'));
-const ExcelMerger = defineAsyncComponent(() => import('../../components/tools/ExcelMerger.vue'));
-const PdfOcrTools = defineAsyncComponent(() => import('../../components/tools/PdfOcrTools.vue'));
+import FormatConverter from '../../components/tools/FormatConverter.vue';
+import ExcelMerger from '../../components/tools/ExcelMerger.vue';
+import PdfOcrTools from '../../components/tools/PdfOcrTools.vue';
 
 const route = useRoute();
 const router = useRouter();
