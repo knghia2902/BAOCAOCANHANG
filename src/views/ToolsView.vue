@@ -303,7 +303,7 @@ watch(allowedStaffTools, (newVal) => {
     >
       
       <!-- Workspace Header bar -->
-      <header class="bg-white px-6 py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
+      <header class="bg-white px-4 md:px-6 py-3 md:py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 sticky top-0 z-30">
         <div class="flex items-center gap-3">
           <div :class="['size-11 rounded-full flex items-center justify-center text-white shadow-soft shrink-0', (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles') ? 'bg-primary' : (activeToolMetadata.bgIcon.split(' ')[0] || 'bg-primary')]">
             <span class="material-symbols-outlined text-[20px]">
@@ -336,7 +336,7 @@ watch(allowedStaffTools, (newVal) => {
       </header>
 
       <!-- Workspace Body -->
-      <div class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+      <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden">
         
         <!-- Left Sidebar: Utility sub-tools list (Desktop Only) -->
         <aside v-if="activeToolId === 'utilities'" class="hidden md:flex w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
@@ -387,14 +387,14 @@ watch(allowedStaffTools, (newVal) => {
         <main 
           :class="[
             (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-              ? 'flex-1 overflow-y-auto md:overflow-hidden flex flex-col bg-cute-gradient min-h-0' 
+              ? 'flex-1 flex flex-col bg-cute-gradient md:overflow-hidden' 
               : 'flex-1 overflow-y-auto p-4 md:p-6 bg-cute-gradient flex flex-col items-center'
           ]"
         >
           <div 
             :class="[
               (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-                ? 'w-full min-h-full md:h-full flex flex-col overflow-y-auto md:overflow-hidden' 
+                ? 'w-full flex-1 flex flex-col md:h-full md:overflow-hidden' 
                 : 'w-full max-w-[1200px] h-full flex flex-col mx-auto'
             ]"
           >

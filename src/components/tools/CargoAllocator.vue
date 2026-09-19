@@ -1125,6 +1125,7 @@ async function clearAllTickets() {
 
 // Tabs and filters for Source tickets
 const activeDataTab = ref<'source' | 'generated' | 'template'>('source');
+const isSettingsCollapsed = ref(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
 const sourceCurrentPage = ref(1);
 const sourceSearchQuery = ref('');
 
@@ -3348,9 +3349,9 @@ async function compileAndDownload() {
 </script>
 
 <template>
-    <div class="cargo-allocator-wrapper flex-1 flex flex-col min-h-0 overflow-y-auto md:overflow-hidden h-full w-full font-display">
+    <div class="cargo-allocator-wrapper flex-1 flex flex-col min-h-0 md:h-full w-full font-display">
         <!-- Main area -->
-        <div class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-4 p-2 md:p-4">
+        <div class="flex-1 flex flex-col md:flex-row md:overflow-hidden gap-4 p-2 md:p-4">
             <!-- Top Navigation (Mobile Only) -->
             <div class="flex md:hidden bg-white border border-primary/5 rounded-[20px] p-2 overflow-x-auto gap-2 shrink-0 scrollbar-none whitespace-nowrap mb-1">
                 <button 
@@ -3430,7 +3431,7 @@ async function compileAndDownload() {
                 </div>
             </aside>
 
-            <main class="flex-1 min-h-0 flex flex-col overflow-y-auto md:overflow-hidden">
+            <main class="flex-1 min-h-0 flex flex-col md:overflow-hidden">
                 <!-- Chế độ 1: Quản lý danh sách xe -->
                 <div v-if="activeSubViewMode === 'vehicles'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
                     <VehicleManager />
@@ -3442,30 +3443,39 @@ async function compileAndDownload() {
                 </div>
 
                 <!-- Chế độ 4: Lịch sử cân Kho & Container -->
-                <div v-else-if="activeSubViewMode === 'other_tickets'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0 h-full">
+                <div v-else-if="activeSubViewMode === 'other_tickets'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0 md:h-full">
                     <WeighbridgeOtherManager />
                 </div>
 
                 <!-- Chế độ 2: Giao diện Phân bổ tải trọng xếp hàng (Chạy toàn cục) -->
-                <div v-else class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto overflow-y-auto md:overflow-hidden flex-1 min-h-0">
+                <div v-else class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto md:overflow-hidden flex-1 min-h-0">
 
-                    <div class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 fade-in flex-1 min-h-0">
+                    <div class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 fade-in flex-1 min-h-0">
         <!-- Header Banner -->
-        <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3 px-5 soft-shadow border border-primary/5 gap-4 shrink-0">
+        <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3 px-4 md:px-5 soft-shadow border border-primary/5 gap-3 shrink-0">
             <div>
                 <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Công cụ thông minh</div>
-                <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
+                <h1 class="text-sm md:text-base font-black text-[#1e293b] flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-primary text-base">balance</span>
                     Phân bổ tải trọng xếp hàng lên phương tiện
                 </h1>
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-gray-500 mt-0.5">
                     Tự động chia tách trọng lượng xe quá tải vượt hạn mức thành nhiều chuyến hợp lệ và kết xuất tệp theo mẫu chuẩn.
                 </p>
             </div>
+            <!-- Toggle settings on mobile / desktop -->
+            <button 
+                @click="isSettingsCollapsed = !isSettingsCollapsed"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-primary/10 text-primary hover:bg-primary/20 shrink-0 select-none cursor-pointer"
+                :title="isSettingsCollapsed ? 'Mở rộng cài đặt quy tắc' : 'Thu gọn cài đặt quy tắc'"
+            >
+                <span class="material-symbols-outlined text-[16px]">{{ isSettingsCollapsed ? 'tune' : 'expand_less' }}</span>
+                <span>{{ isSettingsCollapsed ? 'Hiện cài đặt quy tắc' : 'Thu gọn cài đặt' }}</span>
+            </button>
         </div>
 
         <!-- Compact Settings & Capacities configs -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 shrink-0 text-left">
+        <div v-show="!isSettingsCollapsed" class="grid grid-cols-1 lg:grid-cols-4 gap-3 shrink-0 text-left transition-all">
             <!-- Thẻ 1: Số phiếu tự động (2/4 width) -->
             <div class="lg:col-span-2 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <!-- Col 1: Số phiếu tự động (Phần 1) -->
@@ -3619,7 +3629,7 @@ async function compileAndDownload() {
         </div>
 
         <!-- Tabbed Data Panel -->
-        <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full flex-1 min-h-0 overflow-hidden">
+        <div class="bg-white rounded-[24px] p-4 md:p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full min-h-[500px] md:min-h-0 md:flex-1 md:overflow-hidden">
             <!-- Tabs Header -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <!-- Tabs Navigation Strip -->

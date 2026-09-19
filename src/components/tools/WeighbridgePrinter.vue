@@ -4371,7 +4371,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- All Barges Table Card -->
-                        <div class="flex-1 bg-white rounded-[24px] p-5 soft-shadow border border-primary/5 flex flex-col min-h-0">
+                        <div class="flex-1 bg-white rounded-[24px] p-4 md:p-5 soft-shadow border border-primary/5 flex flex-col min-h-[350px] md:min-h-0">
                             <div class="flex flex-wrap items-center justify-between mb-4 gap-3">
                                 <h3 class="text-sm font-black text-primary flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-base">analytics</span>
@@ -4435,7 +4435,7 @@ onUnmounted(() => {
                             <div v-else-if="filteredAllBarges.length === 0" class="text-center py-10 text-gray-400 text-xs italic">
                                 Không tìm thấy sà lan phù hợp với từ khóa tìm kiếm hoặc bộ lọc.
                             </div>
-                            <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
+                            <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100 min-h-[250px] md:min-h-0">
                                 <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">

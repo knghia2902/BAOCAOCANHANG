@@ -267,7 +267,7 @@ const clearAllTickets = async () => {
 </script>
 
 <template>
-    <div class="w-full h-full flex-1 flex flex-col gap-4 min-h-0">
+    <div class="w-full md:h-full flex-1 flex flex-col gap-4 min-h-0">
         
         <!-- ═══ Card 1: Header & Tab switcher ═══ -->
         <div class="bg-white rounded-3xl p-5 border border-primary/5 shadow-soft shrink-0">
@@ -315,7 +315,7 @@ const clearAllTickets = async () => {
         </div>
 
         <!-- ═══ Card 3: Data Table + Search + Import + Pagination ═══ -->
-        <div class="bg-white rounded-3xl p-5 border border-primary/5 shadow-soft flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
+        <div class="bg-white rounded-3xl p-4 md:p-5 border border-primary/5 shadow-soft flex flex-col gap-4 flex-1 min-h-[450px] md:min-h-0 md:overflow-hidden">
             <!-- Hidden file input -->
             <input 
                 type="file" 
