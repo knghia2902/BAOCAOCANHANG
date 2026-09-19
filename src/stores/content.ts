@@ -1,6 +1,41 @@
-import { reactive } from 'vue';
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-export const contentStore = reactive({
+export interface ContentState {
+    hero: {
+        title: string;
+        subtitle: string;
+        primaryButton: string;
+        secondaryButton: string;
+        position: { x: number; y: number };
+        image: string;
+        avatar: string;
+    };
+    visibility: {
+        hero: boolean;
+        skills: boolean;
+        projects: boolean;
+        sparkles: boolean;
+    };
+    stats: {
+        visitors: number;
+    };
+    toolkit: Array<{ icon: string; label: string; tool?: string }>;
+    projects: Array<{
+        id: number;
+        title: string;
+        description: string;
+        tag: string;
+        image: string;
+    }>;
+    about: {
+        email: string;
+        social: Array<{ id: number; platform: string; url: string; icon: string; isSvg: boolean }>;
+    };
+    messages: Array<{ id: number; name: string; email: string; content: string; date: string; isRead?: boolean }>;
+}
+
+const defaultContentState: ContentState = {
     hero: {
         title: "Hi, I'm Ngoc Anh!",
         subtitle: "Designing digital dreams with a touch of magic. I create whimsical experiences that spark joy for people everywhere.",
@@ -17,7 +52,7 @@ export const contentStore = reactive({
         sparkles: false
     },
     stats: {
-        visitors: 0 // Will be tracked via analytics
+        visitors: 0
     },
     toolkit: [
         { icon: 'palette', label: 'UI Design', tool: '/tools' },
@@ -49,5 +84,40 @@ export const contentStore = reactive({
             { id: 2, platform: 'Instagram', url: '#', icon: 'instagram', isSvg: true }
         ]
     },
-    messages: [] as Array<{ id: number; name: string; email: string; content: string; date: string; isRead?: boolean }>
+    messages: []
+};
+
+export const useContentStore = defineStore('content', () => {
+    const hero = ref(defaultContentState.hero);
+    const visibility = ref(defaultContentState.visibility);
+    const stats = ref(defaultContentState.stats);
+    const toolkit = ref(defaultContentState.toolkit);
+    const projects = ref(defaultContentState.projects);
+    const about = ref(defaultContentState.about);
+    const messages = ref(defaultContentState.messages);
+
+    function updateContent(newContent: Partial<ContentState>) {
+        if (newContent.hero) Object.assign(hero.value, newContent.hero);
+        if (newContent.visibility) Object.assign(visibility.value, newContent.visibility);
+        if (newContent.stats) Object.assign(stats.value, newContent.stats);
+        if (newContent.toolkit) toolkit.value = newContent.toolkit;
+        if (newContent.projects) projects.value = newContent.projects;
+        if (newContent.about) Object.assign(about.value, newContent.about);
+        if (newContent.messages) messages.value = newContent.messages;
+    }
+
+    return {
+        hero,
+        visibility,
+        stats,
+        toolkit,
+        projects,
+        about,
+        messages,
+        updateContent
+    };
 });
+
+// Backward-compatible export for existing components
+import { reactive } from 'vue';
+export const contentStore = reactive(defaultContentState);

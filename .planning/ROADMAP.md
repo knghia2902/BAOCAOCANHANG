@@ -84,7 +84,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 7. Filtering & Export | v1.1 | 0/2 | Not started | - |
 | 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
 | 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
-| 10. Enterprise Upgrade | v1.1 | 1/4 | In progress | - |
+| 10. Enterprise Upgrade | v1.1 | 2/4 | In progress | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -108,6 +108,6 @@ Plans:
 Plans:
 
 - [x] 10-01: Bảo mật và chuyển đổi Supabase Auth (SQL RLS migration, cập nhật AuthService & session JWT).
-- [ ] 10-02: Cài đặt Pinia và xây dựng các domain store tập trung (useWeighbridgeStore, useAllocatorStore, useAuthStore).
+- [x] 10-02: Cài đặt Pinia và xây dựng các domain store tập trung (useWeighbridgeStore, useAllocatorStore, useAuthStore).
 - [ ] 10-03: Tách god-service ContentService và tổ chức lại thư mục domain services (auth, cms, weighbridge).
 - [ ] 10-04: Phân rã mega-component WeighbridgePrinter, tích hợp BaseConfirmModal và thiết lập GitHub Actions CI workflow.
