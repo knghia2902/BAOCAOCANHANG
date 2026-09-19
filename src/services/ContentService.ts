@@ -1,13 +1,13 @@
 import { supabase } from '@/supabase';
 import { contentStore } from '@/stores/content';
-
-// Define explicit types or use 'any' carefully
+import { UserService } from './auth/UserService';
+import { PermissionService, DEFAULT_ROLE_PERMISSIONS } from './auth/PermissionService';
+import { MessageService } from './cms/MessageService';
 
 export const ContentService = {
-    // Fetch all data on app load
+    // CMS Portfolio
     async loadAll() {
         try {
-            // 1. Load Global Content (Hero, Stats, Visibility, About)
             const { data: contentData } = await supabase
                 .from('content')
                 .select('*')
@@ -21,7 +21,6 @@ export const ContentService = {
                 if (contentData.about) contentStore.about = { ...contentStore.about, ...contentData.about };
             }
 
-            // 2. Load Projects
             const { data: projectsData } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
             if (projectsData) {
                 contentStore.projects = projectsData.map((p: any) => ({
@@ -33,7 +32,6 @@ export const ContentService = {
                 }));
             }
 
-            // 3. Load Toolkit
             const { data: toolsData } = await supabase.from('tools').select('*').order('created_at', { ascending: true });
             if (toolsData) {
                 contentStore.toolkit = toolsData.map((t: any) => ({
@@ -43,22 +41,17 @@ export const ContentService = {
                 }));
             }
 
-            // 4. Load Messages
             const { data: msgData } = await supabase.from('messages').select('*').order('date', { ascending: false });
             if (msgData) {
                 contentStore.messages = msgData;
             }
-
-            console.log('Using Supabase Data');
         } catch (e) {
-            console.error('Error loading data', e);
+            console.error('Error loading content data', e);
         }
     },
 
-    // Save all changes
     async saveAll() {
         try {
-            // 1. Update Global Content
             const { error } = await supabase
                 .from('content')
                 .update({
@@ -70,25 +63,16 @@ export const ContentService = {
                 })
                 .eq('id', 'main');
 
-            if (error) throw error;
-
-            // Note: For Projects and Tools, simpler strategy for this demo:
-            // We assume ContentStore is the source of truth. 
-            // A proper sync would require tracking IDs. 
-            // For now, to keep it simple and "Save" button based, we handle specific add/remove actions separately or just warn user.
-            // Ideally, specific addProject/removeProject calls should be made immediately, not just on "Save".
-
-            return true;
+            return !error;
         } catch (e) {
-            console.error('Error saving data', e);
+            console.error('Error saving content data', e);
             return false;
         }
     },
 
-    // Specific Actions
     async addProject(project: any) {
         const { data, error } = await supabase.from('projects').insert([project]).select();
-        if (!error && data) return data[0]; // Return the full object including ID
+        if (!error && data) return data[0];
         return null;
     },
 
@@ -113,23 +97,7 @@ export const ContentService = {
         return !error;
     },
 
-    async sendMessage(msg: any) {
-        const { error } = await supabase.from('messages').insert([msg]);
-        return !error;
-    },
-
-    async deleteMessage(id: any) {
-        const { error } = await supabase.from('messages').delete().eq('id', id);
-        return !error;
-    },
-
-    async markMessageAsRead(id: any) {
-        const { error } = await supabase.from('messages').update({ isRead: true }).eq('id', id);
-        return !error;
-    },
-
     async incrementVisitors() {
-        // Get current stats
         const { data, error: fetchError } = await supabase.from('content').select('stats').eq('id', 'main').single();
         if (fetchError || !data?.stats) return false;
 
@@ -139,7 +107,6 @@ export const ContentService = {
             visitors: currentVisitors + 1
         };
 
-        // Update with new count
         const { error } = await supabase
             .from('content')
             .update({ stats: newStats })
@@ -151,242 +118,26 @@ export const ContentService = {
         return !error;
     },
 
-    // Accounts & Users management (Lưu trữ trực tiếp trên bảng users của Supabase)
-    async loadAccounts(): Promise<any[]> {
-        try {
-            // 1. Lấy trực tiếp từ bảng users trên database
-            const { data: users, error: usersError } = await supabase
-                .from('users')
-                .select('*')
-                .order('created_at', { ascending: true });
+    // Facade delegation to MessageService
+    sendMessage: MessageService.sendMessage,
+    deleteMessage: MessageService.deleteMessage,
+    markMessageAsRead: MessageService.markMessageAsRead,
 
-            if (!usersError && users && users.length > 0) {
-                return users.map(u => ({
-                    id: u.id,
-                    username: u.username,
-                    displayName: u.display_name || u.username,
-                    role: u.role || 'staff',
-                    avatar: u.avatar || '',
-                    isActive: u.is_active !== false,
-                    password: u.password_hash,
-                    created_at: u.created_at
-                }));
-            }
-        } catch (err) {
-            console.warn('Lỗi load từ bảng users:', err);
-        }
+    // Facade delegation to UserService
+    loadAccounts: UserService.loadAccounts,
+    createUser: UserService.createUser,
+    updateUser: UserService.updateUser,
+    toggleUserStatus: UserService.toggleUserStatus,
+    deleteUser: UserService.deleteUser,
+    resetPassword: UserService.resetPassword,
+    resetUserPassword: UserService.resetUserPassword,
+    saveAccounts: UserService.saveAccounts,
 
-        // 2. Fallback nếu bảng users chưa có dữ liệu
-        try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (error || !data?.settings) return [];
-            return (data.settings.accounts || []).map((acc: any) => ({
-                ...acc,
-                isActive: true
-            }));
-        } catch (e) {
-            console.error('Error loading accounts fallback', e);
-            return [];
-        }
-    },
-
-    async createUser(account: { username: string; password: string; displayName?: string; role: string; avatar?: string }): Promise<boolean> {
-        const usernameClean = account.username.trim().toLowerCase();
-        try {
-            const { error: userError } = await supabase
-                .from('users')
-                .insert([{
-                    username: usernameClean,
-                    password_hash: account.password,
-                    display_name: account.displayName || usernameClean,
-                    role: account.role || 'staff',
-                    avatar: account.avatar || '',
-                    is_active: true
-                }]);
-
-            if (!userError) return true;
-            console.error('Lỗi khi thêm vào bảng users:', userError);
-            return false;
-        } catch (err) {
-            console.error('Không thể insert vào bảng users:', err);
-            return false;
-        }
-    },
-
-    async updateUser(username: string, updates: { displayName?: string; role?: string; avatar?: string; isActive?: boolean }): Promise<boolean> {
-        const usernameClean = username.trim().toLowerCase();
-        try {
-            const userUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
-            if (updates.displayName !== undefined) userUpdates.display_name = updates.displayName;
-            if (updates.role !== undefined) userUpdates.role = updates.role;
-            if (updates.avatar !== undefined) userUpdates.avatar = updates.avatar;
-            if (updates.isActive !== undefined) userUpdates.is_active = updates.isActive;
-
-            const { error: userError } = await supabase
-                .from('users')
-                .update(userUpdates)
-                .eq('username', usernameClean);
-
-            return !userError;
-        } catch (err) {
-            console.error('Lỗi khi update bảng users:', err);
-            return false;
-        }
-    },
-
-    async toggleUserStatus(username: string, isActive: boolean): Promise<boolean> {
-        return this.updateUser(username, { isActive });
-    },
-
-    async deleteUser(username: string): Promise<boolean> {
-        const usernameClean = username.trim().toLowerCase();
-        try {
-            const { error: deleteError } = await supabase
-                .from('users')
-                .delete()
-                .eq('username', usernameClean);
-
-            return !deleteError;
-        } catch (err) {
-            console.error('Lỗi xóa khỏi bảng users:', err);
-            return false;
-        }
-    },
-
-    async resetUserPassword(username: string, passwordHash: string): Promise<boolean> {
-        const usernameClean = username.trim().toLowerCase();
-        try {
-            const { error: resetError } = await supabase
-                .from('users')
-                .update({ 
-                    password_hash: passwordHash,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('username', usernameClean);
-
-            return !resetError;
-        } catch (err) {
-            console.error('Lỗi reset mật khẩu trong bảng users:', err);
-            return false;
-        }
-    },
-
-    async saveAccounts(_accounts?: any[]): Promise<boolean> {
-        return true;
-    },
-
-    async loadStaffTools(): Promise<string[]> {
-        try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (error || !data?.settings) return ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
-            return data.settings.staff_tools || ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
-        } catch (e) {
-            console.error('Error loading staff tools config', e);
-            return ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
-        }
-    },
-
-    async saveStaffTools(tools: string[]): Promise<boolean> {
-        try {
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (fetchError || !current?.settings) return false;
-            
-            const newSettings = {
-                ...current.settings,
-                staff_tools: tools
-            };
-            const { error } = await supabase
-                .from('content')
-                .update({ settings: newSettings })
-                .eq('id', 'main');
-            return !error;
-        } catch (e) {
-            console.error('Error saving staff tools config', e);
-            return false;
-        }
-    },
-
-    async loadRolePermissions(): Promise<Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>> {
-        try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (error || !data?.settings) return DEFAULT_ROLE_PERMISSIONS;
-            return data.settings.role_permissions || DEFAULT_ROLE_PERMISSIONS;
-        } catch (e) {
-            console.error('Error loading role permissions config', e);
-            return DEFAULT_ROLE_PERMISSIONS;
-        }
-    },
-
-    async saveRolePermissions(rolePermissions: Record<string, { tools: string[]; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>): Promise<boolean> {
-        try {
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (fetchError || !current?.settings) return false;
-            
-            const newSettings = {
-                ...current.settings,
-                role_permissions: rolePermissions
-            };
-            const { error } = await supabase
-                .from('content')
-                .update({ settings: newSettings })
-                .eq('id', 'main');
-            return !error;
-        } catch (e) {
-            console.error('Error saving role permissions config', e);
-            return false;
-        }
-    }
+    // Facade delegation to PermissionService
+    loadStaffTools: PermissionService.loadStaffTools,
+    saveStaffTools: PermissionService.saveStaffTools,
+    loadRolePermissions: PermissionService.loadRolePermissions,
+    saveRolePermissions: PermissionService.saveRolePermissions
 };
 
-export const DEFAULT_ROLE_PERMISSIONS: Record<string, { tools: string[]; description?: string; canCreate: boolean; canUpdate: boolean; canDelete: boolean }> = {
-    admin: {
-        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'],
-        description: 'Quản trị viên toàn quyền hệ thống',
-        canCreate: true,
-        canUpdate: true,
-        canDelete: true
-    },
-    staff: {
-        tools: ['converter', 'merger', 'ocr'],
-        description: 'Nhân viên văn phòng, xử lý tài liệu Excel/PDF',
-        canCreate: true,
-        canUpdate: true,
-        canDelete: false
-    },
-    operator: {
-        tools: ['weighbridge', 'allocator', 'vehicles'],
-        description: 'Nhân viên vận hành, in phiếu cân xe và cập nhật chuyến hàng sà lan',
-        canCreate: true,
-        canUpdate: true,
-        canDelete: false
-    },
-    viewer: {
-        tools: ['weighbridge', 'allocator', 'vehicles'],
-        description: 'Tài khoản giám sát, chỉ xem báo cáo sản lượng',
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false
-    }
-};
-
-
+export { UserService, PermissionService, MessageService, DEFAULT_ROLE_PERMISSIONS };
