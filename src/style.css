@@ -8,6 +8,11 @@
     --text-main: #1e293b;
 }
 
+html,
+body {
+    -webkit-overflow-scrolling: touch;
+}
+
 body {
     background-color: var(--soft-rose);
     color: var(--text-main);

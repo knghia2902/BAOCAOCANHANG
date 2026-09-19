@@ -100,19 +100,29 @@ watch(() => [authStore.isAuthenticated, authStore.role], async () => {
     await loadTools();
 }, { immediate: true });
 
-watch(() => route.path, (newPath) => {
-    const isToolPage = newPath.startsWith('/tools/');
-    (document.documentElement.style as any).zoom = isToolPage ? 0.9 : 0.8;
-}, { immediate: true });
+const updateZoom = () => {
+    if (typeof window !== 'undefined') {
+        const isToolPage = route.path.startsWith('/tools/');
+        if (window.innerWidth >= 1024) {
+            (document.documentElement.style as any).zoom = isToolPage ? 0.9 : 0.8;
+        } else {
+            (document.documentElement.style as any).zoom = '';
+        }
+    }
+};
+
+watch(() => route.path, updateZoom, { immediate: true });
 
 onMounted(async () => {
     // Load all content from Supabase
     await ContentService.loadAll();
     window.addEventListener('click', closeDropdown);
+    window.addEventListener('resize', updateZoom);
 });
 
 onUnmounted(() => {
     window.removeEventListener('click', closeDropdown);
+    window.removeEventListener('resize', updateZoom);
 });
 </script>
 

@@ -80,7 +80,11 @@ watch(activeToolId, (newVal) => {
     window.dispatchEvent(new CustomEvent('weighbridge-status', { detail: isWeighbridge }));
 
     if (newVal) {
-        document.body.style.overflow = 'hidden';
+        if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
     } else {
         document.body.style.overflow = '';
     }
@@ -293,8 +297,8 @@ watch(allowedStaffTools, (newVal) => {
       v-if="activeToolId && activeToolMetadata" 
       :class="[
         (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-          ? 'fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display' 
-          : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-hidden no-print animate-fade-in font-display'
+          ? 'fixed inset-0 bg-white z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print font-display' 
+          : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print animate-fade-in font-display'
       ]"
     >
       
@@ -332,7 +336,7 @@ watch(allowedStaffTools, (newVal) => {
       </header>
 
       <!-- Workspace Body -->
-      <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         
         <!-- Left Sidebar: Utility sub-tools list (Desktop Only) -->
         <aside v-if="activeToolId === 'utilities'" class="hidden md:flex w-64 bg-white border-r border-primary/10 flex flex-col shrink-0">
@@ -383,14 +387,14 @@ watch(allowedStaffTools, (newVal) => {
         <main 
           :class="[
             (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-              ? 'flex-1 overflow-hidden flex flex-col bg-cute-gradient' 
-              : 'flex-1 overflow-y-auto p-6 bg-cute-gradient flex flex-col items-center'
+              ? 'flex-1 overflow-y-auto md:overflow-hidden flex flex-col bg-cute-gradient min-h-0' 
+              : 'flex-1 overflow-y-auto p-4 md:p-6 bg-cute-gradient flex flex-col items-center'
           ]"
         >
           <div 
             :class="[
               (activeToolId === 'weighbridge' || activeToolId === 'allocator' || activeToolId === 'vehicles')
-                ? 'w-full h-full flex flex-col overflow-hidden' 
+                ? 'w-full min-h-full md:h-full flex flex-col overflow-y-auto md:overflow-hidden' 
                 : 'w-full max-w-[1200px] h-full flex flex-col mx-auto'
             ]"
           >

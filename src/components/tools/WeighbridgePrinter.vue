@@ -4108,7 +4108,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="weighbridge-printer-wrapper flex-1 flex flex-col min-h-0 overflow-hidden font-display">
+    <div class="weighbridge-printer-wrapper flex-1 flex flex-col min-h-0 overflow-y-auto md:overflow-hidden font-display">
         <div v-if="!hideCard" class="bg-white rounded-[24px] p-8 md:p-10 soft-shadow border border-primary/5 relative overflow-hidden flex flex-col justify-between h-full group">
             <div class="absolute -top-6 -right-6 p-8 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all pointer-events-none">
                 <span class="material-symbols-outlined text-[120px] text-primary">monitoring</span>
@@ -4135,7 +4135,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Fullscreen Workspace Overlay -->
-        <div v-if="isOpen" :class="[hideCard ? 'flex-1 flex flex-col overflow-hidden font-display' : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-hidden no-print animate-fade-in font-display']">
+        <div v-if="isOpen" :class="[hideCard ? 'flex-1 flex flex-col overflow-y-auto md:overflow-hidden font-display' : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print animate-fade-in font-display']">
             <!-- Header bar of Workspace -->
             <header v-if="!hideCard" class="bg-white px-6 py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
                 <div class="flex items-center gap-3">
@@ -4166,11 +4166,11 @@ onUnmounted(() => {
             </header>
 
             <!-- Main area -->
-            <div :class="['flex-1 flex overflow-hidden gap-4', hideCard ? 'p-4' : 'p-4 bg-cute-gradient']">
+            <div :class="['flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-4', hideCard ? 'p-2 md:p-4' : 'p-2 md:p-4 bg-cute-gradient']">
                 <!-- Sidebar (left): Vessels -> Barges tree -->
                 <aside 
                     :class="[
-                        'w-full md:w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden',
+                        'w-full md:w-72 h-auto md:h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden',
                         (activeVesselId || activeBargeId) ? 'hidden md:flex' : 'flex'
                     ]"
                 >
@@ -4310,12 +4310,12 @@ onUnmounted(() => {
                 <!-- Workspace (right) -->
                 <main 
                     :class="[
-                        'flex-1 h-full min-h-0 flex flex-col gap-4 p-0 overflow-hidden',
+                        'flex-1 min-h-0 flex flex-col gap-4 p-0 overflow-y-auto md:overflow-hidden',
                         (!activeVesselId && !activeBargeId) ? 'hidden md:flex' : 'flex'
                     ]"
                 >
                     <!-- Global Dashboard (Empty State replaced by All Barges Overview) -->
-                    <div v-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 animate-fade-in min-h-0">
+                    <div v-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 animate-fade-in min-h-0">
                         <!-- Welcome Header banner -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div>
@@ -4490,7 +4490,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Vessel Summary Dashboard -->
-                    <div v-else-if="activeVesselId && !activeBargeId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 animate-fade-in min-h-0">
+                    <div v-else-if="activeVesselId && !activeBargeId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 animate-fade-in min-h-0">
                         <!-- Vessel header breadcrumbs -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div class="flex items-center gap-3">
@@ -4580,7 +4580,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Barges Summary Table Card -->
-                        <div class="flex-1 bg-white rounded-[24px] p-5 soft-shadow border border-primary/5 flex flex-col min-h-0">
+                        <div class="flex-1 bg-white rounded-[24px] p-4 md:p-5 soft-shadow border border-primary/5 flex flex-col min-h-[350px] md:min-h-0">
                             <div class="flex flex-wrap items-center justify-between mb-4 gap-3">
                                 <h3 class="text-sm font-black text-primary flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-base">analytics</span>
@@ -4634,7 +4634,7 @@ onUnmounted(() => {
                             <div v-else-if="filteredVesselBarges.length === 0" class="text-center py-10 text-gray-400 text-xs italic">
                                 Không có sà lan nào hoạt động trong thời gian được lọc.
                             </div>
-                            <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
+                            <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100 min-h-[250px] md:min-h-0">
                                 <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                     <thead>
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
@@ -4680,7 +4680,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Active Barge Workspace -->
-                    <div v-else class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 min-h-0">
+                    <div v-else class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 min-h-0 overflow-y-auto md:overflow-hidden">
                         <!-- Header with breadcrumbs -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-3 px-4 soft-shadow border border-primary/5 gap-3">
                             <div>
@@ -4848,7 +4848,7 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Truck List Table Card -->
-                             <div class="flex-1 bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex flex-col min-h-0">
+                             <div class="flex-1 bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex flex-col min-h-[350px] md:min-h-0">
                                 <div class="flex flex-wrap items-center justify-between mb-3 gap-3">
                                     <h3 class="text-sm font-black text-primary flex items-center gap-1.5">
                                         <span class="material-symbols-outlined text-base">list_alt</span>
@@ -4900,7 +4900,7 @@ onUnmounted(() => {
                                 </div>
 
                                 <!-- Table -->
-                                <div class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100">
+                                <div class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100 min-h-[250px] md:min-h-0">
                                     <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                         <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
                                             <tr class="text-gray-500 border-b border-gray-100 font-bold select-none">
