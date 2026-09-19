@@ -20,8 +20,8 @@ const closeDropdown = () => {
     showDropdown.value = false;
 };
 
-const handleHeaderLogout = () => {
-    logout();
+const handleHeaderLogout = async () => {
+    await logout();
     router.push('/login');
 };
 

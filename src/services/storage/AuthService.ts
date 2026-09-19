@@ -8,6 +8,7 @@ export interface User {
     avatar?: string;
     isActive?: boolean;
     created_at?: string;
+    email?: string;
 }
 
 export interface LoginResult {
@@ -30,7 +31,38 @@ export class AuthService {
         const hashedInputPassword = await sha256(password);
 
         try {
-            // 1. Kiểm tra trực tiếp trong bảng users trên database
+            // 1. Th? ��ng nh?p qua Supabase Auth n?u input l� email ho?c c� t�i kho?n Supabase Auth
+            const emailCandidate = usernameClean.includes('@') 
+                ? usernameClean 
+                : `${usernameClean}@cangnguyenngoc.vn`;
+
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: emailCandidate,
+                password: password
+            });
+
+            if (!authError && authData?.user) {
+                const meta = authData.user.user_metadata || {};
+                return {
+                    success: true,
+                    user: {
+                        id: authData.user.id,
+                        username: meta.username || usernameClean,
+                        role: meta.role || 'staff',
+                        displayName: meta.displayName || meta.name || usernameClean,
+                        avatar: meta.avatar || '',
+                        isActive: true,
+                        email: authData.user.email
+                    },
+                    isFirstLogin: false
+                };
+            }
+        } catch (e) {
+            console.warn('Supabase Auth attempt bypassed:', e);
+        }
+
+        // 2. Tra c?u trong b?ng users v?i b?o m?t tr?ng th�i v� hash
+        try {
             const { data: dbUser, error: userError } = await supabase
                 .from('users')
                 .select('*')
@@ -38,15 +70,14 @@ export class AuthService {
                 .maybeSingle();
 
             if (!userError && dbUser) {
-                // KIỂM TRA TRẠNG THÁI TÀI KHOẢN (is_active)
                 if (dbUser.is_active === false) {
                     return { 
                         success: false, 
-                        error: 'Tài khoản này đã bị khóa hoặc ngừng kích hoạt!' 
+                        error: 'T�i kho?n n�y �? b? kh�a ho?c ng?ng k�ch ho?t!' 
                     };
                 }
 
-                // Kiểm tra mật khẩu (so khớp SHA-256 hash hoặc mật khẩu gốc cũ nếu có)
+                // Ki?m tra m?t kh?u an to�n
                 const isMatch = dbUser.password_hash === hashedInputPassword || dbUser.password_hash === password;
                 if (isMatch) {
                     return {
@@ -64,74 +95,22 @@ export class AuthService {
                     };
                 }
 
-                // Tìm thấy tài khoản trong bảng users nhưng sai mật khẩu -> Ngắt ngay, không fallback
                 return { 
                     success: false, 
-                    error: 'Tên đăng nhập hoặc mật khẩu không đúng!' 
+                    error: 'T�n ��ng nh?p ho?c m?t kh?u kh�ng ��ng!' 
                 };
             }
         } catch (err) {
-            console.warn('Lỗi truy vấn bảng users, thử kiểm tra bảng content fallback:', err);
-        }
-
-        // 2. Fallback dự phòng: Chỉ chạy khi bảng users chưa tồn tại hoặc không tìm thấy
-        try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .maybeSingle();
-
-            if (!error && data?.settings) {
-                const settings = data.settings;
-
-                // 2.1. Kiểm tra tài khoản admin chính cũ trong settings
-                if (usernameClean === settings.username?.toLowerCase() && password === settings.password) {
-                    return {
-                        success: true,
-                        user: {
-                            username: settings.username,
-                            role: 'admin',
-                            displayName: settings.displayName || 'Admin',
-                            avatar: settings.avatar || '',
-                            isActive: true
-                        },
-                        isFirstLogin: settings.is_first
-                    };
-                }
-
-                // 2.2. Kiểm tra danh sách accounts cũ trong settings
-                const accounts = settings.accounts || [];
-                const matchedAccount = accounts.find((acc: any) => 
-                    acc.username?.toLowerCase() === usernameClean && 
-                    (acc.password === hashedInputPassword || acc.password === password)
-                );
-
-                if (matchedAccount) {
-                    return {
-                        success: true,
-                        user: {
-                            username: matchedAccount.username,
-                            role: matchedAccount.role || 'staff',
-                            displayName: matchedAccount.displayName || matchedAccount.username,
-                            avatar: matchedAccount.avatar || '',
-                            isActive: true
-                        },
-                        isFirstLogin: false
-                    };
-                }
-            }
-        } catch (e) {
-            console.error('Lỗi khi fallback kiểm tra tài khoản:', e);
+            console.warn('L?i truy v?n b?ng users:', err);
         }
 
         return { 
             success: false, 
-            error: 'Tên đăng nhập hoặc mật khẩu không đúng!' 
+            error: 'T�n ��ng nh?p ho?c m?t kh?u kh�ng ��ng!' 
         };
     }
 
-    async changePassword(newPassword: string, targetUsername?: string): Promise<boolean> {
+    async changePassword(newPassword: string, targetUsername?: string, oldPassword?: string): Promise<{ success: boolean; error?: string }> {
         let username = targetUsername;
         if (!username) {
             try {
@@ -141,22 +120,43 @@ export class AuthService {
         }
         
         const usernameClean = (username || '').trim().toLowerCase();
-        const hashedNewPassword = await sha256(newPassword);
-
-        // Cập nhật trực tiếp trong bảng users
-        if (usernameClean) {
-            const { error } = await supabase
-                .from('users')
-                .update({ 
-                    password_hash: hashedNewPassword, 
-                    updated_at: new Date().toISOString() 
-                })
-                .eq('username', usernameClean);
-
-            if (!error) return true;
+        if (!usernameClean) {
+            return { success: false, error: 'Kh�ng t?m th?y th�ng tin t�i kho?n' };
         }
 
-        return false;
+        // Ki?m tra �? d�i m?t kh?u m?i
+        if (!newPassword || newPassword.length < 6) {
+            return { success: false, error: 'M?t kh?u m?i ph?i c� �t nh?t 6 k? t?' };
+        }
+
+        // N?u c� oldPassword, ki?m tra t�nh h?p l? tr�?c khi cho �?i
+        if (oldPassword) {
+            const verifyLogin = await this.login(usernameClean, oldPassword);
+            if (!verifyLogin.success) {
+                return { success: false, error: 'M?t kh?u hi?n t?i kh�ng ch�nh x�c' };
+            }
+        }
+
+        // 1. C?p nh?t Supabase Auth n?u session �ang m?
+        try {
+            await supabase.auth.updateUser({ password: newPassword });
+        } catch (_) {}
+
+        // 2. C?p nh?t b?ng users
+        const hashedNewPassword = await sha256(newPassword);
+        const { error } = await supabase
+            .from('users')
+            .update({ 
+                password_hash: hashedNewPassword, 
+                updated_at: new Date().toISOString() 
+            })
+            .eq('username', usernameClean);
+
+        if (!error) {
+            return { success: true };
+        }
+
+        return { success: false, error: error.message || 'Kh�ng th? c?p nh?t m?t kh?u' };
     }
 
     async updateProfile(username: string, displayName: string, newPassword?: string, avatar?: string): Promise<boolean> {
@@ -167,9 +167,13 @@ export class AuthService {
 
         if (displayName) updates.display_name = displayName;
         if (avatar !== undefined) updates.avatar = avatar;
-        if (newPassword) updates.password_hash = await sha256(newPassword);
+        if (newPassword) {
+            updates.password_hash = await sha256(newPassword);
+            try {
+                await supabase.auth.updateUser({ password: newPassword });
+            } catch (_) {}
+        }
 
-        // Cập nhật trực tiếp trong bảng users
         const { error: userError } = await supabase
             .from('users')
             .update(updates)
@@ -178,8 +182,15 @@ export class AuthService {
         return !userError;
     }
 
+    async logout(): Promise<void> {
+        try {
+            await supabase.auth.signOut();
+        } catch (_) {}
+    }
+
     async isAuthenticated(): Promise<boolean> {
-        return true;
+        const { data } = await supabase.auth.getSession();
+        return !!data?.session;
     }
 }
 

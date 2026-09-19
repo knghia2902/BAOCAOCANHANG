@@ -21,8 +21,13 @@ import { LogService } from '../services/storage/LogService';
 
 const STORAGE_KEY = 'auth_session';
 
-const savedState = localStorage.getItem(STORAGE_KEY);
-const saved = savedState ? JSON.parse(savedState) : null;
+let saved: any = null;
+try {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    saved = savedState ? JSON.parse(savedState) : null;
+} catch (e) {
+    console.warn('Could not parse saved auth session:', e);
+}
 const initialState: AuthState = {
     isAuthenticated: saved?.isAuthenticated ?? false,
     user: saved?.user ?? null,
@@ -115,17 +120,37 @@ export const login = async (username: string, pass: string): Promise<{ success: 
     return { success: false, error: res.error || 'Tên đăng nhập hoặc mật khẩu không đúng!' };
 };
 
-export const logout = () => {
+export const logout = async () => {
     if (authStore.user) {
         LogService.logAction('Đăng xuất', 'Đăng xuất khỏi hệ thống');
     }
+    await authService.logout();
     authStore.isAuthenticated = false;
     authStore.user = null;
     authStore.role = null;
     authStore.displayName = null;
     authStore.avatar = null;
     authStore.isFirstLogin = false;
+    localStorage.removeItem(STORAGE_KEY);
 };
+
+// Cross-tab logout and session synchronization
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+        if (event.key === STORAGE_KEY) {
+            try {
+                const updated = event.newValue ? JSON.parse(event.newValue) : null;
+                if (!updated || !updated.isAuthenticated) {
+                    authStore.isAuthenticated = false;
+                    authStore.user = null;
+                    authStore.role = null;
+                    authStore.displayName = null;
+                    authStore.avatar = null;
+                }
+            } catch (_) {}
+        }
+    });
+}
 
 export const updateStoreProfile = (displayName: string, avatarUrl?: string) => {
     authStore.displayName = displayName;
