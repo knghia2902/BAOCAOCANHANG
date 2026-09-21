@@ -85,6 +85,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
 | 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
 | 10. Enterprise Upgrade | v1.1 | 4/4 | Complete | 2026-09-19 |
+| 11. Direct Barge Sync | v1.1 | 0/2 | Not started | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -111,3 +112,16 @@ Plans:
 - [x] 10-02: Cài đặt Pinia và xây dựng các domain store tập trung (useWeighbridgeStore, useAllocatorStore, useAuthStore).
 - [x] 10-03: Tách god-service ContentService và tổ chức lại thư mục domain services (auth, cms, weighbridge).
 - [x] 10-04: Phân rã mega-component WeighbridgePrinter, tích hợp BaseConfirmModal và thiết lập GitHub Actions CI workflow.
+
+### Phase 11: Direct Barge Sync & Allocator Streamlining
+
+**Goal:** Bỏ tab Phân bổ trong Dữ liệu cân hàng, đồng bộ trực tiếp phiếu cân đã import sang sà lan ở Báo cáo tổng quan theo Mã lệnh (OrderNo), độc lập hành động lưu vào Sổ theo dõi tại Tab 1 (kèm xóa sạch Tab 1 sau khi lưu), loại bỏ các thẻ cấu hình phân bổ thừa, và chuẩn hóa Tab 2 Sổ theo dõi theo form gốc import.
+**Requirements**: SYNC-DIRECT-01, SYNC-DIRECT-02, SYNC-DIRECT-03, SYNC-DIRECT-04, SYNC-DIRECT-05
+**Depends on:** Phase 10
+**Plans:** 2 plans
+
+Plans:
+
+- [ ] 11-01: Cập nhật hàm đồng bộ sà lan tại Báo cáo tổng quan (WeighbridgePrinter.vue) để đọc trực tiếp từ phiếu cân import (`allocator_tickets`) theo Mã lệnh (`orderNo`).
+- [ ] 11-02: Tinh gọn Dữ liệu cân hàng (CargoAllocator.vue): bỏ tab Phân bổ, bỏ thẻ Quy tắc phân bổ & Tải trọng xe, thêm nút Lưu vào Sổ theo dõi tại Tab 1 (kèm dọn dẹp Tab 1 sau khi lưu) và chuẩn hóa form hiển thị/xuất Excel Tab 2 theo form gốc Tab 1.
+
