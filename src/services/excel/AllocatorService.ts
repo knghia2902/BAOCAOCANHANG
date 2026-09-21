@@ -153,6 +153,10 @@ export class AllocatorService {
                 .range(from, from + pageSize - 1);
 
             if (error) {
+                if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+                    console.warn(`[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase.`);
+                    return [];
+                }
                 console.error('Lỗi khi lấy dữ liệu chuyến xe gần đây:', error);
                 throw error;
             }
@@ -182,6 +186,10 @@ export class AllocatorService {
                 .range(from, from + pageSize - 1);
 
             if (error) {
+                if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+                    console.warn(`[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase.`);
+                    return [];
+                }
                 console.error('Lỗi khi tải toàn bộ lịch sử:', error);
                 throw error;
             }
@@ -219,6 +227,10 @@ export class AllocatorService {
                 .range(from, from + pageSize - 1);
 
             if (error) {
+                if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+                    console.warn(`[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase.`);
+                    return [];
+                }
                 console.error(`Lỗi khi lấy chuyến xe ngày ${ymd}:`, error);
                 throw error;
             }
@@ -252,6 +264,12 @@ export class AllocatorService {
 
             if (error) {
                 console.error(`Lỗi chèn đợt ${i} - ${i + chunk.length}:`, error);
+                if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+                    return {
+                        count: insertedCount,
+                        error: new Error(`Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase. Vui lòng chạy file migration SQL 'database/migrations/20260921_create_weighbridge_tracking.sql' trong Supabase SQL Editor.`)
+                    };
+                }
                 return { count: insertedCount, error };
             }
             if (data && Array.isArray(data)) {

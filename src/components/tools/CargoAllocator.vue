@@ -302,66 +302,11 @@ function getRandomLimit(tttp: number, plate: string): number {
     return Math.round((tttp - curbWeight) * 100) / 100;
 }
 
-function isXuatDirection(dir?: string): boolean {
-    if (!dir) return true;
-    const d = String(dir).toUpperCase();
-    return d.includes('XUẤT') || d.includes('XUAT');
-}
-
 const vehicleLimitCache = new Map<string, { tttp: number; limit: number }>();
-
-// vehicleLimitCache is maintained locally
-
-// vehicleLimitCache is maintained locally
 
 // Algorithmic parameters
 const distStrategy = ref<'even' | 'max' | 'random'>('random');
 const spacingStrategy = ref<'even' | 'forward' | 'backward'>('even');
-
-// Bounded random split algorithm
-function splitWeightRandomly(weightTons: number, numTrips: number, tripLimit: number, rand: () => number): number[] {
-    const weights: number[] = [];
-    let remaining = weightTons;
-    
-    // We want each trip to be between minWeight and maxWeight (tripLimit)
-    const maxWeight = tripLimit;
-    const average = weightTons / numTrips;
-    
-    // Determine a dynamic reasonable minimum weight.
-    let minWeight = Math.max(2.0, Math.min(average * 0.75, maxWeight * 0.5));
-    if (minWeight > maxWeight) {
-        minWeight = maxWeight * 0.5;
-    }
-    
-    for (let i = 0; i < numTrips - 1; i++) {
-        const remTrips = numTrips - 1 - i;
-        
-        // Mathematical limits to guarantee later trips can also be within limits:
-        let lowerBound = Math.max(minWeight, remaining - remTrips * maxWeight);
-        let upperBound = Math.min(maxWeight, remaining - remTrips * minWeight);
-        
-        if (lowerBound > upperBound) {
-            const temp = lowerBound;
-            lowerBound = upperBound;
-            upperBound = temp;
-        }
-        
-        let weight = average;
-        if (upperBound >= lowerBound) {
-            // Triangular distribution (sum of 2 randoms) to favor center/average values
-            const r = (rand() + rand()) / 2;
-            weight = lowerBound + r * (upperBound - lowerBound);
-        }
-        
-        const roundedWeight = Math.round(weight * 100) / 100;
-        weights.push(roundedWeight);
-        remaining = Math.round((remaining - roundedWeight) * 100) / 100;
-    }
-    
-    // Last trip gets the exact remaining weight
-    weights.push(Math.round(remaining * 100) / 100);
-    return weights;
-}
 const timeIntervalMinutes = ref(90);
 
 const ticketPrefix = ref('');
@@ -671,19 +616,6 @@ function ensureDate(d: any): Date {
     // Handle serialized Supabase timestamps or string dates safely
     const parsed = new Date(d);
     return isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-// Format Date object to "HH:mm:ss\nDD/MM/YYYY"
-function formatExcelDateTime(date: any): string {
-    const d = ensureDate(date);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const hh = pad(d.getHours());
-    const mm = pad(d.getMinutes());
-    const ss = pad(d.getSeconds());
-    const DD = pad(d.getDate());
-    const MM = pad(d.getMonth() + 1);
-    const YYYY = d.getFullYear();
-    return `${hh}:${mm}:${ss}\n${DD}/${MM}/${YYYY}`;
 }
 
 function formatExcelDate(date: any): string {
@@ -1264,18 +1196,6 @@ async function loadTicketsFromSupabase() {
                 console.warn('Lỗi khi tải danh sách xe từ VehicleService:', eVehicles);
             }
 
-            // 4. Overwrite generated trips
-            const remoteGenerated = data.settings.allocator_generated_trips;
-            if (Array.isArray(remoteGenerated) && remoteGenerated.length > 0) {
-                const hydrated = hydrateTrips(remoteGenerated);
-                if (JSON.stringify(generatedTrips.value) !== JSON.stringify(hydrated)) {
-                    generatedTrips.value = hydrated;
-                    await dbContext.set('allocator_generated_trips', hydrated);
-                }
-            } else if (csvRecords.value.length > 0) {
-                generatedTrips.value = [];
-            }
-
             syncStatus.value = 'synced';
         }
     } catch (e) {
@@ -1284,9 +1204,6 @@ async function loadTicketsFromSupabase() {
     } finally {
         isSyncingFromChannel = false;
         isInitLoading.value = false;
-        if (csvRecords.value.length > 0 && generatedTrips.value.length === 0) {
-            regenerateAllocatedTrips();
-        }
     }
 }
 
@@ -1328,34 +1245,11 @@ async function doExecuteSaveTicketsToSupabase() {
             orderNo: r.orderNo || ''
         }));
 
-        // Clean generated trips to minimal serializable payload
-        const cleanGenerated = (generatedTrips.value || []).map(g => ({
-            stt: g.stt,
-            timeStr: g.timeStr,
-            plateNumber: g.plateNumber,
-            tttp: g.tttp,
-            limit: g.limit,
-            ticketNo: g.ticketNo,
-            sourceTicketNo: g.sourceTicketNo || '',
-            cargoType: g.cargoType,
-            weight1: g.weight1,
-            weight2: g.weight2,
-            weightNet: g.weightNet,
-            weightTons: typeof g.weightTons === 'number' ? g.weightTons : (Number(g.weightNet) / 1000 || 0),
-            direction: g.direction,
-            bargeName: g.bargeName,
-            orderNo: g.orderNo,
-            customer: g.customer,
-            date1Obj: g.date1Obj,
-            date2Obj: g.date2Obj,
-            notes: g.notes || ''
-        }));
-
-        const updatedSettings = {
+        const updatedSettings: any = {
             ...currentSettings,
-            allocator_tickets: cleanTickets,
-            allocator_generated_trips: cleanGenerated
+            allocator_tickets: cleanTickets
         };
+        delete updatedSettings.allocator_generated_trips;
 
         const { error: updateError } = await supabase
             .from('content')
@@ -2057,15 +1951,11 @@ onMounted(async () => {
 
             csvRecords.value = savedTickets;
             existingTrips.value = hydrateTrips(savedHistory);
-            generatedTrips.value = hydrateTrips(savedGenerated);
 
             // Load latest data from Supabase in the background
             await loadTicketsFromSupabase();
         } finally {
             isInitLoading.value = false;
-            if (csvRecords.value.length > 0 && generatedTrips.value.length === 0) {
-                regenerateAllocatedTrips();
-            }
         }
     } catch (e) {
         console.error('Lỗi khi nạp cấu hình:', e);
@@ -2168,339 +2058,8 @@ const totalCsvWeightTons = computed(() => {
 });
 
 function regenerateAllocatedTrips() {
-    if (isSavingToHistory.value || isInitLoading.value) return;
-    
-    if (csvRecords.value.length === 0) {
-        generatedTrips.value = [];
-        return;
-    }
-    
-    interface TempTrip {
-        plateNumber: string;
-        tttp: number;
-        limit: number;
-        ticketNo: string;
-        sourceTicketNo?: string; // Original CSV ticketNo for ALL splits
-        cargoType: string;
-        weightTons: number;
-        notes: string;
-        isNew?: boolean;
-        dateObj: Date;
-        // New columns to match "Ánh phân bổ bằng tay.csv"
-        customer: string;
-        weight1: number;
-        weight2: number;
-        weightNet: number;
-        durationMs: number;
-        direction: string;
-        bargeName: string;
-        orderNo?: string;
-    }
-    
-    const tempTrips: TempTrip[] = [];
-    
-    csvRecords.value.forEach(record => {
-        const capacity = getVehicleCapacity(record.plateNumber);
-        let recordWeightNet = record.weightNet || 0;
-        if (recordWeightNet <= 0 && record.weight1 && record.weight2) {
-            recordWeightNet = Math.abs(record.weight1 - record.weight2);
-        }
-        const weightTons = recordWeightNet / 1000;
-        if (weightTons <= 0) return;
-        
-        // Calculate trips count
-        const tripLimit = capacity.limit;
-        const numTrips = Math.max(1, Math.ceil(weightTons / tripLimit));
-        
-        // Seed based on ticket number or ticket properties for deterministic generation
-        const seed = record.ticketNo || `${record.plateNumber}_${recordWeightNet}_${record.timeInStr}`;
-        const rand = createSeededRandom(seed);
-        
-        // Weight split strategy
-        let weights: number[] = [];
-        if (distStrategy.value === 'random') {
-            weights = splitWeightRandomly(weightTons, numTrips, tripLimit, rand);
-        } else if (distStrategy.value === 'even') {
-            const baseWeight = Math.round((weightTons / numTrips) * 100) / 100;
-            let sum = 0;
-            for (let j = 0; j < numTrips - 1; j++) {
-                weights.push(baseWeight);
-                sum += baseWeight;
-            }
-            // Adjust last trip weight to match exactly
-            const lastWeight = Math.round((weightTons - sum) * 100) / 100;
-            weights.push(lastWeight);
-        } else {
-            // Max Capacity strategy
-            let remaining = weightTons;
-            for (let j = 0; j < numTrips - 1; j++) {
-                weights.push(tripLimit);
-                remaining -= tripLimit;
-            }
-            weights.push(Math.round(remaining * 100) / 100);
-        }
-        
-        // Spacing Dates/Times
-        const dateIn = parseDateTime(record.dateInStr, record.timeInStr);
-        const dateOut = parseDateTime(record.dateOutStr, record.timeOutStr);
-        const durationMs = dateOut.getTime() - dateIn.getTime();
-        
-        for (let j = 0; j < numTrips; j++) {
-            let tripTime = new Date();
-            
-            if (spacingStrategy.value === 'forward') {
-                // Step forward from In time
-                tripTime = new Date(dateIn.getTime() + (j + 1) * timeIntervalMinutes.value * 60 * 1000);
-            } else if (spacingStrategy.value === 'backward') {
-                // Step backward from Out time
-                tripTime = new Date(dateOut.getTime() - (numTrips - 1 - j) * timeIntervalMinutes.value * 60 * 1000);
-            } else {
-                // even spacing placeholder (will be recalculated across shift)
-                tripTime = dateOut;
-            }
-            
-            // Add a small deterministic seeded jitter (+/- 10 minutes) to tripTime to make it look more natural
-            const jitterMs = (rand() * 20 - 10) * 60 * 1000;
-            tripTime = new Date(tripTime.getTime() + jitterMs);
-            
-            const tripWeightTons = weights[j] || 0;
-            const tripWeightNet = Math.round(tripWeightTons * 1000);
-            
-            // Xác xe (tare weight) được tính bằng Trọng tải cho phép (TTTP) - Hạn mức hàng (tính theo kg)
-            // Đảm bảo xác xe luôn dao động trong khoảng tiêu chuẩn từ 1.5t - 2.5t (1,500 - 2,500 kg)
-            // Thêm jitter ngẫu nhiên ±150kg để số cân không bao giờ tròn chẵn (sử dụng seeded random)
-            const baseTare = (capacity.tttp - capacity.limit) * 1000;
-            const tareJitter = Math.round((rand() * 300 - 150) + (rand() * 10 - 5));
-            const tareWeight = Math.round(baseTare + tareJitter);
-            
-            // Phân bổ cân lần 1 và lần 2 dựa trên hướng Xuất/Nhập
-            const isXuat = isXuatDirection(record.direction);
-            let tripWeight1 = 0;
-            let tripWeight2 = 0;
-            
-            if (isXuat) {
-                // Xuất: Lần 1 có hàng (Gross), Lần 2 xác xe (Tare)
-                tripWeight1 = tareWeight + tripWeightNet;
-                tripWeight2 = tareWeight;
-            } else {
-                // Nhập: Lần 1 xác xe (Tare), Lần 2 có hàng (Gross)
-                tripWeight1 = tareWeight;
-                tripWeight2 = tareWeight + tripWeightNet;
-            }
-            
-            tempTrips.push({
-                plateNumber: record.plateNumber,
-                tttp: capacity.tttp,
-                limit: capacity.limit,
-                ticketNo: j === 0 ? record.ticketNo : '', // Only keep ticketNo for the first trip
-                sourceTicketNo: record.ticketNo, // Keep original CSV ticketNo on ALL splits for sync dedup
-                cargoType: record.cargoType, // Keep full original cargo type
-                weightTons: tripWeightTons,
-                notes: '',
-                isNew: true,
-                dateObj: tripTime,
-                customer: record.customer,
-                weight1: tripWeight1,
-                weight2: tripWeight2,
-                weightNet: tripWeightNet,
-                durationMs: durationMs,
-                direction: record.direction,
-                bargeName: record.bargeName,
-                orderNo: record.orderNo || ''
-            });
-        }
-    });
-    
-    // Sort all trips chronologically by dateObj
-    // If spacing strategy is 'even', distribute all trips evenly across the entire shift range
-    if (spacingStrategy.value === 'even' && tempTrips.length > 0) {
-        let shiftStart = new Date();
-        let shiftEnd = new Date();
-        let hasDates = false;
-        
-        filteredSourceTickets.value.forEach(r => {
-            if (r.dateOutStr && r.timeOutStr) {
-                const d = parseDateTime(r.dateOutStr, r.timeOutStr);
-                if (!hasDates) {
-                    shiftStart = d;
-                    shiftEnd = d;
-                    hasDates = true;
-                } else {
-                    if (d < shiftStart) shiftStart = d;
-                    if (d > shiftEnd) shiftEnd = d;
-                }
-            }
-        });
-        
-        if (hasDates) {
-            const N = tempTrips.length;
-            const shiftDuration = shiftEnd.getTime() - shiftStart.getTime();
-            tempTrips.forEach((t, idx) => {
-                let tripTime = new Date();
-                if (N === 1) {
-                    tripTime = shiftEnd;
-                } else {
-                    const fraction = idx / (N - 1);
-                    tripTime = new Date(shiftStart.getTime() + fraction * shiftDuration);
-                }
-                
-                // Add a small deterministic seeded jitter (+/- 10 minutes) to tripTime to make it look more natural
-                const seed = t.ticketNo || `${t.plateNumber}_${t.weightNet}_${idx}`;
-                const rand = createSeededRandom(seed);
-                const jitterMs = (rand() * 20 - 10) * 60 * 1000;
-                t.dateObj = new Date(tripTime.getTime() + jitterMs);
-            });
-        }
-    }
-
-    // Sort all trips chronologically by dateObj
-    tempTrips.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-    
-    // Extract chronological Date objects and time strings before interleaving to re-apply them in order later
-    const sortedDates = tempTrips.map(t => t.dateObj);
-    const sortedTimeStrings = sortedDates.map(d => formatExcelDateTime(d));
-    
-    // Resolve consecutive duplicates of plate numbers using our multi-pass resolver
-    const n = tempTrips.length;
-    let swapped = true;
-    let iterations = 0;
-    while (swapped && iterations < 10) {
-        swapped = false;
-        for (let i = 0; i < n - 1; i++) {
-            const currentTrip = tempTrips[i];
-            const nextTrip = tempTrips[i + 1];
-            if (!currentTrip || !nextTrip) continue;
-            
-            if (currentTrip.plateNumber === nextTrip.plateNumber) {
-                let swapIdx = -1;
-                // Search forward first
-                for (let k = i + 2; k < n; k++) {
-                    const candidate = tempTrips[k];
-                    if (!candidate) continue;
-                    
-                    const nextCandidate = tempTrips[k + 1];
-                    const isDifferent = candidate.plateNumber !== currentTrip.plateNumber;
-                    const isNextDifferent = !nextCandidate || nextCandidate.plateNumber !== nextTrip.plateNumber;
-                    
-                    if (isDifferent && (k === n - 1 || isNextDifferent)) {
-                        swapIdx = k;
-                        break;
-                    }
-                }
-                // If forward fails, search backward
-                if (swapIdx === -1) {
-                    for (let k = i - 1; k >= 0; k--) {
-                        const candidate = tempTrips[k];
-                        if (!candidate) continue;
-                        
-                        const prevCandidate = k > 0 ? tempTrips[k - 1] : null;
-                        const isDifferent = candidate.plateNumber !== currentTrip.plateNumber && candidate.plateNumber !== nextTrip.plateNumber;
-                        const isPrevDifferent = !prevCandidate || prevCandidate.plateNumber !== nextTrip.plateNumber;
-                        
-                        if (isDifferent && (k === 0 || isPrevDifferent)) {
-                            swapIdx = k;
-                            break;
-                        }
-                    }
-                }
-                
-                if (swapIdx !== -1) {
-                    const candidateTrip = tempTrips[swapIdx];
-                    if (candidateTrip) {
-                        tempTrips[i + 1] = candidateTrip;
-                        tempTrips[swapIdx] = nextTrip;
-                        swapped = true;
-                    }
-                }
-            }
-        }
-        iterations++;
-    }
-    
-    // Re-apply sorted times and STTs sequentially so everything looks chronological in output
-    const startSTT = nextSTT.value;
-    const finalTrips: SplitTrip[] = tempTrips.map((t, idx) => {
-        const { dateObj, durationMs, ...rest } = t;
-        const tripDate2 = sortedDates[idx] || dateObj;
-        
-        let finalDuration = durationMs;
-        if (finalDuration < 5 * 60 * 1000) {
-            // Generate a seeded random duration between 8 and 15 minutes
-            const seed = t.ticketNo || `${t.plateNumber}_${t.weightNet}_${idx}_dur`;
-            const rand = createSeededRandom(seed);
-            const mins = Math.floor(rand() * 8) + 8; // 8 to 15 minutes
-            const secs = Math.floor(rand() * 60);
-            finalDuration = (mins * 60 + secs) * 1000;
-        }
-        
-        const tripDate1 = new Date(tripDate2.getTime() - finalDuration);
-        
-        let finalTicketNo = t.ticketNo;
-        if (useAutoTicketNo.value) {
-            const ticketNumVal = ticketStart.value + idx;
-            const paddedNum = String(ticketNumVal).padStart(ticketPadding.value, '0');
-            const dateObj = tripDate2 || new Date();
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const yy = String(dateObj.getFullYear()).slice(-2);
-            
-            let suffixPattern = ticketSuffix.value || '';
-            if (suffixPattern.toLowerCase().includes('mmyy')) {
-                suffixPattern = suffixPattern.replace(/mmyy/i, `${mm}${yy}`);
-            } else {
-                suffixPattern = suffixPattern
-                    .replace(/mm/g, mm)
-                    .replace(/yy/g, yy);
-            }
-            
-            finalTicketNo = ticketPrefix.value + paddedNum + suffixPattern;
-        }
-        
-        return {
-            ...rest,
-            ticketNo: finalTicketNo,
-            stt: startSTT + idx,
-            timeStr: sortedTimeStrings[idx] || '',
-            date1Obj: tripDate1,
-            date2Obj: tripDate2
-        };
-    });
-    
-    generatedTrips.value = finalTrips;
-    saveTicketsToSupabase();
+    // No-op: Thuật toán phân bổ cũ đã được thay thế bằng đồng bộ trực tiếp Salan theo orderNo
 }
-
-// Watch dependencies to automatically regenerate
-watch(
-    [
-        csvRecords, 
-        distStrategy, 
-        spacingStrategy, 
-        timeIntervalMinutes, 
-        standardTTTPLimit, 
-        useAutoTicketNo, 
-        ticketStart, 
-        ticketPadding, 
-        ticketPrefix, 
-        ticketSuffix
-    ], 
-    () => {
-        regenerateAllocatedTrips();
-    }, 
-    { deep: true }
-);
-
-
-// Computed: Next STT start number
-const nextSTT = computed(() => {
-    if (existingTrips.value.length === 0) return 1;
-    let max = 0;
-    for (const trip of existingTrips.value) {
-        if (!trip) continue;
-        const val = Number(trip.stt || 0);
-        if (val > max) max = val;
-    }
-    return max + 1;
-});
 
 // History panel states
 const historySearchQuery = ref('');
