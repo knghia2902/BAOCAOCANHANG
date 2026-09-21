@@ -38,6 +38,14 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **DATA-RECOVER-01**: Khôi phục an toàn 1,657 chuyến xe bị thiếu (từ ngày 11/09 - 15/09) từ `weighbridge_trucks` và cấu hình sà lan sang bảng `allocator_history_trips`.
 - [ ] **ALLOCATOR-SYNC-01**: Cập nhật `CargoAllocator.vue` để load/save Tab 3 (Theo dõi) trực tiếp trên bảng Supabase mới, không còn lỗi 500 timeout và đồng bộ realtime/phân trang chuẩn.
 
+### Direct Barge Sync & Allocator Streamlining (SYNC-DIRECT)
+
+- [ ] **SYNC-DIRECT-01**: Bỏ tab Phân bổ ở màn hình "Dữ liệu cân hàng", giao diện chỉ còn 2 tab: Tab 1 "Phiếu cân" và Tab 2 "Theo dõi".
+- [ ] **SYNC-DIRECT-02**: Loại bỏ các thẻ cấu hình không còn sử dụng: "Quy tắc phân bổ" (chiến lược chia, định thời gian) và "Cấu hình tải trọng xe" ở phần đầu màn hình Dữ liệu cân hàng.
+- [ ] **SYNC-DIRECT-03**: Nâng cấp tính năng Đồng bộ tại từng Sà lan trong "Báo cáo tổng quan" để tự động lọc và nạp các chuyến xe trực tiếp từ danh sách phiếu cân đã import (Tab 1 / `allocator_tickets`) theo Mã lệnh (`orderNo`).
+- [ ] **SYNC-DIRECT-04**: Bổ sung nút "Lưu vào Sổ theo dõi" tại Tab 1 (Phiếu cân). Thao tác lưu là độc lập với việc đồng bộ Sà lan. Sau khi lưu thành công vào Sổ theo dõi (Tab 2), toàn bộ dữ liệu ở Tab 1 được xóa sạch (reset về rỗng).
+- [ ] **SYNC-DIRECT-05**: Chuẩn hóa cấu trúc dữ liệu, giao diện hiển thị bảng và mẫu xuất file Excel của Tab 2 (Sổ theo dõi) theo đúng form và các tiêu chí chuẩn giống hệt file gốc import ở Tab 1.
+
 
 ## Future Requirements (v2+)
 
