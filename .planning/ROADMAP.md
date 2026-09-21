@@ -122,6 +122,6 @@ Plans:
 
 Plans:
 
-- [ ] 11-01: Cập nhật hàm đồng bộ sà lan tại Báo cáo tổng quan (WeighbridgePrinter.vue) để đọc trực tiếp từ phiếu cân import (`allocator_tickets`) theo Mã lệnh (`orderNo`).
-- [ ] 11-02: Tinh gọn Dữ liệu cân hàng (CargoAllocator.vue): bỏ tab Phân bổ, bỏ thẻ Quy tắc phân bổ & Tải trọng xe, thêm nút Lưu vào Sổ theo dõi tại Tab 1 (kèm dọn dẹp Tab 1 sau khi lưu) và chuẩn hóa form hiển thị/xuất Excel Tab 2 theo form gốc Tab 1.
+- [x] 11-01: Cập nhật hàm đồng bộ sà lan tại Báo cáo tổng quan (WeighbridgePrinter.vue) để đọc trực tiếp từ phiếu cân import (`allocator_tickets`) theo Mã lệnh (`orderNo`).
+- [x] 11-02: Tinh gọn Dữ liệu cân hàng (CargoAllocator.vue): bỏ tab Phân bổ, bỏ thẻ Quy tắc phân bổ & Tải trọng xe, thêm nút Lưu vào Sổ theo dõi tại Tab 1 (kèm dọn dẹp Tab 1 sau khi lưu) và chuẩn hóa form hiển thị/xuất Excel Tab 2 theo form gốc Tab 1.
 

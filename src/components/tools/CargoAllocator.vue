@@ -475,16 +475,11 @@ watch(timeIntervalMinutes, async (newVal) => {
 // Auto-save settings on change
 
 // Pagination
-const currentPage = ref(1);
 const itemsPerPage = ref(20);
 watch(itemsPerPage, () => {
     sourceCurrentPage.value = 1;
-    currentPage.value = 1;
     historyCurrentPage.value = 1;
 });
-
-// Search filter for preview
-const searchQuery = ref('');
 
 // Parse CSV text safely
 function parseCSVText(text: string): CSVRecord[] {
@@ -694,12 +689,6 @@ function formatExcelDateTime(date: any): string {
 function formatExcelDate(date: any): string {
     const d = ensureDate(date);
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-}
-
-function formatExcelTime(date: any): string {
-    const d = ensureDate(date);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getHours()}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function formatExcelDateTimeCombined(date: any): string {
@@ -1170,21 +1159,7 @@ function toggleSourceSort(key: string) {
     sourceCurrentPage.value = 1;
 }
 
-// Sorting states for Tab 2 (Generated/Template)
-const templateSortKey = ref<string>('');
-const templateSortDesc = ref<boolean>(false);
-
-function toggleTemplateSort(key: string) {
-    if (templateSortKey.value === key) {
-        templateSortDesc.value = !templateSortDesc.value;
-    } else {
-        templateSortKey.value = key;
-        templateSortDesc.value = false;
-    }
-    currentPage.value = 1;
-}
-
-// Sorting states for Tab 3 (History/Tracking)
+// Sorting states for Tab 2 (Theo dõi / Lịch sử)
 const historySortKey = ref<string>('');
 const historySortDesc = ref<boolean>(false);
 
@@ -2527,103 +2502,6 @@ const nextSTT = computed(() => {
     return max + 1;
 });
 
-const selectedCustomer = ref('');
-
-const uniqueCustomers = computed(() => {
-    const customers = generatedTrips.value
-        .map(t => t.customer)
-        .filter((c): c is string => typeof c === 'string' && c.trim() !== '');
-    return Array.from(new Set(customers)).sort();
-});
-
-watch(selectedCustomer, () => {
-    currentPage.value = 1;
-});
-
-watch(generatedTrips, () => {
-    if (selectedCustomer.value && !uniqueCustomers.value.includes(selectedCustomer.value)) {
-        selectedCustomer.value = '';
-    }
-});
-
-// Computed: Filtered trips for preview search
-const filteredTrips = computed(() => {
-    let list = generatedTrips.value;
-    
-    // Filter by customer dropdown
-    if (selectedCustomer.value) {
-        list = list.filter(t => t.customer === selectedCustomer.value);
-    }
-
-    // Filter by search query text
-    if (searchQuery.value.trim()) {
-        const q = searchQuery.value.toLowerCase();
-        list = list.filter(t => 
-            t.plateNumber.toLowerCase().includes(q) || 
-            t.ticketNo.toLowerCase().includes(q) || 
-            t.cargoType.toLowerCase().includes(q) ||
-            (t.customer && t.customer.toLowerCase().includes(q))
-        );
-    }
-    
-    if (templateSortKey.value) {
-        list = [...list].sort((a, b) => compareValues(a, b, templateSortKey.value, templateSortDesc.value));
-    }
-    
-    return list;
-});
-
-// Computed: Total split weight tons
-const totalSplitWeightTons = computed(() => {
-    return generatedTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
-});
-
-// Computed: Check if current generated trips are already saved to history
-const isAlreadySaved = computed(() => {
-    if (generatedTrips.value.length === 0 || existingTrips.value.length === 0) return false;
-    
-    // Chỉ đối chiếu với 500 chuyến xe gần nhất trong lịch sử
-    const recentLimit = Math.min(existingTrips.value.length, 500);
-    const recentTrips = existingTrips.value.slice(0, recentLimit);
-    
-    const ticketSet = new Set<string>();
-    const signatureSet = new Set<string>();
-    
-    for (const et of recentTrips) {
-        if (!et) continue;
-        if (et.ticketNo && et.ticketNo.trim()) {
-            ticketSet.add(et.ticketNo.trim());
-        }
-        const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-        signatureSet.add(`${normalizePlate(et.plateNumber)}_${et.weightNet}_${etDateStr}`);
-    }
-    
-    return generatedTrips.value.every(gt => {
-        if (!useAutoTicketNo.value && gt.ticketNo && gt.ticketNo.trim() && ticketSet.has(gt.ticketNo.trim())) {
-            return true;
-        }
-        const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-        return signatureSet.has(`${normalizePlate(gt.plateNumber)}_${gt.weightNet}_${gtDateStr}`);
-    });
-});
-
-
-// Paged trips
-const pagedTrips = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage.value;
-    return filteredTrips.value.slice(start, start + itemsPerPage.value);
-});
-
-// Total pages
-const totalPages = computed(() => {
-    return Math.ceil(filteredTrips.value.length / itemsPerPage.value);
-});
-
-// Reset pagination when search changes
-watch(searchQuery, () => {
-    currentPage.value = 1;
-});
-
 // History panel states
 const historySearchQuery = ref('');
 const historyCurrentPage = ref(1);
@@ -2657,163 +2535,7 @@ watch(historySearchQuery, () => {
     historyCurrentPage.value = 1;
 });
 
-function getTripsWithoutMooc(): SplitTrip[] {
-    return generatedTrips.value.filter(gt => {
-        return !formatPlate(gt.plateNumber).includes('/');
-    });
-}
 
-
-
-// Save generated temporary trips into history
-async function saveToHistory() {
-    if (isSavingToHistory.value) return;
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
-        addToast('Bạn không có quyền lưu dữ liệu vào Sổ Theo Dõi!', 'error');
-        return;
-    }
-    try {
-        const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
-        if (savedVehicles && Array.isArray(savedVehicles)) {
-            vehiclesList.value = savedVehicles;
-        }
-    } catch (e) {
-        console.error('Lỗi khi tải lại danh sách xe trước khi lưu:', e);
-    }
-
-    if (generatedTrips.value.length === 0) {
-        addToast('Không có dữ liệu phân bổ để lưu!', 'info');
-        return;
-    }
-    
-    const missingMoocTrips = getTripsWithoutMooc();
-    if (missingMoocTrips.length > 0) {
-        const plates = missingMoocTrips.map(t => formatPlate(t.plateNumber)).join(', ');
-        await showConfirm({
-            title: 'Cảnh báo: Thiếu số moóc phương tiện',
-            message: `Có ${missingMoocTrips.length} xe chưa có số moóc:\n\n${plates}\n\nVui lòng cập nhật đầy đủ số moóc trước khi lưu vào Sổ Theo Dõi.`,
-            type: 'warning',
-            okText: 'Đã hiểu',
-            cancelText: ''
-        });
-        return;
-    }
-    
-    // Check duplicates against recent trips (top 1000)
-    const duplicates: string[] = [];
-    const checkLimit = Math.min(existingTrips.value.length, 1000);
-    const recentTrips = existingTrips.value.slice(0, checkLimit);
-    
-    const ticketSet = new Set<string>();
-    const signatureSet = new Set<string>();
-    for (const et of recentTrips) {
-        if (!et) continue;
-        if (et.ticketNo && et.ticketNo.trim()) {
-            ticketSet.add(et.ticketNo.trim());
-        }
-        const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-        signatureSet.add(`${normalizePlate(et.plateNumber)}_${et.weightNet}_${etDateStr}`);
-    }
-
-    generatedTrips.value.forEach(gt => {
-        let isDup = false;
-        if (!useAutoTicketNo.value && gt.ticketNo && gt.ticketNo.trim() && ticketSet.has(gt.ticketNo.trim())) {
-            isDup = true;
-        } else {
-            const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-            if (signatureSet.has(`${normalizePlate(gt.plateNumber)}_${gt.weightNet}_${gtDateStr}`)) {
-                isDup = true;
-            }
-        }
-        if (isDup) {
-            duplicates.push(gt.ticketNo || `${formatPlate(gt.plateNumber)} (${gt.weightNet} kg)`);
-        }
-    });
-
-    if (duplicates.length > 0) {
-        const fullListStr = duplicates.map(d => `- ${d}`).join('\n');
-        const confirmSaveDup = await showConfirm({
-            title: 'Trùng lặp dữ liệu lịch sử',
-            message: `Cảnh báo: Có ${duplicates.length} chuyến xe bị trùng lặp với dữ liệu đã tồn tại trong Sổ Theo Dõi:\n\n${fullListStr}\n\nBạn có chắc chắn vẫn muốn lưu các chuyến trùng lặp này vào Sổ Theo Dõi không?`,
-            type: 'warning',
-            okText: 'Vẫn lưu',
-            cancelText: 'Hủy'
-        });
-        if (!confirmSaveDup) {
-            return;
-        }
-    }
-    
-    const confirmSave = await showConfirm({
-        title: 'Lưu vào Sổ Theo Dõi',
-        message: `Bạn có chắc chắn muốn lưu ${generatedTrips.value.length} chuyến xe này vào Sổ Theo Dõi và làm sạch danh sách phiếu cân hiện tại ở Tab 1 không?`,
-        type: 'info',
-        okText: 'Lưu & Làm sạch',
-        cancelText: 'Hủy'
-    });
-    if (confirmSave) {
-        isSavingToHistory.value = true;
-        try {
-            // Tự động tăng số phiếu bắt đầu nếu đang dùng tự động sinh số phiếu
-            if (useAutoTicketNo.value) {
-                ticketStart.value = ticketStart.value + generatedTrips.value.length;
-                try {
-                    await dbContext.set('allocator_ticket_start', ticketStart.value);
-                } catch (e) {}
-            }
-
-            // 1. Bulk insert to Supabase table
-            const tripsToSave = [...generatedTrips.value];
-            const insertRes = await AllocatorService.insertTrips(tripsToSave);
-            if (insertRes.error) {
-                addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
-                return;
-            }
-
-            // 2. Prepend newly saved trips (with real DB IDs) to existingTrips in memory so Tab 3 shows them immediately
-            const savedItems = (insertRes.data && insertRes.data.length === tripsToSave.length)
-                ? insertRes.data
-                : tripsToSave;
-            existingTrips.value = [...savedItems, ...existingTrips.value];
-            await dbContext.set('allocator_history_trips', existingTrips.value);
-            
-            // 3. Clear active tickets in Tab 1 and Tab 2
-            csvRecords.value = [];
-            csvFile.value = null;
-            generatedTrips.value = [];
-            
-            // 4. Save empty tickets & generated trips to Supabase content.settings (atomic, minimal)
-            await doExecuteSaveTicketsToSupabase();
-            
-            // 5. Switch tab to Tab 3 (Theo dõi)
-            activeDataTab.value = 'generated';
-            addToast(`Đã lưu thành công ${tripsToSave.length} chuyến xe vào Sổ Theo Dõi!`, 'success');
-        } catch (err: any) {
-            console.error('Lỗi khi lưu vào Sổ Theo Dõi:', err);
-            addToast('Lỗi khi lưu vào Sổ Theo Dõi: ' + (err?.message || err), 'error');
-        } finally {
-            isSavingToHistory.value = false;
-        }
-    }
-}
-
-async function deleteGeneratedTrip(trip: SplitTrip) {
-    const confirmDelete = await showConfirm({
-        title: 'Xóa chuyến xe phân bổ',
-        message: `Bạn có chắc muốn xóa chuyến xe của xe ${trip.plateNumber} này khỏi danh sách phân bổ không?`,
-        type: 'danger',
-        okText: 'Xóa',
-        cancelText: 'Hủy'
-    });
-    if (confirmDelete) {
-        const index = generatedTrips.value.findIndex(t => t.stt === trip.stt);
-        if (index !== -1) {
-            generatedTrips.value.splice(index, 1);
-            saveTicketsToSupabase();
-            addToast('Đã xóa chuyến xe phân bổ thành công!', 'success');
-        }
-    }
-}
 
 async function editHistoryTripOrderNo(trip: SplitTrip) {
     if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'update')) {
@@ -2864,40 +2586,7 @@ async function deleteHistoryTrip(trip: SplitTrip) {
     }
 }
 
-async function editGeneratedTripOrderNo(trip: SplitTrip) {
-    const currentOrderNo = trip.orderNo || '';
-    const newOrderNo = prompt(`Nhập Mã lệnh mới cho xe "${trip.plateNumber}" rời bến lúc ${trip.timeStr || ''}:`, currentOrderNo);
-    if (newOrderNo === null) return; // Cancelled
-    
-    trip.orderNo = newOrderNo.trim();
-    
-    const idx = generatedTrips.value.findIndex(t => t.stt === trip.stt || (t.ticketNo && t.ticketNo === trip.ticketNo));
-    if (idx !== -1) {
-        generatedTrips.value[idx] = { ...trip };
-    }
-    
-    await saveTicketsToSupabase();
-    addToast('Cập nhật mã lệnh thành công!', 'success');
-}
 
-async function clearAllGeneratedTrips() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
-        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
-        return;
-    }
-    const confirmClear = await showConfirm({
-        title: 'Xóa tất cả phân bổ',
-        message: 'Bạn có chắc chắn muốn xóa toàn bộ danh sách phân bổ ở Tab 2 không? Hành động này không thể hoàn tác!',
-        type: 'danger',
-        okText: 'Xóa sạch',
-        cancelText: 'Hủy'
-    });
-    if (confirmClear) {
-        generatedTrips.value = [];
-        saveTicketsToSupabase();
-        addToast('Đã xóa sạch danh sách phân bổ!', 'info');
-    }
-}
 
 // Clear all history
 async function clearHistory() {
@@ -2995,353 +2684,194 @@ async function exportSourceTickets() {
     }
 }
 
-// Execute Excel update and download
+// Lưu toàn bộ danh sách phiếu cân hiện tại ở Tab 1 vào Sổ Theo Dõi và làm sạch Tab 1
+async function saveSourceTicketsToHistory() {
+    if (isSavingToHistory.value) return;
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
+        addToast('Bạn không có quyền lưu dữ liệu vào Sổ Theo Dõi!', 'error');
+        return;
+    }
+    if (csvRecords.value.length === 0) {
+        addToast('Không có phiếu cân nào để lưu!', 'info');
+        return;
+    }
+
+    const confirmSave = await showConfirm({
+        title: 'Lưu vào Sổ Theo Dõi',
+        message: `Bạn có chắc chắn muốn lưu toàn bộ ${csvRecords.value.length} phiếu cân này vào Sổ Theo Dõi?\n\nSau khi lưu thành công, danh sách phiếu cân ở Tab 1 sẽ được làm sạch.`,
+        type: 'info',
+        okText: 'Lưu & Làm sạch',
+        cancelText: 'Hủy'
+    });
+
+    if (!confirmSave) return;
+
+    isSavingToHistory.value = true;
+    try {
+        const tripsToSave: SplitTrip[] = csvRecords.value.map((rec, idx) => {
+            const d1 = parseDateTime(rec.dateInStr, rec.timeInStr);
+            const d2 = parseDateTime(rec.dateOutStr, rec.timeOutStr);
+            return {
+                stt: idx + 1,
+                timeStr: rec.timeInStr ? `${rec.timeInStr}\n${rec.dateInStr}` : (rec.dateInStr || ''),
+                plateNumber: rec.plateNumber || '',
+                tttp: 0,
+                limit: 0,
+                ticketNo: rec.ticketNo || '',
+                sourceTicketNo: rec.ticketNo || '',
+                cargoType: rec.cargoType || '',
+                weightTons: Number((rec.weightNet / 1000).toFixed(2)),
+                notes: rec.notes || '',
+                customer: rec.customer || '',
+                weight1: Number(rec.weight1) || 0,
+                weight2: Number(rec.weight2) || 0,
+                weightNet: Number(rec.weightNet) || 0,
+                direction: rec.direction || '',
+                bargeName: rec.bargeName || '',
+                date1Obj: d1,
+                date2Obj: d2,
+                orderNo: rec.orderNo || ''
+            };
+        });
+
+        const insertRes = await AllocatorService.insertTrips(tripsToSave);
+        if (insertRes.error) {
+            addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
+            return;
+        }
+
+        const savedItems = (insertRes.data && insertRes.data.length === tripsToSave.length)
+            ? insertRes.data
+            : tripsToSave;
+        existingTrips.value = [...savedItems, ...existingTrips.value];
+        await dbContext.set('allocator_history_trips', existingTrips.value);
+
+        // Làm sạch danh sách phiếu cân ở Tab 1
+        csvRecords.value = [];
+        csvFile.value = null;
+        await doExecuteSaveTicketsToSupabase();
+
+        // Chuyển sang Tab 2 (Theo dõi)
+        activeDataTab.value = 'generated';
+        addToast(`Đã lưu thành công ${tripsToSave.length} phiếu cân vào Sổ Theo Dõi!`, 'success');
+        await LogService.logAction('Lưu Sổ Theo Dõi', `Lưu ${tripsToSave.length} phiếu cân vào sổ theo dõi`);
+    } catch (err: any) {
+        console.error('Lỗi khi lưu vào Sổ Theo Dõi:', err);
+        addToast('Lỗi khi lưu vào Sổ Theo Dõi: ' + (err?.message || err), 'error');
+    } finally {
+        isSavingToHistory.value = false;
+    }
+}
+
+// Xuất file Excel cho Sổ Theo Dõi theo đúng form tiêu chuẩn của file gốc import
 async function compileAndDownload() {
-    const dataToExport = activeDataTab.value === 'template' ? filteredTrips.value : filteredHistoryTrips.value;
+    const dataToExport = filteredHistoryTrips.value;
     if (dataToExport.length === 0) {
-        addToast(activeDataTab.value === 'template' ? 'Không có dữ liệu phân bổ để xuất!' : 'Không có dữ liệu lịch sử để xuất!', 'info');
+        addToast('Không có dữ liệu lịch sử để xuất!', 'info');
         return;
     }
     
     compiling.value = true;
     
     try {
-        let workbook: any = null;
-        let dsSheet: any;
         const ExcelJS = await import('exceljs');
-        workbook = new ExcelJS.Workbook();
-        dsSheet = workbook.addWorksheet('DS');
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Sổ theo dõi');
+        
+        const headers = ['STT', 'Số phiếu', 'Mã lệnh', 'Biển số xe', 'Khách hàng', 'Cân lần 1', 'Cân lần 2', 'KL hàng (kg)', 'Loại hàng', 'Ngày vào', 'Giờ vào', 'Ngày ra', 'Giờ ra', 'Xuất/Nhập', 'Sà lan', 'Ghi chú'];
+        const headerRow = sheet.getRow(1);
+        headers.forEach((h, i) => { headerRow.getCell(i + 1).value = h; });
+        headerRow.font = { name: 'Arial', size: 10, bold: true };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 24;
 
-        if (activeDataTab.value === 'template') {
-            // Set 16 columns matching "Ánh phân bổ bằng tay.csv" plus orderNo
-            dsSheet.columns = [
-                { header: 'So phieu', key: 'ticketNo', width: 18 },
-                { header: 'Ma lenh', key: 'orderNo', width: 15 },
-                { header: 'So xe', key: 'plateNumber', width: 15 },
-                { header: 'Khach hang', key: 'customer', width: 30 },
-                { header: 'KL can lan 1', key: 'weight1', width: 15 },
-                { header: 'KL can lan 2', key: 'weight2', width: 15 },
-                { header: 'KL hang', key: 'weightNet', width: 15 },
-                { header: 'Ngay can lan 1', key: 'date1', width: 15 },
-                { header: 'Gio can lan 1', key: 'time1', width: 15 },
-                { header: '', key: 'dateTime1', width: 22 },
-                { header: 'Ngay can lan 2', key: 'date2', width: 15 },
-                { header: 'Gio can lan 2', key: 'time2', width: 15 },
-                { header: '', key: 'dateTime2', width: 22 },
-                { header: 'Xuat/Nhap', key: 'direction', width: 15 },
-                { header: 'Loai Hang', key: 'cargoType', width: 30 },
-                { header: 'Loai Salan', key: 'bargeName', width: 35 }
-            ];
-            
-            const headerRow = dsSheet.getRow(1);
-            headerRow.getCell(1).value = 'So phieu';
-            headerRow.getCell(2).value = 'Ma lenh';
-            headerRow.getCell(3).value = 'So xe';
-            headerRow.getCell(4).value = 'Khach hang';
-            headerRow.getCell(5).value = 'KL can lan 1';
-            headerRow.getCell(6).value = 'KL can lan 2';
-            headerRow.getCell(7).value = 'KL hang';
-            headerRow.getCell(8).value = 'Ngay can lan 1';
-            headerRow.getCell(9).value = 'Gio can lan 1';
-            headerRow.getCell(10).value = '';
-            headerRow.getCell(11).value = 'Ngay can lan 2';
-            headerRow.getCell(12).value = 'Gio can lan 2';
-            headerRow.getCell(13).value = '';
-            headerRow.getCell(14).value = 'Xuat/Nhap';
-            headerRow.getCell(15).value = 'Loai Hang';
-            headerRow.getCell(16).value = 'Loai Salan';
-            
-            headerRow.font = { name: 'Arial', size: 10, bold: true };
-            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-            
-            for (let colIdx = 1; colIdx <= 16; colIdx++) {
-                const cell = headerRow.getCell(colIdx);
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFE2EBF5' } // soft light blue fill
-                };
-                cell.border = {
-                    top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                    left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                    bottom: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                    right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
-                };
-            }
-            headerRow.height = 25;
-            
-            let currentRowIdx = 2;
-            dataToExport.forEach(trip => {
-                const row = dsSheet.getRow(currentRowIdx);
-                row.height = 20; // Đặt chiều cao hàng dữ liệu bằng nhau
-                row.getCell(1).value = trip.ticketNo;
-                row.getCell(2).value = trip.orderNo || '';
-                row.getCell(3).value = formatPlate(trip.plateNumber);
-                row.getCell(4).value = trip.customer;
-                row.getCell(5).value = trip.weight1;
-                row.getCell(6).value = trip.weight2;
-                row.getCell(7).value = trip.weightNet;
-                row.getCell(8).value = formatExcelDate(trip.date1Obj);
-                row.getCell(9).value = formatExcelTime(trip.date1Obj);
-                row.getCell(10).value = formatExcelDateTimeCombined(trip.date1Obj);
-                row.getCell(11).value = formatExcelDate(trip.date2Obj);
-                row.getCell(12).value = formatExcelTime(trip.date2Obj);
-                row.getCell(13).value = formatExcelDateTimeCombined(trip.date2Obj);
-                row.getCell(14).value = trip.direction;
-                row.getCell(15).value = trip.cargoType;
-                row.getCell(16).value = trip.bargeName;
-                
-                for (let colIdx = 1; colIdx <= 16; colIdx++) {
-                    const cell = row.getCell(colIdx);
-                    cell.font = { name: 'Arial', size: 10 };
-                    cell.border = {
-                        top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-                        left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-                        bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
-                        right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
-                    };
-                    if ([1, 2, 3, 8, 9, 10, 11, 12, 13, 14].includes(colIdx)) {
-                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    } else if ([5, 6, 7].includes(colIdx)) {
-                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                        cell.numFmt = '#,##0.00';
-                    } else {
-                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-                    }
-                }
-                currentRowIdx++;
-            });
-
-            // Tự động căn chỉnh độ rộng cột cho Tab Phân bổ
-            for (let colIdx = 1; colIdx <= 16; colIdx++) {
-                const col = dsSheet.getColumn(colIdx);
-                let maxLen = 10;
-                dsSheet.eachRow((row: any) => {
-                    const cell = row.getCell(colIdx);
-                    const val = cell.value;
-                    if (val !== null && val !== undefined) {
-                        const strVal = String(val);
-                        if (strVal.length > maxLen) {
-                            maxLen = strVal.length;
-                        }
-                    }
-                });
-                col.width = Math.min(maxLen + 4, 30);
-            }
-        } else {
-            // Load template instead of creating blank workbook
-            try {
-                const response = await fetch('/SO_THEO_DOI_TEMPLATE.xlsx?v=' + Date.now());
-                if (!response.ok) throw new Error('Không thể tải tệp mẫu Excel');
-                const arrayBuffer = await response.arrayBuffer();
-                
-                const ExcelJS = await import('exceljs');
-                workbook = new ExcelJS.Workbook();
-                await workbook.xlsx.load(arrayBuffer);
-                dsSheet = workbook.worksheets[0];
-            } catch (err) {
-                console.warn('Failed to load template, falling back to clean sheet', err);
-                const ExcelJS = await import('exceljs');
-                workbook = new ExcelJS.Workbook();
-                dsSheet = workbook.addWorksheet('DS');
-                
-                dsSheet.columns = [
-                    { header: '', key: 'A', width: 3 },
-                    { header: 'STT', key: 'stt', width: 8 },
-                    { header: 'Giờ', key: 'timeOnlyStr', width: 12 },
-                    { header: 'Ngày', key: 'dateOnlyStr', width: 12 },
-                    { header: 'Số xe', key: 'plateNumber', width: 15 },
-                    { header: 'TTTP (tấn)', key: 'tttp', width: 15 },
-                    { header: 'Trọng lượng hàng cho phép (tấn)', key: 'limit', width: 22 },
-                    { header: 'Mã lệnh', key: 'orderNo', width: 18 },
-                    { header: 'Số phiếu', key: 'ticketNo', width: 18 },
-                    { header: 'Loại hàng', key: 'cargoType', width: 18 },
-                    { header: 'Khối lượng (tấn)', key: 'weightTons', width: 22 },
-                    { header: 'Ghi chú', key: 'notes', width: 15 }
-                ];
-                
-                const headerRow = dsSheet.getRow(9);
-                headerRow.getCell(2).value = 'STT';
-                headerRow.getCell(3).value = 'Giờ';
-                headerRow.getCell(4).value = 'Ngày';
-                headerRow.getCell(5).value = 'Số xe';
-                headerRow.getCell(6).value = 'TTTP (tấn)';
-                headerRow.getCell(7).value = 'Trọng lượng hàng cho phép (tấn)';
-                headerRow.getCell(8).value = 'Mã lệnh';
-                headerRow.getCell(9).value = 'Số phiếu';
-                headerRow.getCell(10).value = 'Loại hàng';
-                headerRow.getCell(11).value = 'Khối lượng (tấn)';
-                headerRow.getCell(12).value = 'Ghi chú';
-                
-                headerRow.font = { name: 'Times New Roman', size: 10, bold: true };
-                headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                
-                for (let colIdx = 2; colIdx <= 12; colIdx++) {
-                    const cell = headerRow.getCell(colIdx);
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FFE2EBF5' }
-                    };
-                    cell.border = {
-                        top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                        left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-                        bottom: { style: 'medium', color: { argb: 'FF808080' } },
-                        right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
-                    };
-                }
-                headerRow.height = 25;
-            }
-            
-            // Thiết lập chiều cao dòng tiêu đề chính (Row 8 & 9) trong trường hợp dùng template
-            dsSheet.getRow(8).height = 25;
-            dsSheet.getRow(9).height = 25;
-
-            const startRowIdx = 10;
-            const maxEmptyRowsInTemplate = 18;
-            const dataCount = dataToExport.length;
-            
-            const isUsingTemplate = dsSheet.name === 'Sheet1' || dsSheet.name === 'Danh sách Sà Lan' || dsSheet.rowCount >= 28;
-            if (isUsingTemplate && dataCount > maxEmptyRowsInTemplate) {
-                const rowsToInsert = dataCount - maxEmptyRowsInTemplate;
-                const emptyRows = [];
-                for (let i = 0; i < rowsToInsert; i++) {
-                    emptyRows.push([]);
-                }
-                dsSheet.spliceRows(28, 0, ...emptyRows);
-            }
-            
-            let currentSTT = 0;
-            let currentRowIdx = 10;
-            
-            dataToExport.forEach(trip => {
-                currentSTT++;
-                
-                const row = dsSheet.getRow(currentRowIdx);
-                row.height = 20; // Đặt chiều cao các hàng dữ liệu bằng nhau
-                
-                let timeVal = '';
-                let dateVal = '';
-                if (trip.timeStr && trip.timeStr.includes('\n')) {
-                    const timeParts = trip.timeStr.split('\n');
-                    timeVal = timeParts[0] || '';
-                    dateVal = timeParts[1] || '';
-                } else if (trip.timeStr) {
-                    const timeParts = trip.timeStr.trim().split(/\s+/);
-                    if (timeParts.length === 2) {
-                        timeVal = timeParts[0] || '';
-                        dateVal = timeParts[1] || '';
-                    } else {
-                        timeVal = trip.timeStr;
-                        dateVal = '';
-                    }
-                }
-                
-                row.getCell(2).value = currentSTT;                         // Col B: STT
-                row.getCell(3).value = timeVal;                            // Col C: Giờ
-                row.getCell(4).value = dateVal;                            // Col D: Ngày
-                row.getCell(5).value = formatPlate(trip.plateNumber);      // Col E: Số đăng ký
-                row.getCell(6).value = trip.tttp;                          // Col F: TTTP
-                row.getCell(7).value = trip.limit;                         // Col G: Hạn mức hàng
-                row.getCell(8).value = trip.orderNo || '';                 // Col H: Mã lệnh
-                row.getCell(9).value = trip.ticketNo;                      // Col I: Số phiếu
-                row.getCell(10).value = trip.cargoType;                    // Col J: Loại hàng
-                row.getCell(11).value = trip.weightTons;                   // Col K: Khối lượng (tấn)
-                row.getCell(12).value = trip.bargeName || '';              // Col L: Ghi chú (Tên sà lan)
-                
-                for (let colIdx = 2; colIdx <= 12; colIdx++) {
-                    const cell = row.getCell(colIdx);
-                    cell.font = { name: 'Times New Roman', size: 11 };
-                    cell.border = {
-                        top: { style: 'thin', color: { indexed: 64 } },
-                        left: { style: 'thin', color: { indexed: 64 } },
-                        bottom: { style: 'thin', color: { indexed: 64 } },
-                        right: { style: 'thin', color: { indexed: 64 } }
-                    };
-                    if ([2, 3, 4, 5, 8, 9].includes(colIdx)) {
-                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    } else if ([6, 7, 11].includes(colIdx)) {
-                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                        cell.numFmt = '#,##0.00';
-                    } else {
-                        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-                    }
-                }
-                currentRowIdx++;
-            });
-            
-            if (isUsingTemplate && dataCount < maxEmptyRowsInTemplate) {
-                const unusedStart = startRowIdx + dataCount;
-                const countToDelete = 27 - unusedStart + 1;
-                dsSheet.spliceRows(unusedStart, countToDelete);
-            }
-
-            // Tự động căn chỉnh độ rộng cột cho Tab Theo dõi (bỏ qua dòng tiêu đề lớn)
-            dsSheet.getColumn(1).width = 3; // Cột A trống
-            
-            const lastDataRowIdx = 10 + dataCount - 1;
-            for (let colIdx = 2; colIdx <= 12; colIdx++) {
-                const col = dsSheet.getColumn(colIdx);
-                
-                // Thu nhỏ cột Trọng tải cho phép (Col 6 / F) và Hạn mức hàng (Col 7 / G)
-                if (colIdx === 6) {
-                    col.width = 12;
-                    continue;
-                }
-                if (colIdx === 7) {
-                    col.width = 14;
-                    continue;
-                }
-                
-                let maxLen = 12; // Tăng chiều rộng cơ bản tối thiểu
-                
-                for (let rIdx = 8; rIdx <= lastDataRowIdx; rIdx++) {
-                    const cell = dsSheet.getRow(rIdx).getCell(colIdx);
-                    // Bỏ qua dòng 8 của các cột đã gộp để tránh giãn cột vô lý
-                    if (rIdx === 8 && [3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(colIdx)) {
-                        continue;
-                    }
-                    const val = cell.value;
-                    if (val !== null && val !== undefined) {
-                        let strVal = '';
-                        if (typeof val === 'object' && val.result !== undefined) {
-                            strVal = String(val.result);
-                        } else {
-                            strVal = String(val);
-                        }
-                        const lines = strVal.split('\n');
-                        lines.forEach(l => {
-                            if (l.length > maxLen) {
-                                maxLen = l.length;
-                            }
-                        });
-                    }
-                }
-                col.width = Math.min(maxLen + 5, 35); // Tăng đệm lên +5 và giới hạn tối đa lên 35
-            }
+        for (let i = 1; i <= headers.length; i++) {
+            const cell = headerRow.getCell(i);
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE2EBF5' }
+            };
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
+                left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
+                bottom: { style: 'medium', color: { argb: 'FF808080' } },
+                right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
+            };
         }
         
-        // Write to buffer
-        const buffer = await workbook.xlsx.writeBuffer();
+        dataToExport.forEach((trip, idx) => {
+            const row = sheet.getRow(idx + 2);
+            row.getCell(1).value = idx + 1;
+            row.getCell(2).value = trip.ticketNo || '';
+            row.getCell(3).value = trip.orderNo || '';
+            row.getCell(4).value = formatPlate(trip.plateNumber);
+            row.getCell(5).value = trip.customer || '';
+            row.getCell(6).value = trip.weight1 || 0;
+            row.getCell(7).value = trip.weight2 || 0;
+            row.getCell(8).value = trip.weightNet || (trip.weightTons ? trip.weightTons * 1000 : 0);
+            row.getCell(9).value = trip.cargoType || '';
+            
+            let d1Str = '';
+            let t1Str = '';
+            let d2Str = '';
+            let t2Str = '';
+            if (trip.date1Obj) {
+                const dt = new Date(trip.date1Obj);
+                if (!isNaN(dt.getTime())) {
+                    d1Str = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+                    t1Str = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+                }
+            }
+            if (trip.date2Obj) {
+                const dt = new Date(trip.date2Obj);
+                if (!isNaN(dt.getTime())) {
+                    d2Str = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+                    t2Str = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+                }
+            }
+            if (!t1Str && trip.timeStr) {
+                t1Str = trip.timeStr;
+            }
+
+            row.getCell(10).value = d1Str;
+            row.getCell(11).value = t1Str;
+            row.getCell(12).value = d2Str;
+            row.getCell(13).value = t2Str;
+            row.getCell(14).value = trip.direction || '';
+            row.getCell(15).value = trip.bargeName || '';
+            row.getCell(16).value = trip.notes || '';
+            row.font = { name: 'Arial', size: 10 };
+            row.height = 20;
+
+            for (let c = 1; c <= headers.length; c++) {
+                row.getCell(c).border = {
+                    top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                    left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+                };
+            }
+        });
         
-        // Download
+        sheet.columns.forEach((col: any) => { col.width = 18; });
+        
+        const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = activeDataTab.value === 'template' 
-            ? 'SỔ PHÂN BỔ CHI TIẾT_PhanBo.xlsx' 
-            : 'SỐ THEO DÕI XẾP HÀNG HÓA LÊN PHƯƠNG TIỆN_NNP_TVPL.xlsx';
+        link.download = 'SỔ_THEO_DÕI_XẾP_HÀNG_HOA.xlsx';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         
-        addToast('Đã xuất tệp Excel thành công!', 'success');
-        await LogService.logAction('Xuất Excel', 'Xuất báo cáo cân hàng ra Excel');
+        addToast('Đã xuất Sổ theo dõi thành công!', 'success');
+        await LogService.logAction('Xuất Excel', 'Xuất Sổ theo dõi ra Excel');
     } catch (error) {
-        console.error(error);
-        addToast('Lỗi khi xuất tệp Excel!', 'error');
+        console.error('Lỗi khi xuất Excel Sổ theo dõi:', error);
+        addToast('Có lỗi xảy ra khi tạo tệp Excel!', 'error');
     } finally {
         compiling.value = false;
     }
@@ -3457,172 +2987,84 @@ async function compileAndDownload() {
                 <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Công cụ thông minh</div>
                 <h1 class="text-sm md:text-base font-black text-[#1e293b] flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-primary text-base">balance</span>
-                    Phân bổ tải trọng xếp hàng lên phương tiện
+                    Dữ liệu cân hàng & Sổ theo dõi phương tiện
                 </h1>
                 <p class="text-xs text-gray-500 mt-0.5">
-                    Tự động chia tách trọng lượng xe quá tải vượt hạn mức thành nhiều chuyến hợp lệ và kết xuất tệp theo mẫu chuẩn.
+                    Quản lý dữ liệu phiếu cân hàng ngày, đồng bộ trực tiếp vào sà lan và lưu trữ sổ theo dõi.
                 </p>
             </div>
             <!-- Toggle settings on mobile / desktop -->
             <button 
                 @click="isSettingsCollapsed = !isSettingsCollapsed"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-primary/10 text-primary hover:bg-primary/20 shrink-0 select-none cursor-pointer"
-                :title="isSettingsCollapsed ? 'Mở rộng cài đặt quy tắc' : 'Thu gọn cài đặt quy tắc'"
+                :title="isSettingsCollapsed ? 'Mở rộng cài đặt số phiếu' : 'Thu gọn cài đặt số phiếu'"
             >
                 <span class="material-symbols-outlined text-[16px]">{{ isSettingsCollapsed ? 'tune' : 'expand_less' }}</span>
-                <span>{{ isSettingsCollapsed ? 'Hiện cài đặt quy tắc' : 'Thu gọn cài đặt' }}</span>
+                <span>{{ isSettingsCollapsed ? 'Cài đặt số phiếu' : 'Thu gọn cài đặt' }}</span>
             </button>
         </div>
 
-        <!-- Compact Settings & Capacities configs -->
-        <div v-show="!isSettingsCollapsed" class="grid grid-cols-1 lg:grid-cols-4 gap-3 shrink-0 text-left transition-all">
-            <!-- Thẻ 1: Số phiếu tự động (2/4 width) -->
-            <div class="lg:col-span-2 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <!-- Col 1: Số phiếu tự động (Phần 1) -->
-                <div class="flex flex-col gap-2 pr-2 lg:pl-1">
-                    <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
-                        <span class="material-symbols-outlined text-[13px]">tag</span>
-                        Số phiếu tự động
-                        <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
-                    </h4>
-                    <div class="space-y-2">
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tiền tố số phiếu</span>
-                            <input 
-                                type="text" 
-                                v-model="ticketPrefix" 
-                                :disabled="!canEditRules"
-                                placeholder="Ví dụ: PC-"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số phiếu bắt đầu</span>
-                            <input 
-                                type="number" 
-                                v-model.number="ticketStart" 
-                                :disabled="!canEditRules"
-                                min="0"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                        <div class="text-xs text-gray-400 font-semibold italic flex items-center gap-1 pt-1 select-none text-left">
-                            <span class="material-symbols-outlined text-xs">visibility</span>
-                            Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewTicketNo }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Col 2: Số phiếu tự động (Phần 2) -->
-                <div class="flex flex-col gap-2 h-full lg:pl-1">
-                    <div class="space-y-2 text-left">
-                        <h4 class="text-xs font-black text-transparent select-none hidden md:block">Cấu hình định dạng</h4>
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số chữ số (Padding)</span>
-                            <input 
-                                type="number" 
-                                v-model.number="ticketPadding" 
-                                :disabled="!canEditRules"
-                                min="1" 
-                                max="10"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Hậu tố số phiếu</span>
-                            <input 
-                                type="text" 
-                                v-model="ticketSuffix" 
-                                :disabled="!canEditRules"
-                                placeholder="Ví dụ: /mmyy"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Thẻ 2: Quy tắc phân bổ (1/4 width) -->
-            <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
+        <!-- Compact Settings (Số phiếu tự động) -->
+        <div v-show="!isSettingsCollapsed" class="bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0 text-left transition-all">
+            <!-- Col 1: Số phiếu tự động (Phần 1) -->
+            <div class="flex flex-col gap-2 pr-2 lg:pl-1">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
-                    <span class="material-symbols-outlined text-[13px]">tune</span>
-                    Quy tắc phân bổ
+                    <span class="material-symbols-outlined text-[13px]">tag</span>
+                    Số phiếu tự động
                     <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
                 </h4>
                 <div class="space-y-2">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Chiến lược chia</span>
-                        <select v-model="distStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
-                            <option value="random">Phân bổ ngẫu nhiên</option>
-                            <option value="even">Chia đều</option>
-                            <option value="max">Tối đa hóa công suất</option>
-                        </select>
-                    </div>
-                    <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Định thời gian</span>
-                        <select v-model="spacingStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
-                            <option value="even">Phân đều chu kỳ</option>
-                            <option value="forward">Tịnh tiến (+ Phút)</option>
-                            <option value="backward">Lùi dần (- Phút)</option>
-                        </select>
-                    </div>
-                    <div v-if="spacingStrategy !== 'even'" class="flex items-center gap-1.5 bg-primary/5 p-1 rounded-lg border border-primary/10">
-                        <span class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tiền tố số phiếu</span>
                         <input 
-                            type="number" 
-                            v-model.number="timeIntervalMinutes" 
+                            type="text" 
+                            v-model="ticketPrefix" 
                             :disabled="!canEditRules"
-                            min="10" 
-                            max="720"
-                            class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            placeholder="Ví dụ: PC-"
+                            class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                        <span class="text-xs text-gray-400 font-bold">phút</span>
+                    </div>
+                    <div class="flex flex-col gap-0.5">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số phiếu bắt đầu</span>
+                        <input 
+                            type="number" 
+                            v-model.number="ticketStart" 
+                            :disabled="!canEditRules"
+                            min="0"
+                            class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        >
+                    </div>
+                    <div class="text-xs text-gray-400 font-semibold italic flex items-center gap-1 pt-1 select-none text-left">
+                        <span class="material-symbols-outlined text-xs">visibility</span>
+                        Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewTicketNo }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Thẻ 3: Hạn mức tải trọng (1/4 width) -->
-            <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
-                <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
-                    <span class="material-symbols-outlined text-[13px]">shield</span>
-                    Hạn mức tải trọng
-                    <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
-                </h4>
-                <div class="space-y-2">
+            <!-- Col 2: Số phiếu tự động (Phần 2) -->
+            <div class="flex flex-col gap-2 h-full lg:pl-1">
+                <div class="space-y-2 text-left">
+                    <h4 class="text-xs font-black text-transparent select-none hidden md:block">Cấu hình định dạng</h4>
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số chữ số (Padding)</span>
                         <input 
                             type="number" 
-                            v-model.number="standardTTTPLimit" 
-                            step="0.1"
-                            class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                            v-model.number="ticketPadding" 
+                            :disabled="!canEditRules"
+                            min="1" 
+                            max="10"
+                            class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                     </div>
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
-                        <div class="flex items-center gap-1.5">
-                            <input 
-                                type="number" 
-                                v-model.number="standardCurbMin" 
-                                step="0.1"
-                                placeholder="Min"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
-                            >
-                            <span class="text-gray-400 text-xs font-bold">~</span>
-                            <input 
-                                type="number" 
-                                v-model.number="standardCurbMax" 
-                                step="0.1"
-                                placeholder="Max"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
-                            >
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-400 font-bold flex items-center justify-between mt-1">
-                        <span>Hạn mức hàng:</span>
-                        <span class="text-primary font-mono bg-primary/5 px-2 py-0.5 rounded">
-                            {{ Math.max(0, standardTTTPLimit - standardCurbMax).toFixed(1) }} - {{ Math.max(0, standardTTTPLimit - standardCurbMin).toFixed(1) }} tấn
-                        </span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Hậu tố số phiếu</span>
+                        <input 
+                            type="text" 
+                            v-model="ticketSuffix" 
+                            :disabled="!canEditRules"
+                            placeholder="Ví dụ: /mmyy"
+                            class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        >
                     </div>
                 </div>
             </div>
@@ -3646,17 +3088,6 @@ async function compileAndDownload() {
                         1. Phiếu cân ({{ csvRecords.length }})
                     </button>
                     <button 
-                        @click="activeDataTab = 'template'"
-                        :class="[
-                            'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
-                            activeDataTab === 'template' 
-                                ? 'bg-primary/10 text-primary border border-primary/20' 
-                                : 'text-gray-500 hover:bg-gray-50'
-                        ]"
-                    >
-                        2. Phân bổ ({{ generatedTrips.length }})
-                    </button>
-                    <button 
                         @click="activeDataTab = 'generated'"
                         :class="[
                             'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
@@ -3665,7 +3096,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        3. Theo dõi ({{ existingTrips.length }})
+                        2. Theo dõi ({{ existingTrips.length }})
                     </button>
                 </div>
 
@@ -3691,46 +3122,7 @@ async function compileAndDownload() {
                             </button>
                         </div>
 
-                        <!-- Tab 2 Search & Filter -->
-                        <div v-if="activeDataTab === 'template'" class="flex items-center gap-2 w-full sm:w-auto h-7">
-                            <div class="relative w-full sm:w-[220px] h-7 flex items-center">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
-                                <input 
-                                    type="text" 
-                                    v-model="searchQuery" 
-                                    placeholder="Tìm kiếm..." 
-                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
-                                >
-                                <button 
-                                    v-if="searchQuery" 
-                                    @click="searchQuery = ''" 
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-1.5 shrink-0 h-7">
-                                <select 
-                                    v-model="selectedCustomer"
-                                    class="px-2.5 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer min-w-[120px] max-w-[150px] shadow-sm text-gray-700"
-                                >
-                                    <option value="">Tất cả khách hàng</option>
-                                    <option v-for="customer in uniqueCustomers" :key="customer" :value="customer">
-                                        {{ customer }}
-                                    </option>
-                                </select>
-                                <button 
-                                    v-if="selectedCustomer" 
-                                    @click="selectedCustomer = ''" 
-                                    class="size-7 rounded-[8px] bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-primary flex items-center justify-center transition-colors border border-gray-200"
-                                    title="Xóa lọc khách hàng"
-                                >
-                                    <span class="material-symbols-outlined text-xs">close</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Tab 3 Search -->
+                        <!-- Tab 2 (Theo dõi) Search -->
                         <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[240px] h-7 flex items-center">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
                             <input 
@@ -3786,6 +3178,16 @@ async function compileAndDownload() {
                             Xóa hết
                         </button>
                         <button 
+                            @click="saveSourceTicketsToHistory"
+                            :disabled="csvRecords.length === 0 || isSavingToHistory"
+                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            title="Lưu toàn bộ phiếu cân vào Sổ Theo Dõi và làm sạch danh sách ở Tab 1"
+                        >
+                            <span v-if="isSavingToHistory" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-[14px]">save</span>
+                            {{ isSavingToHistory ? 'Đang lưu...' : 'Lưu vào Sổ Theo Dõi' }}
+                        </button>
+                        <button 
                             @click="exportSourceTickets"
                             :disabled="csvRecords.length === 0 || compiling"
                             class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -3795,42 +3197,7 @@ async function compileAndDownload() {
                         </button>
                     </template>
 
-                    <!-- Tab 2 Actions -->
-                    <template v-if="activeDataTab === 'template'">
-                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
-                            KL: {{ totalSplitWeightTons.toFixed(2) }}t
-                        </div>
-
-                        <button 
-                            @click="saveToHistory"
-                            :disabled="generatedTrips.length === 0 || isSavingToHistory || isAlreadySaved"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <span v-if="isSavingToHistory" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[14px]">save</span>
-                            {{ isSavingToHistory ? 'Đang lưu...' : (isAlreadySaved ? 'Đã lưu' : 'Lưu') }}
-                        </button>
-                        <button 
-                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
-                            @click="clearAllGeneratedTrips"
-                            :disabled="generatedTrips.length === 0"
-                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">delete</span>
-                            Xóa tất cả
-                        </button>
-                        <button 
-                            @click="compileAndDownload"
-                            :disabled="generatedTrips.length === 0 || compiling"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <span v-if="compiling" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[14px]">download</span>
-                            {{ compiling ? 'Đang xử lý...' : 'Xuất Excel' }}
-                        </button>
-                    </template>
-
-                    <!-- Tab 3 Actions -->
+                    <!-- Tab 2 (Theo dõi) Actions -->
                     <template v-if="activeDataTab === 'generated'">
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ historyTotalWeightTons.toFixed(2) }}t
@@ -4022,28 +3389,28 @@ async function compileAndDownload() {
                 </div>
             </div>
 
-            <!-- Tab Content: Generated Split Trips -->
+            <!-- Tab Content: Tracking / History Records -->
             <div v-if="activeDataTab === 'generated'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
                 <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
+                    <table class="w-full text-left border-collapse text-xs font-bold min-w-[1300px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
-                                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
-                                        <span>Mã lệnh</span>
+                                        <span>Số phiếu</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ historySortKey === 'orderNo' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                            {{ historySortKey === 'ticketNo' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('dateObj')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Thời gian rời bến (Giờ/Ngày)</span>
+                                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ historySortKey === 'dateObj' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                            {{ historySortKey === 'orderNo' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
@@ -4055,87 +3422,101 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('tttp')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span>TTTP (tấn)</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ historySortKey === 'tttp' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleHistorySort('limit')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span>Trọng lượng hàng CP (tấn)</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ historySortKey === 'limit' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
-                                        <span>Số phiếu</span>
+                                        <span>Khách hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ historySortKey === 'ticketNo' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                            {{ historySortKey === 'customer' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 text-center w-28 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-center gap-1">
+                                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center gap-1">
                                         <span>Loại hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ historySortKey === 'cargoType' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('weightTons')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
-                                        <span>Khối lượng (tấn)</span>
+                                        <span>TL1 (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ historySortKey === 'weightTons' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                            {{ historySortKey === 'weight1' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
+                                <th @click="toggleHistorySort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <span>TL2 (kg)</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ historySortKey === 'weight2' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleHistorySort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <span>KL hàng (kg)</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ historySortKey === 'weightNet' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleHistorySort('date1Obj')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span>Thời gian vào</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ historySortKey === 'date1Obj' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleHistorySort('date2Obj')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span>Thời gian ra</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ historySortKey === 'date2Obj' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleHistorySort('bargeName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center gap-1">
+                                        <span>Tên sà lan</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ historySortKey === 'bargeName' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th class="py-2 px-3 bg-gray-55 font-bold select-none">Ghi chú</th>
                                 <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
                             <tr 
                                 v-for="(trip, idx) in pagedHistoryTrips" 
-                                :key="trip.stt"
+                                :key="trip.id || trip.stt || idx"
                                 class="hover:bg-gray-50 transition-colors"
                             >
                                 <td class="py-2 px-3 text-center font-bold text-gray-400 whitespace-nowrap">
                                     {{ (historyCurrentPage - 1) * itemsPerPage + idx + 1 }}
                                 </td>
-                                <td class="py-2 px-3 font-semibold text-teal-600 font-mono">{{ trip.orderNo || '-' }}</td>
-                                <td class="py-2 px-3 whitespace-pre-line font-mono text-xs leading-tight text-gray-500">{{ trip.timeStr }}</td>
-                                <td class="py-2 px-3 font-bold text-gray-900 flex items-center gap-1.5">
-                                    <span class="whitespace-nowrap">{{ formatPlate(trip.plateNumber) }}</span>
-                                    <span v-if="!formatPlate(trip.plateNumber).includes('/')" class="material-symbols-outlined text-[14px] text-red-500 font-bold animate-pulse" title="Thiếu số moóc!">warning</span>
+                                <td class="py-2 px-3 font-semibold text-gray-700 whitespace-nowrap">{{ trip.ticketNo || '-' }}</td>
+                                <td class="py-2 px-3 text-center font-semibold text-teal-600 font-mono whitespace-nowrap">{{ trip.orderNo || '-' }}</td>
+                                <td class="py-2 px-3 font-bold text-gray-900 whitespace-nowrap">
+                                    {{ formatPlate(trip.plateNumber) }}
                                 </td>
-                                <td class="py-2 px-3 text-center">{{ typeof trip.tttp === 'number' ? trip.tttp.toFixed(1) : (trip.tttp || '-') }}</td>
-                                <td class="py-2 px-3 text-center">{{ typeof trip.limit === 'number' ? trip.limit.toFixed(1) : (trip.limit || '-') }}</td>
-                                <td class="py-2 px-3 font-semibold text-gray-500">{{ trip.ticketNo }}</td>
-                                <td class="py-2 px-3 truncate max-w-[120px]" :title="trip.cargoType">{{ trip.cargoType }}</td>
-                                <td class="py-2 px-3 text-right font-black text-primary">{{ typeof trip.weightTons === 'number' ? trip.weightTons.toFixed(2) : (trip.weightTons || '-') }}</td>
-                                <td class="py-2 px-3 text-center">
-                                    <span 
-                                        v-if="typeof trip.weightTons === 'number' && typeof trip.limit === 'number' && trip.weightTons <= trip.limit" 
-                                        class="size-5 rounded-full bg-teal-50 text-teal-655 border border-teal-200 flex items-center justify-center mx-auto"
-                                        title="Hợp lệ - Dưới hạn mức"
-                                    >
-                                        <span class="material-symbols-outlined text-[13px] font-black">check</span>
-                                    </span>
-                                    <span 
-                                        v-else-if="typeof trip.weightTons === 'number' && typeof trip.limit === 'number'" 
-                                        class="size-5 rounded-full bg-red-50 text-red-600 border border-red-200 flex items-center justify-center mx-auto"
-                                        title="Quá tải!"
-                                    >
-                                        <span class="material-symbols-outlined text-[13px] font-black">close</span>
-                                    </span>
-                                    <span v-else class="text-gray-400 italic text-xs">-</span>
+                                <td class="py-2 px-3 truncate max-w-[140px] text-gray-600" :title="trip.customer">{{ trip.customer || '-' }}</td>
+                                <td class="py-2 px-3 truncate max-w-[120px]" :title="trip.cargoType">{{ trip.cargoType || '-' }}</td>
+                                <td class="py-2 px-3 text-right font-mono text-gray-700 whitespace-nowrap">{{ trip.weight1 ? trip.weight1.toLocaleString() : '-' }}</td>
+                                <td class="py-2 px-3 text-right font-mono text-gray-700 whitespace-nowrap">{{ trip.weight2 ? trip.weight2.toLocaleString() : '-' }}</td>
+                                <td class="py-2 px-3 text-right font-black text-primary font-mono whitespace-nowrap">{{ (trip.weightNet || (trip.weightTons ? trip.weightTons * 1000 : 0)).toLocaleString() }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">
+                                    {{ trip.date1Obj ? formatExcelDateTimeCombined(trip.date1Obj) : (trip.timeStr || '-') }}
                                 </td>
+                                <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">
+                                    {{ trip.date2Obj ? formatExcelDateTimeCombined(trip.date2Obj) : '-' }}
+                                </td>
+                                <td class="py-2 px-3 truncate max-w-[120px] text-gray-600" :title="trip.bargeName">{{ trip.bargeName || '-' }}</td>
+                                <td class="py-2 px-3 truncate max-w-[140px] text-gray-400 text-xs" :title="trip.notes">{{ trip.notes || '-' }}</td>
                                 <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
@@ -4163,7 +3544,7 @@ async function compileAndDownload() {
                 <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
                     <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
                     <p class="text-xs font-semibold max-w-[320px] leading-relaxed">
-                        Không tìm thấy bản ghi nào khớp bộ lọc!
+                        {{ existingTrips.length === 0 ? 'Sổ theo dõi chưa có dữ liệu.' : 'Không tìm thấy bản ghi nào khớp bộ lọc!' }}
                     </p>
                 </div>
 
@@ -4202,236 +3583,6 @@ async function compileAndDownload() {
                             <button 
                                 @click="historyCurrentPage = Math.min(historyTotalPages, historyCurrentPage + 1)" 
                                 :disabled="historyCurrentPage === historyTotalPages"
-                                class="size-7 rounded-lg hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center text-gray-700 border border-gray-100 transition-colors"
-                            >
-                                <span class="material-symbols-outlined text-base">chevron_right</span>
-                            </button>
-                        </template>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab Content: Detail Template (Theo dõi) -->
-            <div v-if="activeDataTab === 'template'" class="flex-1 flex flex-col gap-3 min-h-0">
-
-                <!-- Preview Data Table -->
-                <div v-if="filteredTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
-                                <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
-                                <th @click="toggleTemplateSort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Số phiếu</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'ticketNo' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('orderNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Mã lệnh</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'orderNo' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('plateNumber')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Số xe</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'plateNumber' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Khách hàng</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'customer' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('weight1')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <span>KL cân lần 1</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'weight1' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <span>KL cân lần 2</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'weight2' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('weightNet')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <span>KL hàng</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'weightNet' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('date1Obj')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group" colspan="3">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span>Thời gian vào</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'date1Obj' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('date2Obj')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group" colspan="3">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span>Thời gian ra</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'date2Obj' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('direction')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span>X/N</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'direction' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('cargoType')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Loại hàng</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'cargoType' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th @click="toggleTemplateSort('bargeName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center gap-1">
-                                        <span>Loại Sà lan</span>
-                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
-                                            {{ templateSortKey === 'bargeName' ? (templateSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
-                                        </span>
-                                    </div>
-                                </th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center bg-gray-50 font-bold w-[80px] select-none">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
-                            <tr 
-                                v-for="(trip, idx) in pagedTrips" 
-                                :key="trip.stt"
-                                class="hover:bg-gray-50 transition-colors"
-                            >
-                                <td class="py-2 px-3 text-center font-bold text-gray-400 whitespace-nowrap">
-                                    {{ (currentPage - 1) * itemsPerPage + idx + 1 }}
-                                </td>
-                                <td class="py-2 px-3 font-bold text-gray-800 whitespace-nowrap">{{ trip.ticketNo }}</td>
-                                <td class="py-2 px-3 font-semibold text-teal-600 font-mono whitespace-nowrap">{{ trip.orderNo || '-' }}</td>
-                                <td class="py-2 px-3 font-bold text-gray-900 whitespace-nowrap">
-                                    <div class="flex items-center gap-1">
-                                        <span>{{ formatPlate(trip.plateNumber) }}</span>
-                                        <span v-if="!formatPlate(trip.plateNumber).includes('/')" class="material-symbols-outlined text-[14px] text-red-500 font-bold animate-pulse" title="Thiếu số moóc! Vui lòng cấu hình số moóc cho xe.">warning</span>
-                                    </div>
-                                </td>
-                                <td class="py-2 px-3 max-w-[150px] truncate text-gray-500" :title="trip.customer">{{ trip.customer }}</td>
-                                <td class="py-2 px-3 text-right font-mono text-gray-700 whitespace-nowrap">{{ trip.weight1.toLocaleString() }}</td>
-                                <td class="py-2 px-3 text-right font-mono text-gray-700 whitespace-nowrap">{{ trip.weight2.toLocaleString() }}</td>
-                                <td class="py-2 px-3 text-right font-black text-primary font-mono whitespace-nowrap">{{ trip.weightNet.toLocaleString() }}</td>
-                                <td class="py-2 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelDate(trip.date1Obj) }}</td>
-                                <td class="py-2 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelTime(trip.date1Obj) }}</td>
-                                <td class="py-2 px-3 text-gray-400 text-xs font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date1Obj) }}</td>
-                                <td class="py-2 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelDate(trip.date2Obj) }}</td>
-                                <td class="py-2 px-3 text-center text-gray-500 font-mono whitespace-nowrap">{{ formatExcelTime(trip.date2Obj) }}</td>
-                                <td class="py-2 px-3 text-gray-400 text-xs font-mono whitespace-nowrap">{{ formatExcelDateTimeCombined(trip.date2Obj) }}</td>
-                                <td class="py-2 px-3 text-center">
-                                    <span :class="['px-1.5 py-0.5 rounded text-xs font-black whitespace-nowrap', isXuatDirection(trip.direction) ? 'bg-primary/10 text-primary' : 'bg-teal-50 text-teal-600']">
-                                        {{ isXuatDirection(trip.direction) ? 'XUẤT' : 'NHẬP' }}
-                                    </span>
-                                </td>
-                                <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.cargoType">{{ trip.cargoType }}</td>
-                                <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.bargeName">{{ trip.bargeName }}</td>
-                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center">
-                                    <div class="flex items-center justify-center gap-1.5">
-                                        <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
-                                            @click="editGeneratedTripOrderNo(trip)"
-                                            class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
-                                            title="Sửa Mã lệnh"
-                                        >
-                                            <span class="material-symbols-outlined text-[12px]">edit</span>
-                                        </button>
-                                        <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
-                                            @click="deleteGeneratedTrip(trip)"
-                                            class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
-                                            title="Xóa chuyến xe này"
-                                        >
-                                            <span class="material-symbols-outlined text-[12px]">delete</span>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
-                    <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
-                    <div class="text-xs font-semibold max-w-[360px] leading-relaxed">
-                        <template v-if="generatedTrips.length === 0">
-                            <span>Chưa có chuyến xe nào được phân bổ.</span>
-                        </template>
-                        <template v-else>
-                            <span>Không tìm thấy bản ghi nào khớp bộ lọc!</span>
-                            <div class="mt-2 not-italic">
-                                <button 
-                                    @click="searchQuery = ''; selectedCustomer = ''" 
-                                    class="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline"
-                                >
-                                    Xóa tất cả bộ lọc
-                                </button>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Table Pagination -->
-                <div class="flex items-center justify-between gap-4 pt-3 border-t border-gray-50 text-xs font-semibold text-gray-500">
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-1">
-                            Tổng: <span class="font-black text-gray-700">{{ filteredTrips.length }}</span>
-                        </div>
-                        <span class="w-[1px] h-3 bg-gray-200"></span>
-                        <div class="flex items-center gap-1.5">
-                            <span>Hiển thị:</span>
-                            <select 
-                                v-model.number="itemsPerPage"
-                                class="px-2 py-1 bg-white border border-gray-200 rounded-[8px] text-xs font-bold focus:outline-none focus:border-primary transition-all cursor-pointer shadow-sm text-gray-700"
-                            >
-                                <option :value="10">10</option>
-                                <option :value="20">20</option>
-                                <option :value="50">50</option>
-                                <option :value="100">100</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <template v-if="totalPages > 1">
-                            <button 
-                                @click="currentPage = Math.max(1, currentPage - 1)" 
-                                :disabled="currentPage === 1"
-                                class="size-7 rounded-lg hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center text-gray-700 border border-gray-100 transition-colors"
-                            >
-                                <span class="material-symbols-outlined text-base">chevron_left</span>
-                            </button>
-                            <span class="text-xs font-bold text-gray-500">
-                                Trang {{ currentPage }} / {{ totalPages }}
-                            </span>
-                            <button 
-                                @click="currentPage = Math.min(totalPages, currentPage + 1)" 
-                                :disabled="currentPage === totalPages"
                                 class="size-7 rounded-lg hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center text-gray-700 border border-gray-100 transition-colors"
                             >
                                 <span class="material-symbols-outlined text-base">chevron_right</span>

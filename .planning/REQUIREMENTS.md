@@ -73,13 +73,18 @@ Which phases cover which requirements.
 | UI-02 | Phase 6 | Pending |
 | VESSEL-01 | Phase 8 | Complete |
 | VESSEL-02 | Phase 8 | Complete |
-| DB-MIGRATE-01 | Phase 9 | Pending |
-| DATA-RECOVER-01 | Phase 9 | Pending |
-| ALLOCATOR-SYNC-01 | Phase 9 | Pending |
+| DB-MIGRATE-01 | Phase 9 | Complete |
+| DATA-RECOVER-01 | Phase 9 | Complete |
+| ALLOCATOR-SYNC-01 | Phase 9 | Complete |
+| SYNC-DIRECT-01 | Phase 11 | Complete |
+| SYNC-DIRECT-02 | Phase 11 | Complete |
+| SYNC-DIRECT-03 | Phase 11 | Complete |
+| SYNC-DIRECT-04 | Phase 11 | Complete |
+| SYNC-DIRECT-05 | Phase 11 | Complete |
 
 **Coverage:**
-- v1.1 requirements: 13 total
-- Mapped to phases: 13
+- v1.1 requirements: 18 total
+- Mapped to phases: 18
 - Unmapped: 0 ✓
 
 

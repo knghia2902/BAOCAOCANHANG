@@ -2831,19 +2831,19 @@ async function autoSyncAllBarges(isManual = false) {
                 .single();
                 
             if (!fetchError && data?.settings) {
-                allocatorTrips = data.settings.allocator_generated_trips || [];
-                await dbContext.set('allocator_generated_trips', allocatorTrips);
+                allocatorTrips = data.settings.allocator_tickets || [];
+                await dbContext.set('allocator_tickets', allocatorTrips);
             } else {
-                allocatorTrips = await dbContext.get<any[]>('allocator_generated_trips') || [];
+                allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
             }
         } catch (dbErr) {
             console.error('Lỗi khi truy xuất dữ liệu đồng bộ:', dbErr);
-            allocatorTrips = await dbContext.get<any[]>('allocator_generated_trips') || [];
+            allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
         }
 
         if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
             if (isManual) {
-                const emptyMsg = 'Không tìm thấy chuyến xe nào trong Báo cáo phân bổ để đồng bộ!';
+                const emptyMsg = 'Không tìm thấy phiếu cân nào trong Dữ liệu cân hàng để đồng bộ!';
                 showToast(emptyMsg);
                 syncChannel.postMessage({ type: 'sync_response', message: emptyMsg, status: 'success' });
             }
@@ -2893,9 +2893,13 @@ async function autoSyncAllBarges(isManual = false) {
                     try {
                         if (t.date1Obj) {
                             dIn = parseExcelDate(t.date1Obj);
+                        } else if (t.dateInStr) {
+                            dIn = parseExcelDate(t.timeInStr ? `${t.dateInStr} ${t.timeInStr}` : t.dateInStr);
                         }
                         if (t.date2Obj) {
                             dOut = parseExcelDate(t.date2Obj);
+                        } else if (t.dateOutStr) {
+                            dOut = parseExcelDate(t.timeOutStr ? `${t.dateOutStr} ${t.timeOutStr}` : t.dateOutStr);
                         }
                     } catch (e) {
                         console.warn('Error parsing date:', e);
@@ -2911,29 +2915,22 @@ async function autoSyncAllBarges(isManual = false) {
                         dIn = `${y}-${m}-${day}T${h}:${min}`;
                     }
                     if (!dOut) {
-                        const outDate = new Date();
-                        outDate.setMinutes(outDate.getMinutes() + 30);
-                        const y = outDate.getFullYear();
-                        const m = String(outDate.getMonth() + 1).padStart(2, '0');
-                        const day = String(outDate.getDate()).padStart(2, '0');
-                        const h = String(outDate.getHours()).padStart(2, '0');
-                        const min = String(outDate.getMinutes()).padStart(2, '0');
-                        dOut = `${y}-${m}-${day}T${h}:${min}`;
+                        dOut = dIn;
                     }
 
                     return {
                         id: Date.now() + idx,
                         barge_id: barge.id,
                         ticketNo: t.ticketNo || '',
-                        sourceTicketNo: t.sourceTicketNo || '', // Original CSV ticketNo for dedup
+                        sourceTicketNo: t.ticketNo || t.sourceTicketNo || '', // Original CSV ticketNo for dedup
                         plateNumber: t.plateNumber || '',
-                        driver: '',
+                        driver: t.driverName || t.driver || '',
                         weight1: Number(t.weight1) || 0,
                         weight2: Number(t.weight2) || 0,
                         weightNet: Number(t.weightNet) || 0,
                         dateIn: dIn,
                         dateOut: dOut,
-                        note: t.notes || ''
+                        note: t.notes || t.note || ''
                     };
                 });
 
@@ -3050,22 +3047,25 @@ const syncFromAllocatorActiveBarge = async () => {
             .eq('id', 'main')
             .single();
 
-        if (fetchError) throw fetchError;
-
-        const allocatorTrips = data?.settings?.allocator_generated_trips || [];
-        if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
-            showToast('Không tìm thấy chuyến xe nào trong Báo cáo phân bổ. Hãy thực hiện phân bổ tải trọng trước!', 'error');
-            return;
+        let allocatorTrips: any[] = [];
+        if (!fetchError && data?.settings) {
+            allocatorTrips = data.settings.allocator_tickets || [];
+            await dbContext.set('allocator_tickets', allocatorTrips);
+        } else {
+            allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
         }
 
-
+        if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
+            showToast('Không tìm thấy phiếu cân nào trong Dữ liệu cân hàng. Hãy import phiếu cân trước!', 'error');
+            return;
+        }
 
         const activeBargeName = activeBarge.value.name;
         // Filter trips for this active barge (matches strictly by orderNo)
         const matchedTrips = allocatorTrips.filter((t: any) => isBargeMatch(t, activeBarge.value!));
 
         if (matchedTrips.length === 0) {
-            showToast(`Không tìm thấy chuyến xe nào được phân bổ cho sà lan "${activeBargeName}" với mã lệnh "${bargeOrderNo}" trong Báo cáo phân bổ!`, 'error');
+            showToast(`Không tìm thấy phiếu cân nào có mã lệnh "${bargeOrderNo}" (Sà lan "${activeBargeName}") trong Dữ liệu cân hàng!`, 'error');
             return;
         }
 
@@ -3076,7 +3076,7 @@ const syncFromAllocatorActiveBarge = async () => {
         if (currentTrucks.length > 0) {
             const confirmOverwrite = await showConfirm({
                 title: 'Đồng bộ danh sách xe sà lan',
-                message: `Sà lan này đang có ${currentTrucks.length} xe.\n\n- Chọn Ghi đè: Để xóa các xe cũ và chỉ giữ danh sách xe mới từ phân bổ.\n- Chọn Thêm tiếp: Để giữ lại xe cũ và cộng dồn thêm xe mới.`,
+                message: `Sà lan này đang có ${currentTrucks.length} xe.\n\n- Chọn Ghi đè: Để xóa các xe cũ và chỉ giữ danh sách xe mới từ Dữ liệu cân hàng.\n- Chọn Thêm tiếp: Để giữ lại xe cũ và cộng dồn thêm xe mới.`,
                 type: 'warning',
                 okText: 'Ghi đè',
                 cancelText: 'Thêm tiếp'
@@ -3090,9 +3090,13 @@ const syncFromAllocatorActiveBarge = async () => {
             try {
                 if (t.date1Obj) {
                     dIn = parseExcelDate(t.date1Obj);
+                } else if (t.dateInStr) {
+                    dIn = parseExcelDate(t.timeInStr ? `${t.dateInStr} ${t.timeInStr}` : t.dateInStr);
                 }
                 if (t.date2Obj) {
                     dOut = parseExcelDate(t.date2Obj);
+                } else if (t.dateOutStr) {
+                    dOut = parseExcelDate(t.timeOutStr ? `${t.dateOutStr} ${t.timeOutStr}` : t.dateOutStr);
                 }
             } catch (e) {
                 console.warn('Error parsing date:', e);
@@ -3108,29 +3112,22 @@ const syncFromAllocatorActiveBarge = async () => {
                 dIn = `${y}-${m}-${day}T${h}:${min}`;
             }
             if (!dOut) {
-                const outDate = new Date();
-                outDate.setMinutes(outDate.getMinutes() + 30);
-                const y = outDate.getFullYear();
-                const m = String(outDate.getMonth() + 1).padStart(2, '0');
-                const day = String(outDate.getDate()).padStart(2, '0');
-                const h = String(outDate.getHours()).padStart(2, '0');
-                const min = String(outDate.getMinutes()).padStart(2, '0');
-                dOut = `${y}-${m}-${day}T${h}:${min}`;
+                dOut = dIn;
             }
 
             return {
                 id: Date.now() + idx,
                 barge_id: bargeId,
                 ticketNo: t.ticketNo || '',
-                sourceTicketNo: t.sourceTicketNo || '', // Original CSV ticketNo for dedup
+                sourceTicketNo: t.ticketNo || t.sourceTicketNo || '', // Original CSV ticketNo for dedup
                 plateNumber: t.plateNumber || '',
-                driver: '',
+                driver: t.driverName || t.driver || '',
                 weight1: Number(t.weight1) || 0,
                 weight2: Number(t.weight2) || 0,
                 weightNet: Number(t.weightNet) || 0,
                 dateIn: dIn,
                 dateOut: dOut,
-                note: t.notes || ''
+                note: t.notes || t.note || ''
             };
         });
 
