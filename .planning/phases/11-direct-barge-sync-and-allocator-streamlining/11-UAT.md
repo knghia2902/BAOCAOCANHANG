@@ -55,14 +55,11 @@ blocked: 0
 ## Gaps
 
 - truth: "Khi đồng bộ vào Sà lan, giờ vào (dateIn) và giờ ra (dateOut) phải khớp chính xác theo giờ vào / giờ ra của file phiếu cân import"
-  status: failed
-  reason: "User reported: ok đã đồng bộ khớp mã lệnh nhưng giờ vào/ giờ ra so với file import"
+  status: fixed
+  reason: "Đã khắc phục: Thêm hàm formatExcelDateCell và cleanHeader xử lý thông minh mọi tiêu đề ngày giờ và cell Date/Time trong Excel; bổ sung cột Khách hàng, TL1, TL2, Ngày vào, Giờ vào, Ngày ra, Giờ ra trên Tab 1; đồng bộ giờ vào/giờ ra giữ nguyên local time không bị 00:00."
   severity: major
   test: 2
-  root_cause: "cleanTickets trong CargoAllocator.vue bị thiếu trường timeInStr/timeOutStr khi lưu allocator_tickets lên Supabase, khiến WeighbridgePrinter.vue nhận chuỗi ngày không có giờ, dẫn đến parseExcelDate trả về rỗng và fallback về thời gian hiện tại (now), hoặc bị lệch do getUTCHours()."
+  root_cause: "1. Trong handleExcelUpload, cell.value instanceof Date bị ép sang toLocaleDateString() làm mất thành phần giờ/phút hoặc biến cell giờ thành '30/12/1899'. 2. Header matching chỉ tìm 'gio can lan 1' bỏ sót 'Giờ vào'/'Giờ ra'. 3. Bảng Tab 1 gộp chung và thiếu cột Giờ vào / Giờ ra trực quan."
   artifacts:
     - path: "src/components/tools/CargoAllocator.vue"
     - path: "src/components/tools/WeighbridgePrinter.vue"
-  missing:
-    - "Lưu đầy đủ timeInStr, timeOutStr, date1Obj, date2Obj trong cleanTickets của CargoAllocator.vue"
-    - "Cải tiến hàm phân tích ngày giờ trong WeighbridgePrinter.vue để giữ nguyên vẹn giờ vào / giờ ra địa phương của file import"
