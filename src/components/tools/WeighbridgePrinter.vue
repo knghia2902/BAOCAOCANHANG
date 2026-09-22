@@ -2891,15 +2891,20 @@ async function autoSyncAllBarges(isManual = false) {
                     let dIn = '';
                     let dOut = '';
                     try {
-                        if (t.date1Obj) {
+                        if (t.dateInStr && t.timeInStr) {
+                            dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`);
+                        } else if (t.date1Obj) {
                             dIn = parseExcelDate(t.date1Obj);
                         } else if (t.dateInStr) {
-                            dIn = parseExcelDate(t.timeInStr ? `${t.dateInStr} ${t.timeInStr}` : t.dateInStr);
+                            dIn = parseExcelDate(t.dateInStr);
                         }
-                        if (t.date2Obj) {
+
+                        if (t.dateOutStr && t.timeOutStr) {
+                            dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`);
+                        } else if (t.date2Obj) {
                             dOut = parseExcelDate(t.date2Obj);
                         } else if (t.dateOutStr) {
-                            dOut = parseExcelDate(t.timeOutStr ? `${t.dateOutStr} ${t.timeOutStr}` : t.dateOutStr);
+                            dOut = parseExcelDate(t.dateOutStr);
                         }
                     } catch (e) {
                         console.warn('Error parsing date:', e);
@@ -3088,15 +3093,20 @@ const syncFromAllocatorActiveBarge = async () => {
             let dIn = '';
             let dOut = '';
             try {
-                if (t.date1Obj) {
+                if (t.dateInStr && t.timeInStr) {
+                    dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`);
+                } else if (t.date1Obj) {
                     dIn = parseExcelDate(t.date1Obj);
                 } else if (t.dateInStr) {
-                    dIn = parseExcelDate(t.timeInStr ? `${t.dateInStr} ${t.timeInStr}` : t.dateInStr);
+                    dIn = parseExcelDate(t.dateInStr);
                 }
-                if (t.date2Obj) {
+
+                if (t.dateOutStr && t.timeOutStr) {
+                    dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`);
+                } else if (t.date2Obj) {
                     dOut = parseExcelDate(t.date2Obj);
                 } else if (t.dateOutStr) {
-                    dOut = parseExcelDate(t.timeOutStr ? `${t.dateOutStr} ${t.timeOutStr}` : t.dateOutStr);
+                    dOut = parseExcelDate(t.dateOutStr);
                 }
             } catch (e) {
                 console.warn('Error parsing date:', e);
@@ -3377,11 +3387,12 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
 const parseExcelDate = (val: any): string => {
     if (!val) return '';
     if (val instanceof Date) {
-        const y = val.getUTCFullYear();
-        const m = String(val.getUTCMonth() + 1).padStart(2, '0');
-        const d = String(val.getUTCDate()).padStart(2, '0');
-        const h = String(val.getUTCHours()).padStart(2, '0');
-        const min = String(val.getUTCMinutes()).padStart(2, '0');
+        if (isNaN(val.getTime())) return '';
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        const h = String(val.getHours()).padStart(2, '0');
+        const min = String(val.getMinutes()).padStart(2, '0');
         return `${y}-${m}-${d}T${h}:${min}`;
     }
     if (typeof val === 'number') {
@@ -3394,12 +3405,25 @@ const parseExcelDate = (val: any): string => {
         return `${y}-${m}-${d}T${h}:${min}`;
     }
     const str = String(val).trim();
+
+    // 1. ISO format: YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm
+    const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[T\s]+(\d{1,2}):(\d{1,2})/);
+    if (isoMatch && isoMatch[1] && isoMatch[2] && isoMatch[3] && isoMatch[4] && isoMatch[5]) {
+        const y = isoMatch[1];
+        const m = String(isoMatch[2]).padStart(2, '0');
+        const d = String(isoMatch[3]).padStart(2, '0');
+        const h = String(isoMatch[4]).padStart(2, '0');
+        const min = String(isoMatch[5]).padStart(2, '0');
+        return `${y}-${m}-${d}T${h}:${min}`;
+    }
+
+    // 2. Vietnamese format: DD/MM/YYYY HH:mm[:ss] [AM/PM]
     const dMyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{1,2})(?::\d{1,2})?\s*(AM|PM|am|pm)?/i);
-    if (dMyHm) {
-        let p1 = parseInt(dMyHm[1] || '1');
-        let p2 = parseInt(dMyHm[2] || '1');
+    if (dMyHm && dMyHm[1] && dMyHm[2] && dMyHm[3] && dMyHm[4] && dMyHm[5]) {
+        let p1 = parseInt(dMyHm[1] || '1', 10);
+        let p2 = parseInt(dMyHm[2] || '1', 10);
         const y = dMyHm[3];
-        let hour = parseInt(dMyHm[4] || '0');
+        let hour = parseInt(dMyHm[4] || '0', 10);
         const min = String(dMyHm[5]).padStart(2, '0');
         const ampm = (dMyHm[6] || '').toUpperCase();
 
@@ -3407,14 +3431,14 @@ const parseExcelDate = (val: any): string => {
         if (ampm === 'PM' && hour < 12) hour += 12;
         if (ampm === 'AM' && hour === 12) hour = 0;
 
-        let month = p2;
         let day = p1;
+        let month = p2;
         if (p1 <= 12 && p2 > 12) {
             month = p1;
             day = p2;
-        } else if (p1 <= 12 && p2 <= 12) {
-            month = p1;
-            day = p2;
+        } else {
+            day = p1;
+            month = p2;
         }
 
         const mStr = String(month).padStart(2, '0');
@@ -3422,6 +3446,20 @@ const parseExcelDate = (val: any): string => {
         const hStr = String(hour).padStart(2, '0');
         return `${y}-${mStr}-${dStr}T${hStr}:${min}`;
     }
+
+    // 3. Date only: DD/MM/YYYY
+    const dMyOnly = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dMyOnly && dMyOnly[1] && dMyOnly[2] && dMyOnly[3]) {
+        let day = parseInt(dMyOnly[1], 10);
+        let month = parseInt(dMyOnly[2], 10);
+        const y = dMyOnly[3];
+        if (day <= 12 && month > 12) {
+            const tmp = day; day = month; month = tmp;
+        }
+        return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00`;
+    }
+
+    // 4. Fallback ISO prefix
     const iso = str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     if (iso) return str.slice(0, 16);
 
