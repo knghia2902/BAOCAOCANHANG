@@ -426,6 +426,117 @@ watch(itemsPerPage, () => {
     historyCurrentPage.value = 1;
 });
 
+// Helper to normalize header text for flexible keyword matching
+function cleanHeader(h: any): string {
+    if (!h) return '';
+    return String(h)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Extract clean Date and Time strings from Excel / CSV cell values
+function formatExcelDateCell(val: any): { dateStr: string; timeStr: string } {
+    let dateStr = '';
+    let timeStr = '';
+    if (val === null || val === undefined || val === '') return { dateStr, timeStr };
+
+    if (typeof val === 'object' && 'result' in val) {
+        val = (val as any).result;
+    }
+
+    if (val instanceof Date) {
+        if (!isNaN(val.getTime())) {
+            const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const d = String(val.getDate()).padStart(2, '0');
+            const hh = String(val.getHours()).padStart(2, '0');
+            const mm = String(val.getMinutes()).padStart(2, '0');
+            const ss = String(val.getSeconds()).padStart(2, '0');
+
+            // Year 1899 or 1900 means Excel time-only value
+            if (y <= 1900) {
+                timeStr = `${hh}:${mm}:${ss}`;
+            } else {
+                dateStr = `${d}/${m}/${y}`;
+                timeStr = `${hh}:${mm}:${ss}`;
+            }
+        }
+        return { dateStr, timeStr };
+    }
+
+    if (typeof val === 'number') {
+        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+        if (!isNaN(date.getTime())) {
+            const y = date.getUTCFullYear();
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            const hh = String(date.getUTCHours()).padStart(2, '0');
+            const mm = String(date.getUTCMinutes()).padStart(2, '0');
+            const ss = String(date.getUTCSeconds()).padStart(2, '0');
+            if (y <= 1900) {
+                timeStr = `${hh}:${mm}:${ss}`;
+            } else {
+                dateStr = `${d}/${m}/${y}`;
+                timeStr = `${hh}:${mm}:${ss}`;
+            }
+        }
+        return { dateStr, timeStr };
+    }
+
+    const raw = String(val).trim();
+    if (!raw) return { dateStr, timeStr };
+
+    // Check pure time: HH:mm[:ss]
+    const timeMatch = raw.match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (timeMatch) {
+        const hh = String(timeMatch[1]).padStart(2, '0');
+        const mm = String(timeMatch[2]).padStart(2, '0');
+        const ss = timeMatch[3] ? String(timeMatch[3]).padStart(2, '0') : '00';
+        return { dateStr: '', timeStr: `${hh}:${mm}:${ss}` };
+    }
+
+    // Check combined datetime: DD/MM/YYYY HH:mm[:ss] or YYYY-MM-DD HH:mm[:ss]
+    const dtMatch = raw.match(/^(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})[T\s]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if (dtMatch) {
+        let p1 = dtMatch[1] || '';
+        let p2 = dtMatch[2] || '';
+        let p3 = dtMatch[3] || '';
+        let d = '', m = '', y = '';
+        if (p1.length === 4) {
+            y = p1; m = p2.padStart(2, '0'); d = p3.padStart(2, '0');
+        } else {
+            d = p1.padStart(2, '0'); m = p2.padStart(2, '0'); y = p3.length === 2 ? '20' + p3 : p3;
+        }
+        dateStr = `${d}/${m}/${y}`;
+        const hh = String(dtMatch[4]).padStart(2, '0');
+        const mm = String(dtMatch[5]).padStart(2, '0');
+        const ss = dtMatch[6] ? String(dtMatch[6]).padStart(2, '0') : '00';
+        timeStr = `${hh}:${mm}:${ss}`;
+        return { dateStr, timeStr };
+    }
+
+    // Check date only: DD/MM/YYYY or YYYY-MM-DD
+    const dateMatch = raw.match(/^(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})$/);
+    if (dateMatch) {
+        let p1 = dateMatch[1] || '';
+        let p2 = dateMatch[2] || '';
+        let p3 = dateMatch[3] || '';
+        if (p1.length === 4) {
+            dateStr = `${p3.padStart(2, '0')}/${p2.padStart(2, '0')}/${p1}`;
+        } else {
+            dateStr = `${p1.padStart(2, '0')}/${p2.padStart(2, '0')}/${p3.length === 2 ? '20' + p3 : p3}`;
+        }
+        return { dateStr, timeStr: '' };
+    }
+
+    return { dateStr: raw, timeStr: '' };
+}
+
 // Parse CSV text safely
 function parseCSVText(text: string): CSVRecord[] {
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
@@ -452,24 +563,57 @@ function parseCSVText(text: string): CSVRecord[] {
     
     // Parse headers and strip BOM if any
     const headers = parseLine(lines[0] || '').map(h => h.replace(/^\uFEFF/, '').trim());
+    const normHeaders = headers.map(cleanHeader);
     
     // Map headers to indexes
-    const idxTicket = headers.findIndex(h => h.toLowerCase().includes('phieu'));
-    const idxPlate = headers.findIndex(h => h.toLowerCase().includes('xe'));
-    const idxCustomer = headers.findIndex(h => h.toLowerCase().includes('khach'));
-    const idxWeight1 = headers.findIndex(h => h.toLowerCase().includes('lan 1'));
-    const idxWeight2 = headers.findIndex(h => h.toLowerCase().includes('lan 2'));
-    const idxWeightNet = headers.findIndex(h => h.toLowerCase().includes('kl') && h.toLowerCase().includes('hang'));
-    const idxDate1 = headers.findIndex(h => h.toLowerCase().includes('ngay can lan 1'));
-    const idxTime1 = headers.findIndex(h => h.toLowerCase().includes('gio can lan 1'));
-    const idxDate2 = headers.findIndex(h => h.toLowerCase().includes('ngay can lan 2'));
-    const idxTime2 = headers.findIndex(h => h.toLowerCase().includes('gio can lan 2'));
-    const idxDirection = headers.findIndex(h => h.toLowerCase().includes('xuat/nhap'));
-    const idxCargoType = headers.findIndex(h => h.toLowerCase().includes('loai hang'));
-    const idxBarge = headers.findIndex(h => h.toLowerCase().includes('salan') || h.toLowerCase().includes('sa lan'));
-    const idxDriver = headers.findIndex(h => h.toLowerCase().includes('tai xe') || h.toLowerCase().includes('tài xế'));
-    const idxNotes = headers.findIndex(h => h.toLowerCase().includes('ghi chu') || h.toLowerCase().includes('ghi chú'));
-    const idxOrderNo = headers.findIndex(h => h.toLowerCase().includes('lenh') || h.toLowerCase().includes('lệnh') || h.toLowerCase().includes('order'));
+    const idxTicket = normHeaders.findIndex(h => h.includes('phieu') || h.includes('ticket') || (h === 'stt' && !normHeaders.some(x => x.includes('phieu'))));
+    const idxPlate = normHeaders.findIndex(h => h.includes('bien so') || h.includes('so xe') || h.includes('xe') || h.includes('plate'));
+    const idxCustomer = normHeaders.findIndex(h => h.includes('khach') || h.includes('chu hang') || h.includes('customer'));
+    const idxWeight1 = normHeaders.findIndex(h => 
+        (h.includes('tl') && (h.includes('1') || h.includes('lan 1'))) ||
+        (h.includes('trong luong') && (h.includes('1') || h.includes('lan 1'))) ||
+        h.includes('lan 1') || h.includes('can 1') || h.includes('tong trong') || h.includes('tl1')
+    );
+    const idxWeight2 = normHeaders.findIndex(h => 
+        (h.includes('tl') && (h.includes('2') || h.includes('lan 2'))) ||
+        (h.includes('trong luong') && (h.includes('2') || h.includes('lan 2'))) ||
+        h.includes('lan 2') || h.includes('can 2') || h.includes('tu trong') || h.includes('bi') || h.includes('tl2')
+    );
+    const idxWeightNet = normHeaders.findIndex(h => 
+        (h.includes('kl') && h.includes('hang')) ||
+        (h.includes('khoi luong') && (h.includes('hang') || h.includes('net'))) ||
+        h.includes('tl hang') || h.includes('hang hoa') || h.includes('net') ||
+        h === 'kl' || h === 'khoi luong'
+    );
+
+    const idxDateTime1 = normHeaders.findIndex(h => 
+        (h.includes('thoi gian') || h.includes('tg') || h.includes('ngay gio')) && (h.includes('1') || h.includes('vao') || h.includes('lan 1') || h.includes('dau') || h.includes('nhap'))
+    );
+    const idxDate1 = normHeaders.findIndex(h => 
+        ((h.includes('ngay') || h.includes('date')) && (h.includes('1') || h.includes('vao') || h.includes('lan 1') || h.includes('dau') || h.includes('nhap'))) ||
+        h === 'ngay can' || h === 'ngay' || h === 'date'
+    );
+    const idxTime1 = normHeaders.findIndex(h => 
+        ((h.includes('gio') || h.includes('time')) && (h.includes('1') || h.includes('vao') || h.includes('lan 1') || h.includes('dau') || h.includes('nhap'))) ||
+        h === 'gio can' || h === 'gio' || h === 'time'
+    );
+
+    const idxDateTime2 = normHeaders.findIndex(h => 
+        (h.includes('thoi gian') || h.includes('tg') || h.includes('ngay gio')) && (h.includes('2') || h.includes('ra') || h.includes('lan 2') || h.includes('cuoi') || h.includes('xuat'))
+    );
+    const idxDate2 = normHeaders.findIndex(h => 
+        ((h.includes('ngay') || h.includes('date')) && (h.includes('2') || h.includes('ra') || h.includes('lan 2') || h.includes('cuoi') || h.includes('xuat')))
+    );
+    const idxTime2 = normHeaders.findIndex(h => 
+        ((h.includes('gio') || h.includes('time')) && (h.includes('2') || h.includes('ra') || h.includes('lan 2') || h.includes('cuoi') || h.includes('xuat')))
+    );
+
+    const idxDirection = normHeaders.findIndex(h => h.includes('xuat nhap') || h.includes('hinh thuc') || h.includes('direction'));
+    const idxCargoType = normHeaders.findIndex(h => h.includes('loai hang') || h.includes('ten hang') || h.includes('hang hoa') || h.includes('cargo'));
+    const idxBarge = normHeaders.findIndex(h => h.includes('salan') || h.includes('sa lan') || h.includes('barge'));
+    const idxDriver = normHeaders.findIndex(h => h.includes('tai xe') || h.includes('lai xe') || h.includes('driver'));
+    const idxNotes = normHeaders.findIndex(h => h.includes('ghi chu') || h.includes('note'));
+    const idxOrderNo = normHeaders.findIndex(h => h.includes('ma lenh') || h.includes('so lenh') || h.includes('lenh') || h.includes('order'));
 
     const records: CSVRecord[] = [];
     for (let i = 1; i < lines.length; i++) {
@@ -479,18 +623,73 @@ function parseCSVText(text: string): CSVRecord[] {
         const plate = parts[idxPlate] || '';
         if (!plate) continue;
 
+        let dateInStr = '';
+        let timeInStr = '';
+        if (idxDateTime1 !== -1 && parts[idxDateTime1]) {
+            const dt = formatExcelDateCell(parts[idxDateTime1]);
+            dateInStr = dt.dateStr;
+            timeInStr = dt.timeStr;
+        }
+        if (idxDate1 !== -1 && parts[idxDate1]) {
+            const dt = formatExcelDateCell(parts[idxDate1]);
+            if (!dateInStr && dt.dateStr) dateInStr = dt.dateStr;
+            if (!timeInStr && dt.timeStr) timeInStr = dt.timeStr;
+            if (!dateInStr && !dt.dateStr) dateInStr = parts[idxDate1].trim();
+        }
+        if (idxTime1 !== -1 && parts[idxTime1]) {
+            const dt = formatExcelDateCell(parts[idxTime1]);
+            if (dt.timeStr) timeInStr = dt.timeStr;
+            else if (!timeInStr) timeInStr = parts[idxTime1].trim();
+        }
+        if (dateInStr.includes(' ') && !timeInStr) {
+            const p = dateInStr.split(' ');
+            dateInStr = p[0] || '';
+            timeInStr = p[1] || '';
+        }
+
+        let dateOutStr = '';
+        let timeOutStr = '';
+        if (idxDateTime2 !== -1 && parts[idxDateTime2]) {
+            const dt = formatExcelDateCell(parts[idxDateTime2]);
+            dateOutStr = dt.dateStr;
+            timeOutStr = dt.timeStr;
+        }
+        if (idxDate2 !== -1 && parts[idxDate2]) {
+            const dt = formatExcelDateCell(parts[idxDate2]);
+            if (!dateOutStr && dt.dateStr) dateOutStr = dt.dateStr;
+            if (!timeOutStr && dt.timeStr) timeOutStr = dt.timeStr;
+            if (!dateOutStr && !dt.dateStr) dateOutStr = parts[idxDate2].trim();
+        }
+        if (idxTime2 !== -1 && parts[idxTime2]) {
+            const dt = formatExcelDateCell(parts[idxTime2]);
+            if (dt.timeStr) timeOutStr = dt.timeStr;
+            else if (!timeOutStr) timeOutStr = parts[idxTime2].trim();
+        }
+        if (dateOutStr.includes(' ') && !timeOutStr) {
+            const p = dateOutStr.split(' ');
+            dateOutStr = p[0] || '';
+            timeOutStr = p[1] || '';
+        }
+
+        const w1 = idxWeight1 !== -1 ? parseFloat(parts[idxWeight1] || '0') || 0 : 0;
+        const w2 = idxWeight2 !== -1 ? parseFloat(parts[idxWeight2] || '0') || 0 : 0;
+        let wNet = idxWeightNet !== -1 ? parseFloat(parts[idxWeightNet] || '0') || 0 : 0;
+        if (wNet === 0 && w1 > 0 && w2 > 0) {
+            wNet = Math.abs(w1 - w2);
+        }
+
         records.push({
             id: 'ticket_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
-            ticketNo: parts[idxTicket] || '',
+            ticketNo: (idxTicket !== -1 ? parts[idxTicket] : '') || '',
             plateNumber: plate,
             customer: (idxCustomer !== -1 ? parts[idxCustomer] : '') || '',
-            weight1: idxWeight1 !== -1 ? parseFloat(parts[idxWeight1] || '0') || 0 : 0,
-            weight2: idxWeight2 !== -1 ? parseFloat(parts[idxWeight2] || '0') || 0 : 0,
-            weightNet: idxWeightNet !== -1 ? parseFloat(parts[idxWeightNet] || '0') || 0 : 0,
-            dateInStr: (idxDate1 !== -1 ? parts[idxDate1] : '') || '',
-            timeInStr: (idxTime1 !== -1 ? parts[idxTime1] : '') || '',
-            dateOutStr: (idxDate2 !== -1 ? parts[idxDate2] : '') || '',
-            timeOutStr: (idxTime2 !== -1 ? parts[idxTime2] : '') || '',
+            weight1: w1,
+            weight2: w2,
+            weightNet: wNet,
+            dateInStr,
+            timeInStr,
+            dateOutStr,
+            timeOutStr,
             direction: (idxDirection !== -1 ? parts[idxDirection] : '') || '',
             cargoType: (idxCargoType !== -1 ? parts[idxCargoType] : '') || '',
             bargeName: (idxBarge !== -1 ? parts[idxBarge] : '') || '',
@@ -618,18 +817,31 @@ function ensureDate(d: any): Date {
     return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+function toLocalISOString(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+}
+
 function formatExcelDate(date: any): string {
     const d = ensureDate(date);
-    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${d.getFullYear()}`;
 }
 
 function formatExcelDateTimeCombined(date: any): string {
     const d = ensureDate(date);
-    const hour24 = d.getHours();
-    const ampm = hour24 >= 12 ? 'PM' : 'AM';
-    const hour12 = hour24 % 12 || 12;
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${hour12}:${min} ${ampm}`;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hh}:${mm}`;
 }
 
 function getHistoryDuplicates(records: CSVRecord[]): { dupRecords: CSVRecord[], description: string } {
@@ -755,62 +967,165 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
             return;
         }
         
-        // Map headers to column indexes
-        const idxTicket = headers.findIndex(h => h.toLowerCase().includes('phieu'));
-        const idxPlate = headers.findIndex(h => h.toLowerCase().includes('xe'));
-        const idxCustomer = headers.findIndex(h => h.toLowerCase().includes('khach'));
-        const idxWeight1 = headers.findIndex(h => h.toLowerCase().includes('lan 1'));
-        const idxWeight2 = headers.findIndex(h => h.toLowerCase().includes('lan 2'));
-        const idxWeightNet = headers.findIndex(h => h.toLowerCase().includes('kl') && h.toLowerCase().includes('hang'));
-        const idxDate1 = headers.findIndex(h => h.toLowerCase().includes('ngay can lan 1') || h.toLowerCase().includes('ngày cân lần 1') || h.toLowerCase() === 'ngay can 1' || h.toLowerCase() === 'ngày cân 1');
-        const idxTime1 = headers.findIndex(h => h.toLowerCase().includes('gio can lan 1') || h.toLowerCase().includes('giờ cân lần 1') || h.toLowerCase() === 'gio can 1' || h.toLowerCase() === 'giờ cân 1');
-        const idxDate2 = headers.findIndex(h => h.toLowerCase().includes('ngay can lan 2') || h.toLowerCase().includes('ngày cân lần 2') || h.toLowerCase() === 'ngay can 2' || h.toLowerCase() === 'ngày cân 2');
-        const idxTime2 = headers.findIndex(h => h.toLowerCase().includes('gio can lan 2') || h.toLowerCase().includes('giờ cân lần 2') || h.toLowerCase() === 'gio can 2' || h.toLowerCase() === 'giờ cân 2');
-        const idxDirection = headers.findIndex(h => h.toLowerCase().includes('xuat/nhap') || h.toLowerCase().includes('xuất/nhập'));
-        const idxCargoType = headers.findIndex(h => h.toLowerCase().includes('loai hang') || h.toLowerCase().includes('loại hàng'));
-        const idxBarge = headers.findIndex(h => h.toLowerCase().includes('salan') || h.toLowerCase().includes('sa lan'));
-        const idxDriver = headers.findIndex(h => h.toLowerCase().includes('tai xe') || h.toLowerCase().includes('tài xế'));
-        const idxNotes = headers.findIndex(h => h.toLowerCase().includes('ghi chu') || h.toLowerCase().includes('ghi chú'));
-        const idxOrderNo = headers.findIndex(h => h.toLowerCase().includes('lenh') || h.toLowerCase().includes('lệnh') || h.toLowerCase().includes('order'));
+        // Map headers to column indexes using cleanHeader
+        const normHeaders = headers.map(cleanHeader);
+        
+        const idxTicket = normHeaders.findIndex(h => h.includes('phieu') || h.includes('ticket') || (h === 'stt' && !normHeaders.some(x => x.includes('phieu'))));
+        const idxPlate = normHeaders.findIndex(h => h.includes('bien so') || h.includes('so xe') || h.includes('xe') || h.includes('plate'));
+        const idxCustomer = normHeaders.findIndex(h => h.includes('khach') || h.includes('chu hang') || h.includes('customer'));
+        const idxWeight1 = normHeaders.findIndex(h => 
+            (h.includes('tl') && (h.includes('1') || h.includes('lan 1'))) ||
+            (h.includes('trong luong') && (h.includes('1') || h.includes('lan 1'))) ||
+            h.includes('lan 1') || h.includes('can 1') || h.includes('tong trong') || h.includes('tl1')
+        );
+        const idxWeight2 = normHeaders.findIndex(h => 
+            (h.includes('tl') && (h.includes('2') || h.includes('lan 2'))) ||
+            (h.includes('trong luong') && (h.includes('2') || h.includes('lan 2'))) ||
+            h.includes('lan 2') || h.includes('can 2') || h.includes('tu trong') || h.includes('bi') || h.includes('tl2')
+        );
+        const idxWeightNet = normHeaders.findIndex(h => 
+            (h.includes('kl') && h.includes('hang')) ||
+            (h.includes('khoi luong') && (h.includes('hang') || h.includes('net'))) ||
+            h.includes('tl hang') || h.includes('hang hoa') || h.includes('net') ||
+            h === 'kl' || h === 'khoi luong'
+        );
+        
+        const idxDateTime1 = normHeaders.findIndex(h => 
+            (h.includes('thoi gian') || h.includes('tg') || h.includes('ngay gio')) && (h.includes('1') || h.includes('vao') || h.includes('lan 1') || h.includes('dau') || h.includes('nhap'))
+        );
+        const idxDate1 = normHeaders.findIndex(h => 
+            ((h.includes('ngay') || h.includes('date')) && (h.includes('1') || h.includes('vao') || h.includes('lan 1') || h.includes('dau') || h.includes('nhap'))) ||
+            h === 'ngay can' || h === 'ngay' || h === 'date'
+        );
+        const idxTime1 = normHeaders.findIndex(h => 
+            ((h.includes('gio') || h.includes('time')) && (h.includes('1') || h.includes('vao') || h.includes('lan 1') || h.includes('dau') || h.includes('nhap'))) ||
+            h === 'gio can' || h === 'gio' || h === 'time'
+        );
+
+        const idxDateTime2 = normHeaders.findIndex(h => 
+            (h.includes('thoi gian') || h.includes('tg') || h.includes('ngay gio')) && (h.includes('2') || h.includes('ra') || h.includes('lan 2') || h.includes('cuoi') || h.includes('xuat'))
+        );
+        const idxDate2 = normHeaders.findIndex(h => 
+            ((h.includes('ngay') || h.includes('date')) && (h.includes('2') || h.includes('ra') || h.includes('lan 2') || h.includes('cuoi') || h.includes('xuat')))
+        );
+        const idxTime2 = normHeaders.findIndex(h => 
+            ((h.includes('gio') || h.includes('time')) && (h.includes('2') || h.includes('ra') || h.includes('lan 2') || h.includes('cuoi') || h.includes('xuat')))
+        );
+
+        const idxDirection = normHeaders.findIndex(h => h.includes('xuat nhap') || h.includes('hinh thuc') || h.includes('direction'));
+        const idxCargoType = normHeaders.findIndex(h => h.includes('loai hang') || h.includes('ten hang') || h.includes('hang hoa') || h.includes('cargo'));
+        const idxBarge = normHeaders.findIndex(h => h.includes('salan') || h.includes('sa lan') || h.includes('barge'));
+        const idxDriver = normHeaders.findIndex(h => h.includes('tai xe') || h.includes('lai xe') || h.includes('driver'));
+        const idxNotes = normHeaders.findIndex(h => h.includes('ghi chu') || h.includes('note'));
+        const idxOrderNo = normHeaders.findIndex(h => h.includes('ma lenh') || h.includes('so lenh') || h.includes('lenh') || h.includes('order'));
         
         const newRecords: CSVRecord[] = [];
         
         for (let r = headerRowIdx + 1; r <= sheet.rowCount; r++) {
             const row = sheet.getRow(r);
-            const getVal = (idx: number) => {
+            const getCellVal = (idx: number) => {
                 if (idx === -1) return '';
                 const cell = row.getCell(idx + 1);
-                if (cell.value && typeof cell.value === 'object') {
-                    if ((cell.value as any).result !== undefined) {
-                        return String((cell.value as any).result);
-                    }
-                    if (cell.value instanceof Date) {
-                        return cell.value.toLocaleDateString('vi-VN');
-                    }
+                let val = cell.value;
+                if (val && typeof val === 'object' && 'result' in val) {
+                    val = (val as any).result;
                 }
-                return cell.value !== null && cell.value !== undefined ? String(cell.value) : '';
+                return val;
+            };
+
+            const getTextVal = (idx: number): string => {
+                const val = getCellVal(idx);
+                if (val === null || val === undefined) return '';
+                if (val instanceof Date) {
+                    const dt = formatExcelDateCell(val);
+                    return dt.timeStr ? `${dt.dateStr} ${dt.timeStr}`.trim() : dt.dateStr;
+                }
+                return String(val).trim();
+            };
+
+            const getNumberVal = (idx: number): number => {
+                const val = getCellVal(idx);
+                if (typeof val === 'number') return val;
+                if (!val) return 0;
+                const str = String(val).replace(/,/g, '').trim();
+                return parseFloat(str) || 0;
             };
             
-            const plate = getVal(idxPlate);
+            const plate = getTextVal(idxPlate);
             if (!plate) continue;
+
+            let dateInStr = '';
+            let timeInStr = '';
+            if (idxDateTime1 !== -1) {
+                const dt = formatExcelDateCell(getCellVal(idxDateTime1));
+                dateInStr = dt.dateStr;
+                timeInStr = dt.timeStr;
+            }
+            if (idxDate1 !== -1) {
+                const dt = formatExcelDateCell(getCellVal(idxDate1));
+                if (!dateInStr && dt.dateStr) dateInStr = dt.dateStr;
+                if (!timeInStr && dt.timeStr) timeInStr = dt.timeStr;
+                if (!dateInStr && !dt.dateStr) dateInStr = getTextVal(idxDate1);
+            }
+            if (idxTime1 !== -1) {
+                const dt = formatExcelDateCell(getCellVal(idxTime1));
+                if (dt.timeStr) timeInStr = dt.timeStr;
+                else if (!timeInStr) timeInStr = getTextVal(idxTime1);
+            }
+            if (dateInStr.includes(' ') && !timeInStr) {
+                const p = dateInStr.split(' ');
+                dateInStr = p[0] || '';
+                timeInStr = p[1] || '';
+            }
+
+            let dateOutStr = '';
+            let timeOutStr = '';
+            if (idxDateTime2 !== -1) {
+                const dt = formatExcelDateCell(getCellVal(idxDateTime2));
+                dateOutStr = dt.dateStr;
+                timeOutStr = dt.timeStr;
+            }
+            if (idxDate2 !== -1) {
+                const dt = formatExcelDateCell(getCellVal(idxDate2));
+                if (!dateOutStr && dt.dateStr) dateOutStr = dt.dateStr;
+                if (!timeOutStr && dt.timeStr) timeOutStr = dt.timeStr;
+                if (!dateOutStr && !dt.dateStr) dateOutStr = getTextVal(idxDate2);
+            }
+            if (idxTime2 !== -1) {
+                const dt = formatExcelDateCell(getCellVal(idxTime2));
+                if (dt.timeStr) timeOutStr = dt.timeStr;
+                else if (!timeOutStr) timeOutStr = getTextVal(idxTime2);
+            }
+            if (dateOutStr.includes(' ') && !timeOutStr) {
+                const p = dateOutStr.split(' ');
+                dateOutStr = p[0] || '';
+                timeOutStr = p[1] || '';
+            }
+
+            const w1 = getNumberVal(idxWeight1);
+            const w2 = getNumberVal(idxWeight2);
+            let wNet = getNumberVal(idxWeightNet);
+            if (wNet === 0 && w1 > 0 && w2 > 0) {
+                wNet = Math.abs(w1 - w2);
+            }
             
             newRecords.push({
-                ticketNo: getVal(idxTicket),
+                ticketNo: getTextVal(idxTicket),
                 plateNumber: plate,
-                customer: getVal(idxCustomer),
-                weight1: parseFloat(getVal(idxWeight1)) || 0,
-                weight2: parseFloat(getVal(idxWeight2)) || 0,
-                weightNet: parseFloat(getVal(idxWeightNet)) || 0,
-                dateInStr: getVal(idxDate1),
-                timeInStr: getVal(idxTime1),
-                dateOutStr: getVal(idxDate2),
-                timeOutStr: getVal(idxTime2),
-                direction: getVal(idxDirection),
-                cargoType: getVal(idxCargoType),
-                bargeName: getVal(idxBarge),
-                driverName: getVal(idxDriver),
-                notes: getVal(idxNotes),
-                orderNo: manualOrderNo.trim() || getVal(idxOrderNo)
+                customer: getTextVal(idxCustomer),
+                weight1: w1,
+                weight2: w2,
+                weightNet: wNet,
+                dateInStr,
+                timeInStr,
+                dateOutStr,
+                timeOutStr,
+                direction: getTextVal(idxDirection),
+                cargoType: getTextVal(idxCargoType),
+                bargeName: getTextVal(idxBarge),
+                driverName: getTextVal(idxDriver),
+                notes: getTextVal(idxNotes),
+                orderNo: manualOrderNo.trim() || getTextVal(idxOrderNo)
             });
         }
         
@@ -1064,6 +1379,20 @@ function compareValues(a: any, b: any, key: string, desc: boolean): number {
         const timeB = valB ? new Date(valB).getTime() : 0;
         return desc ? timeB - timeA : timeA - timeB;
     }
+
+    if (key === 'dateInStr' || key === 'dateOutStr') {
+        const parseD = (s: string) => {
+            if (!s) return 0;
+            const p = s.split('/');
+            if (p.length === 3) {
+                return new Date(parseInt(p[2]!, 10), parseInt(p[1]!, 10) - 1, parseInt(p[0]!, 10)).getTime();
+            }
+            return new Date(s).getTime() || 0;
+        };
+        const timeA = parseD(valA);
+        const timeB = parseD(valB);
+        return desc ? timeB - timeA : timeA - timeB;
+    }
     
     if (typeof valA === 'number' && typeof valB === 'number') {
         return desc ? valB - valA : valA - valB;
@@ -1112,7 +1441,14 @@ const filteredSourceTickets = computed(() => {
         list = list.filter(t => 
             t.plateNumber.toLowerCase().includes(q) || 
             t.ticketNo.toLowerCase().includes(q) || 
-            t.cargoType.toLowerCase().includes(q)
+            (t.orderNo && t.orderNo.toLowerCase().includes(q)) ||
+            (t.customer && t.customer.toLowerCase().includes(q)) ||
+            (t.cargoType && t.cargoType.toLowerCase().includes(q)) ||
+            (t.driverName && t.driverName.toLowerCase().includes(q)) ||
+            (t.dateInStr && t.dateInStr.toLowerCase().includes(q)) ||
+            (t.timeInStr && t.timeInStr.toLowerCase().includes(q)) ||
+            (t.dateOutStr && t.dateOutStr.toLowerCase().includes(q)) ||
+            (t.timeOutStr && t.timeOutStr.toLowerCase().includes(q))
         );
     }
     if (sourceSortKey.value) {
@@ -1237,8 +1573,8 @@ async function doExecuteSaveTicketsToSupabase() {
             timeInStr: r.timeInStr || '',
             dateOutStr: r.dateOutStr || '',
             timeOutStr: r.timeOutStr || '',
-            date1Obj: (r as any).date1Obj || (r.dateInStr ? parseDateTime(r.dateInStr, r.timeInStr).toISOString() : null),
-            date2Obj: (r as any).date2Obj || (r.dateOutStr ? parseDateTime(r.dateOutStr, r.timeOutStr).toISOString() : null),
+            date1Obj: (r as any).date1Obj || (r.dateInStr ? toLocalISOString(parseDateTime(r.dateInStr, r.timeInStr)) : null),
+            date2Obj: (r as any).date2Obj || (r.dateOutStr ? toLocalISOString(parseDateTime(r.dateOutStr, r.timeOutStr)) : null),
             direction: r.direction || '',
             cargoType: r.cargoType || '',
             bargeName: r.bargeName || '',
@@ -2789,7 +3125,7 @@ async function compileAndDownload() {
 
                 <!-- Source Tickets Table -->
                 <div v-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
+                    <table class="w-full text-left border-collapse text-xs font-bold min-w-[1400px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
@@ -2817,6 +3153,14 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
+                                <th @click="toggleSourceSort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center gap-1">
+                                        <span>Khách hàng</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ sourceSortKey === 'customer' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
                                 <th @click="toggleSourceSort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Loại hàng</span>
@@ -2825,9 +3169,25 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <span>Khối lượng (kg)</span>
+                                <th @click="toggleSourceSort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <span>TL1 (kg)</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ sourceSortKey === 'weight1' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleSourceSort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <span>TL2 (kg)</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ sourceSortKey === 'weight2' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <span>KL hàng (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'weightNet' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
@@ -2835,17 +3195,33 @@ async function compileAndDownload() {
                                 </th>
                                 <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
-                                        <span>Thời gian vào</span>
+                                        <span>Ngày vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'dateInStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
+                                <th @click="toggleSourceSort('timeInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span>Giờ vào</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ sourceSortKey === 'timeInStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
                                 <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
-                                        <span>Thời gian ra</span>
+                                        <span>Ngày ra</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
                                             {{ sourceSortKey === 'dateOutStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="toggleSourceSort('timeOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span>Giờ ra</span>
+                                        <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                                            {{ sourceSortKey === 'timeOutStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
                                         </span>
                                     </div>
                                 </th>
@@ -2869,13 +3245,18 @@ async function compileAndDownload() {
                                 <td class="py-2 px-3 text-center font-bold text-gray-400">
                                     {{ (sourceCurrentPage - 1) * itemsPerPage + idx + 1 }}
                                 </td>
-                                <td class="py-2 px-3 font-semibold text-gray-700 whitespace-nowrap">{{ ticket.ticketNo }}</td>
+                                <td class="py-2 px-3 font-semibold text-gray-700 whitespace-nowrap">{{ ticket.ticketNo || '-' }}</td>
                                 <td class="py-2 px-3 text-center font-semibold text-teal-600 font-mono whitespace-nowrap">{{ ticket.orderNo || '-' }}</td>
                                 <td class="py-2 px-3 font-bold text-gray-900 whitespace-nowrap">{{ formatPlate(ticket.plateNumber) }}</td>
-                                <td class="py-2 px-3 truncate max-w-[120px]" :title="ticket.cargoType">{{ ticket.cargoType }}</td>
-                                <td class="py-2 px-3 text-center font-black text-primary whitespace-nowrap">{{ ticket.weightNet.toLocaleString() }}</td>
-                                <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
-                                <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
+                                <td class="py-2 px-3 truncate max-w-[140px] text-gray-600" :title="ticket.customer">{{ ticket.customer || '-' }}</td>
+                                <td class="py-2 px-3 truncate max-w-[120px]" :title="ticket.cargoType">{{ ticket.cargoType || '-' }}</td>
+                                <td class="py-2 px-3 text-right font-mono text-gray-700 whitespace-nowrap">{{ ticket.weight1 ? ticket.weight1.toLocaleString() : '-' }}</td>
+                                <td class="py-2 px-3 text-right font-mono text-gray-700 whitespace-nowrap">{{ ticket.weight2 ? ticket.weight2.toLocaleString() : '-' }}</td>
+                                <td class="py-2 px-3 text-right font-black text-primary font-mono whitespace-nowrap">{{ ticket.weightNet.toLocaleString() }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-gray-600 font-mono whitespace-nowrap">{{ ticket.dateInStr || '-' }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-primary font-mono font-bold whitespace-nowrap">{{ ticket.timeInStr || '-' }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-gray-600 font-mono whitespace-nowrap">{{ ticket.dateOutStr || '-' }}</td>
+                                <td class="py-2 px-3 text-center text-xs text-primary font-mono font-bold whitespace-nowrap">{{ ticket.timeOutStr || '-' }}</td>
                                 <td class="py-2 px-3 text-gray-500 truncate max-w-[100px]" :title="ticket.driverName">{{ ticket.driverName || '-' }}</td>
                                 <td class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
