@@ -6,6 +6,7 @@ import { supabase } from '@/supabase';
 import { authStore, hasDetailPermission } from '@/stores/auth';
 import { LogService } from '@/services/storage/LogService';
 import { WeighbridgeService } from '@/services/weighbridge/WeighbridgeService';
+import { AllocationTrackingService } from '@/services/excel/AllocationTrackingService';
 
 const { addToast } = useToast();
 
@@ -130,6 +131,10 @@ interface CapacityConfig {
 
 
 interface SplitTrip {
+    id?: number;
+    bargeId?: number | null;
+    vesselId?: number | null;
+    vesselName?: string;
     stt: number;
     timeStr: string;
     plateNumber: string;
@@ -1230,19 +1235,23 @@ async function loadTicketsFromSupabase() {
                 }
             }
 
-            // 2. Overwrite history trips
-            const remoteHistory = data.settings.allocator_history_trips;
-            if (Array.isArray(remoteHistory)) {
-                const hydrated = hydrateTrips(remoteHistory);
-                if (JSON.stringify(existingTrips.value) !== JSON.stringify(hydrated)) {
+            // 2. Overwrite history trips from dedicated table weighbridge_allocation_tracking
+            try {
+                const dbTrips = await AllocationTrackingService.getTrips();
+                if (dbTrips && dbTrips.length > 0) {
+                    const hydrated = hydrateTrips(dbTrips);
                     existingTrips.value = hydrated;
                     await dbContext.set('allocator_history_trips', hydrated);
+                } else {
+                    const remoteHistory = data.settings.allocator_history_trips;
+                    if (Array.isArray(remoteHistory) && remoteHistory.length > 0) {
+                        const hydrated = hydrateTrips(remoteHistory);
+                        existingTrips.value = hydrated;
+                        await dbContext.set('allocator_history_trips', hydrated);
+                    }
                 }
-            } else {
-                if (existingTrips.value.length > 0) {
-                    existingTrips.value = [];
-                    await dbContext.set('allocator_history_trips', []);
-                }
+            } catch (err) {
+                console.warn('Lỗi khi nạp dữ liệu từ weighbridge_allocation_tracking:', err);
             }
 
             // 3. Overwrite vehicles list
@@ -2642,15 +2651,23 @@ watch(searchQuery, () => {
 // History panel states
 const historySearchQuery = ref('');
 const historyCurrentPage = ref(1);
+const historyBargeFilter = ref<'all' | 'current'>('all');
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
+    if (historyBargeFilter.value === 'current' && activeBargeId.value) {
+        list = list.filter(t => 
+            (t.bargeId && Number(t.bargeId) === Number(activeBargeId.value)) || 
+            (activeBarge.value?.name && t.bargeName === activeBarge.value.name)
+        );
+    }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase();
         list = list.filter(t => 
             t.plateNumber.toLowerCase().includes(q) || 
             t.ticketNo.toLowerCase().includes(q) || 
-            t.cargoType.toLowerCase().includes(q)
+            t.cargoType.toLowerCase().includes(q) ||
+            (t.bargeName && t.bargeName.toLowerCase().includes(q))
         );
     }
     if (historySortKey.value) {
@@ -2668,7 +2685,7 @@ const historyTotalPages = computed(() => {
     return Math.ceil(filteredHistoryTrips.value.length / itemsPerPage.value);
 });
 
-watch(historySearchQuery, () => {
+watch([historySearchQuery, historyBargeFilter], () => {
     historyCurrentPage.value = 1;
 });
 
@@ -2766,8 +2783,41 @@ async function saveToHistory() {
             ticketStart.value = ticketStart.value + generatedTrips.value.length;
         }
 
+        const bId = activeBargeId.value ? Number(activeBargeId.value) : null;
+        const bName = activeBarge.value?.name || '';
+        const vId = activeVesselId.value ? Number(activeVesselId.value) : null;
+        const vName = activeVessel.value?.name || '';
+
+        const tripsToSave = generatedTrips.value.map(t => ({
+            ...t,
+            bargeId: bId,
+            bargeName: bName,
+            vesselId: vId,
+            vesselName: vName
+        }));
+
+        // Lưu vào bảng riêng weighbridge_allocation_tracking trên Supabase
+        let savedItems: SplitTrip[] = tripsToSave;
+        try {
+            const insertRes = await AllocationTrackingService.insertTrips(
+                tripsToSave,
+                bId,
+                bName,
+                vId,
+                vName
+            );
+            if (insertRes.error) {
+                console.warn('Lỗi khi chèn vào weighbridge_allocation_tracking:', insertRes.error);
+            } else if (insertRes.data && insertRes.data.length === tripsToSave.length) {
+                savedItems = insertRes.data as any[];
+            }
+        } catch (e) {
+            console.error('Lỗi khi lưu vào bảng phân bổ tải trọng riêng:', e);
+        }
+
         // Append generated trips to history
-        existingTrips.value = [...existingTrips.value, ...generatedTrips.value];
+        existingTrips.value = [...existingTrips.value, ...savedItems];
+        await dbContext.set('allocator_history_trips', existingTrips.value);
         
         // Clear active tickets in Tab 1 without clearing Tab 2
         isSavingToHistory.value = true;
@@ -2783,7 +2833,8 @@ async function saveToHistory() {
         
         // Switch tab to Tab 3 (Theo dõi)
         activeDataTab.value = 'generated';
-        addToast('Đã lưu thành công vào Sổ Theo Dõi!', 'success');
+        addToast(`Đã lưu thành công ${tripsToSave.length} chuyến xe vào Sổ Theo Dõi!`, 'success');
+        await LogService.logAction('Lưu Sổ Theo Dõi', `Lưu ${tripsToSave.length} chuyến xe vào bảng phân bổ riêng: ${bName}`);
     }
 }
 
@@ -2887,7 +2938,11 @@ async function deleteHistoryTrip(trip: SplitTrip) {
     });
     if (!proceed) return;
     
-    existingTrips.value = existingTrips.value.filter(t => t.stt !== trip.stt && (!t.ticketNo || t.ticketNo !== trip.ticketNo));
+    if (trip.id) {
+        await AllocationTrackingService.deleteTrip(trip.id);
+    }
+    existingTrips.value = existingTrips.value.filter(t => (trip.id ? t.id !== trip.id : (t.stt !== trip.stt && (!t.ticketNo || t.ticketNo !== trip.ticketNo))));
+    await dbContext.set('allocator_history_trips', existingTrips.value);
     await saveTicketsToSupabase();
     addToast('Đã xóa bản ghi khỏi Sổ theo dõi!', 'success');
 }
@@ -2941,7 +2996,9 @@ async function clearHistory() {
         cancelText: 'Hủy'
     });
     if (confirmClearHistory) {
+        await AllocationTrackingService.clearAll();
         existingTrips.value = [];
+        await dbContext.set('allocator_history_trips', []);
         saveTicketsToSupabase();
         addToast('Đã xóa sạch lịch sử Sổ Theo Dõi!', 'info');
     }
@@ -3758,22 +3815,33 @@ async function compileAndDownload() {
                             </div>
                         </div>
 
-                        <!-- Tab 3 Search -->
-                        <div v-if="activeDataTab === 'generated'" class="relative w-full sm:w-[240px] h-7 flex items-center">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
-                            <input 
-                                type="text" 
-                                v-model="historySearchQuery" 
-                                placeholder="Tìm kiếm..." 
-                                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                        <!-- Tab 3 Filter & Search -->
+                        <div v-if="activeDataTab === 'generated'" class="flex items-center gap-1.5 w-full sm:w-auto">
+                            <select 
+                                v-model="historyBargeFilter"
+                                class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-xs cursor-pointer max-w-[150px] truncate"
                             >
-                            <button 
-                                v-if="historySearchQuery" 
-                                @click="historySearchQuery = ''" 
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
-                            >
-                                <span class="material-symbols-outlined text-xs">close</span>
-                            </button>
+                                <option value="all">Tất cả sà lan</option>
+                                <option value="current" :disabled="!activeBarge">
+                                    {{ activeBarge ? `Chỉ: ${activeBarge.name}` : 'Chọn sà lan để lọc' }}
+                                </option>
+                            </select>
+                            <div class="relative w-full sm:w-[200px] h-7 flex items-center">
+                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+                                <input 
+                                    type="text" 
+                                    v-model="historySearchQuery" 
+                                    placeholder="Tìm kiếm..." 
+                                    class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+                                >
+                                <button 
+                                    v-if="historySearchQuery" 
+                                    @click="historySearchQuery = ''" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -4086,6 +4154,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
+                                <th class="py-2 px-3 bg-gray-55 font-bold">Sà lan</th>
                                 <th @click="toggleHistorySort('dateObj')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Thời gian rời bến (Giờ/Ngày)</span>
@@ -4156,6 +4225,12 @@ async function compileAndDownload() {
                                     {{ (historyCurrentPage - 1) * itemsPerPage + idx + 1 }}
                                 </td>
                                 <td class="py-2 px-3 font-semibold text-teal-600 font-mono">{{ trip.orderNo || '-' }}</td>
+                                <td class="py-2 px-3 whitespace-nowrap">
+                                    <span v-if="trip.bargeName" class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/60 rounded text-[11px] font-bold">
+                                        {{ trip.bargeName }}
+                                    </span>
+                                    <span v-else class="text-gray-400 text-xs">-</span>
+                                </td>
                                 <td class="py-2 px-3 whitespace-pre-line font-mono text-xs leading-tight text-gray-500">{{ trip.timeStr }}</td>
                                 <td class="py-2 px-3 font-bold text-gray-900 flex items-center gap-1.5">
                                     <span class="whitespace-nowrap">{{ formatPlate(trip.plateNumber) }}</span>
