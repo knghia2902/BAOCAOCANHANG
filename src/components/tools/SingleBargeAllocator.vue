@@ -228,8 +228,8 @@ function handleConfirmCancel() {
 }
 const vehiclesList = ref<{ plateNumber: string; moocNumber: string; }[]>([]);
 
-// Types & Channel Sync
-const syncChannel = new BroadcastChannel('allocator_sync_channel');
+// Types & Channel Sync - Completely isolated for Split Allocator
+const syncChannel = new BroadcastChannel('split_allocator_sync_channel');
 let isSyncingFromChannel = false;
 
 syncChannel.onmessage = async (event) => {
@@ -237,14 +237,14 @@ syncChannel.onmessage = async (event) => {
         isSyncingFromChannel = true;
 
         if (event.data.type === 'tickets') {
-            const saved = await dbContext.get<CSVRecord[]>('allocator_tickets');
+            const saved = await dbContext.get<CSVRecord[]>('split_allocator_tickets');
             if (saved && Array.isArray(saved)) {
                 if (JSON.stringify(csvRecords.value) !== JSON.stringify(saved)) {
                     csvRecords.value = saved;
                 }
             }
         } else if (event.data.type === 'history') {
-            const savedHistory = await dbContext.get<SplitTrip[]>('allocator_history_trips');
+            const savedHistory = await dbContext.get<SplitTrip[]>('split_allocator_history_trips');
             if (savedHistory && Array.isArray(savedHistory)) {
                 if (JSON.stringify(existingTrips.value) !== JSON.stringify(savedHistory)) {
                     existingTrips.value = savedHistory;
@@ -996,7 +996,7 @@ async function loadTicketsFromSourceBarge() {
         }
 
         csvRecords.value = sourceRecords;
-        await dbContext.set('allocator_tickets', sourceRecords);
+        await dbContext.set('split_allocator_tickets', sourceRecords);
         regenerateAllocatedTrips();
         await saveTicketsToSupabase();
         activeDataTab.value = 'source';
@@ -1318,16 +1318,16 @@ async function loadTicketsFromSupabase() {
             isSyncingFromChannel = true; // disable watch writes during supabase load
 
             // 1. Overwrite tickets
-            const remoteTickets = data.settings.allocator_tickets;
+            const remoteTickets = data.settings.split_allocator_tickets;
             if (Array.isArray(remoteTickets)) {
                 if (JSON.stringify(csvRecords.value) !== JSON.stringify(remoteTickets)) {
                     csvRecords.value = remoteTickets;
-                    await dbContext.set('allocator_tickets', remoteTickets);
+                    await dbContext.set('split_allocator_tickets', remoteTickets);
                 }
             } else {
                 if (csvRecords.value.length > 0) {
                     csvRecords.value = [];
-                    await dbContext.set('allocator_tickets', []);
+                    await dbContext.set('split_allocator_tickets', []);
                 }
             }
 
@@ -1337,13 +1337,13 @@ async function loadTicketsFromSupabase() {
                 if (dbTrips && dbTrips.length > 0) {
                     const hydrated = hydrateTrips(dbTrips);
                     existingTrips.value = hydrated;
-                    await dbContext.set('allocator_history_trips', hydrated);
+                    await dbContext.set('split_allocator_history_trips', hydrated);
                 } else {
-                    const remoteHistory = data.settings.allocator_history_trips;
+                    const remoteHistory = data.settings.split_allocator_history_trips;
                     if (Array.isArray(remoteHistory) && remoteHistory.length > 0) {
                         const hydrated = hydrateTrips(remoteHistory);
                         existingTrips.value = hydrated;
-                        await dbContext.set('allocator_history_trips', hydrated);
+                        await dbContext.set('split_allocator_history_trips', hydrated);
                     }
                 }
             } catch (err) {
@@ -1360,12 +1360,12 @@ async function loadTicketsFromSupabase() {
             }
 
             // 4. Overwrite generated trips
-            const remoteGenerated = data.settings.allocator_generated_trips;
+            const remoteGenerated = data.settings.split_allocator_generated_trips;
             if (Array.isArray(remoteGenerated)) {
                 const hydrated = hydrateTrips(remoteGenerated);
                 if (JSON.stringify(generatedTrips.value) !== JSON.stringify(hydrated)) {
                     generatedTrips.value = hydrated;
-                    await dbContext.set('allocator_generated_trips', hydrated);
+                    await dbContext.set('split_allocator_generated_trips', hydrated);
                 }
             } else {
                 regenerateAllocatedTrips();
@@ -1468,9 +1468,9 @@ async function doExecuteSaveTicketsToSupabase() {
 
         const updatedSettings = {
             ...currentSettings,
-            allocator_tickets: cleanTickets,
-            allocator_history_trips: cleanHistory,
-            allocator_generated_trips: cleanGenerated
+            split_allocator_tickets: cleanTickets,
+            split_allocator_history_trips: cleanHistory,
+            split_allocator_generated_trips: cleanGenerated
         };
 
         let { error: updateError } = await supabase
@@ -1483,8 +1483,8 @@ async function doExecuteSaveTicketsToSupabase() {
             console.warn('Full Supabase update failed, retrying fallback payload without history:', updateError);
             const fallbackSettings = {
                 ...currentSettings,
-                allocator_tickets: cleanTickets,
-                allocator_generated_trips: cleanGenerated
+                split_allocator_tickets: cleanTickets,
+                split_allocator_generated_trips: cleanGenerated
             };
             const { error: fallbackErr } = await supabase
                 .from('content')
@@ -1870,9 +1870,9 @@ const deleteVessel = async (id: number, name: string) => {
         const vessel = vessels.value.find(v => v.id === id);
         if (vessel && vessel.barges) {
             for (const b of vessel.barges) {
-                await dbContext.delete('allocator_tickets_' + b.id);
-                await dbContext.delete('allocator_history_trips_' + b.id);
-                await dbContext.delete('allocator_generated_trips_' + b.id);
+                await dbContext.delete('split_allocator_tickets_' + b.id);
+                await dbContext.delete('split_allocator_history_trips_' + b.id);
+                await dbContext.delete('split_allocator_generated_trips_' + b.id);
             }
         }
         
@@ -2007,9 +2007,9 @@ const deleteBarge = async (vesselId: number, id: number, name: string) => {
                     await dbContext.set('allocator_vessels', vessels.value);
                     
                     // Clear barge data
-                    await dbContext.delete('allocator_tickets_' + id);
-                    await dbContext.delete('allocator_history_trips_' + id);
-                    await dbContext.delete('allocator_generated_trips_' + id);
+                    await dbContext.delete('split_allocator_tickets_' + id);
+                    await dbContext.delete('split_allocator_history_trips_' + id);
+                    await dbContext.delete('split_allocator_generated_trips_' + id);
                     
                     if (activeBargeId.value === id) {
                         activeBargeId.value = null;
@@ -2208,39 +2208,9 @@ onMounted(async () => {
 
         isInitLoading.value = true;
         try {
-            let savedTickets = await dbContext.get<CSVRecord[]>('allocator_tickets') || [];
-            let savedHistory = await dbContext.get<SplitTrip[]>('allocator_history_trips') || [];
-            let savedGenerated = await dbContext.get<SplitTrip[]>('allocator_generated_trips') || [];
-
-            // Tự động di cư dữ liệu từ sà lan cũ nếu toàn cục trống rỗng
-            if (savedTickets.length === 0 && savedHistory.length === 0 && savedGenerated.length === 0) {
-                const vesselsData = await dbContext.get<any[]>('allocator_vessels') || [];
-                let migrated = false;
-                for (const v of vesselsData) {
-                    if (v.barges) {
-                        for (const b of v.barges) {
-                            const bTickets = await dbContext.get<CSVRecord[]>('allocator_tickets_' + b.id);
-                            if (bTickets && bTickets.length > 0) {
-                                const bHistory = await dbContext.get<SplitTrip[]>('allocator_history_trips_' + b.id) || [];
-                                const bGenerated = await dbContext.get<SplitTrip[]>('allocator_generated_trips_' + b.id) || [];
-
-                                savedTickets = bTickets;
-                                savedHistory = bHistory;
-                                savedGenerated = bGenerated;
-
-                                // Lưu đè vào key toàn cục
-                                await dbContext.set('allocator_tickets', savedTickets);
-                                await dbContext.set('allocator_history_trips', savedHistory);
-                                await dbContext.set('allocator_generated_trips', savedGenerated);
-
-                                migrated = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (migrated) break;
-                }
-            }
+            let savedTickets = await dbContext.get<CSVRecord[]>('split_allocator_tickets') || [];
+            let savedHistory = await dbContext.get<SplitTrip[]>('split_allocator_history_trips') || [];
+            let savedGenerated = await dbContext.get<SplitTrip[]>('split_allocator_generated_trips') || [];
 
             csvRecords.value = savedTickets;
             existingTrips.value = hydrateTrips(savedHistory);
@@ -2256,33 +2226,33 @@ onMounted(async () => {
     }
 });
 
-// Auto-save tickets on change
+// Auto-save tickets on change (isolated to split allocator)
 watch(csvRecords, async (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
     try {
-        await dbContext.set('allocator_tickets', newVal);
+        await dbContext.set('split_allocator_tickets', newVal);
         syncChannel.postMessage({ type: 'tickets' });
     } catch (e) {
         console.error('Lỗi khi lưu danh sách phiếu cân vào IndexedDB:', e);
     }
 }, { deep: true });
 
-// Auto-save history on change
+// Auto-save history on change (isolated to split allocator)
 watch(existingTrips, async (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
     try {
-        await dbContext.set('allocator_history_trips', newVal);
+        await dbContext.set('split_allocator_history_trips', newVal);
         syncChannel.postMessage({ type: 'history' });
     } catch (e) {
         console.error('Lỗi khi lưu lịch sử chuyến xe vào IndexedDB:', e);
     }
 }, { deep: true });
 
-// Auto-save generated trips on change
+// Auto-save generated trips on change (isolated to split allocator)
 watch(generatedTrips, async (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
     try {
-        await dbContext.set('allocator_generated_trips', newVal);
+        await dbContext.set('split_allocator_generated_trips', newVal);
     } catch (e) {
         console.error('Lỗi khi lưu danh sách phân bổ vào IndexedDB:', e);
     }
@@ -2913,7 +2883,7 @@ async function saveToHistory() {
 
         // Append generated trips to history
         existingTrips.value = [...existingTrips.value, ...savedItems];
-        await dbContext.set('allocator_history_trips', existingTrips.value);
+        await dbContext.set('split_allocator_history_trips', existingTrips.value);
         
         // Clear active tickets in Tab 1 without clearing Tab 2
         isSavingToHistory.value = true;
