@@ -14,7 +14,7 @@ const loadTools = async () => {
     loading.value = true;
     if (authStore.isAuthenticated) {
         if (authStore.role === 'admin') {
-            allowedStaffTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes'];
+            allowedStaffTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split'];
         } else {
             try {
                 const rolePerms = await ContentService.loadRolePermissions();
@@ -83,6 +83,14 @@ const allTools = [
     tags: ['Biên bản sà lan', 'Excel', 'Offline']
   },
   {
+    id: 'split',
+    name: 'Phân Bổ Tải Trọng 🚢',
+    desc: 'Phân bổ tải trọng xe cho từng sà lan theo định mức, tự động tách chuyến vượt tải và dàn đều thời gian ra/vào.',
+    icon: 'call_split',
+    bgIcon: 'bg-indigo-500/10 text-indigo-600',
+    tags: ['Phân bổ tải', 'Tách chuyến', 'Định mức xe', 'Sà lan']
+  },
+  {
     id: 'utilities',
     name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️',
     desc: 'Tập hợp các tiện ích văn phòng: Chuyển đổi định dạng file (XLSX, CSV, JSON), gộp bảng tính Excel và nhận diện ký tự OCR từ tệp PDF.',
@@ -108,7 +116,11 @@ const toolsList = computed(() => {
 });
 
 const openTool = (id: string) => {
-  router.push(`/tools/${id}`);
+  if (id === 'split') {
+    router.push('/split');
+  } else {
+    router.push(`/tools/${id}`);
+  }
 };
 </script>
 

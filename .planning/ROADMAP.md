@@ -135,7 +135,7 @@ Plans:
 
 Plans:
 
-- [ ] 12-01: Khởi tạo View/Component Phân bổ, cấu hình Route `/split` & `/tools/split`, tích hợp Tab 1 (Import phiếu cân nguồn) và Sidebar cấu hình tải trọng xe / khoảng cách thời gian.
-- [ ] 12-02: Tái hiện thuật toán phân bổ tách tải theo 1 sà lan đích tại Tab 2 (Xem trước & phân bổ) và xây dựng Tab 3 (Sổ theo dõi sau phân bổ kèm xuất Excel chuẩn mẫu).
+- [x] 12-01: Khởi tạo View/Component Phân bổ, cấu hình Route `/split` & `/tools/split`, tích hợp Tab 1 (Import phiếu cân nguồn) và Sidebar cấu hình tải trọng xe / khoảng cách thời gian.
+- [x] 12-02: Tái hiện thuật toán phân bổ tách tải theo 1 sà lan đích tại Tab 2 (Xem trước & phân bổ) và xây dựng Tab 3 (Sổ theo dõi sau phân bổ kèm xuất Excel chuẩn mẫu).
 
 

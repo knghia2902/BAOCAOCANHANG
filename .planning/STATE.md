@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Theo dõi Cân Kho và Container
-current_phase: 10
-current_phase_name: enterprise-architecture-upgrade
+milestone: v1.2
+milestone_name: Dedicated Single-Barge Allocator Tool
+current_phase: 12
+current_phase_name: dedicated-single-barge-allocator-tool
 status: completed
-stopped_at: Phase 10 completed (4/4 plans executed)
-last_updated: "2026-09-19T11:45:00.000Z"
-last_activity: 2026-09-19
-last_activity_desc: Phase 10 complete — Enterprise Architecture Upgrade (4/4 plans executed)
+stopped_at: Phase 12 completed (2/2 plans executed)
+last_updated: "2026-09-23T16:07:00.000Z"
+last_activity: 2026-09-23
+last_activity_desc: Phase 12 complete — Dedicated Single-Barge Allocator Tool (/split) with 3 tabs and Excel export
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 10 — enterprise-architecture-upgrade
+**Current focus:** Phase 12 — dedicated-single-barge-allocator-tool
 
 ## Current Position
 
-Phase: 10 (enterprise-architecture-upgrade) — COMPLETED
-Plans: 4/4 completed (10-01, 10-02, 10-03, 10-04)
-Status: Completed Phase 10
-Last activity: 2026-09-19 — Phase 10 complete: Enterprise Architecture Upgrade (Security, Pinia, Service Layer, Sub-components, CI/CD)
+Phase: 12 (dedicated-single-barge-allocator-tool) — COMPLETED
+Plans: 2/2 completed (12-01, 12-02)
+Status: Completed Phase 12
+Last activity: 2026-09-23 — Phase 12 complete: Dedicated Single-Barge Allocator Tool (/split) with 3 tabs and Excel export
 
 ## Performance Metrics
 

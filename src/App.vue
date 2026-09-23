@@ -79,7 +79,7 @@ const loadTools = async () => {
     loadingTools.value = true;
     if (authStore.isAuthenticated) {
         if (authStore.role === 'admin') {
-            allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'];
+            allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split'];
         } else {
             try {
                 const rolePerms = await ContentService.loadRolePermissions();

@@ -46,7 +46,14 @@ const router = createRouter({
             component: () => import('./views/tools/UtilitiesView.vue'),
             meta: { requiresAuth: true }
         },
+        {
+            path: '/split',
+            name: 'split-allocator',
+            component: () => import('./views/tools/SplitAllocatorView.vue'),
+            meta: { requiresAuth: true }
+        },
         // Legacy redirects for backward compatibility
+        { path: '/tools/split', redirect: '/split' },
         { path: '/tools/printer', redirect: '/tools/weighbridge' },
         { path: '/tools/converter', redirect: '/tools/utilities?tab=converter' },
         { path: '/tools/merger', redirect: '/tools/utilities?tab=merger' },
