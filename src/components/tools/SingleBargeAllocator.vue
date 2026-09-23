@@ -2904,53 +2904,6 @@ async function saveToHistory() {
     }
 }
 
-const isSyncingBarge = ref(false);
-
-const syncTripsToBarge = async () => {
-    if (!activeBarge.value || !activeBargeId.value || typeof activeBargeId.value !== 'number') {
-        addToast('Vui lòng chọn sà lan trước khi đồng bộ!', 'info');
-        return;
-    }
-    const tripsToSync = activeDataTab.value === 'template' ? generatedTrips.value : existingTrips.value;
-    if (tripsToSync.length === 0) {
-        addToast('Không có chuyến xe nào để đồng bộ!', 'info');
-        return;
-    }
-    
-    const confirm = await showConfirm({
-        title: 'Đồng bộ vào sổ cân sà lan',
-        message: `Bạn có muốn lưu và đồng bộ ${tripsToSync.length} phiếu cân vào sổ cân của sà lan "${activeBarge.value.name}" không?`,
-        type: 'info',
-        okText: 'Đồng bộ ngay',
-        cancelText: 'Hủy'
-    });
-    if (!confirm) return;
-
-    isSyncingBarge.value = true;
-    try {
-        const trucks = tripsToSync.map((t, idx) => ({
-            id: Date.now() + idx,
-            ticketNo: t.ticketNo || '',
-            plateNumber: t.plateNumber,
-            driver: '',
-            weight1: t.weight1 || 0,
-            weight2: t.weight2 || 0,
-            weightNet: t.weightNet || (t.weightTons * 1000) || 0,
-            dateIn: t.date1Obj ? new Date(t.date1Obj).toISOString() : null,
-            dateOut: t.date2Obj ? new Date(t.date2Obj).toISOString() : null,
-            note: t.notes || ''
-        }));
-        
-        await WeighbridgeService.saveTrucks(activeBargeId.value, trucks);
-        addToast(`Đã đồng bộ thành công ${trucks.length} chuyến xe vào sà lan "${activeBarge.value.name}"!`, 'success');
-        await LogService.logAction('Đồng bộ sà lan', `Đồng bộ ${trucks.length} chuyến vào sà lan: ${activeBarge.value.name}`);
-    } catch (e: any) {
-        console.error('Lỗi khi đồng bộ vào sà lan:', e);
-        addToast('Lỗi khi đồng bộ vào sà lan: ' + (e.message || 'Lỗi không xác định'), 'error');
-    } finally {
-        isSyncingBarge.value = false;
-    }
-};
 
 async function deleteGeneratedTrip(trip: SplitTrip) {
     const confirmDelete = await showConfirm({
@@ -3997,20 +3950,11 @@ async function compileAndDownload() {
                         <button 
                             @click="saveToHistory"
                             :disabled="generatedTrips.length === 0 || isAlreadySaved"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            title="Lưu các chuyến xe đã phân bổ vào Sổ theo dõi (Tab 3)"
                         >
                             <span class="material-symbols-outlined text-[14px]">save</span>
-                            {{ isAlreadySaved ? 'Đã lưu' : 'Lưu' }}
-                        </button>
-                        <button 
-                            @click="syncTripsToBarge"
-                            :disabled="generatedTrips.length === 0 || isSyncingBarge || !activeBargeId"
-                            class="h-7 px-3 bg-emerald-600 text-white border border-emerald-600 text-xs font-bold rounded-[8px] hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Đồng bộ các chuyến phân bổ trực tiếp vào sổ cân của sà lan"
-                        >
-                            <span v-if="isSyncingBarge" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[14px]">directions_boat</span>
-                            {{ isSyncingBarge ? 'Đang đồng bộ...' : 'Đồng bộ sà lan' }}
+                            {{ isAlreadySaved ? 'Đã lưu vào Sổ theo dõi' : 'Lưu vào Sổ theo dõi' }}
                         </button>
                         <button 
                             v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
@@ -4037,16 +3981,6 @@ async function compileAndDownload() {
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ historyTotalWeightTons.toFixed(2) }}t
                         </div>
-                        <button 
-                            @click="syncTripsToBarge"
-                            :disabled="existingTrips.length === 0 || isSyncingBarge || !activeBargeId"
-                            class="h-7 px-3 bg-emerald-600 text-white border border-emerald-600 text-xs font-bold rounded-[8px] hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Đồng bộ toàn bộ sổ theo dõi vào sổ cân của sà lan"
-                        >
-                            <span v-if="isSyncingBarge" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[14px]">directions_boat</span>
-                            {{ isSyncingBarge ? 'Đang đồng bộ...' : 'Đồng bộ sà lan' }}
-                        </button>
                         <button v-if="authStore.role === 'admin'"
                             @click="clearHistory"
                             :disabled="existingTrips.length === 0"

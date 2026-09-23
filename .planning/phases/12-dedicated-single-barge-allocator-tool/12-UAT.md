@@ -10,13 +10,17 @@ updated: "2026-09-23T17:34:25.000Z"
 
 ## Current Test
 
-number: 4
-name: Đồng bộ chuyến xe đã phân bổ
+number: 5
+name: Lưu vào Sổ theo dõi (bảng riêng) và Xuất Excel (Tab 3)
 expected: |
-  Tại Tab 2 ("2. Phân bổ") hoặc Tab 3 ("3. Theo dõi"):
-  - Bấm nút "Đồng bộ sà lan".
-  - Hệ thống hiển thị hộp thoại xác nhận đồng bộ chuyến xe vào sổ cân của sà lan tương ứng.
-  - Khi xác nhận thành công, thông báo hiển thị "Đã đồng bộ thành công X chuyến xe vào sà lan...".
+  1. Tại Tab 2 ("2. Phân bổ"):
+     - Bấm nút "Lưu vào Sổ theo dõi".
+     - Hệ thống hiển thị hộp thoại xác nhận lưu các chuyến xe vào Sổ theo dõi và làm sạch danh sách phiếu nguồn ở Tab 1.
+     - Sau khi lưu, hệ thống tự động chuyển sang Tab 3 ("3. Theo dõi").
+  2. Tại Tab 3 ("3. Theo dõi"):
+     - Danh sách các chuyến xe đã phân bổ được lưu vào bảng riêng `weighbridge_allocation_tracking` (có cột Sà lan, có bộ lọc theo sà lan đang chọn hoặc xem tất cả sà lan).
+     - Bấm nút "Xuất Excel" tải về file Excel bảng kê phân bổ chuẩn.
+     - Dữ liệu ở trang "BÁO CÁO TỔNG QUAN" hoàn toàn giữ nguyên dữ liệu gốc, không bị ghi đè.
 awaiting: user response
 
 ## Tests
@@ -33,20 +37,20 @@ result: pass
 expected: Chuyển sang Tab 2, dữ liệu sà lan nguồn hiển thị theo sà lan đã chọn ở sidebar trái, bảng xem trước hiển thị các chuyến xe được tự động tách theo định mức xe, tổng khối lượng khớp 100% khối lượng gốc và thời gian được dàn cách đều.
 result: pass
 
-### 4. Đồng bộ chuyến xe đã phân bổ
-expected: Tại Tab 2 hoặc Tab 3 bấm "Đồng bộ sà lan", hệ thống hiện modal xác nhận và đồng bộ các chuyến xe vào hệ thống theo sà lan nguồn.
-result: [pending]
+### 4. Lưu chuyến xe phân bổ vào Tab Theo dõi & bảo toàn dữ liệu gốc Báo Cáo Tổng Quan
+expected: Đã loại bỏ hoàn toàn việc đồng bộ chuyến phân bổ sang BÁO CÁO TỔNG QUAN. BÁO CÁO TỔNG QUAN giữ nguyên dữ liệu gốc. Dữ liệu phân bổ chỉ lưu vào Sổ Theo Dõi (Tab 3).
+result: pass
 
 ### 5. Lưu vào Sổ theo dõi (bảng riêng) và Xuất Excel (Tab 3)
-expected: Bấm "Lưu vào Sổ Theo Dõi" tự động chuyển sang Tab 3, các phiếu được lưu vào bảng riêng weighbridge_allocation_tracking (có cột Sà lan, có bộ lọc theo sà lan đang chọn hoặc tất cả sà lan). Bấm "Xuất Excel" tải về file Excel sổ theo dõi chuẩn.
+expected: Bấm "Lưu vào Sổ theo dõi" tự động chuyển sang Tab 3, các phiếu được lưu vào bảng riêng weighbridge_allocation_tracking (có cột Sà lan, có bộ lọc theo sà lan đang chọn hoặc tất cả sà lan). Bấm "Xuất Excel" tải về file Excel sổ theo dõi chuẩn.
 result: [pending]
 
 ## Summary
 
 total: 5
-passed: 3
+passed: 4
 issues: 0
-pending: 2
+pending: 1
 skipped: 0
 blocked: 0
 
