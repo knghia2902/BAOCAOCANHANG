@@ -6,9 +6,9 @@ import SingleBargeAllocator from '../../components/tools/SingleBargeAllocator.vu
 <template>
   <ToolLayout
     title="PHÂN BỔ TẢI TRỌNG 🚢"
-    subtitle="Phân bổ định mức tải trọng xe cho từng sà lan độc lập"
-    icon="call_split"
-    iconBg="bg-indigo-600"
+    subtitle="Cảng Nguyên Ngọc - Đồng bộ đám mây"
+    icon="shuffle"
+    iconBg="bg-primary"
     :isFullWidth="true"
   >
     <SingleBargeAllocator />
