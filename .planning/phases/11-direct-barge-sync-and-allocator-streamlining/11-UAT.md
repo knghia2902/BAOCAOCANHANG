@@ -10,14 +10,14 @@ updated: 2026-09-22T13:51:30Z
 
 ## Current Test
 
-number: 2
-name: Đồng bộ trực tiếp phiếu cân vào Sà lan theo Mã lệnh (Order No)
+number: 3
+name: Lưu vào Sổ Theo Dõi và Làm sạch Tab 1
 expected: |
-  Sau khi import file phiếu cân lên Tab 1 (Phiếu cân):
-  - Người dùng chuyển sang màn hình Quản lý Sà lan (In phiếu / Sà lan).
-  - Bấm nút "Đồng bộ từ Dữ liệu cân hàng" cho từng sà lan (hoặc bấm "Đồng bộ tất cả").
-  - Dữ liệu các xe có Mã lệnh (orderNo) tương ứng được nạp trực tiếp vào sà lan đó với đầy đủ thông tin (lái xe, ghi chú, loại hàng, khách hàng, số xe, trọng lượng cân, giờ vào / giờ ra khớp chuẩn file import).
-awaiting: diagnosed and ready to fix
+  Tại Tab 1 (Phiếu cân):
+  - Bấm nút "Lưu vào Sổ Theo Dõi".
+  - Hộp thoại xác nhận hiển thị rõ số lượng phiếu sẽ lưu và cảnh báo làm sạch Tab 1.
+  - Khi xác nhận, dữ liệu được ghi thành công vào bảng `weighbridge_tracking`, danh sách phiếu cân ở Tab 1 được làm sạch (trống), và giao diện tự động chuyển sang Tab 2 (Theo dõi).
+awaiting: user response
 
 ## Tests
 
@@ -27,9 +27,7 @@ result: pass
 
 ### 2. Đồng bộ trực tiếp phiếu cân vào Sà lan theo Mã lệnh (Order No)
 expected: Tại màn hình Quản lý Sà lan, bấm Đồng bộ dữ liệu thì hệ thống đọc trực tiếp phiếu cân từ Tab 1 và khớp chuẩn xác theo Mã lệnh (orderNo) vào từng sà lan, giờ vào / giờ ra phải khớp file import.
-result: issue
-reported: "ok đã đồng bộ khớp mã lệnh nhưng giờ vào/ giờ ra so với file import"
-severity: major
+result: pass
 
 ### 3. Lưu vào Sổ Theo Dõi và Làm sạch Tab 1
 expected: Tại Tab 1 Phiếu cân, bấm "Lưu vào Sổ Theo Dõi" -> dữ liệu được lưu thành công, danh sách phiếu cân ở Tab 1 được xóa sạch hoàn toàn, và tự động chuyển sang Tab 2 Theo dõi.
@@ -46,8 +44,8 @@ result: [pending]
 ## Summary
 
 total: 5
-passed: 1
-issues: 1
+passed: 2
+issues: 0
 pending: 3
 skipped: 0
 blocked: 0
