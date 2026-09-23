@@ -10,16 +10,13 @@ updated: "2026-09-23T17:34:25.000Z"
 
 ## Current Test
 
-number: 3
-name: Lấy phiếu cân từ Sà lan nguồn hoặc file & Xem trước phân bổ tách tải xe (Tab 2)
+number: 4
+name: Đồng bộ chuyến xe đã phân bổ
 expected: |
-  1. Tại Sidebar hoặc Tab 1:
-     - Sidebar thể hiện rõ "Sà lan nguồn (Dữ liệu gốc)" với nút "Lấy phiếu cân từ sà lan này".
-     - Tab 1 có nút "Nạp từ sà lan ([Tên sà lan])" bên cạnh nút "Import" để nạp trực tiếp danh sách phiếu cân có sẵn của sà lan vào làm dữ liệu nguồn phân bổ.
-  2. Chuyển sang Tab 2 ("2. Phân bổ"):
-     - Bảng dữ liệu tự động tạo các chuyến xe được tách theo định mức xe (hoặc định mức tiêu chuẩn đã cài đặt), số phiếu tự động sinh theo cấu hình.
-     - Tổng khối lượng hàng của các chuyến xe phân bổ khớp 100% với tổng khối lượng gốc từ Tab 1.
-     - Các mốc thời gian giờ vào / ra được tính toán và dàn đều hợp lý.
+  Tại Tab 2 ("2. Phân bổ") hoặc Tab 3 ("3. Theo dõi"):
+  - Bấm nút "Đồng bộ sà lan".
+  - Hệ thống hiển thị hộp thoại xác nhận đồng bộ chuyến xe vào sổ cân của sà lan tương ứng.
+  - Khi xác nhận thành công, thông báo hiển thị "Đã đồng bộ thành công X chuyến xe vào sà lan...".
 awaiting: user response
 
 ## Tests
@@ -34,7 +31,7 @@ result: pass
 
 ### 3. Xem trước phân bổ tách tải xe cho Sà lan nguồn (Tab 2)
 expected: Chuyển sang Tab 2, dữ liệu sà lan nguồn hiển thị theo sà lan đã chọn ở sidebar trái, bảng xem trước hiển thị các chuyến xe được tự động tách theo định mức xe, tổng khối lượng khớp 100% khối lượng gốc và thời gian được dàn cách đều.
-result: [pending]
+result: pass
 
 ### 4. Đồng bộ chuyến xe đã phân bổ
 expected: Tại Tab 2 hoặc Tab 3 bấm "Đồng bộ sà lan", hệ thống hiện modal xác nhận và đồng bộ các chuyến xe vào hệ thống theo sà lan nguồn.
@@ -47,9 +44,9 @@ result: [pending]
 ## Summary
 
 total: 5
-passed: 2
+passed: 3
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
 blocked: 0
 
