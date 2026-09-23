@@ -1,23 +1,16 @@
 ---
-status: testing
+status: complete
 phase: 11-direct-barge-sync-and-allocator-streamlining
 source:
   - 11-01-SUMMARY.md
   - 11-02-SUMMARY.md
 started: 2026-09-22T09:32:00Z
-updated: 2026-09-22T13:51:30Z
+updated: 2026-09-23T15:21:00Z
 ---
 
 ## Current Test
 
-number: 5
-name: Tính độc lập giữa Đồng bộ Sà lan và Lưu Sổ Theo Dõi
-expected: |
-  Quy trình làm việc không bị ràng buộc thứ tự:
-  - Người dùng có thể import file vào Tab 1, chuyển sang màn hình Sà lan để Đồng bộ trực tiếp vào các sà lan.
-  - Sau khi sà lan đã nhận đủ dữ liệu xe, quay lại Tab 1 bấm "Lưu vào Sổ Theo Dõi" để lưu trữ lịch sử cân hàng.
-  - Hoặc ngược lại: Lưu vào sổ theo dõi trước, sà lan vẫn có thể đồng bộ hoặc hoạt động độc lập mà không bị mất dữ liệu hay lỗi hệ thống.
-awaiting: user response
+(Tất cả các kiểm thử đã hoàn thành thành công)
 
 ## Tests
 
@@ -39,14 +32,14 @@ result: pass
 
 ### 5. Tính độc lập giữa Đồng bộ Sà lan và Lưu Sổ Theo Dõi
 expected: Tác vụ Đồng bộ Sà lan và Lưu Sổ Theo Dõi hoạt động hoàn toàn độc lập, người dùng có thể thực hiện đồng bộ sà lan trước rồi mới lưu sổ theo dõi mà không bị phụ thuộc hay xung đột.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 5
-passed: 4
+passed: 5
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 

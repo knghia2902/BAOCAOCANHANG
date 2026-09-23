@@ -85,7 +85,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 8. Phân loại tàu | v1.1 | 2/2 | Complete | 2026-09-11 |
 | 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
 | 10. Enterprise Upgrade | v1.1 | 4/4 | Complete | 2026-09-19 |
-| 11. Direct Barge Sync | v1.1 | 0/2 | Not started | - |
+| 11. Direct Barge Sync | v1.1 | 2/2 | Complete | 2026-09-23 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
