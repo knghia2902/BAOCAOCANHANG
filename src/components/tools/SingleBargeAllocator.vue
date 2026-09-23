@@ -60,6 +60,9 @@ interface SplitConfig {
     distStrategy: 'even' | 'random' | 'max';
     spacingStrategy: 'even' | 'forward' | 'backward';
     defaultLimit: number; // in tons
+    standardTTTPLimit?: number;
+    standardCurbMin?: number;
+    standardCurbMax?: number;
     vehicleLimits: Record<string, number>;
     useAutoTicketNo: boolean;
     ticketPrefix: string;
@@ -72,6 +75,8 @@ interface SplitConfig {
 // STATE
 // ----------------------------------------------------
 const activeTab = ref<'tickets' | 'allocate' | 'history'>('tickets');
+const isSettingsCollapsed = ref(false);
+const showVehicleLimitsModal = ref(false);
 const isInitLoading = ref(true);
 const loadingFile = ref(false);
 const isSyncingBarge = ref(false);
@@ -94,6 +99,9 @@ const config = ref<SplitConfig>({
     distStrategy: 'even',
     spacingStrategy: 'forward',
     defaultLimit: 30.0,
+    standardTTTPLimit: 48.0,
+    standardCurbMin: 14.5,
+    standardCurbMax: 15.5,
     vehicleLimits: {},
     useAutoTicketNo: true,
     ticketPrefix: '',
@@ -101,6 +109,43 @@ const config = ref<SplitConfig>({
     ticketPadding: 6,
     ticketSuffix: '/mmyy'
 });
+
+// Sorting states
+const sourceSortKey = ref<string>('');
+const sourceSortDesc = ref<boolean>(false);
+function toggleSourceSort(key: string) {
+    if (sourceSortKey.value === key) {
+        sourceSortDesc.value = !sourceSortDesc.value;
+    } else {
+        sourceSortKey.value = key;
+        sourceSortDesc.value = false;
+    }
+    ticketCurrentPage.value = 1;
+}
+
+const previewSortKey = ref<string>('');
+const previewSortDesc = ref<boolean>(false);
+function togglePreviewSort(key: string) {
+    if (previewSortKey.value === key) {
+        previewSortDesc.value = !previewSortDesc.value;
+    } else {
+        previewSortKey.value = key;
+        previewSortDesc.value = false;
+    }
+    previewCurrentPage.value = 1;
+}
+
+const historySortKey = ref<string>('');
+const historySortDesc = ref<boolean>(false);
+function toggleHistorySort(key: string) {
+    if (historySortKey.value === key) {
+        historySortDesc.value = !historySortDesc.value;
+    } else {
+        historySortKey.value = key;
+        historySortDesc.value = false;
+    }
+    historyCurrentPage.value = 1;
+}
 
 // UI Filters & Pagination
 const ticketSearchQuery = ref('');
@@ -428,15 +473,30 @@ const sourceStats = computed(() => {
 // Filtered source tickets
 const filteredSourceTickets = computed(() => {
     const q = ticketSearchQuery.value.trim().toLowerCase();
-    if (!q) return sourceTickets.value;
-    return sourceTickets.value.filter(t => 
-        t.ticketNo.toLowerCase().includes(q) ||
-        t.plateNumber.toLowerCase().includes(q) ||
-        t.customer.toLowerCase().includes(q) ||
-        t.cargoType.toLowerCase().includes(q) ||
-        t.orderNo.toLowerCase().includes(q) ||
-        (t.driver && t.driver.toLowerCase().includes(q))
-    );
+    let list = sourceTickets.value;
+    if (q) {
+        list = list.filter(t => 
+            t.ticketNo.toLowerCase().includes(q) ||
+            t.plateNumber.toLowerCase().includes(q) ||
+            t.customer.toLowerCase().includes(q) ||
+            t.cargoType.toLowerCase().includes(q) ||
+            t.orderNo.toLowerCase().includes(q) ||
+            (t.driver && t.driver.toLowerCase().includes(q))
+        );
+    }
+    if (sourceSortKey.value) {
+        const k = sourceSortKey.value as keyof SourceTicket;
+        const d = sourceSortDesc.value ? -1 : 1;
+        list = [...list].sort((a, b) => {
+            const vA = a[k] ?? '';
+            const vB = b[k] ?? '';
+            if (typeof vA === 'number' && typeof vB === 'number') {
+                return (vA - vB) * d;
+            }
+            return String(vA).localeCompare(String(vB)) * d;
+        });
+    }
+    return list;
 });
 
 const paginatedSourceTickets = computed(() => {
@@ -449,14 +509,29 @@ const totalSourcePages = computed(() => Math.ceil(filteredSourceTickets.value.le
 // Filtered preview trips
 const filteredPreviewTrips = computed(() => {
     const q = previewSearchQuery.value.trim().toLowerCase();
-    if (!q) return previewTrips.value;
-    return previewTrips.value.filter(t => 
-        t.ticketNo.toLowerCase().includes(q) ||
-        t.sourceTicketNo.toLowerCase().includes(q) ||
-        t.plateNumber.toLowerCase().includes(q) ||
-        t.orderNo.toLowerCase().includes(q) ||
-        t.cargoType.toLowerCase().includes(q)
-    );
+    let list = previewTrips.value;
+    if (q) {
+        list = list.filter(t => 
+            t.ticketNo.toLowerCase().includes(q) ||
+            t.sourceTicketNo.toLowerCase().includes(q) ||
+            t.plateNumber.toLowerCase().includes(q) ||
+            t.orderNo.toLowerCase().includes(q) ||
+            t.cargoType.toLowerCase().includes(q)
+        );
+    }
+    if (previewSortKey.value) {
+        const k = previewSortKey.value as keyof SplitTrip;
+        const d = previewSortDesc.value ? -1 : 1;
+        list = [...list].sort((a, b) => {
+            const vA = a[k] ?? '';
+            const vB = b[k] ?? '';
+            if (typeof vA === 'number' && typeof vB === 'number') {
+                return (vA - vB) * d;
+            }
+            return String(vA).localeCompare(String(vB)) * d;
+        });
+    }
+    return list;
 });
 
 const paginatedPreviewTrips = computed(() => {
@@ -482,14 +557,29 @@ const previewStats = computed(() => {
 // Filtered history trips
 const filteredHistoryTrips = computed(() => {
     const q = historySearchQuery.value.trim().toLowerCase();
-    if (!q) return historyTrips.value;
-    return historyTrips.value.filter(t => 
-        t.ticketNo.toLowerCase().includes(q) ||
-        t.plateNumber.toLowerCase().includes(q) ||
-        t.orderNo.toLowerCase().includes(q) ||
-        t.bargeName.toLowerCase().includes(q) ||
-        t.cargoType.toLowerCase().includes(q)
-    );
+    let list = historyTrips.value;
+    if (q) {
+        list = list.filter(t => 
+            t.ticketNo.toLowerCase().includes(q) ||
+            t.plateNumber.toLowerCase().includes(q) ||
+            t.orderNo.toLowerCase().includes(q) ||
+            t.bargeName.toLowerCase().includes(q) ||
+            t.cargoType.toLowerCase().includes(q)
+        );
+    }
+    if (historySortKey.value) {
+        const k = historySortKey.value as keyof SplitTrip;
+        const d = historySortDesc.value ? -1 : 1;
+        list = [...list].sort((a, b) => {
+            const vA = a[k] ?? '';
+            const vB = b[k] ?? '';
+            if (typeof vA === 'number' && typeof vB === 'number') {
+                return (vA - vB) * d;
+            }
+            return String(vA).localeCompare(String(vB)) * d;
+        });
+    }
+    return list;
 });
 
 const paginatedHistoryTrips = computed(() => {
@@ -1464,842 +1554,1017 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Top Action & Tab Navigation Bar -->
-    <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-primary/10 shadow-soft">
-      <!-- 3-Tab Navigator -->
-      <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
-        <button
-          @click="activeTab = 'tickets'"
-          :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition-all',
-            activeTab === 'tickets' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          <span class="material-symbols-outlined text-base">receipt_long</span>
-          1. Phiếu cân
-          <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-50 text-indigo-600 font-extrabold">{{ sourceTickets.length }}</span>
-        </button>
+  <div class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 fade-in flex-1 min-h-0 font-display">
+    <!-- Header Banner -->
+    <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3 px-4 md:px-5 soft-shadow border border-primary/5 gap-3 shrink-0">
+      <div>
+        <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích phân bổ độc lập</div>
+        <h1 class="text-sm md:text-base font-black text-[#1e293b] flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-primary text-base">balance</span>
+          Phân bổ tải trọng xếp hàng lên phương tiện
+        </h1>
+        <p class="text-xs text-gray-500 mt-0.5">
+          Tự động chia tách trọng lượng xe quá tải vượt hạn mức thành nhiều chuyến hợp lệ và kết xuất tệp theo mẫu chuẩn.
+        </p>
+      </div>
+      <!-- Toggle settings on mobile / desktop -->
+      <button 
+        @click="isSettingsCollapsed = !isSettingsCollapsed"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-primary/10 text-primary hover:bg-primary/20 shrink-0 select-none cursor-pointer"
+        :title="isSettingsCollapsed ? 'Mở rộng cài đặt quy tắc' : 'Thu gọn cài đặt quy tắc'"
+      >
+        <span class="material-symbols-outlined text-[16px]">{{ isSettingsCollapsed ? 'tune' : 'expand_less' }}</span>
+        <span>{{ isSettingsCollapsed ? 'Hiện cài đặt quy tắc' : 'Thu gọn cài đặt' }}</span>
+      </button>
+    </div>
 
-        <button
-          @click="activeTab = 'allocate'"
-          :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition-all',
-            activeTab === 'allocate' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          <span class="material-symbols-outlined text-base">call_split</span>
-          2. Phân bổ
-          <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-600 font-extrabold">{{ previewTrips.length }}</span>
-        </button>
-
-        <button
-          @click="activeTab = 'history'"
-          :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition-all',
-            activeTab === 'history' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          <span class="material-symbols-outlined text-base">menu_book</span>
-          3. Sổ theo dõi
-          <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-600 font-extrabold">{{ historyTrips.length }}</span>
-        </button>
+    <!-- Compact Settings & Capacities configs -->
+    <div v-show="!isSettingsCollapsed" class="grid grid-cols-1 lg:grid-cols-4 gap-3 shrink-0 text-left transition-all">
+      <!-- Thẻ 1: Sà lan đích & Mã lệnh (1/4 width) -->
+      <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
+        <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+          <span class="material-symbols-outlined text-[13px]">directions_boat</span>
+          Sà lan & Mã lệnh
+          <span class="text-[10px] text-gray-400 font-semibold">({{ allBarges.length }} sà lan)</span>
+        </h4>
+        <div class="space-y-2">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Sà lan đích</span>
+            <select 
+              v-model="config.selectedBargeId"
+              class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer"
+            >
+              <option :value="null" disabled>-- Chọn sà lan đích --</option>
+              <option
+                v-for="b in allBarges"
+                :key="b.id"
+                :value="b.id"
+              >
+                {{ b.name }} ({{ b.vesselName }})
+              </option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mã lệnh phân bổ</span>
+            <input 
+              type="text" 
+              v-model="config.customOrderNo" 
+              placeholder="Ví dụ: L-01, 1025..."
+              class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+            />
+          </div>
+        </div>
       </div>
 
-      <!-- Quick Action Buttons for Active Tab -->
-      <div class="flex items-center gap-2 flex-wrap justify-end">
-        <!-- Hidden File Input for Excel/CSV -->
-        <input
-          ref="fileInputRef"
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          class="hidden"
-          @change="handleFileUpload"
-        />
+      <!-- Thẻ 2: Số phiếu tự động (1/4 width) -->
+      <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+            <span class="material-symbols-outlined text-[13px]">tag</span>
+            Số phiếu tự động
+          </h4>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="config.useAutoTicketNo" class="sr-only peer" />
+            <div class="w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+          </label>
+        </div>
+        <div class="space-y-1.5" :class="{ 'opacity-40 pointer-events-none': !config.useAutoTicketNo }">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Tiền tố</span>
+              <input 
+                type="text" 
+                v-model="config.ticketPrefix" 
+                placeholder="VD: PC-"
+                class="w-full px-2 py-1 bg-white border border-gray-200 rounded-[6px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+              />
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Số bắt đầu</span>
+              <input 
+                type="number" 
+                v-model.number="config.ticketStart" 
+                min="1"
+                class="w-full px-2 py-1 bg-white border border-gray-200 rounded-[6px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Padding</span>
+              <input 
+                type="number" 
+                v-model.number="config.ticketPadding" 
+                min="1" 
+                max="10"
+                class="w-full px-2 py-1 bg-white border border-gray-200 rounded-[6px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+              />
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Hậu tố</span>
+              <input 
+                type="text" 
+                v-model="config.ticketSuffix" 
+                placeholder="/mmyy"
+                class="w-full px-2 py-1 bg-white border border-gray-200 rounded-[6px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+              />
+            </div>
+          </div>
+          <div class="text-[11px] text-gray-400 font-semibold italic flex items-center gap-1 pt-0.5 select-none text-left">
+            <span class="material-symbols-outlined text-xs">visibility</span>
+            Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewNextTicketNo }}</span>
+          </div>
+        </div>
+      </div>
 
-        <template v-if="activeTab === 'tickets'">
-          <button
-            @click="triggerFileInput"
-            :disabled="loadingFile"
-            class="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-            <span class="material-symbols-outlined text-base">{{ loadingFile ? 'sync' : 'upload_file' }}</span>
-            <span>{{ loadingFile ? 'Đang đọc tệp...' : 'Import Excel / CSV' }}</span>
-          </button>
+      <!-- Thẻ 3: Quy tắc phân bổ (1/4 width) -->
+      <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
+        <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+          <span class="material-symbols-outlined text-[13px]">tune</span>
+          Quy tắc phân bổ
+        </h4>
+        <div class="space-y-1.5">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Chiến lược chia</span>
+            <select v-model="config.distStrategy" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer">
+              <option value="even">Chia đều</option>
+              <option value="random">Phân bổ ngẫu nhiên</option>
+              <option value="max">Tối đa hóa công suất</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Định thời gian</span>
+            <select v-model="config.spacingStrategy" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer">
+              <option value="even">Phân đều chu kỳ</option>
+              <option value="forward">Tịnh tiến (+ Phút)</option>
+              <option value="backward">Lùi dần (- Phút)</option>
+            </select>
+          </div>
+          <div v-if="config.spacingStrategy !== 'even'" class="flex items-center gap-1.5 bg-primary/5 p-1 rounded-lg border border-primary/10">
+            <span class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
+            <input 
+              type="number" 
+              v-model.number="config.timeIntervalMinutes" 
+              min="3" 
+              max="60"
+              class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center"
+            />
+            <span class="text-xs text-gray-400 font-bold">phút</span>
+          </div>
+        </div>
+      </div>
 
-          <button
-            @click="openAddTicketModal"
-            class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
-          >
-            <span class="material-symbols-outlined text-base">add</span>
-            <span>Thêm thủ công</span>
-          </button>
-
-          <button
-            @click="exportSourceTicketsExcel"
-            :disabled="sourceTickets.length === 0"
-            class="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all disabled:opacity-40"
-          >
-            <span class="material-symbols-outlined text-base">download</span>
-            <span>Xuất Excel</span>
-          </button>
-
-          <button
-            @click="clearAllSourceTickets"
-            :disabled="sourceTickets.length === 0"
-            class="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all disabled:opacity-40"
-          >
-            <span class="material-symbols-outlined text-base">delete_sweep</span>
-            <span>Xóa hết</span>
-          </button>
-        </template>
-
-        <template v-else-if="activeTab === 'allocate'">
-          <button
-            @click="generateAllocatedTrips"
-            class="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all"
-          >
-            <span class="material-symbols-outlined text-base">autorenew</span>
-            <span>Tạo lại phân bổ</span>
-          </button>
-
-          <button
-            @click="syncToSelectedBarge"
-            :disabled="isSyncingBarge || previewTrips.length === 0 || !config.selectedBargeId"
-            class="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-            <span class="material-symbols-outlined text-base">{{ isSyncingBarge ? 'sync' : 'directions_boat' }}</span>
-            <span>{{ isSyncingBarge ? 'Đang nạp...' : 'Đồng bộ vào Sà lan' }}</span>
-          </button>
-
-          <button
-            @click="saveToTrackingBook"
-            :disabled="previewTrips.length === 0"
-            class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-            <span class="material-symbols-outlined text-base">save_as</span>
-            <span>Lưu vào Sổ theo dõi</span>
-          </button>
-        </template>
-
-        <template v-else-if="activeTab === 'history'">
-          <button
-            @click="exportTrackingBookExcel"
-            :disabled="historyTrips.length === 0"
-            class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-            <span class="material-symbols-outlined text-base">file_download</span>
-            <span>Xuất Excel Sổ theo dõi</span>
-          </button>
-
-          <button
-            @click="clearAllHistory"
-            :disabled="historyTrips.length === 0"
-            class="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all disabled:opacity-40"
-          >
-            <span class="material-symbols-outlined text-base">delete_forever</span>
-            <span>Xóa sạch sổ</span>
-          </button>
-        </template>
+      <!-- Thẻ 4: Hạn mức tải trọng & Định mức xe (1/4 width) -->
+      <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
+        <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+          <span class="material-symbols-outlined text-[13px]">shield</span>
+          Hạn mức & Định mức xe
+        </h4>
+        <div class="space-y-1.5">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Trọng tải mặc định (tấn)</span>
+            <input 
+              type="number" 
+              v-model.number="config.defaultLimit" 
+              step="0.5"
+              min="5"
+              max="60"
+              class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+            />
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
+            <div class="flex items-center gap-1.5">
+              <input 
+                type="number" 
+                v-model.number="config.standardCurbMin" 
+                step="0.1"
+                placeholder="Min"
+                class="w-full px-2 py-1 bg-white border border-gray-200 rounded-[6px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
+              />
+              <span class="text-gray-400 text-xs font-bold">~</span>
+              <input 
+                type="number" 
+                v-model.number="config.standardCurbMax" 
+                step="0.1"
+                placeholder="Max"
+                class="w-full px-2 py-1 bg-white border border-gray-200 rounded-[6px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
+              />
+            </div>
+          </div>
+          <div class="pt-1">
+            <button
+              @click="showVehicleLimitsModal = true"
+              class="w-full flex items-center justify-between px-3 py-1.5 bg-primary/5 hover:bg-primary/10 text-primary border border-primary/20 rounded-[8px] text-xs font-bold transition-all"
+            >
+              <span class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">local_shipping</span>
+                <span>Định mức từng xe</span>
+              </span>
+              <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 font-mono">{{ Object.keys(config.vehicleLimits).length }} xe</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Main Workspace with 2 Columns: Content (Left) & Sidebar (Right) -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-      <!-- Left Column (3 Spans): Tab Content -->
-      <div class="lg:col-span-3 space-y-6">
-        <!-- ================= TAB 1: PHIẾU CÂN NGUỒN ================= -->
-        <div v-if="activeTab === 'tickets'" class="space-y-4">
-          <!-- Stats Summary Bar -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">receipt</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng số phiếu</p>
-                <p class="text-lg font-black text-slate-800">{{ sourceStats.totalCount }}</p>
-              </div>
-            </div>
+    <!-- Tabbed Data Panel -->
+    <div class="bg-white rounded-[24px] p-4 md:p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full min-h-[500px] md:min-h-0 md:flex-1 md:overflow-hidden">
+      <!-- Tabs Header -->
+      <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+        <!-- Tabs Navigation Strip -->
+        <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 xl:pb-0 shrink-0">
+          <button 
+            @click="activeTab = 'tickets'"
+            :class="[
+              'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+              activeTab === 'tickets' 
+                ? 'bg-primary/10 text-primary border border-primary/20' 
+                : 'text-gray-500 hover:bg-gray-50'
+            ]"
+          >
+            1. Phiếu cân ({{ sourceTickets.length }})
+          </button>
+          <button 
+            @click="activeTab = 'allocate'"
+            :class="[
+              'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+              activeTab === 'allocate' 
+                ? 'bg-primary/10 text-primary border border-primary/20' 
+                : 'text-gray-500 hover:bg-gray-50'
+            ]"
+          >
+            2. Phân bổ ({{ previewTrips.length }})
+          </button>
+          <button 
+            @click="activeTab = 'history'"
+            :class="[
+              'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+              activeTab === 'history' 
+                ? 'bg-primary/10 text-primary border border-primary/20' 
+                : 'text-gray-500 hover:bg-gray-50'
+            ]"
+          >
+            3. Theo dõi ({{ historyTrips.length }})
+          </button>
+        </div>
 
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">scale</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Khối lượng hàng</p>
-                <p class="text-lg font-black text-emerald-600">{{ sourceStats.totalTons.toFixed(2) }} <span class="text-xs font-bold text-slate-500">Tấn</span></p>
-              </div>
-            </div>
-
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">local_shipping</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Số xe khác nhau</p>
-                <p class="text-lg font-black text-slate-800">{{ sourceStats.uniquePlates }}</p>
-              </div>
-            </div>
-
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">weight</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng Kg hàng</p>
-                <p class="text-sm font-black text-slate-800">{{ formatNumber(sourceStats.totalKg) }} kg</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Table Container -->
-          <div class="bg-white rounded-2xl border border-primary/10 shadow-soft overflow-hidden">
-            <!-- Table Header Toolbar -->
-            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div class="relative w-full sm:w-72">
-                <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">search</span>
-                <input
-                  v-model="ticketSearchQuery"
-                  type="text"
-                  placeholder="Tìm biển số xe, số phiếu, khách..."
-                  class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-500 transition-all font-medium"
-                />
-              </div>
-
-              <div class="text-xs text-slate-500 font-medium">
-                Hiển thị <span class="font-bold text-slate-800">{{ filteredSourceTickets.length }}</span> / {{ sourceTickets.length }} phiếu
-              </div>
-            </div>
-
-            <!-- Empty State -->
-            <div v-if="sourceTickets.length === 0" class="py-16 text-center text-slate-400">
-              <div class="size-16 rounded-3xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
-                <span class="material-symbols-outlined text-3xl">upload_file</span>
-              </div>
-              <h3 class="text-base font-bold text-slate-700 mb-1">Chưa có dữ liệu phiếu cân</h3>
-              <p class="text-xs max-w-md mx-auto text-slate-500 mb-4">
-                Hãy bấm <strong>Import Excel / CSV</strong> hoặc <strong>Thêm thủ công</strong> để nạp các phiếu cân xe tải cần phân bổ.
-              </p>
-              <button
-                @click="triggerFileInput"
-                class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+        <!-- Controls, Search, and Action Buttons (Aligned Row) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 xl:justify-end min-w-0">
+          <!-- Search Input container -->
+          <div class="flex-grow sm:flex-initial min-w-0 flex items-center h-7">
+            <div v-if="activeTab === 'tickets'" class="relative w-full sm:w-[240px] h-7 flex items-center">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+              <input 
+                type="text" 
+                v-model="ticketSearchQuery" 
+                placeholder="Tìm kiếm phiếu cân..." 
+                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+              />
+              <button 
+                v-if="ticketSearchQuery" 
+                @click="ticketSearchQuery = ''" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
               >
-                <span class="material-symbols-outlined text-base">upload</span>
-                <span>Tải tệp ngay</span>
+                <span class="material-symbols-outlined text-xs">close</span>
               </button>
             </div>
 
-            <!-- Table of Tickets -->
-            <div v-else class="overflow-x-auto">
-              <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-bold uppercase text-[10px] tracking-wider whitespace-nowrap">
-                    <th class="py-3 px-3 text-center w-10">STT</th>
-                    <th class="py-3 px-3">Số phiếu</th>
-                    <th class="py-3 px-3">Mã lệnh</th>
-                    <th class="py-3 px-3">Số xe</th>
-                    <th class="py-3 px-3">Khách hàng</th>
-                    <th class="py-3 px-3">Loại hàng</th>
-                    <th class="py-3 px-3 text-right">TL1 (kg)</th>
-                    <th class="py-3 px-3 text-right">TL2 (kg)</th>
-                    <th class="py-3 px-3 text-right">KL Hàng (kg)</th>
-                    <th class="py-3 px-3">Giờ vào</th>
-                    <th class="py-3 px-3">Giờ ra</th>
-                    <th class="py-3 px-3">Tài xế</th>
-                    <th class="py-3 px-3 text-center">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <tr
-                    v-for="(t, idx) in paginatedSourceTickets"
-                    :key="t.id"
-                    class="hover:bg-slate-50/80 transition-colors whitespace-nowrap"
-                  >
-                    <td class="py-2.5 px-3 text-center text-slate-400 font-medium">
-                      {{ (ticketCurrentPage - 1) * ticketPageSize + idx + 1 }}
-                    </td>
-                    <td class="py-2.5 px-3 font-bold text-indigo-700">{{ t.ticketNo }}</td>
-                    <td class="py-2.5 px-3 text-slate-600 font-medium">{{ t.orderNo || '-' }}</td>
-                    <td class="py-2.5 px-3 font-black text-slate-800 tracking-wide">{{ t.plateNumber }}</td>
-                    <td class="py-2.5 px-3 text-slate-700 max-w-[150px] truncate" :title="t.customer">{{ t.customer }}</td>
-                    <td class="py-2.5 px-3 text-slate-600">{{ t.cargoType }}</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight1) }}</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight2) }}</td>
-                    <td class="py-2.5 px-3 text-right font-black text-emerald-600">{{ formatNumber(t.weightNet) }}</td>
-                    <td class="py-2.5 px-3 text-slate-500 text-[11px]">{{ t.timeInStr }} <span class="text-[10px] text-slate-400">{{ t.dateInStr }}</span></td>
-                    <td class="py-2.5 px-3 text-slate-500 text-[11px]">{{ t.timeOutStr }} <span class="text-[10px] text-slate-400">{{ t.dateOutStr }}</span></td>
-                    <td class="py-2.5 px-3 text-slate-500 truncate max-w-[100px]">{{ t.driver || '-' }}</td>
-                    <td class="py-2.5 px-3 text-center">
-                      <div class="flex items-center justify-center gap-1">
-                        <button
-                          @click="openEditTicketModal(t)"
-                          class="p-1 text-slate-400 hover:text-indigo-600 rounded hover:bg-indigo-50 transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <span class="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                        <button
-                          @click="deleteTicket(t)"
-                          class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                          title="Xóa"
-                        >
-                          <span class="material-symbols-outlined text-sm">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-else-if="activeTab === 'allocate'" class="relative w-full sm:w-[240px] h-7 flex items-center">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+              <input 
+                type="text" 
+                v-model="previewSearchQuery" 
+                placeholder="Tìm chuyến phân bổ..." 
+                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+              />
+              <button 
+                v-if="previewSearchQuery" 
+                @click="previewSearchQuery = ''" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+              >
+                <span class="material-symbols-outlined text-xs">close</span>
+              </button>
             </div>
 
-            <!-- Pagination Bar -->
-            <div v-if="filteredSourceTickets.length > ticketPageSize" class="p-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <div class="flex items-center gap-2">
-                <span>Dòng/trang:</span>
-                <select v-model.number="ticketPageSize" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
-                </select>
-              </div>
-
-              <div class="flex items-center gap-1">
-                <button
-                  :disabled="ticketCurrentPage <= 1"
-                  @click="ticketCurrentPage--"
-                  class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_left</span>
-                </button>
-                <span class="px-2 font-bold">{{ ticketCurrentPage }} / {{ totalSourcePages }}</span>
-                <button
-                  :disabled="ticketCurrentPage >= totalSourcePages"
-                  @click="ticketCurrentPage++"
-                  class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_right</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ================= TAB 2: XEM TRƯỚC PHÂN BỔ ================= -->
-        <div v-else-if="activeTab === 'allocate'" class="space-y-4">
-          <!-- Allocation Target & Stats Summary Banner -->
-          <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white p-5 rounded-2xl shadow-md">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/20">
-                    Sà lan đích được chọn
-                  </span>
-                  <span v-if="selectedBargeInfo" class="text-xs text-indigo-200">({{ selectedBargeInfo.vesselName }})</span>
-                </div>
-                <h3 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                  <span class="material-symbols-outlined text-amber-400">directions_boat</span>
-                  {{ selectedBargeInfo ? selectedBargeInfo.name : 'Chưa chọn sà lan' }}
-                </h3>
-                <p class="text-xs text-indigo-200 mt-0.5">
-                  Mã lệnh: <span class="font-bold text-amber-300">{{ config.customOrderNo || (selectedBargeInfo ? selectedBargeInfo.orderNo : 'Chưa đặt') }}</span>
-                  • Chiến lược: <span class="font-semibold capitalize text-white">{{ config.distStrategy === 'even' ? 'Chia đều' : config.distStrategy === 'random' ? 'Ngẫu nhiên' : 'Tối đa tải' }}</span>
-                  • Giãn cách: <span class="font-semibold text-white">{{ config.timeIntervalMinutes }} phút</span>
-                </p>
-              </div>
-
-              <!-- Quick stats block -->
-              <div class="flex items-center gap-6 bg-white/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 shrink-0">
-                <div>
-                  <p class="text-[10px] uppercase font-bold text-indigo-200">Số chuyến sinh ra</p>
-                  <p class="text-xl font-black text-amber-400">{{ previewStats.totalCount }}</p>
-                </div>
-                <div class="border-l border-white/20 pl-4">
-                  <p class="text-[10px] uppercase font-bold text-indigo-200">Tổng KL phân bổ</p>
-                  <p class="text-xl font-black text-emerald-400">{{ previewStats.totalTons.toFixed(2) }} <span class="text-xs font-normal text-white">Tấn</span></p>
-                </div>
-                <div class="border-l border-white/20 pl-4 hidden md:block">
-                  <p class="text-[10px] uppercase font-bold text-indigo-200">Tải trọng TB</p>
-                  <p class="text-base font-bold text-white">{{ previewStats.avgTons.toFixed(2) }} T/chuyến</p>
-                </div>
-              </div>
+            <div v-else-if="activeTab === 'history'" class="relative w-full sm:w-[240px] h-7 flex items-center">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">search</span>
+              <input 
+                type="text" 
+                v-model="historySearchQuery" 
+                placeholder="Tìm kiếm sổ theo dõi..." 
+                class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
+              />
+              <button 
+                v-if="historySearchQuery" 
+                @click="historySearchQuery = ''" 
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary flex items-center"
+              >
+                <span class="material-symbols-outlined text-xs">close</span>
+              </button>
             </div>
           </div>
 
-          <!-- Preview Table -->
-          <div class="bg-white rounded-2xl border border-primary/10 shadow-soft overflow-hidden">
-            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div class="relative w-full sm:w-72">
-                <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">search</span>
-                <input
-                  v-model="previewSearchQuery"
-                  type="text"
-                  placeholder="Tìm số phiếu, số xe, mã lệnh..."
-                  class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-500 transition-all font-medium"
-                />
+          <!-- Right Side: Action Buttons -->
+          <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
+            <!-- Tab 1 Actions -->
+            <template v-if="activeTab === 'tickets'">
+              <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs whitespace-nowrap">
+                KL: {{ sourceStats.totalTons.toFixed(2) }}t
               </div>
+              <input 
+                type="file" 
+                ref="fileInputRef" 
+                accept=".csv,.xlsx,.xls" 
+                @change="handleFileUpload" 
+                class="hidden"
+              />
+              <button 
+                @click="triggerFileInput"
+                :disabled="loadingFile"
+                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">{{ loadingFile ? 'sync' : 'upload_file' }}</span>
+                <span>{{ loadingFile ? 'Đang đọc...' : 'Import' }}</span>
+              </button>
+              <button 
+                @click="openAddTicketModal"
+                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">add</span>
+                <span>Thêm</span>
+              </button>
+              <button 
+                @click="clearAllSourceTickets"
+                :disabled="sourceTickets.length === 0"
+                class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">delete</span>
+                <span>Xóa hết</span>
+              </button>
+              <button 
+                @click="exportSourceTicketsExcel"
+                :disabled="sourceTickets.length === 0"
+                class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">download</span>
+                <span>Xuất Excel</span>
+              </button>
+            </template>
 
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-slate-500 font-medium">
-                  Hiển thị <span class="font-bold text-slate-800">{{ filteredPreviewTrips.length }}</span> chuyến xe
-                </span>
+            <!-- Tab 2 Actions -->
+            <template v-else-if="activeTab === 'allocate'">
+              <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs whitespace-nowrap">
+                KL: {{ previewStats.totalTons.toFixed(2) }}t
               </div>
-            </div>
+              <button 
+                @click="generateAllocatedTrips"
+                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">autorenew</span>
+                <span>Tạo lại</span>
+              </button>
+              <button 
+                @click="syncToSelectedBarge"
+                :disabled="isSyncingBarge || previewTrips.length === 0 || !config.selectedBargeId"
+                class="h-7 px-3 bg-indigo-600 text-white border border-indigo-600 text-xs font-bold rounded-[8px] hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">{{ isSyncingBarge ? 'sync' : 'directions_boat' }}</span>
+                <span>{{ isSyncingBarge ? 'Đang nạp...' : 'Đồng bộ sang sà lan' }}</span>
+              </button>
+              <button 
+                @click="saveToTrackingBook"
+                :disabled="previewTrips.length === 0"
+                class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">save</span>
+                <span>Lưu vào Theo dõi</span>
+              </button>
+            </template>
 
-            <!-- Empty State -->
-            <div v-if="previewTrips.length === 0" class="py-16 text-center text-slate-400">
-              <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">call_split</span>
-              <p class="text-sm font-bold text-slate-600">Chưa có dữ liệu phân bổ</p>
-              <p class="text-xs text-slate-400 mt-1">Hãy nạp phiếu cân ở Tab 1 hoặc bấm "Tạo lại phân bổ".</p>
-            </div>
-
-            <!-- Preview Table of Trips -->
-            <div v-else class="overflow-x-auto">
-              <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-bold uppercase text-[10px] tracking-wider whitespace-nowrap">
-                    <th class="py-3 px-3 text-center w-10">STT</th>
-                    <th class="py-3 px-3">Số phiếu sinh</th>
-                    <th class="py-3 px-3">Phiếu gốc</th>
-                    <th class="py-3 px-3">Mã lệnh</th>
-                    <th class="py-3 px-3">Số xe</th>
-                    <th class="py-3 px-3 text-right">TL1 (kg)</th>
-                    <th class="py-3 px-3 text-right">TL2 (kg)</th>
-                    <th class="py-3 px-3 text-right">KL Hàng (kg)</th>
-                    <th class="py-3 px-3 text-right">Tấn</th>
-                    <th class="py-3 px-3">Giờ vào</th>
-                    <th class="py-3 px-3">Giờ ra</th>
-                    <th class="py-3 px-3">Sà lan</th>
-                    <th class="py-3 px-3">Ghi chú</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <tr
-                    v-for="(t, idx) in paginatedPreviewTrips"
-                    :key="t.id"
-                    class="hover:bg-slate-50/80 transition-colors whitespace-nowrap"
-                  >
-                    <td class="py-2.5 px-3 text-center text-slate-400 font-medium">
-                      {{ (previewCurrentPage - 1) * previewPageSize + idx + 1 }}
-                    </td>
-                    <td class="py-2.5 px-3 font-bold text-indigo-700">{{ t.ticketNo }}</td>
-                    <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">{{ t.sourceTicketNo }}</td>
-                    <td class="py-2.5 px-3 font-semibold text-amber-700">{{ t.orderNo || '-' }}</td>
-                    <td class="py-2.5 px-3 font-black text-slate-800">{{ t.plateNumber }}</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight1) }}</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight2) }}</td>
-                    <td class="py-2.5 px-3 text-right font-black text-emerald-600">{{ formatNumber(t.weightNet) }}</td>
-                    <td class="py-2.5 px-3 text-right font-bold text-slate-700">{{ t.weightTons.toFixed(2) }}</td>
-                    <td class="py-2.5 px-3 text-slate-500 text-[11px]">{{ t.timeInStr }} <span class="text-[10px] text-slate-400">{{ t.dateInStr }}</span></td>
-                    <td class="py-2.5 px-3 text-slate-500 text-[11px]">{{ t.timeOutStr }} <span class="text-[10px] text-slate-400">{{ t.dateOutStr }}</span></td>
-                    <td class="py-2.5 px-3 text-slate-700 font-medium">{{ t.bargeName }}</td>
-                    <td class="py-2.5 px-3 text-slate-400 text-[11px]">{{ t.notes || '-' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination Bar -->
-            <div v-if="filteredPreviewTrips.length > previewPageSize" class="p-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <div class="flex items-center gap-2">
-                <span>Dòng/trang:</span>
-                <select v-model.number="previewPageSize" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
-                </select>
+            <!-- Tab 3 Actions -->
+            <template v-else-if="activeTab === 'history'">
+              <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs whitespace-nowrap">
+                KL: {{ historyStats.totalTons.toFixed(2) }}t
               </div>
-
-              <div class="flex items-center gap-1">
-                <button
-                  :disabled="previewCurrentPage <= 1"
-                  @click="previewCurrentPage--"
-                  class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_left</span>
-                </button>
-                <span class="px-2 font-bold">{{ previewCurrentPage }} / {{ totalPreviewPages }}</span>
-                <button
-                  :disabled="previewCurrentPage >= totalPreviewPages"
-                  @click="previewCurrentPage++"
-                  class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_right</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ================= TAB 3: SỔ THEO DÕI ================= -->
-        <div v-else-if="activeTab === 'history'" class="space-y-4">
-          <!-- Stats Summary Bar -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">menu_book</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng chuyến đã lưu</p>
-                <p class="text-lg font-black text-slate-800">{{ historyStats.totalCount }}</p>
-              </div>
-            </div>
-
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">scale</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Khối lượng tích lũy</p>
-                <p class="text-lg font-black text-indigo-600">{{ historyStats.totalTons.toFixed(2) }} <span class="text-xs font-bold text-slate-500">Tấn</span></p>
-              </div>
-            </div>
-
-            <div class="bg-white p-3.5 rounded-2xl border border-primary/10 shadow-soft flex items-center gap-3">
-              <div class="size-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-lg">weight</span>
-              </div>
-              <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng Kilogram</p>
-                <p class="text-base font-black text-slate-800">{{ formatNumber(historyStats.totalKg) }} kg</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- History Table -->
-          <div class="bg-white rounded-2xl border border-primary/10 shadow-soft overflow-hidden">
-            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div class="relative w-full sm:w-72">
-                <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">search</span>
-                <input
-                  v-model="historySearchQuery"
-                  type="text"
-                  placeholder="Tìm biển số xe, số phiếu, sà lan..."
-                  class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-indigo-500 transition-all font-medium"
-                />
-              </div>
-
-              <div class="text-xs text-slate-500 font-medium">
-                Hiển thị <span class="font-bold text-slate-800">{{ filteredHistoryTrips.length }}</span> / {{ historyTrips.length }} dòng
-              </div>
-            </div>
-
-            <!-- Empty State -->
-            <div v-if="historyTrips.length === 0" class="py-16 text-center text-slate-400">
-              <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">auto_stories</span>
-              <p class="text-sm font-bold text-slate-600">Sổ theo dõi hiện đang trống</p>
-              <p class="text-xs text-slate-400 mt-1">
-                Sau khi phân bổ ở Tab 2, bấm <strong>Lưu vào Sổ theo dõi</strong> để ghi nhận tại đây.
-              </p>
-            </div>
-
-            <!-- History Table of Trips (14 standard columns) -->
-            <div v-else class="overflow-x-auto">
-              <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-bold uppercase text-[10px] tracking-wider whitespace-nowrap">
-                    <th class="py-3 px-3 text-center w-10">STT</th>
-                    <th class="py-3 px-3">Số phiếu</th>
-                    <th class="py-3 px-3">Mã lệnh</th>
-                    <th class="py-3 px-3">Số xe</th>
-                    <th class="py-3 px-3">Khách hàng</th>
-                    <th class="py-3 px-3">Loại hàng</th>
-                    <th class="py-3 px-3 text-right">TL1 (kg)</th>
-                    <th class="py-3 px-3 text-right">TL2 (kg)</th>
-                    <th class="py-3 px-3 text-right">KL Hàng (kg)</th>
-                    <th class="py-3 px-3">Thời gian vào</th>
-                    <th class="py-3 px-3">Thời gian ra</th>
-                    <th class="py-3 px-3">Sà lan</th>
-                    <th class="py-3 px-3">Ghi chú</th>
-                    <th class="py-3 px-3 text-center">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <tr
-                    v-for="(t, idx) in paginatedHistoryTrips"
-                    :key="t.id"
-                    class="hover:bg-slate-50/80 transition-colors whitespace-nowrap"
-                  >
-                    <td class="py-2.5 px-3 text-center text-slate-400 font-medium">
-                      {{ (historyCurrentPage - 1) * historyPageSize + idx + 1 }}
-                    </td>
-                    <td class="py-2.5 px-3 font-bold text-indigo-700">{{ t.ticketNo }}</td>
-                    <td class="py-2.5 px-3">
-                      <input
-                        type="text"
-                        :value="t.orderNo"
-                        @change="updateTripOrderNo(t, ($event.target as HTMLInputElement).value)"
-                        class="w-24 px-1.5 py-0.5 text-xs bg-slate-50 border border-slate-200 rounded font-semibold text-amber-700 focus:bg-white focus:outline-none focus:border-indigo-500"
-                        title="Sửa nhanh mã lệnh"
-                      />
-                    </td>
-                    <td class="py-2.5 px-3 font-black text-slate-800">{{ t.plateNumber }}</td>
-                    <td class="py-2.5 px-3 text-slate-700 max-w-[130px] truncate" :title="t.customer">{{ t.customer }}</td>
-                    <td class="py-2.5 px-3 text-slate-600">{{ t.cargoType }}</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight1) }}</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight2) }}</td>
-                    <td class="py-2.5 px-3 text-right font-black text-emerald-600">{{ formatNumber(t.weightNet) }}</td>
-                    <td class="py-2.5 px-3 text-slate-500 text-[11px]">{{ t.timeInStr }} <span class="text-[10px] text-slate-400">{{ t.dateInStr }}</span></td>
-                    <td class="py-2.5 px-3 text-slate-500 text-[11px]">{{ t.timeOutStr }} <span class="text-[10px] text-slate-400">{{ t.dateOutStr }}</span></td>
-                    <td class="py-2.5 px-3 text-slate-700 font-medium">{{ t.bargeName }}</td>
-                    <td class="py-2.5 px-3 text-slate-400 text-[11px] max-w-[100px] truncate">{{ t.notes || '-' }}</td>
-                    <td class="py-2.5 px-3 text-center">
-                      <button
-                        @click="deleteHistoryTrip(t)"
-                        class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                        title="Xóa dòng này"
-                      >
-                        <span class="material-symbols-outlined text-sm">delete</span>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination Bar -->
-            <div v-if="filteredHistoryTrips.length > historyPageSize" class="p-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <div class="flex items-center gap-2">
-                <span>Dòng/trang:</span>
-                <select v-model.number="historyPageSize" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
-                </select>
-              </div>
-
-              <div class="flex items-center gap-1">
-                <button
-                  :disabled="historyCurrentPage <= 1"
-                  @click="historyCurrentPage--"
-                  class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_left</span>
-                </button>
-                <span class="px-2 font-bold">{{ historyCurrentPage }} / {{ totalHistoryPages }}</span>
-                <button
-                  :disabled="historyCurrentPage >= totalHistoryPages"
-                  @click="historyCurrentPage++"
-                  class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_right</span>
-                </button>
-              </div>
-            </div>
+              <button 
+                @click="clearAllHistory"
+                :disabled="historyTrips.length === 0"
+                class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">delete_forever</span>
+                <span>Xóa lịch sử</span>
+              </button>
+              <button 
+                @click="exportTrackingBookExcel"
+                :disabled="historyTrips.length === 0"
+                class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                <span class="material-symbols-outlined text-[14px]">download</span>
+                <span>Xuất Excel</span>
+              </button>
+            </template>
           </div>
         </div>
       </div>
 
-      <!-- Right Column (1 Span): Allocation Configuration Sidebar -->
-      <div class="space-y-4 bg-white p-5 rounded-2xl border border-primary/10 shadow-soft">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-indigo-600 text-base">tune</span>
-            Cấu hình phân bổ
-          </h4>
+      <!-- ================= TAB 1: PHIẾU CÂN NGUỒN ================= -->
+      <div v-if="activeTab === 'tickets'" class="flex-1 flex flex-col gap-3 min-h-0">
+        <!-- Empty State -->
+        <div v-if="sourceTickets.length === 0" class="py-16 text-center text-slate-400">
+          <div class="size-16 rounded-3xl bg-indigo-50 text-primary flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-3xl">upload_file</span>
+          </div>
+          <h3 class="text-base font-bold text-slate-700 mb-1">Chưa có dữ liệu phiếu cân</h3>
+          <p class="text-xs max-w-md mx-auto text-slate-500 mb-4">
+            Hãy bấm <strong>Import</strong> hoặc <strong>Thêm</strong> để nạp danh sách phiếu cân cần phân bổ.
+          </p>
+          <button
+            @click="triggerFileInput"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+          >
+            <span class="material-symbols-outlined text-base">upload</span>
+            <span>Tải tệp ngay</span>
+          </button>
         </div>
 
-        <!-- 1. Target Barge Selector -->
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
-            <span>Sà lan đích</span>
-            <span class="text-[10px] text-indigo-600 font-extrabold">{{ allBarges.length }} sà lan</span>
-          </label>
-          <select
-            v-model="config.selectedBargeId"
-            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
-          >
-            <option :value="null" disabled>-- Chọn một sà lan đích --</option>
-            <option
-              v-for="b in allBarges"
-              :key="b.id"
-              :value="b.id"
+        <!-- Table of Source Tickets -->
+        <div v-else class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
+            <thead>
+              <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
+                <th @click="toggleSourceSort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Số phiếu</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'ticketNo' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Mã lệnh</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'orderNo' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Số xe</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'plateNumber' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Khách hàng</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'customer' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Loại hàng</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'cargoType' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>TL1 (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'weight1' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>TL2 (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'weight2' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>KL Hàng (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'weightNet' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Giờ vào</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'dateInStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Giờ ra</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'dateOutStr' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleSourceSort('driver')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Tài xế</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ sourceSortKey === 'driver' ? (sourceSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr
+                v-for="(t, idx) in paginatedSourceTickets"
+                :key="t.id"
+                class="hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                <td class="py-2.5 px-3 text-center text-slate-400 font-medium">
+                  {{ (ticketCurrentPage - 1) * ticketPageSize + idx + 1 }}
+                </td>
+                <td class="py-2.5 px-3 font-bold text-primary">{{ t.ticketNo }}</td>
+                <td class="py-2.5 px-3 text-center text-slate-600 font-medium">{{ t.orderNo || '-' }}</td>
+                <td class="py-2.5 px-3 font-black text-slate-800 tracking-wide">{{ t.plateNumber }}</td>
+                <td class="py-2.5 px-3 text-slate-700 max-w-[150px] truncate" :title="t.customer">{{ t.customer }}</td>
+                <td class="py-2.5 px-3 text-slate-600">{{ t.cargoType }}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight1) }}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight2) }}</td>
+                <td class="py-2.5 px-3 text-right font-black text-emerald-600">{{ formatNumber(t.weightNet) }}</td>
+                <td class="py-2.5 px-3 text-center text-slate-500 text-[11px]">{{ t.timeInStr }} <span class="text-[10px] text-slate-400">{{ t.dateInStr }}</span></td>
+                <td class="py-2.5 px-3 text-center text-slate-500 text-[11px]">{{ t.timeOutStr }} <span class="text-[10px] text-slate-400">{{ t.dateOutStr }}</span></td>
+                <td class="py-2.5 px-3 text-slate-500 truncate max-w-[100px]">{{ t.driver || '-' }}</td>
+                <td class="py-2.5 px-3 text-center">
+                  <div class="flex items-center justify-center gap-1">
+                    <button
+                      @click="openEditTicketModal(t)"
+                      class="p-1 text-slate-400 hover:text-primary rounded hover:bg-primary/10 transition-colors"
+                      title="Chỉnh sửa"
+                    >
+                      <span class="material-symbols-outlined text-sm">edit</span>
+                    </button>
+                    <button
+                      @click="deleteTicket(t)"
+                      class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                      title="Xóa"
+                    >
+                      <span class="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div v-if="filteredSourceTickets.length > ticketPageSize" class="p-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center gap-2">
+            <span>Dòng/trang:</span>
+            <select v-model.number="ticketPageSize" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button
+              :disabled="ticketCurrentPage <= 1"
+              @click="ticketCurrentPage--"
+              class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
             >
-              {{ b.name }} ({{ b.vesselName }})
-            </option>
-          </select>
-        </div>
-
-        <!-- 2. Custom Order No -->
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-            Mã lệnh phân bổ
-          </label>
-          <input
-            v-model="config.customOrderNo"
-            type="text"
-            placeholder="VD: L-01, 1025..."
-            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
-          />
-        </div>
-
-        <!-- 3. Time Interval Between Trips -->
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
-            <span>Khoảng cách thời gian</span>
-            <span class="text-xs font-bold text-indigo-600">{{ config.timeIntervalMinutes }} phút</span>
-          </label>
-          <input
-            v-model.number="config.timeIntervalMinutes"
-            type="range"
-            min="3"
-            max="60"
-            step="1"
-            class="w-full accent-indigo-600 cursor-pointer"
-          />
-          <div class="flex justify-between text-[10px] text-slate-400 font-medium">
-            <span>3 phút</span>
-            <span>30 phút</span>
-            <span>60 phút</span>
+              <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>
+            <span class="px-2 font-bold">{{ ticketCurrentPage }} / {{ totalSourcePages }}</span>
+            <button
+              :disabled="ticketCurrentPage >= totalSourcePages"
+              @click="ticketCurrentPage++"
+              class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
+            >
+              <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>
           </div>
         </div>
+      </div>
 
-        <!-- 4. Weight Distribution Strategy -->
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-            Chiến lược chia tải
-          </label>
-          <select
-            v-model="config.distStrategy"
-            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
-          >
-            <option value="even">Chia đều (Cân bằng tải các chuyến)</option>
-            <option value="random">Ngẫu nhiên (Biên độ tự nhiên)</option>
-            <option value="max">Tối đa tải trọng (Dồn các xe đầu)</option>
-          </select>
+      <!-- ================= TAB 2: XEM TRƯỚC PHÂN BỔ ================= -->
+      <div v-else-if="activeTab === 'allocate'" class="flex-1 flex flex-col gap-3 min-h-0">
+        <!-- Empty State -->
+        <div v-if="previewTrips.length === 0" class="py-16 text-center text-slate-400">
+          <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">call_split</span>
+          <p class="text-sm font-bold text-slate-600">Chưa có dữ liệu phân bổ</p>
+          <p class="text-xs text-slate-400 mt-1">Hãy nạp phiếu cân ở Tab 1 hoặc bấm "Tạo lại".</p>
         </div>
 
-        <!-- 5. Time Spacing Strategy -->
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-            Định thời gian ra / vào
-          </label>
-          <select
-            v-model="config.spacingStrategy"
-            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
-          >
-            <option value="forward">Tịnh tiến (+ Phút từ giờ vào)</option>
-            <option value="backward">Lùi dần (- Phút từ giờ ra)</option>
-            <option value="even">Phân đều toàn ca làm việc</option>
-          </select>
+        <!-- Preview Table of Trips -->
+        <div v-else class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
+            <thead>
+              <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
+                <th @click="togglePreviewSort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Số phiếu sinh</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'ticketNo' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('sourceTicketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Phiếu gốc</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'sourceTicketNo' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Mã lệnh</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'orderNo' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Số xe</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'plateNumber' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>TL1 (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'weight1' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>TL2 (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'weight2' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>KL Hàng (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'weightNet' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('weightTons')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>Tấn</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'weightTons' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Giờ vào</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'dateInStr' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Giờ ra</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'dateOutStr' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="togglePreviewSort('bargeName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Sà lan</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ previewSortKey === 'bargeName' ? (previewSortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th class="py-2 px-3 bg-gray-55 font-bold">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr
+                v-for="(t, idx) in paginatedPreviewTrips"
+                :key="t.id"
+                class="hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                <td class="py-2.5 px-3 text-center text-slate-400 font-medium">
+                  {{ (previewCurrentPage - 1) * previewPageSize + idx + 1 }}
+                </td>
+                <td class="py-2.5 px-3 font-bold text-primary">{{ t.ticketNo }}</td>
+                <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">{{ t.sourceTicketNo }}</td>
+                <td class="py-2.5 px-3 text-center font-semibold text-amber-700">{{ t.orderNo || '-' }}</td>
+                <td class="py-2.5 px-3 font-black text-slate-800">{{ t.plateNumber }}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight1) }}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight2) }}</td>
+                <td class="py-2.5 px-3 text-right font-black text-emerald-600">{{ formatNumber(t.weightNet) }}</td>
+                <td class="py-2.5 px-3 text-right font-bold text-slate-700">{{ t.weightTons.toFixed(2) }}</td>
+                <td class="py-2.5 px-3 text-center text-slate-500 text-[11px]">{{ t.timeInStr }} <span class="text-[10px] text-slate-400">{{ t.dateInStr }}</span></td>
+                <td class="py-2.5 px-3 text-center text-slate-500 text-[11px]">{{ t.timeOutStr }} <span class="text-[10px] text-slate-400">{{ t.dateOutStr }}</span></td>
+                <td class="py-2.5 px-3 text-slate-700 font-medium">{{ t.bargeName }}</td>
+                <td class="py-2.5 px-3 text-slate-400 text-[11px]">{{ t.notes || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- 6. Default Vehicle Limit -->
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center justify-between">
-            <span>Tải trọng xe định mức (Tấn)</span>
-            <span class="text-xs font-bold text-indigo-600">{{ config.defaultLimit }} Tấn</span>
-          </label>
-          <input
-            v-model.number="config.defaultLimit"
-            type="number"
-            min="5"
-            max="60"
-            step="0.5"
-            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
-          />
-          <p class="text-[10px] text-slate-400">Áp dụng cho các xe chưa có định mức riêng.</p>
-        </div>
-
-        <!-- 7. Ticket Number Generation Config -->
-        <div class="border-t border-slate-100 pt-3 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Tự sinh số phiếu</span>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" v-model="config.useAutoTicketNo" class="sr-only peer" />
-              <div class="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-            </label>
+        <!-- Pagination Bar -->
+        <div v-if="filteredPreviewTrips.length > previewPageSize" class="p-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center gap-2">
+            <span>Dòng/trang:</span>
+            <select v-model.number="previewPageSize" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
           </div>
 
-          <div v-if="config.useAutoTicketNo" class="space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <span class="text-[10px] font-bold text-slate-500">Tiền tố:</span>
-                <input
-                  v-model="config.ticketPrefix"
-                  type="text"
-                  placeholder="VD: C-"
-                  class="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded"
-                />
-              </div>
-              <div>
-                <span class="text-[10px] font-bold text-slate-500">Số bắt đầu:</span>
-                <input
-                  v-model.number="config.ticketStart"
-                  type="number"
-                  min="1"
-                  class="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded"
-                />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <span class="text-[10px] font-bold text-slate-500">Độ dài số:</span>
-                <input
-                  v-model.number="config.ticketPadding"
-                  type="number"
-                  min="1"
-                  max="10"
-                  class="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded"
-                />
-              </div>
-              <div>
-                <span class="text-[10px] font-bold text-slate-500">Hậu tố:</span>
-                <input
-                  v-model="config.ticketSuffix"
-                  type="text"
-                  placeholder="/mmyy"
-                  class="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded"
-                />
-              </div>
-            </div>
-
-            <div class="text-[11px] text-slate-500 pt-1">
-              Mẫu xem trước: <strong class="text-indigo-700 font-mono">{{ previewNextTicketNo }}</strong>
-            </div>
+          <div class="flex items-center gap-1">
+            <button
+              :disabled="previewCurrentPage <= 1"
+              @click="previewCurrentPage--"
+              class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
+            >
+              <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>
+            <span class="px-2 font-bold">{{ previewCurrentPage }} / {{ totalPreviewPages }}</span>
+            <button
+              :disabled="previewCurrentPage >= totalPreviewPages"
+              @click="previewCurrentPage++"
+              class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
+            >
+              <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>
           </div>
         </div>
+      </div>
 
-        <!-- 8. Specific Vehicle Limits List (Expandable) -->
-        <div class="border-t border-slate-100 pt-3 space-y-2">
-          <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wide flex items-center justify-between">
-            <span>Định mức từng xe</span>
-            <span class="text-[10px] text-slate-400 font-semibold">{{ vehiclesList.length }} xe trong danh mục</span>
-          </label>
+      <!-- ================= TAB 3: SỔ THEO DÕI ================= -->
+      <div v-else-if="activeTab === 'history'" class="flex-1 flex flex-col gap-3 min-h-0">
+        <!-- Empty State -->
+        <div v-if="historyTrips.length === 0" class="py-16 text-center text-slate-400">
+          <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">menu_book</span>
+          <p class="text-sm font-bold text-slate-600">Sổ theo dõi chưa có dữ liệu</p>
+          <p class="text-xs text-slate-400 mt-1">Sau khi phân bổ ở Tab 2, hãy bấm "Lưu vào Theo dõi" để lưu lại lịch sử.</p>
+        </div>
 
+        <!-- History Table -->
+        <div v-else class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
+            <thead>
+              <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
+                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Số phiếu</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'ticketNo' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Mã lệnh</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'orderNo' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Số xe</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'plateNumber' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Khách hàng</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'customer' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Loại hàng</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'cargoType' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>TL1 (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'weight1' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>TL2 (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'weight2' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>KL Hàng (kg)</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'weightNet' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Thời gian vào</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'dateInStr' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Thời gian ra</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'dateOutStr' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th @click="toggleHistorySort('bargeName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                  <div class="flex items-center gap-1">
+                    <span>Sà lan</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
+                      {{ historySortKey === 'bargeName' ? (historySortDesc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more' }}
+                    </span>
+                  </div>
+                </th>
+                <th class="py-2 px-3 bg-gray-55 font-bold">Ghi chú</th>
+                <th class="py-2 px-3 text-center w-16 bg-gray-55 font-bold select-none">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr
+                v-for="(t, idx) in paginatedHistoryTrips"
+                :key="t.id"
+                class="hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                <td class="py-2.5 px-3 text-center text-slate-400 font-medium">
+                  {{ (historyCurrentPage - 1) * historyPageSize + idx + 1 }}
+                </td>
+                <td class="py-2.5 px-3 font-bold text-primary">{{ t.ticketNo }}</td>
+                <td class="py-2.5 px-3 text-center">
+                  <input
+                    type="text"
+                    :value="t.orderNo"
+                    @change="updateTripOrderNo(t, ($event.target as HTMLInputElement).value)"
+                    class="w-24 px-1.5 py-0.5 text-xs text-center bg-slate-50 border border-slate-200 rounded font-semibold text-amber-700 focus:bg-white focus:outline-none focus:border-primary"
+                    title="Sửa nhanh mã lệnh"
+                  />
+                </td>
+                <td class="py-2.5 px-3 font-black text-slate-800">{{ t.plateNumber }}</td>
+                <td class="py-2.5 px-3 text-slate-700 max-w-[130px] truncate" :title="t.customer">{{ t.customer }}</td>
+                <td class="py-2.5 px-3 text-slate-600">{{ t.cargoType }}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight1) }}</td>
+                <td class="py-2.5 px-3 text-right text-slate-500">{{ formatNumber(t.weight2) }}</td>
+                <td class="py-2.5 px-3 text-right font-black text-emerald-600">{{ formatNumber(t.weightNet) }}</td>
+                <td class="py-2.5 px-3 text-center text-slate-500 text-[11px]">{{ t.timeInStr }} <span class="text-[10px] text-slate-400">{{ t.dateInStr }}</span></td>
+                <td class="py-2.5 px-3 text-center text-slate-500 text-[11px]">{{ t.timeOutStr }} <span class="text-[10px] text-slate-400">{{ t.dateOutStr }}</span></td>
+                <td class="py-2.5 px-3 text-slate-700 font-medium">{{ t.bargeName }}</td>
+                <td class="py-2.5 px-3 text-slate-400 text-[11px] max-w-[100px] truncate">{{ t.notes || '-' }}</td>
+                <td class="py-2.5 px-3 text-center">
+                  <button
+                    @click="deleteHistoryTrip(t)"
+                    class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
+                    title="Xóa dòng này"
+                  >
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div v-if="filteredHistoryTrips.length > historyPageSize" class="p-2.5 border-t border-gray-100 flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center gap-2">
+            <span>Dòng/trang:</span>
+            <select v-model.number="historyPageSize" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button
+              :disabled="historyCurrentPage <= 1"
+              @click="historyCurrentPage--"
+              class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
+            >
+              <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>
+            <span class="px-2 font-bold">{{ historyCurrentPage }} / {{ totalHistoryPages }}</span>
+            <button
+              :disabled="historyCurrentPage >= totalHistoryPages"
+              @click="historyCurrentPage++"
+              class="p-1 rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-30"
+            >
+              <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Cấu hình định mức từng xe -->
+    <div
+      v-if="showVehicleLimitsModal"
+      class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+      @click.self="showVehicleLimitsModal = false"
+    >
+      <div class="bg-white rounded-3xl p-5 w-full max-w-lg shadow-2xl border border-slate-100 space-y-3 text-xs font-display">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <h3 class="text-sm font-black text-slate-800 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">local_shipping</span>
+            Cấu hình định mức tải trọng từng xe
+          </h3>
+          <button @click="showVehicleLimitsModal = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
           <input
             v-model="vehicleSearchQuery"
             type="text"
-            placeholder="Lọc xe..."
-            class="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg"
+            placeholder="Tìm biển số xe hoặc mooc..."
+            class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-primary"
           />
+        </div>
 
-          <div class="max-h-40 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-lg text-xs">
-            <div
-              v-for="v in filteredVehiclesList.slice(0, 15)"
-              :key="v.plateNumber"
-              class="p-2 flex items-center justify-between hover:bg-slate-50"
-            >
-              <div>
-                <p class="font-bold text-slate-800">{{ v.plateNumber }}</p>
-                <p v-if="v.moocNumber" class="text-[10px] text-slate-400">Mooc: {{ v.moocNumber }}</p>
-              </div>
-              <div class="flex items-center gap-1">
-                <input
-                  type="number"
-                  step="0.5"
-                  :value="config.vehicleLimits[normalizePlate(v.plateNumber)] || config.defaultLimit"
-                  @change="updateVehicleLimit(v.plateNumber, parseFloat(($event.target as HTMLInputElement).value) || config.defaultLimit)"
-                  class="w-16 px-1.5 py-0.5 text-right text-xs bg-white border border-slate-200 rounded font-bold text-indigo-700"
-                />
-                <span class="text-[10px] text-slate-400 font-medium">T</span>
-              </div>
+        <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl">
+          <div
+            v-for="v in filteredVehiclesList"
+            :key="v.plateNumber"
+            class="p-2.5 flex items-center justify-between hover:bg-slate-50"
+          >
+            <div>
+              <p class="font-bold text-slate-800">{{ v.plateNumber }}</p>
+              <p v-if="v.moocNumber" class="text-[10px] text-slate-400 font-medium">Mooc: {{ v.moocNumber }}</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input
+                type="number"
+                step="0.5"
+                :value="config.vehicleLimits[normalizePlate(v.plateNumber)] || config.defaultLimit"
+                @change="updateVehicleLimit(v.plateNumber, parseFloat(($event.target as HTMLInputElement).value) || config.defaultLimit)"
+                class="w-20 px-2 py-1 text-right text-xs bg-white border border-slate-200 rounded-lg font-bold text-primary focus:outline-none focus:border-primary"
+              />
+              <span class="text-xs text-slate-400 font-bold">Tấn</span>
             </div>
           </div>
+          <div v-if="filteredVehiclesList.length === 0" class="py-6 text-center text-slate-400">
+            Không tìm thấy xe nào phù hợp
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <span class="text-[11px] text-slate-400">Mặc định nếu chưa đặt: <strong>{{ config.defaultLimit }} tấn</strong></span>
+          <button @click="showVehicleLimitsModal = false" class="px-4 py-1.5 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all">
+            Hoàn tất
+          </button>
         </div>
       </div>
     </div>
