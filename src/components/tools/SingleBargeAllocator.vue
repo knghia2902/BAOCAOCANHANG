@@ -18,6 +18,8 @@ interface Barge {
         locked?: boolean;
         orderNo?: string;
         goods?: string;
+        owner?: string;
+        [key: string]: any;
     };
 }
 
@@ -911,6 +913,100 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
         addToast('Lỗi khi phân tích tệp Excel phiếu cân!', 'error');
     } finally {
         loadingCSV.value = false;
+    }
+}
+
+const isLoadingSourceBargeTrucks = ref(false);
+
+// Nạp dữ liệu phiếu cân trực tiếp từ sà lan nguồn thay cho bước import tệp
+async function loadTicketsFromSourceBarge() {
+    if (!activeBargeId.value || !activeBarge.value) {
+        addToast('Vui lòng chọn sà lan nguồn trước!', 'info');
+        return;
+    }
+
+    if (csvRecords.value.length > 0) {
+        const confirmReplace = await showConfirm({
+            title: 'Nạp phiếu cân từ Sà lan nguồn',
+            message: `Bạn có chắc chắn muốn nạp dữ liệu phiếu cân từ sà lan nguồn "${activeBarge.value.name}" vào Tab 1?\n\nDanh sách ${csvRecords.value.length} phiếu cân hiện tại ở Tab 1 sẽ được thay thế bằng dữ liệu từ sà lan này.`,
+            type: 'warning',
+            okText: 'Nạp thay thế',
+            cancelText: 'Hủy'
+        });
+        if (!confirmReplace) return;
+    }
+
+    isLoadingSourceBargeTrucks.value = true;
+    try {
+        const bId = Number(activeBargeId.value);
+        const trucks = await WeighbridgeService.getTrucks(bId);
+        
+        let sourceRecords: CSVRecord[] = [];
+        if (trucks && trucks.length > 0) {
+            sourceRecords = trucks.map((t, idx) => {
+                let dateInStr = '';
+                let timeInStr = '';
+                let dateOutStr = '';
+                let timeOutStr = '';
+                if (t.dateIn) {
+                    const d = new Date(t.dateIn);
+                    if (!isNaN(d.getTime())) {
+                        dateInStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                        timeInStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    }
+                }
+                if (t.dateOut) {
+                    const d = new Date(t.dateOut);
+                    if (!isNaN(d.getTime())) {
+                        dateOutStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                        timeOutStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    }
+                }
+                return {
+                    id: String(t.id || Date.now() + idx),
+                    ticketNo: t.ticketNo || '',
+                    plateNumber: t.plateNumber || '',
+                    customer: activeBarge.value?.config?.owner || '',
+                    weight1: Number(t.weight1) || 0,
+                    weight2: Number(t.weight2) || 0,
+                    weightNet: Number(t.weightNet) || 0,
+                    dateInStr,
+                    timeInStr,
+                    dateOutStr,
+                    timeOutStr,
+                    direction: 'Xuất',
+                    cargoType: activeBarge.value?.config?.goods || 'NÔNG SẢN',
+                    bargeName: activeBarge.value?.name || '',
+                    driverName: t.driver || '',
+                    notes: t.note || '',
+                    orderNo: activeBarge.value?.config?.orderNo || ''
+                };
+            });
+        } else {
+            // Check allocator_tickets_{bargeId} in IndexedDB
+            const localBargeTickets = await dbContext.get<CSVRecord[]>('allocator_tickets_' + bId);
+            if (localBargeTickets && localBargeTickets.length > 0) {
+                sourceRecords = localBargeTickets;
+            }
+        }
+
+        if (sourceRecords.length === 0) {
+            addToast(`Sà lan "${activeBarge.value.name}" hiện chưa có dữ liệu cân hàng. Bạn có thể Import tệp Excel/CSV ở Tab 1.`, 'info');
+            return;
+        }
+
+        csvRecords.value = sourceRecords;
+        await dbContext.set('allocator_tickets', sourceRecords);
+        regenerateAllocatedTrips();
+        await saveTicketsToSupabase();
+        activeDataTab.value = 'source';
+        addToast(`Đã nạp thành công ${sourceRecords.length} phiếu cân từ sà lan nguồn "${activeBarge.value.name}"!`, 'success');
+        await LogService.logAction('Nạp phiếu sà lan nguồn', `Nạp ${sourceRecords.length} phiếu từ sà lan nguồn: ${activeBarge.value.name}`);
+    } catch (e: any) {
+        console.error('Lỗi khi nạp dữ liệu từ sà lan nguồn:', e);
+        addToast('Lỗi khi nạp phiếu từ sà lan nguồn: ' + (e.message || e), 'error');
+    } finally {
+        isLoadingSourceBargeTrucks.value = false;
     }
 }
 
@@ -3482,23 +3578,28 @@ async function compileAndDownload() {
                 <!-- Sidebar Body: Scrollable Settings -->
                 <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-left custom-scrollbar">
                     
-                    <!-- Khối 1: Chọn sà lan phân bổ -->
+                    <!-- Khối 1: Chọn sà lan nguồn -->
                     <div class="bg-primary/[0.03] border border-primary/15 rounded-[18px] p-3 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                                 <span class="material-symbols-outlined text-[15px]">directions_boat</span>
-                                Sà lan phân bổ
+                                Sà lan nguồn (Dữ liệu gốc)
                             </h4>
                             <span v-if="loading" class="text-[10px] text-primary font-bold animate-pulse">Đang tải...</span>
                         </div>
 
                         <div class="flex flex-col gap-1">
-                            <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Chọn sà lan đích:</span>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Chọn sà lan nguồn:</span>
+                                <span class="text-[10px] text-blue-600 font-semibold cursor-help" title="Dữ liệu phiếu cân đã cân của sà lan này sẽ được nạp vào Tab 1 để phân bổ">
+                                    Nguồn dữ liệu
+                                </span>
+                            </div>
                             <select 
                                 v-model.number="activeBargeId" 
                                 class="w-full px-2.5 py-1.5 bg-white border border-primary/30 rounded-[8px] text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-xs cursor-pointer transition-all"
                             >
-                                <option :value="null" disabled>-- Chọn sà lan cần phân bổ --</option>
+                                <option :value="null" disabled>-- Chọn sà lan nguồn --</option>
                                 <template v-for="vessel in vessels" :key="vessel.id">
                                     <optgroup v-if="vessel.barges && vessel.barges.length > 0" :label="'Tàu: ' + vessel.name">
                                         <option 
@@ -3531,6 +3632,18 @@ async function compileAndDownload() {
                                     {{ activeBarge.config?.goods || 'Chưa xác định' }}
                                 </span>
                             </div>
+
+                            <!-- Nút nạp phiếu cân từ sà lan này vào Tab 1 -->
+                            <button 
+                                @click="loadTicketsFromSourceBarge"
+                                :disabled="!activeBargeId || isLoadingSourceBargeTrucks"
+                                class="w-full mt-2 py-1.5 px-2.5 bg-primary text-white text-xs font-bold rounded-[8px] hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                                :title="`Lấy toàn bộ phiếu cân đã lưu của sà lan ${activeBarge.name} nạp vào Tab 1 thay cho import tệp`"
+                            >
+                                <span v-if="isLoadingSourceBargeTrucks" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                <span v-else class="material-symbols-outlined text-[14px]">cloud_download</span>
+                                {{ isLoadingSourceBargeTrucks ? 'Đang nạp dữ liệu...' : 'Lấy phiếu cân từ sà lan này' }}
+                            </button>
                         </div>
                     </div>
 
@@ -3706,6 +3819,7 @@ async function compileAndDownload() {
                     <div v-if="activeBarge" class="flex items-center gap-2 bg-primary/5 border border-primary/15 rounded-xl px-3 py-1.5 text-xs">
                         <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
                         <div class="flex items-center gap-1.5">
+                            <span class="text-gray-400 font-bold">Sà lan nguồn:</span>
                             <span class="font-black text-gray-800">{{ activeBarge.name }}</span>
                             <span v-if="activeBarge.config?.orderNo" class="text-amber-700 font-mono font-bold">({{ activeBarge.config.orderNo }})</span>
                             <span v-if="activeBarge.config?.goods" class="text-emerald-700 font-bold">| {{ activeBarge.config.goods }}</span>
@@ -3852,6 +3966,19 @@ async function compileAndDownload() {
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ totalCsvWeightTons.toFixed(2) }}t
                         </div>
+
+                        <!-- Nút nạp trực tiếp từ sà lan nguồn thay cho import -->
+                        <button 
+                            @click="loadTicketsFromSourceBarge"
+                            :disabled="!activeBargeId || isLoadingSourceBargeTrucks"
+                            class="h-7 px-3 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-[8px] hover:bg-blue-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            :title="activeBarge ? `Lấy dữ liệu phiếu cân trực tiếp từ sà lan nguồn ${activeBarge.name} thay cho import tệp` : 'Chọn sà lan nguồn'"
+                        >
+                            <span v-if="isLoadingSourceBargeTrucks" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-[14px]">directions_boat</span>
+                            {{ isLoadingSourceBargeTrucks ? 'Đang nạp...' : (activeBarge ? `Nạp từ sà lan (${activeBarge.name})` : 'Nạp từ sà lan') }}
+                        </button>
+
                         <input 
                             type="file" 
                             ref="ticketFileInput" 
