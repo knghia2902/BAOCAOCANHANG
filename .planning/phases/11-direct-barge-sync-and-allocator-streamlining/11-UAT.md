@@ -10,13 +10,13 @@ updated: 2026-09-22T13:51:30Z
 
 ## Current Test
 
-number: 3
-name: Lưu vào Sổ Theo Dõi và Làm sạch Tab 1
+number: 5
+name: Tính độc lập giữa Đồng bộ Sà lan và Lưu Sổ Theo Dõi
 expected: |
-  Tại Tab 1 (Phiếu cân):
-  - Bấm nút "Lưu vào Sổ Theo Dõi".
-  - Hộp thoại xác nhận hiển thị rõ số lượng phiếu sẽ lưu và cảnh báo làm sạch Tab 1.
-  - Khi xác nhận, dữ liệu được ghi thành công vào bảng `weighbridge_tracking`, danh sách phiếu cân ở Tab 1 được làm sạch (trống), và giao diện tự động chuyển sang Tab 2 (Theo dõi).
+  Quy trình làm việc không bị ràng buộc thứ tự:
+  - Người dùng có thể import file vào Tab 1, chuyển sang màn hình Sà lan để Đồng bộ trực tiếp vào các sà lan.
+  - Sau khi sà lan đã nhận đủ dữ liệu xe, quay lại Tab 1 bấm "Lưu vào Sổ Theo Dõi" để lưu trữ lịch sử cân hàng.
+  - Hoặc ngược lại: Lưu vào sổ theo dõi trước, sà lan vẫn có thể đồng bộ hoặc hoạt động độc lập mà không bị mất dữ liệu hay lỗi hệ thống.
 awaiting: user response
 
 ## Tests
@@ -31,11 +31,11 @@ result: pass
 
 ### 3. Lưu vào Sổ Theo Dõi và Làm sạch Tab 1
 expected: Tại Tab 1 Phiếu cân, bấm "Lưu vào Sổ Theo Dõi" -> dữ liệu được lưu thành công, danh sách phiếu cân ở Tab 1 được xóa sạch hoàn toàn, và tự động chuyển sang Tab 2 Theo dõi.
-result: [pending]
+result: pass
 
 ### 4. Bảng và Xuất Excel tại Tab 2 (Theo dõi)
 expected: Tab 2 Theo dõi hiển thị bảng 14 cột tiêu chuẩn khớp cấu trúc phiếu cân gốc; nút Xuất Excel tạo file bảng tính chuẩn định dạng.
-result: [pending]
+result: pass
 
 ### 5. Tính độc lập giữa Đồng bộ Sà lan và Lưu Sổ Theo Dõi
 expected: Tác vụ Đồng bộ Sà lan và Lưu Sổ Theo Dõi hoạt động hoàn toàn độc lập, người dùng có thể thực hiện đồng bộ sà lan trước rồi mới lưu sổ theo dõi mà không bị phụ thuộc hay xung đột.
@@ -44,9 +44,9 @@ result: [pending]
 ## Summary
 
 total: 5
-passed: 2
+passed: 4
 issues: 0
-pending: 3
+pending: 1
 skipped: 0
 blocked: 0
 
