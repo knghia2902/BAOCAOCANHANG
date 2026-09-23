@@ -86,6 +86,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
 | 10. Enterprise Upgrade | v1.1 | 4/4 | Complete | 2026-09-19 |
 | 11. Direct Barge Sync | v1.1 | 2/2 | Complete | 2026-09-23 |
+| 12. Single Barge Allocator | v1.1 | 0/2 | Not started | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -124,4 +125,17 @@ Plans:
 
 - [x] 11-01: Cập nhật hàm đồng bộ sà lan tại Báo cáo tổng quan (WeighbridgePrinter.vue) để đọc trực tiếp từ phiếu cân import (`allocator_tickets`) theo Mã lệnh (`orderNo`).
 - [x] 11-02: Tinh gọn Dữ liệu cân hàng (CargoAllocator.vue): bỏ tab Phân bổ, bỏ thẻ Quy tắc phân bổ & Tải trọng xe, thêm nút Lưu vào Sổ theo dõi tại Tab 1 (kèm dọn dẹp Tab 1 sau khi lưu) và chuẩn hóa form hiển thị/xuất Excel Tab 2 theo form gốc Tab 1.
+
+### Phase 12: Dedicated Single-Barge Allocator Tool
+
+**Goal:** Xây dựng công cụ riêng biệt "Phân bổ" với route `/split` (và alias `/tools/split`), triển khai trọn vẹn luồng 3 tab (1. Phiếu cân, 2. Phân bổ, 3. Sổ theo dõi) theo đúng logic phân bổ cũ, cho phép chọn 1 sà lan đích (mặc định/hỗ trợ NÔNG SẢN_DE HEUS hoặc sà lan bất kỳ), cấu hình giới hạn tải trọng xe & khoảng cách thời gian, tự động tách chuyến, hiển thị bảng Sổ theo dõi sau phân bổ và hỗ trợ xuất Excel.
+**Requirements**: SPLIT-01, SPLIT-02, SPLIT-03, SPLIT-04
+**Depends on:** Phase 11
+**Plans:** 2 plans
+
+Plans:
+
+- [ ] 12-01: Khởi tạo View/Component Phân bổ, cấu hình Route `/split` & `/tools/split`, tích hợp Tab 1 (Import phiếu cân nguồn) và Sidebar cấu hình tải trọng xe / khoảng cách thời gian.
+- [ ] 12-02: Tái hiện thuật toán phân bổ tách tải theo 1 sà lan đích tại Tab 2 (Xem trước & phân bổ) và xây dựng Tab 3 (Sổ theo dõi sau phân bổ kèm xuất Excel chuẩn mẫu).
+
 
