@@ -1361,7 +1361,7 @@ async function clearAllTickets() {
 
 // Tabs and filters for Source tickets
 const activeDataTab = ref<'source' | 'generated' | 'template'>('source');
-const isSettingsCollapsed = ref(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+const isSettingsCollapsed = ref(true);
 const sourceCurrentPage = ref(1);
 const sourceSearchQuery = ref('');
 

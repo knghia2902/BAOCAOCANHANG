@@ -4,9 +4,6 @@ import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
 import { authStore, hasDetailPermission } from '@/stores/auth';
-import VehicleManager from '@/components/tools/VehicleManager.vue';
-import GoodsManager from '@/components/tools/GoodsManager.vue';
-import WeighbridgeOtherManager from '@/components/tools/WeighbridgeOtherManager.vue';
 import { LogService } from '@/services/storage/LogService';
 import { WeighbridgeService } from '@/services/weighbridge/WeighbridgeService';
 
@@ -38,8 +35,8 @@ const props = defineProps<{
 
 // Local navigation selection state
 const activeVesselId = ref<number | null>(null);
-const activeBargeId = ref<number | 'vehicles' | null>(null);
-const activeSubViewMode = ref<'allocator' | 'vehicles' | 'goods' | 'other_tickets'>('allocator');
+const activeBargeId = ref<number | null>(null);
+const isMobileSettingsOpen = ref(false);
 
 const formatDateTimeStr = (isoString: string): string => {
     if (!isoString) return '';
@@ -88,10 +85,10 @@ const formatNumber = (num: number): string => {
 };
 
 const activeBarge = computed(() => {
-    if (!activeBargeId.value || activeBargeId.value === 'vehicles') return null;
+    if (!activeBargeId.value) return null;
     for (const v of vessels.value) {
         if (v.barges) {
-            const b = v.barges.find(barge => barge.id === activeBargeId.value);
+            const b = v.barges.find(barge => Number(barge.id) === Number(activeBargeId.value));
             if (b) {
                 return {
                     ...b,
@@ -1536,20 +1533,35 @@ const activeVessel = computed(() => {
 const loadVessels = async () => {
     loading.value = true;
     try {
-        let data: Vessel[] = [];
+        let rawData: any[] = [];
         try {
             const remoteVessels = await WeighbridgeService.getVessels();
             if (remoteVessels && remoteVessels.length > 0) {
-                data = remoteVessels as any[];
+                rawData = remoteVessels;
             }
         } catch (err) {
             console.warn('Không thể nạp tàu từ WeighbridgeService, dùng bộ nhớ cục bộ:', err);
         }
 
-        if (data.length === 0) {
-            data = await dbContext.get<Vessel[]>('allocator_vessels') || [];
+        if (rawData.length === 0) {
+            rawData = await dbContext.get<any[]>('allocator_vessels') || [];
+        }
+
+        if (rawData.length === 0) {
+            rawData = await dbContext.get<any[]>('wb_vessels') || [];
         }
         
+        let data: Vessel[] = rawData.map((v: any) => ({
+            id: Number(v.id),
+            name: String(v.name || ''),
+            barges: ((v.barges || []) as any[]).map((b: any) => ({
+                id: Number(b.id),
+                name: String(b.name || ''),
+                vesselId: Number(b.vesselId || b.vessel_id || v.id),
+                config: b.config || {}
+            }))
+        }));
+
         // Nếu cơ sở dữ liệu trống, tự động tạo tàu và sà lan mặc định
         if (data.length === 0) {
             const defaultVesselId = Date.now();
@@ -1624,6 +1636,16 @@ const loadVessels = async () => {
         loading.value = false;
     }
 };
+
+watch(activeBargeId, (newBargeId) => {
+    if (!newBargeId) return;
+    for (const v of vessels.value) {
+        if (v.barges && v.barges.some(b => Number(b.id) === Number(newBargeId))) {
+            activeVesselId.value = v.id;
+            break;
+        }
+    }
+});
 
 // Dialog Prompt for CRUD
 interface InputDialogState {
@@ -2029,6 +2051,8 @@ void openAddBargeDialog;
 // Loaded and synchronization logic
 onMounted(async () => {
     try {
+        await loadVessels();
+
         const savedLimit = await dbContext.get<number>('allocator_standard_limit');
         if (savedLimit !== undefined && savedLimit !== null) {
             standardTTTPLimit.value = savedLimit;
@@ -2124,27 +2148,6 @@ onMounted(async () => {
         }
     } catch (e) {
         console.error('Lỗi khi nạp cấu hình:', e);
-    }
-    
-    // Xử lý chuyển hướng view con từ Trang chủ
-    const redirectSubView = localStorage.getItem('home_redirect_subview');
-    if (redirectSubView) {
-        activeSubViewMode.value = redirectSubView as any;
-        localStorage.removeItem('home_redirect_subview');
-    }
-});
-
-// Tự động tải lại danh sách xe khi chuyển đổi tab con để đảm bảo cập nhật đồng bộ trong cùng một cửa sổ
-watch(activeSubViewMode, async (newVal) => {
-    if (newVal === 'allocator') {
-        try {
-            const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
-            if (savedVehicles && Array.isArray(savedVehicles)) {
-                vehiclesList.value = savedVehicles;
-            }
-        } catch (e) {
-            console.error('Lỗi khi tải lại danh sách xe:', e);
-        }
     }
 });
 
@@ -3370,298 +3373,288 @@ async function compileAndDownload() {
 
 <template>
     <div class="cargo-allocator-wrapper flex-1 flex flex-col min-h-0 overflow-hidden h-full w-full font-display">
-        <!-- Main area -->
-        <div class="flex-1 flex flex-col md:flex-row overflow-hidden gap-4 p-4">
-            <!-- Top Navigation (Mobile Only) -->
-            <div class="flex md:hidden bg-white border border-primary/5 rounded-[20px] p-2 overflow-x-auto gap-2 shrink-0 scrollbar-none whitespace-nowrap mb-1">
+        <!-- Main Layout: Left Settings Sidebar + Right Tables Workspace -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden gap-3.5 p-3.5 min-h-0">
+            <!-- Mobile Toggle Bar for Settings (Visible on mobile only) -->
+            <div class="flex md:hidden items-center justify-between bg-white rounded-[18px] p-2.5 px-3 border border-primary/10 shadow-xs shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
+                    <span class="text-xs font-black text-gray-800 truncate">
+                        {{ activeBarge ? activeBarge.name : 'Chưa chọn sà lan' }}
+                    </span>
+                    <span v-if="activeBarge?.config?.orderNo" class="text-[10px] font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        {{ activeBarge.config.orderNo }}
+                    </span>
+                </div>
                 <button 
-                    @click="activeSubViewMode = 'allocator'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'allocator' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
+                    @click="isMobileSettingsOpen = !isMobileSettingsOpen" 
+                    class="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold flex items-center gap-1 transition-all shrink-0"
                 >
-                    <span class="material-symbols-outlined text-sm">analytics</span>
-                    <span>Phân bổ tải trọng</span>
-                </button>
-                <button 
-                    @click="activeSubViewMode = 'vehicles'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'vehicles' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
-                >
-                    <span class="material-symbols-outlined text-sm">local_shipping</span>
-                    <span>Danh sách xe</span>
-                </button>
-                <button 
-                    @click="activeSubViewMode = 'goods'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'goods' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
-                >
-                    <span class="material-symbols-outlined text-sm">inventory_2</span>
-                    <span>Danh sách hàng hóa</span>
-                </button>
-                <button 
-                    @click="activeSubViewMode = 'other_tickets'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'other_tickets' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
-                >
-                    <span class="material-symbols-outlined text-sm">history</span>
-                    <span>Cân Kho & Container</span>
+                    <span class="material-symbols-outlined text-sm">tune</span>
+                    {{ isMobileSettingsOpen ? 'Đóng cài đặt' : 'Cài đặt & Sà lan' }}
                 </button>
             </div>
 
-            <!-- Sidebar (left) (Desktop Only) -->
-            <aside class="hidden md:flex w-72 h-full bg-white rounded-[24px] soft-shadow border border-primary/5 flex-col shrink-0 overflow-hidden no-print">
-                <!-- Sidebar header -->
-                <div class="p-4 border-b border-primary/5">
-                    <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Tiện ích quản lý</div>
-                    <h2 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-primary text-base">balance</span>
-                        Báo cáo cân hàng
-                    </h2>
+            <!-- Left Sidebar: Cài đặt & Chọn sà lan (Desktop permanent, Mobile collapsible) -->
+            <aside 
+                :class="[
+                    'w-full md:w-80 lg:w-[350px] bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col shrink-0 overflow-hidden no-print transition-all',
+                    isMobileSettingsOpen ? 'flex max-h-[75vh] md:max-h-full mb-2 md:mb-0' : 'hidden md:flex'
+                ]"
+            >
+                <!-- Sidebar Header -->
+                <div class="p-3.5 px-4 border-b border-primary/5 flex items-center justify-between shrink-0 bg-slate-50/50">
+                    <div class="flex items-center gap-2">
+                        <div class="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                            <span class="material-symbols-outlined text-base">tune</span>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-black tracking-wider text-primary">Phân bổ tải trọng</div>
+                            <h3 class="text-xs font-black text-[#1e293b]">Cài đặt & Chọn sà lan</h3>
+                        </div>
+                    </div>
+                    <button 
+                        @click="loadVessels" 
+                        class="size-7 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5 flex items-center justify-center transition-colors"
+                        title="Tải lại danh sách sà lan"
+                    >
+                        <span :class="['material-symbols-outlined text-sm', loading ? 'animate-spin' : '']">sync</span>
+                    </button>
                 </div>
 
-                <!-- Navigation menu items -->
-                <div class="flex-1 overflow-y-auto p-3 space-y-2">
-                    <div 
-                        @click="activeSubViewMode = 'allocator'"
-                        :class="['flex items-center gap-2.5 p-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border', activeSubViewMode === 'allocator' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100']"
-                    >
-                        <span class="material-symbols-outlined text-base">analytics</span>
-                        Phân bổ tải trọng xếp hàng
+                <!-- Sidebar Body: Scrollable Settings -->
+                <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-left custom-scrollbar">
+                    
+                    <!-- Khối 1: Chọn sà lan phân bổ -->
+                    <div class="bg-primary/[0.03] border border-primary/15 rounded-[18px] p-3 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+                                <span class="material-symbols-outlined text-[15px]">directions_boat</span>
+                                Sà lan phân bổ
+                            </h4>
+                            <span v-if="loading" class="text-[10px] text-primary font-bold animate-pulse">Đang tải...</span>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Chọn sà lan đích:</span>
+                            <select 
+                                v-model.number="activeBargeId" 
+                                class="w-full px-2.5 py-1.5 bg-white border border-primary/30 rounded-[8px] text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-xs cursor-pointer transition-all"
+                            >
+                                <option :value="null" disabled>-- Chọn sà lan cần phân bổ --</option>
+                                <template v-for="vessel in vessels" :key="vessel.id">
+                                    <optgroup v-if="vessel.barges && vessel.barges.length > 0" :label="'Tàu: ' + vessel.name">
+                                        <option 
+                                            v-for="barge in vessel.barges" 
+                                            :key="barge.id" 
+                                            :value="barge.id"
+                                        >
+                                            {{ barge.name }} {{ barge.config?.orderNo ? `(Lệnh: ${barge.config.orderNo})` : '' }} {{ barge.config?.goods ? `- ${barge.config.goods}` : '' }}
+                                        </option>
+                                    </optgroup>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Card thông tin sà lan đang chọn -->
+                        <div v-if="activeBarge" class="bg-white rounded-[12px] p-2.5 border border-primary/10 space-y-1.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 font-bold">Tàu mẹ:</span>
+                                <span class="font-black text-gray-800">{{ activeBarge.vesselName || 'Chưa gán' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 font-bold">Số lệnh:</span>
+                                <span class="font-mono font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                    {{ activeBarge.config?.orderNo || 'Chưa có mã lệnh' }}
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-400 font-bold">Loại hàng:</span>
+                                <span class="font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                    {{ activeBarge.config?.goods || 'Chưa xác định' }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div 
-                        @click="activeSubViewMode = 'vehicles'"
-                        :class="['flex items-center gap-2.5 p-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border', activeSubViewMode === 'vehicles' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100']"
-                    >
-                        <span class="material-symbols-outlined text-base">local_shipping</span>
-                        Danh sách xe
+                    <!-- Khối 2: Số phiếu tự động -->
+                    <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+                                <span class="material-symbols-outlined text-[14px]">tag</span>
+                                Số phiếu tự động
+                            </h4>
+                            <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs" title="Bạn không có quyền chỉnh sửa">lock</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Tiền tố số phiếu</span>
+                                <input 
+                                    type="text" 
+                                    v-model="ticketPrefix" 
+                                    :disabled="!canEditRules"
+                                    placeholder="Ví dụ: PC-"
+                                    class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                >
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Số bắt đầu</span>
+                                    <input 
+                                        type="number" 
+                                        v-model.number="ticketStart" 
+                                        :disabled="!canEditRules"
+                                        min="0"
+                                        class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                    >
+                                </div>
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Số chữ số</span>
+                                    <input 
+                                        type="number" 
+                                        v-model.number="ticketPadding" 
+                                        :disabled="!canEditRules"
+                                        min="1" 
+                                        max="10"
+                                        class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                    >
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Hậu tố số phiếu</span>
+                                <input 
+                                    type="text" 
+                                    v-model="ticketSuffix" 
+                                    :disabled="!canEditRules"
+                                    placeholder="Ví dụ: /mmyy"
+                                    class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                >
+                            </div>
+                            <div class="text-[11px] text-gray-500 font-semibold italic flex items-center gap-1 pt-1 select-none">
+                                <span class="material-symbols-outlined text-xs">visibility</span>
+                                Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewTicketNo }}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div 
-                        @click="activeSubViewMode = 'goods'"
-                        :class="['flex items-center gap-2.5 p-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border', activeSubViewMode === 'goods' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100']"
-                    >
-                        <span class="material-symbols-outlined text-base">inventory_2</span>
-                        Danh sách hàng hóa
+                    <!-- Khối 3: Quy tắc phân bổ -->
+                    <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+                                <span class="material-symbols-outlined text-[14px]">tune</span>
+                                Quy tắc phân bổ
+                            </h4>
+                            <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs" title="Bạn không có quyền chỉnh sửa">lock</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Chiến lược chia</span>
+                                <select v-model="distStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                                    <option value="random">Phân bổ ngẫu nhiên</option>
+                                    <option value="even">Chia đều</option>
+                                    <option value="max">Tối đa hóa công suất</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Định thời gian</span>
+                                <select v-model="spacingStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                                    <option value="even">Phân đều chu kỳ</option>
+                                    <option value="forward">Tịnh tiến (+ Phút)</option>
+                                    <option value="backward">Lùi dần (- Phút)</option>
+                                </select>
+                            </div>
+                            <div v-if="spacingStrategy !== 'even'" class="flex items-center gap-1.5 bg-primary/5 p-1 rounded-lg border border-primary/10">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
+                                <input 
+                                    type="number" 
+                                    v-model.number="timeIntervalMinutes" 
+                                    :disabled="!canEditRules"
+                                    min="10" 
+                                    max="720"
+                                    class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                >
+                                <span class="text-xs text-gray-400 font-bold">phút</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div 
-                        @click="activeSubViewMode = 'other_tickets'"
-                        :class="['flex items-center gap-2.5 p-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border', activeSubViewMode === 'other_tickets' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100']"
-                    >
-                        <span class="material-symbols-outlined text-base">history</span>
-                        Lịch sử cân Kho & Container
+                    <!-- Khối 4: Hạn mức tải trọng -->
+                    <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
+                                <span class="material-symbols-outlined text-[14px]">shield</span>
+                                Hạn mức tải trọng
+                            </h4>
+                            <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs" title="Bạn không có quyền chỉnh sửa">lock</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
+                                <input 
+                                    type="number" 
+                                    v-model.number="standardTTTPLimit" 
+                                    step="0.1"
+                                    class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                                >
+                            </div>
+                            <div class="flex flex-col gap-0.5">
+                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
+                                <div class="flex items-center gap-1.5">
+                                    <input 
+                                        type="number" 
+                                        v-model.number="standardCurbMin" 
+                                        step="0.1"
+                                        placeholder="Min"
+                                        class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
+                                    >
+                                    <span class="text-gray-400 text-xs font-bold">~</span>
+                                    <input 
+                                        type="number" 
+                                        v-model.number="standardCurbMax" 
+                                        step="0.1"
+                                        placeholder="Max"
+                                        class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
+                                    >
+                                </div>
+                            </div>
+                            <div class="text-[11px] text-gray-500 font-bold flex items-center justify-between mt-1 pt-1 border-t border-gray-200/60">
+                                <span>Hạn mức hàng:</span>
+                                <span class="text-primary font-mono bg-primary/10 px-2 py-0.5 rounded font-black">
+                                    {{ Math.max(0, standardTTTPLimit - standardCurbMax).toFixed(1) }} - {{ Math.max(0, standardTTTPLimit - standardCurbMin).toFixed(1) }} tấn
+                                </span>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </aside>
 
-            <main class="flex-1 min-h-0 flex flex-col overflow-hidden">
-                <!-- Chế độ 1: Quản lý danh sách xe -->
-                <div v-if="activeSubViewMode === 'vehicles'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
-                    <VehicleManager />
-                </div>
-
-                <!-- Chế độ 3: Quản lý danh sách hàng hóa -->
-                <div v-else-if="activeSubViewMode === 'goods'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
-                    <GoodsManager />
-                </div>
-
-                <!-- Chế độ 4: Lịch sử cân Kho & Container -->
-                <div v-else-if="activeSubViewMode === 'other_tickets'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0 h-full">
-                    <WeighbridgeOtherManager />
-                </div>
-
-                <!-- Chế độ 2: Giao diện Phân bổ tải trọng xếp hàng (Chạy toàn cục) -->
-                <div v-else class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto overflow-hidden flex-1 min-h-0">
-
-                    <div class="flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-0 fade-in flex-1 min-h-0">
-        <!-- Header Banner & Mục chọn Sà lan -->
-        <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-3.5 px-5 soft-shadow border border-primary/5 gap-4 shrink-0">
-            <div class="min-w-0">
-                <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">Công cụ thông minh</div>
-                <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-primary text-base">balance</span>
-                    Phân bổ tải trọng xếp hàng lên phương tiện
-                </h1>
-                <p class="text-xs text-gray-500 mt-0.5">
-                    Tự động chia tách trọng lượng xe quá tải vượt hạn mức thành nhiều chuyến hợp lệ và kết xuất tệp theo mẫu chuẩn.
-                </p>
-            </div>
-
-            <!-- Mục chọn Sà lan để phân bổ -->
-            <div class="flex flex-wrap items-center gap-2.5 bg-slate-50 border border-primary/10 rounded-[18px] p-2 sm:px-3.5 sm:py-2 shrink-0">
-                <div class="flex items-center gap-1.5 text-primary text-xs font-black">
-                    <span class="material-symbols-outlined text-lg">directions_boat</span>
-                    <span class="whitespace-nowrap">Chọn sà lan phân bổ:</span>
-                </div>
-                <select 
-                    v-model="activeBargeId" 
-                    class="px-3 py-1.5 bg-white border border-primary/25 focus:border-primary rounded-[10px] text-xs font-black text-gray-800 shadow-sm cursor-pointer min-w-[240px] max-w-[340px] outline-none transition-all"
-                >
-                    <option :value="null" disabled>-- Chọn sà lan cần phân bổ --</option>
-                    <optgroup v-for="vessel in vessels" :key="vessel.id" :label="'Tàu: ' + vessel.name">
-                        <option v-for="barge in vessel.barges || []" :key="barge.id" :value="barge.id">
-                            {{ barge.name }} {{ barge.config?.orderNo ? `(Lệnh: ${barge.config.orderNo})` : '' }} {{ barge.config?.goods ? `- ${barge.config.goods}` : '' }}
-                        </option>
-                    </optgroup>
-                </select>
-                <div v-if="activeBarge" class="hidden xl:flex items-center gap-1.5 text-xs font-bold bg-white px-2.5 py-1 rounded-[8px] border border-gray-200 shadow-2xs">
-                    <span v-if="activeBarge.vesselName" class="text-primary font-black">Tàu: {{ activeBarge.vesselName }}</span>
-                    <span v-if="activeBarge.config?.orderNo" class="text-amber-700 font-mono">| Lệnh: {{ activeBarge.config.orderNo }}</span>
-                    <span v-if="activeBarge.config?.goods" class="text-emerald-700">| {{ activeBarge.config.goods }}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Compact Settings & Capacities configs -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 shrink-0 text-left">
-            <!-- Thẻ 1: Số phiếu tự động (2/4 width) -->
-            <div class="lg:col-span-2 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <!-- Col 1: Số phiếu tự động (Phần 1) -->
-                <div class="flex flex-col gap-2 pr-2 lg:pl-1">
-                    <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
-                        <span class="material-symbols-outlined text-[13px]">tag</span>
-                        Số phiếu tự động
-                        <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
-                    </h4>
-                    <div class="space-y-2">
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tiền tố số phiếu</span>
-                            <input 
-                                type="text" 
-                                v-model="ticketPrefix" 
-                                :disabled="!canEditRules"
-                                placeholder="Ví dụ: PC-"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số phiếu bắt đầu</span>
-                            <input 
-                                type="number" 
-                                v-model.number="ticketStart" 
-                                :disabled="!canEditRules"
-                                min="0"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                        <div class="text-xs text-gray-400 font-semibold italic flex items-center gap-1 pt-1 select-none text-left">
-                            <span class="material-symbols-outlined text-xs">visibility</span>
-                            Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewTicketNo }}</span>
-                        </div>
+            <!-- Main Content Area: Right side Workspace -->
+            <main class="flex-1 min-h-0 flex flex-col overflow-hidden gap-3">
+                <!-- Header Banner -->
+                <div class="flex flex-wrap items-center justify-between bg-white rounded-[20px] py-2.5 px-4 soft-shadow border border-primary/5 gap-3 shrink-0">
+                    <div class="min-w-0">
+                        <h1 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5 leading-tight">
+                            <span class="material-symbols-outlined text-primary text-base">balance</span>
+                            Phân bổ tải trọng xếp hàng lên phương tiện
+                        </h1>
+                        <p class="text-[11px] text-gray-500 mt-0.5">
+                            Tự động chia tách trọng lượng xe quá tải vượt hạn mức thành nhiều chuyến hợp lệ và kết xuất tệp theo mẫu chuẩn.
+                        </p>
                     </div>
-                </div>
 
-                <!-- Col 2: Số phiếu tự động (Phần 2) -->
-                <div class="flex flex-col gap-2 h-full lg:pl-1">
-                    <div class="space-y-2 text-left">
-                        <h4 class="text-xs font-black text-transparent select-none hidden md:block">Cấu hình định dạng</h4>
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Số chữ số (Padding)</span>
-                            <input 
-                                type="number" 
-                                v-model.number="ticketPadding" 
-                                :disabled="!canEditRules"
-                                min="1" 
-                                max="10"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Hậu tố số phiếu</span>
-                            <input 
-                                type="text" 
-                                v-model="ticketSuffix" 
-                                :disabled="!canEditRules"
-                                placeholder="Ví dụ: /mmyy"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Thẻ 2: Quy tắc phân bổ (1/4 width) -->
-            <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
-                <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
-                    <span class="material-symbols-outlined text-[13px]">tune</span>
-                    Quy tắc phân bổ
-                    <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
-                </h4>
-                <div class="space-y-2">
-                    <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Chiến lược chia</span>
-                        <select v-model="distStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
-                            <option value="random">Phân bổ ngẫu nhiên</option>
-                            <option value="even">Chia đều</option>
-                            <option value="max">Tối đa hóa công suất</option>
-                        </select>
-                    </div>
-                    <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Định thời gian</span>
-                        <select v-model="spacingStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
-                            <option value="even">Phân đều chu kỳ</option>
-                            <option value="forward">Tịnh tiến (+ Phút)</option>
-                            <option value="backward">Lùi dần (- Phút)</option>
-                        </select>
-                    </div>
-                    <div v-if="spacingStrategy !== 'even'" class="flex items-center gap-1.5 bg-primary/5 p-1 rounded-lg border border-primary/10">
-                        <span class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
-                        <input 
-                            type="number" 
-                            v-model.number="timeIntervalMinutes" 
-                            :disabled="!canEditRules"
-                            min="10" 
-                            max="720"
-                            class="w-12 px-1 py-0.5 bg-white border border-gray-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-primary transition-all font-mono text-center disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                        >
-                        <span class="text-xs text-gray-400 font-bold">phút</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Thẻ 3: Hạn mức tải trọng (1/4 width) -->
-            <div class="lg:col-span-1 bg-white rounded-[20px] p-3.5 soft-shadow border border-primary/5 flex flex-col gap-2">
-                <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
-                    <span class="material-symbols-outlined text-[13px]">shield</span>
-                    Hạn mức tải trọng
-                    <span v-if="!canEditRules" class="material-symbols-outlined text-gray-400 text-xs cursor-help" title="Bạn không có quyền chỉnh sửa cài đặt này">lock</span>
-                </h4>
-                <div class="space-y-2">
-                    <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
-                        <input 
-                            type="number" 
-                            v-model.number="standardTTTPLimit" 
-                            step="0.1"
-                            class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
-                        >
-                    </div>
-                    <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
+                    <div v-if="activeBarge" class="flex items-center gap-2 bg-primary/5 border border-primary/15 rounded-xl px-3 py-1.5 text-xs">
+                        <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
                         <div class="flex items-center gap-1.5">
-                            <input 
-                                type="number" 
-                                v-model.number="standardCurbMin" 
-                                step="0.1"
-                                placeholder="Min"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
-                            >
-                            <span class="text-gray-400 text-xs font-bold">~</span>
-                            <input 
-                                type="number" 
-                                v-model.number="standardCurbMax" 
-                                step="0.1"
-                                placeholder="Max"
-                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono text-center"
-                            >
+                            <span class="font-black text-gray-800">{{ activeBarge.name }}</span>
+                            <span v-if="activeBarge.config?.orderNo" class="text-amber-700 font-mono font-bold">({{ activeBarge.config.orderNo }})</span>
+                            <span v-if="activeBarge.config?.goods" class="text-emerald-700 font-bold">| {{ activeBarge.config.goods }}</span>
                         </div>
                     </div>
-                    <div class="text-xs text-gray-400 font-bold flex items-center justify-between mt-1">
-                        <span>Hạn mức hàng:</span>
-                        <span class="text-primary font-mono bg-primary/5 px-2 py-0.5 rounded">
-                            {{ Math.max(0, standardTTTPLimit - standardCurbMax).toFixed(1) }} - {{ Math.max(0, standardTTTPLimit - standardCurbMin).toFixed(1) }} tấn
-                        </span>
-                    </div>
                 </div>
-            </div>
-        </div>
 
         <!-- Tabbed Data Panel -->
         <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full flex-1 min-h-0 overflow-hidden">
@@ -4698,10 +4691,8 @@ async function compileAndDownload() {
         </div>
         </Teleport>
 
-                    </div> <!-- Đóng div cũ của Allocator -->
-                </div> <!-- Đóng Barge Detail Workspace div -->
             </main> <!-- Đóng Workspace (right) -->
-        </div> <!-- Đóng Main area (flex-1 flex overflow-hidden) -->
+        </div> <!-- Đóng Main Layout (flex-1 flex overflow-hidden) -->
 
         <!-- Advanced Add Barge Dialog -->
         <Teleport to="body">
