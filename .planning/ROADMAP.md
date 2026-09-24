@@ -144,9 +144,10 @@ Plans:
 **Goal:** Bổ sung nút "Truy xuất hồ sơ cũ" trong form hồ sơ sà lan (BargeProfileManager.vue), tự động quét tìm bản ghi sà lan có cùng tên gần nhất trong toàn bộ lịch sử các tàu/chuyến, mở hộp thoại xác nhận và nạp toàn bộ thông số kỹ thuật (trọng tải, công suất), bộ 3 giấy tờ (GCN, ĐK, BH), toàn bộ hình ảnh đính kèm và thông tin thuyền bộ sang sà lan mới (giữ nguyên thông tin chuyến hiện tại như số lệnh, hàng hóa, thời gian cập/rời).
 **Requirements**: BARGE-SYNC-01, BARGE-SYNC-02
 **Depends on:** Phase 12
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 13 to break down)
+- [ ] 13-01: Triển khai nút "Truy xuất hồ sơ cũ", logic tìm kiếm sà lan lịch sử mới nhất theo tên, hộp thoại xác nhận và nạp toàn bộ thông số, giấy tờ, ảnh và thuyền viên vào form.
+
 
