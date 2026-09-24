@@ -233,6 +233,16 @@ interface CustomMeta {
 }
 const customMetas = ref<CustomMeta[]>([]);
 
+// Historical Barge Sync state
+interface HistoricalBargeCandidate {
+    barge: Barge;
+    vesselName: string;
+    formattedDate: string;
+}
+const showSyncConfirmModal = ref(false);
+const syncCandidate = ref<HistoricalBargeCandidate | null>(null);
+
+
 // Fetch all barges from all vessels
 const allBarges = computed(() => {
     const list: Array<{ barge: Barge; vesselName: string }> = [];
@@ -742,6 +752,149 @@ function toggleGcnNoExpiry(e: Event) {
         editGcnExpiryDate.value = '';
     }
 }
+
+function findLatestHistoricalBarge(bargeName: string): HistoricalBargeCandidate | null {
+    const cleanName = bargeName.trim().toUpperCase();
+    if (!cleanName) return null;
+
+    const matches: Array<{
+        barge: Barge;
+        vesselName: string;
+        timestamp: number;
+        formattedDate: string;
+    }> = [];
+
+    vessels.value.forEach(v => {
+        if (!v.barges) return;
+        v.barges.forEach(b => {
+            // Exclude current active barge being edited
+            if (activeBargeId.value !== null && b.id === activeBargeId.value) return;
+
+            if (b.name && b.name.trim().toUpperCase() === cleanName) {
+                const cfg = (b.config || {}) as BargeConfig;
+                const hasProfileData = !!(
+                    cfg.tonnage !== undefined ||
+                    cfg.hp !== undefined ||
+                    cfg.gcnNo ||
+                    cfg.dkNo ||
+                    cfg.bhNo ||
+                    cfg.captain ||
+                    cfg.chiefEngineer ||
+                    cfg.sailors ||
+                    (cfg.gcnImages && cfg.gcnImages.length > 0) ||
+                    (cfg.dkImages && cfg.dkImages.length > 0) ||
+                    (cfg.bhImages && cfg.bhImages.length > 0) ||
+                    (cfg.crewImages && cfg.crewImages.length > 0)
+                );
+
+                if (hasProfileData) {
+                    let ts = 0;
+                    if (cfg.updatedAt) {
+                        ts = typeof cfg.updatedAt === 'number' ? cfg.updatedAt : new Date(cfg.updatedAt).getTime();
+                    } else if (b.created_at) {
+                        ts = new Date(b.created_at).getTime();
+                    } else if (v.created_at) {
+                        ts = new Date(v.created_at).getTime();
+                    } else {
+                        ts = b.id;
+                    }
+
+                    let dateStr = 'Gần đây';
+                    if (ts && !isNaN(ts) && ts > 1000000000) {
+                        const d = new Date(ts);
+                        dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                    }
+
+                    matches.push({
+                        barge: b,
+                        vesselName: v.name || 'Không xác định',
+                        timestamp: isNaN(ts) ? 0 : ts,
+                        formattedDate: dateStr
+                    });
+                }
+            }
+        });
+    });
+
+    if (matches.length === 0) return null;
+
+    matches.sort((a, b) => b.timestamp - a.timestamp);
+    const latest = matches[0];
+    if (!latest) return null;
+
+    return {
+        barge: latest.barge,
+        vesselName: latest.vesselName,
+        formattedDate: latest.formattedDate
+    };
+}
+
+function handleTriggerHistorySync() {
+    const name = editBargeName.value.trim().toUpperCase();
+    if (!name) {
+        addToast('Vui lòng nhập tên sà lan trước khi truy xuất!', 'info');
+        return;
+    }
+
+    const candidate = findLatestHistoricalBarge(name);
+    if (!candidate) {
+        addToast(`Không tìm thấy dữ liệu cũ của sà lan "${name}"!`, 'info');
+        return;
+    }
+
+    syncCandidate.value = candidate;
+    showSyncConfirmModal.value = true;
+}
+
+function applyHistoricalSync() {
+    if (!syncCandidate.value) return;
+    const config = (syncCandidate.value.barge.config || {}) as BargeConfig;
+
+    // Technical specifications
+    editTonnage.value = config.tonnage !== undefined ? config.tonnage : '';
+    editHp.value = config.hp !== undefined ? config.hp : '';
+
+    // Certificate (GCN)
+    editGcnNo.value = config.gcnNo || '';
+    editGcnIssuedDate.value = config.gcnIssuedDate || '';
+    editGcnExpiryDate.value = config.gcnExpiryDate || '';
+    editGcnImages.value = Array.isArray(config.gcnImages) ? [...config.gcnImages] : [];
+
+    // Registry (ĐK)
+    editDkNo.value = config.dkNo || '';
+    editDkIssuedDate.value = config.dkIssuedDate || '';
+    editDkExpiryDate.value = config.dkExpiryDate || '';
+    editDkImages.value = Array.isArray(config.dkImages) ? [...config.dkImages] : [];
+
+    // Insurance (BH)
+    editBhNo.value = config.bhNo || '';
+    editBhIssuedDate.value = config.bhIssuedDate || '';
+    editBhExpiryDate.value = config.bhExpiryDate || '';
+    editBhImages.value = Array.isArray(config.bhImages) ? [...config.bhImages] : [];
+
+    // Crew & Movement details
+    editCaptain.value = config.captain || '';
+    editCaptainGrade.value = config.captainGrade || '';
+    editCaptainCccd.value = config.captainCccd || '';
+    editChiefEngineer.value = config.chiefEngineer || '';
+    editChiefEngineerGrade.value = config.chiefEngineerGrade || '';
+    editChiefEngineerCccd.value = config.chiefEngineerCccd || '';
+    editSailors.value = config.sailors || '';
+    editSailorsCccd.value = config.sailorsCccd || '';
+    editHasCrewBook.value = config.hasCrewBook || false;
+    editCrewImages.value = Array.isArray(config.crewImages) ? [...config.crewImages] : [];
+
+    // Custom metadata
+    const customObj = config.customProfileInfo || {};
+    customMetas.value = Object.entries(customObj).map(([key, value]) => ({
+        key,
+        value: String(value)
+    }));
+
+    showSyncConfirmModal.value = false;
+    addToast(`Đã đồng bộ dữ liệu hồ sơ cũ của sà lan "${editBargeName.value}" thành công!`, 'success');
+}
+
 
 async function handleImageUpload(e: Event, type: 'gcn' | 'dk' | 'bh' | 'crew') {
     const target = e.target as HTMLInputElement;
@@ -1740,10 +1893,22 @@ onUnmounted(() => {
                         
                         <div class="grid gap-4" :class="activeSite === 'NguyenNgoc' ? 'grid-cols-2' : 'grid-cols-1'">
                             <div class="space-y-1">
-                                <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
+                                <div class="flex items-center justify-between">
+                                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
+                                    <button
+                                        type="button"
+                                        @click="handleTriggerHistorySync"
+                                        class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary/90 bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-lg transition-all border border-primary/20 active:scale-95 cursor-pointer select-none"
+                                        title="Truy xuất thông số kỹ thuật, giấy tờ và thuyền viên từ sà lan cũ cùng tên"
+                                    >
+                                        <span class="material-symbols-outlined text-[13px]">history</span>
+                                        <span>Truy xuất hồ sơ cũ</span>
+                                    </button>
+                                </div>
                                 <input 
                                     v-model="editBargeName" 
                                     type="text" 
+                                    placeholder="Nhập tên sà lan..."
                                     class="w-full h-8 px-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#1e293b] font-black"
                                 />
                             </div>
@@ -2354,6 +2519,87 @@ onUnmounted(() => {
                         <span v-if="loading" class="material-symbols-outlined text-sm animate-spin">sync</span>
                         <span v-else class="material-symbols-outlined text-sm">add</span>
                         Thêm mới
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sync Historical Barge Modal -->
+        <div v-if="showSyncConfirmModal && syncCandidate" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div class="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
+                <div class="flex items-center justify-between border-b border-gray-150 pb-3">
+                    <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
+                        <span class="material-symbols-outlined text-lg">history</span>
+                        Đồng bộ hồ sơ sà lan cũ
+                    </h3>
+                    <button @click="showSyncConfirmModal = false" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+                
+                <div class="space-y-3 text-xs">
+                    <div class="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-start gap-3">
+                        <span class="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">info</span>
+                        <div class="space-y-1">
+                            <div class="font-bold text-[#1e293b]">
+                                Tìm thấy hồ sơ sà lan <span class="text-primary font-black uppercase text-sm">"{{ syncCandidate.barge.name }}"</span>
+                            </div>
+                            <div class="text-gray-600 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                                <span>Tàu mẹ: <strong class="text-gray-800">{{ syncCandidate.vesselName }}</strong></span>
+                                <span>Ngày cập nhật: <strong class="text-gray-800">{{ syncCandidate.formattedDate }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="font-bold text-gray-700 uppercase tracking-wider text-[11px]">Các dữ liệu sẽ được đồng bộ:</div>
+                        <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+                            <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
+                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span>Trọng tải &amp; Công suất</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
+                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span>Hồ sơ Giấy chứng nhận (GCN)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
+                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span>Hồ sơ Đăng kiểm (ĐK)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
+                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span>Hồ sơ Bảo hiểm (BH)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
+                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span>Thông tin Thuyền bộ (CCCD, sổ)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
+                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span>Toàn bộ hình ảnh đính kèm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 bg-amber-50/60 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-600 text-base shrink-0">lock</span>
+                        <span>Thông tin chuyến mới (Số lệnh, Hàng hóa, Giờ cập/rời) sẽ được giữ nguyên.</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end gap-2 border-t border-gray-150 pt-4 mt-1">
+                    <button 
+                        @click="showSyncConfirmModal = false"
+                        class="px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs transition-all"
+                    >
+                        Hủy bỏ
+                    </button>
+                    <button 
+                        @click="applyHistoricalSync"
+                        class="px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary/10"
+                    >
+                        <span class="material-symbols-outlined text-sm">sync</span>
+                        Đồng ý đồng bộ
                     </button>
                 </div>
             </div>
