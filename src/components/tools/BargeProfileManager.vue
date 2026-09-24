@@ -1977,18 +1977,7 @@ onUnmounted(() => {
                         
                         <div class="grid gap-4" :class="activeSite === 'NguyenNgoc' ? 'grid-cols-2' : 'grid-cols-1'">
                             <div class="space-y-1">
-                                <div class="flex items-center justify-between">
-                                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
-                                    <button
-                                        type="button"
-                                        @click="handleTriggerHistorySync"
-                                        class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary/90 bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-lg transition-all border border-primary/20 active:scale-95 cursor-pointer select-none"
-                                        title="Truy xuất thông số kỹ thuật, giấy tờ và thuyền viên từ sà lan cũ cùng tên"
-                                    >
-                                        <span class="material-symbols-outlined text-[13px]">history</span>
-                                        <span>Truy xuất hồ sơ cũ</span>
-                                    </button>
-                                </div>
+                                <label class="text-xs font-black text-gray-400 uppercase tracking-widest">Tên sà lan</label>
                                 <input 
                                     v-model="editBargeName" 
                                     type="text" 
@@ -2535,6 +2524,15 @@ onUnmounted(() => {
                         class="h-9 px-6 bg-white hover:bg-gray-150 text-[#1e293b] font-black rounded-xl text-xs active:scale-95 transition-all border border-gray-200"
                     >
                         Hủy
+                    </button>
+                    <button 
+                        type="button"
+                        @click="handleTriggerHistorySync"
+                        class="h-9 px-5 bg-primary/10 hover:bg-primary/20 text-primary font-black rounded-xl text-xs active:scale-95 transition-all flex items-center gap-1.5 border border-primary/20 cursor-pointer"
+                        title="Truy xuất thông số kỹ thuật, giấy tờ và thuyền viên từ sà lan cũ cùng tên"
+                    >
+                        <span class="material-symbols-outlined text-base">history</span>
+                        Truy xuất hồ sơ
                     </button>
                     <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_registry_insurance', 'update')"
                         @click="saveProfile"
