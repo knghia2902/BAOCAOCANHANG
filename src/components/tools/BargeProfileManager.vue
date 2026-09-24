@@ -239,8 +239,22 @@ interface HistoricalBargeCandidate {
     vesselName: string;
     formattedDate: string;
 }
+interface EmptyHistoricalBargeCandidate {
+    barge: Barge;
+    vesselName: string;
+    formattedDate: string;
+    vesselNames: string[];
+    totalTrips: number;
+}
+interface HistoricalSearchResult {
+    status: 'found_with_data' | 'found_empty' | 'not_found';
+    candidate?: HistoricalBargeCandidate;
+    emptyCandidate?: EmptyHistoricalBargeCandidate;
+}
 const showSyncConfirmModal = ref(false);
 const syncCandidate = ref<HistoricalBargeCandidate | null>(null);
+const showEmptyProfileModal = ref(false);
+const emptyCandidateInfo = ref<EmptyHistoricalBargeCandidate | null>(null);
 
 
 // Fetch all barges from all vessels
@@ -753,11 +767,29 @@ function toggleGcnNoExpiry(e: Event) {
     }
 }
 
-function findLatestHistoricalBarge(bargeName: string): HistoricalBargeCandidate | null {
-    const cleanName = bargeName.trim().toUpperCase();
-    if (!cleanName) return null;
+function normalizeBargeName(name: string): string {
+    return (name || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .toUpperCase();
+}
 
-    const matches: Array<{
+function findHistoricalBarge(bargeName: string): HistoricalSearchResult {
+    const targetClean = bargeName.trim().toUpperCase();
+    const targetNorm = normalizeBargeName(bargeName);
+    if (!targetClean && !targetNorm) return { status: 'not_found' };
+
+    const matchesWithData: Array<{
+        barge: Barge;
+        vesselName: string;
+        timestamp: number;
+        formattedDate: string;
+    }> = [];
+
+    const matchesEmpty: Array<{
         barge: Barge;
         vesselName: string;
         timestamp: number;
@@ -770,63 +802,98 @@ function findLatestHistoricalBarge(bargeName: string): HistoricalBargeCandidate 
             // Exclude current active barge being edited
             if (activeBargeId.value !== null && b.id === activeBargeId.value) return;
 
-            if (b.name && b.name.trim().toUpperCase() === cleanName) {
+            const bName = b.name || '';
+            const bNorm = normalizeBargeName(bName);
+            const bClean = bName.trim().toUpperCase();
+
+            const isMatch = (targetNorm && bNorm === targetNorm) || (targetClean && bClean === targetClean);
+            if (isMatch) {
                 const cfg = (b.config || {}) as BargeConfig;
-                const hasProfileData = !!(
-                    cfg.tonnage !== undefined ||
-                    cfg.hp !== undefined ||
-                    cfg.gcnNo ||
-                    cfg.dkNo ||
-                    cfg.bhNo ||
-                    cfg.captain ||
-                    cfg.chiefEngineer ||
-                    cfg.sailors ||
-                    (cfg.gcnImages && cfg.gcnImages.length > 0) ||
-                    (cfg.dkImages && cfg.dkImages.length > 0) ||
-                    (cfg.bhImages && cfg.bhImages.length > 0) ||
-                    (cfg.crewImages && cfg.crewImages.length > 0)
+                const hasTonnage = cfg.tonnage !== undefined && cfg.tonnage !== null && Number(cfg.tonnage) > 0;
+                const hasHp = cfg.hp !== undefined && cfg.hp !== null && Number(cfg.hp) > 0;
+                const hasGcn = !!(cfg.gcnNo && cfg.gcnNo.trim());
+                const hasDk = !!(cfg.dkNo && cfg.dkNo.trim());
+                const hasBh = !!(cfg.bhNo && cfg.bhNo.trim());
+                const hasCaptain = !!(cfg.captain && cfg.captain.trim());
+                const hasChief = !!(cfg.chiefEngineer && cfg.chiefEngineer.trim());
+                const hasSailors = !!(cfg.sailors && cfg.sailors.trim());
+                const hasImages = !!(
+                    (Array.isArray(cfg.gcnImages) && cfg.gcnImages.length > 0) ||
+                    (Array.isArray(cfg.dkImages) && cfg.dkImages.length > 0) ||
+                    (Array.isArray(cfg.bhImages) && cfg.bhImages.length > 0) ||
+                    (Array.isArray(cfg.crewImages) && cfg.crewImages.length > 0)
                 );
+                const hasCustom = !!(cfg.customProfileInfo && Object.keys(cfg.customProfileInfo).length > 0);
+
+                const hasProfileData = hasTonnage || hasHp || hasGcn || hasDk || hasBh || hasCaptain || hasChief || hasSailors || hasImages || hasCustom;
+
+                let ts = 0;
+                if (cfg.updatedAt) {
+                    ts = typeof cfg.updatedAt === 'number' ? cfg.updatedAt : new Date(cfg.updatedAt).getTime();
+                } else if (b.created_at) {
+                    ts = new Date(b.created_at).getTime();
+                } else if (v.created_at) {
+                    ts = new Date(v.created_at).getTime();
+                } else {
+                    ts = Number(b.id) || 0;
+                }
+
+                let dateStr = 'Gần đây';
+                if (ts && !isNaN(ts) && ts > 1000000000) {
+                    const d = new Date(ts);
+                    dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                }
+
+                const item = {
+                    barge: b,
+                    vesselName: v.name || 'Không xác định',
+                    timestamp: isNaN(ts) ? 0 : ts,
+                    formattedDate: dateStr
+                };
 
                 if (hasProfileData) {
-                    let ts = 0;
-                    if (cfg.updatedAt) {
-                        ts = typeof cfg.updatedAt === 'number' ? cfg.updatedAt : new Date(cfg.updatedAt).getTime();
-                    } else if (b.created_at) {
-                        ts = new Date(b.created_at).getTime();
-                    } else if (v.created_at) {
-                        ts = new Date(v.created_at).getTime();
-                    } else {
-                        ts = b.id;
-                    }
-
-                    let dateStr = 'Gần đây';
-                    if (ts && !isNaN(ts) && ts > 1000000000) {
-                        const d = new Date(ts);
-                        dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                    }
-
-                    matches.push({
-                        barge: b,
-                        vesselName: v.name || 'Không xác định',
-                        timestamp: isNaN(ts) ? 0 : ts,
-                        formattedDate: dateStr
-                    });
+                    matchesWithData.push(item);
+                } else {
+                    matchesEmpty.push(item);
                 }
             }
         });
     });
 
-    if (matches.length === 0) return null;
+    if (matchesWithData.length > 0) {
+        matchesWithData.sort((a, b) => b.timestamp - a.timestamp);
+        const latest = matchesWithData[0];
+        if (latest) {
+            return {
+                status: 'found_with_data',
+                candidate: {
+                    barge: latest.barge,
+                    vesselName: latest.vesselName,
+                    formattedDate: latest.formattedDate
+                }
+            };
+        }
+    }
 
-    matches.sort((a, b) => b.timestamp - a.timestamp);
-    const latest = matches[0];
-    if (!latest) return null;
+    if (matchesEmpty.length > 0) {
+        matchesEmpty.sort((a, b) => b.timestamp - a.timestamp);
+        const latest = matchesEmpty[0];
+        if (latest) {
+            const uniqueVessels = Array.from(new Set(matchesEmpty.map(m => m.vesselName)));
+            return {
+                status: 'found_empty',
+                emptyCandidate: {
+                    barge: latest.barge,
+                    vesselName: latest.vesselName,
+                    formattedDate: latest.formattedDate,
+                    vesselNames: uniqueVessels,
+                    totalTrips: matchesEmpty.length
+                }
+            };
+        }
+    }
 
-    return {
-        barge: latest.barge,
-        vesselName: latest.vesselName,
-        formattedDate: latest.formattedDate
-    };
+    return { status: 'not_found' };
 }
 
 function handleTriggerHistorySync() {
@@ -836,14 +903,23 @@ function handleTriggerHistorySync() {
         return;
     }
 
-    const candidate = findLatestHistoricalBarge(name);
-    if (!candidate) {
-        addToast(`Không tìm thấy dữ liệu cũ của sà lan "${name}"!`, 'info');
+    const result = findHistoricalBarge(name);
+    if (result.status === 'not_found') {
+        addToast(`Không tìm thấy bất kỳ sà lan nào có tên "${name}" trong hệ thống!`, 'info');
         return;
     }
 
-    syncCandidate.value = candidate;
-    showSyncConfirmModal.value = true;
+    if (result.status === 'found_empty' && result.emptyCandidate) {
+        emptyCandidateInfo.value = result.emptyCandidate;
+        showEmptyProfileModal.value = true;
+        addToast(`Tìm thấy sà lan "${result.emptyCandidate.barge.name}" nhưng chuyến trước chưa nhập hồ sơ phương tiện!`, 'info');
+        return;
+    }
+
+    if (result.status === 'found_with_data' && result.candidate) {
+        syncCandidate.value = result.candidate;
+        showSyncConfirmModal.value = true;
+    }
 }
 
 function applyHistoricalSync() {
@@ -851,8 +927,8 @@ function applyHistoricalSync() {
     const config = (syncCandidate.value.barge.config || {}) as BargeConfig;
 
     // Technical specifications
-    editTonnage.value = config.tonnage !== undefined ? config.tonnage : '';
-    editHp.value = config.hp !== undefined ? config.hp : '';
+    editTonnage.value = config.tonnage !== undefined && config.tonnage !== null ? config.tonnage : '';
+    editHp.value = config.hp !== undefined && config.hp !== null ? config.hp : '';
 
     // Certificate (GCN)
     editGcnNo.value = config.gcnNo || '';
@@ -884,6 +960,14 @@ function applyHistoricalSync() {
     editHasCrewBook.value = config.hasCrewBook || false;
     editCrewImages.value = Array.isArray(config.crewImages) ? [...config.crewImages] : [];
 
+    // Sync owner / operator if currently empty
+    if (config.owner && !editOwner.value.trim()) {
+        editOwner.value = config.owner;
+    }
+    if (config.operator && !editOperator.value.trim()) {
+        editOperator.value = config.operator;
+    }
+
     // Custom metadata
     const customObj = config.customProfileInfo || {};
     customMetas.value = Object.entries(customObj).map(([key, value]) => ({
@@ -892,7 +976,7 @@ function applyHistoricalSync() {
     }));
 
     showSyncConfirmModal.value = false;
-    addToast(`Đã đồng bộ dữ liệu hồ sơ cũ của sà lan "${editBargeName.value}" thành công!`, 'success');
+    addToast(`Đã đồng bộ dữ liệu hồ sơ cũ của sà lan "${editBargeName.value}" từ tàu "${syncCandidate.value.vesselName}" thành công!`, 'success');
 }
 
 
@@ -2600,6 +2684,57 @@ onUnmounted(() => {
                     >
                         <span class="material-symbols-outlined text-sm">sync</span>
                         Đồng ý đồng bộ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty Historical Barge Info Modal -->
+        <div v-if="showEmptyProfileModal && emptyCandidateInfo" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div class="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
+                <div class="flex items-center justify-between border-b border-gray-150 pb-3">
+                    <h3 class="text-sm font-black text-amber-600 uppercase tracking-wider flex items-center gap-1.5 select-none">
+                        <span class="material-symbols-outlined text-lg">info</span>
+                        Chưa có dữ liệu hồ sơ cũ
+                    </h3>
+                    <button @click="showEmptyProfileModal = false" class="size-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+                
+                <div class="space-y-3 text-xs">
+                    <div class="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-3">
+                        <span class="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">notification_important</span>
+                        <div class="space-y-1.5">
+                            <div class="font-bold text-[#1e293b]">
+                                Tìm thấy sà lan <span class="text-primary font-black uppercase text-sm">"{{ emptyCandidateInfo.barge.name }}"</span> trong hệ thống!
+                            </div>
+                            <div class="text-gray-600 space-y-1 text-[11px]">
+                                <div>Chuyến gần nhất: <strong class="text-gray-800">{{ emptyCandidateInfo.vesselName }}</strong> ({{ emptyCandidateInfo.formattedDate }})</div>
+                                <div v-if="emptyCandidateInfo.vesselNames.length > 1">Các tàu đã xuất hiện ({{ emptyCandidateInfo.totalTrips }} chuyến): <strong class="text-gray-800">{{ emptyCandidateInfo.vesselNames.join(', ') }}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 border border-gray-150 rounded-2xl space-y-2 text-gray-600 text-[11px] leading-relaxed">
+                        <p class="font-semibold text-gray-700">
+                            ⚠️ <strong>Lý do không thể sao chép:</strong>
+                        </p>
+                        <p>
+                            Ở các chuyến tàu trước, sà lan này mới chỉ được tạo để ghi nhận phiếu cân hàng và <strong>chưa từng được nhập thông số kỹ thuật, hồ sơ giấy tờ (GCN, Đăng kiểm, Bảo hiểm) hoặc danh sách thuyền viên</strong>.
+                        </p>
+                        <p class="text-primary font-medium">
+                            💡 <strong>Gợi ý:</strong> Bạn hãy nhập đầy đủ thông số &amp; giấy tờ cho sà lan lần này rồi bấm <strong>"Lưu hồ sơ"</strong>. Từ chuyến sau, hệ thống sẽ tự động ghi nhớ toàn bộ hồ sơ này để bạn truy xuất lại bất cứ lúc nào!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end border-t border-gray-150 pt-4 mt-1">
+                    <button 
+                        @click="showEmptyProfileModal = false"
+                        class="px-5 py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-primary/10"
+                    >
+                        Đã hiểu
                     </button>
                 </div>
             </div>
