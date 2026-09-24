@@ -87,7 +87,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 10. Enterprise Upgrade | v1.1 | 4/4 | Complete | 2026-09-19 |
 | 11. Direct Barge Sync | v1.1 | 2/2 | Complete | 2026-09-23 |
 | 12. Single Barge Allocator | v1.1 | 2/2 | Complete | 2026-09-23 |
-| 13. Sync Barge Profile | v1.1 | 0/1 | Not started | - |
+| 13. Sync Barge Profile | v1.1 | 1/1 | Complete | 2026-09-24 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -148,6 +148,6 @@ Plans:
 
 Plans:
 
-- [ ] 13-01: Triển khai nút "Truy xuất hồ sơ cũ", logic tìm kiếm sà lan lịch sử mới nhất theo tên, hộp thoại xác nhận và nạp toàn bộ thông số, giấy tờ, ảnh và thuyền viên vào form.
+- [x] 13-01: Triển khai nút "Truy xuất hồ sơ cũ", logic tìm kiếm sà lan lịch sử mới nhất theo tên, hộp thoại xác nhận và nạp toàn bộ thông số, giấy tờ, ảnh và thuyền viên vào form.
 
 

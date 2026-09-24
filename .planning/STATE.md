@@ -4,16 +4,16 @@ milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
 current_phase: 13
 current_phase_name: sync-barge-profile-from-history
-status: planned
-stopped_at: Phase 13 planned (1 plan ready)
-last_updated: "2026-09-24T18:00:00.000Z"
+status: completed
+stopped_at: Phase 13 completed (1/1 plans executed)
+last_updated: "2026-09-24T20:45:00.000Z"
 last_activity: 2026-09-24
-last_activity_desc: Phase 13 planned — Plan 13-01 ready for execution
+last_activity_desc: Phase 13 complete — Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 16
-  completed_plans: 16
+  total_phases: 8
+  completed_phases: 8
+  total_plans: 17
+  completed_plans: 17
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 12 — dedicated-single-barge-allocator-tool
+**Current focus:** Phase 13 — sync-barge-profile-from-history
 
 ## Current Position
 
-Phase: 12 (dedicated-single-barge-allocator-tool) — COMPLETED
-Plans: 2/2 completed (12-01, 12-02)
-Status: Completed Phase 12
-Last activity: 2026-09-23 — Phase 12 complete: Dedicated Single-Barge Allocator Tool (/split) with 3 tabs and Excel export
+Phase: 13 (sync-barge-profile-from-history) — COMPLETED
+Plans: 1/1 completed (13-01)
+Status: Completed Phase 13
+Last activity: 2026-09-24 — Phase 13 complete: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử
 
 ## Performance Metrics
 
