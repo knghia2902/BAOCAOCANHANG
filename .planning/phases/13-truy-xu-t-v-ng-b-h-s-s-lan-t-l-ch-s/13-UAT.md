@@ -1,21 +1,15 @@
 ---
-status: testing
+status: complete
 phase: 13-truy-xu-t-v-ng-b-h-s-s-lan-t-l-ch-s
 source:
   - 13-01-SUMMARY.md
 started: 2026-09-24T20:53:00Z
-updated: 2026-09-24T20:53:00Z
+updated: 2026-09-24T21:19:00Z
 ---
 
 ## Current Test
 
-number: 4
-name: Hiển thị Modal xác nhận và tự động điền dữ liệu cũ
-expected: |
-  Khi nhập tên một sà lan đã từng có trong hệ thống và bấm [ Truy xuất hồ sơ cũ ]:
-  Hệ thống mở Modal "Đồng bộ hồ sơ sà lan cũ" hiển thị rõ tên sà lan, tên tàu mẹ cũ, ngày cập nhật.
-  Khi bấm "Đồng ý đồng bộ", form tự động điền trọng tải, công suất, GCN, Đăng kiểm, Bảo hiểm, Thuyền bộ và hình ảnh đính kèm; trạng thái hợp lệ tự động cập nhật màu xanh lá.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -33,13 +27,13 @@ result: pass
 
 ### 4. Hiển thị Modal xác nhận và tự động điền dữ liệu cũ
 expected: Khi nhập tên một sà lan đã từng có trong lịch sử và bấm nút, hệ thống mở Modal "Đồng bộ hồ sơ sà lan cũ" hiển thị rõ tên sà lan, tên tàu mẹ cũ, ngày cập nhật. Khi bấm "Đồng ý đồng bộ", form tự động điền thông số kỹ thuật, GCN, Đăng kiểm, Bảo hiểm, Thuyền bộ và hình ảnh đính kèm; trạng thái hợp lệ tự động cập nhật màu xanh lá.
-result: pending
+result: pass
 
 ## Summary
 
 total: 4
-passed: 3
+passed: 4
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
