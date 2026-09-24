@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 12
-current_phase_name: dedicated-single-barge-allocator-tool
-status: completed
-stopped_at: Phase 12 completed (2/2 plans executed)
-last_updated: "2026-09-23T16:07:00.000Z"
-last_activity: 2026-09-23
-last_activity_desc: Phase 12 complete — Dedicated Single-Barge Allocator Tool (/split) with 3 tabs and Excel export
+current_phase: 13
+current_phase_name: sync-barge-profile-from-history
+status: ready_to_plan
+stopped_at: Phase 13 added (ready to plan)
+last_updated: "2026-09-24T17:00:00.000Z"
+last_activity: 2026-09-24
+last_activity_desc: Phase 13 added — Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử
 progress:
   total_phases: 7
   completed_phases: 7
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 
 - Phase 8 added: Phân loại tàu Đang làm hàng & Đã xong (Giao diện 2 Tab, chế độ Read-only, Admin mở lại)
 - Phase 9 added: Thiết kế lại database & khôi phục dữ liệu Tab Theo Dõi (bảng Supabase riêng, migrate 16,303 trips, khôi phục 1,657 trips)
+- Phase 13 added: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử (Barge Profile Sync from History)
+
 
 ### Pending Todos
 

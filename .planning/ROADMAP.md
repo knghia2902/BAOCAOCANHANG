@@ -86,7 +86,8 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 9. Allocator DB & Recovery | v1.1 | 2/2 | Complete | 2026-09-17 |
 | 10. Enterprise Upgrade | v1.1 | 4/4 | Complete | 2026-09-19 |
 | 11. Direct Barge Sync | v1.1 | 2/2 | Complete | 2026-09-23 |
-| 12. Single Barge Allocator | v1.1 | 0/2 | Not started | - |
+| 12. Single Barge Allocator | v1.1 | 2/2 | Complete | 2026-09-23 |
+| 13. Sync Barge Profile | v1.1 | 0/1 | Not started | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -138,4 +139,14 @@ Plans:
 - [x] 12-01: Khởi tạo View/Component Phân bổ, cấu hình Route `/split` & `/tools/split`, tích hợp Tab 1 (Import phiếu cân nguồn) và Sidebar cấu hình tải trọng xe / khoảng cách thời gian.
 - [x] 12-02: Tái hiện thuật toán phân bổ tách tải theo 1 sà lan đích tại Tab 2 (Xem trước & phân bổ) và xây dựng Tab 3 (Sổ theo dõi sau phân bổ kèm xuất Excel chuẩn mẫu).
 
+### Phase 13: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử
+
+**Goal:** Bổ sung nút "Truy xuất hồ sơ cũ" trong form hồ sơ sà lan (BargeProfileManager.vue), tự động quét tìm bản ghi sà lan có cùng tên gần nhất trong toàn bộ lịch sử các tàu/chuyến, mở hộp thoại xác nhận và nạp toàn bộ thông số kỹ thuật (trọng tải, công suất), bộ 3 giấy tờ (GCN, ĐK, BH), toàn bộ hình ảnh đính kèm và thông tin thuyền bộ sang sà lan mới (giữ nguyên thông tin chuyến hiện tại như số lệnh, hàng hóa, thời gian cập/rời).
+**Requirements**: BARGE-SYNC-01, BARGE-SYNC-02
+**Depends on:** Phase 12
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 13 to break down)
 
