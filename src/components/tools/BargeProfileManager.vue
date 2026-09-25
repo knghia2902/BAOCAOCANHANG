@@ -13,8 +13,6 @@ const saving = ref(false);
 const searchQuery = ref('');
 const isOpeningEdit = ref(false);
 
-// Excel Import state
-const excelFileInput = ref<HTMLInputElement | null>(null);
 
 // Edit Workspace state
 const activeBargeId = ref<number | null>(null);
@@ -1151,9 +1149,6 @@ async function saveProfile() {
     }
 }
 
-function triggerExcelUpload() {
-    excelFileInput.value?.click();
-}
 
 async function exportToExcel() {
     try {
@@ -1431,160 +1426,6 @@ async function exportToExcel() {
     }
 }
 
-async function handleExcelImport(event: Event) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_crew_profile')) {
-        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
-        return;
-    }
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (!file) return;
-    loading.value = true;
-    
-    try {
-        const ExcelJS = (await import('exceljs')).default;
-        const workbook = new ExcelJS.Workbook();
-        const arrayBuffer = await file.arrayBuffer();
-        await workbook.xlsx.load(arrayBuffer);
-        
-        const sheetName = 'Hồ sơ phương tiện';
-        let sheet = workbook.getWorksheet(sheetName);
-        if (!sheet) {
-            sheet = workbook.worksheets[0];
-        }
-        
-        if (!sheet) {
-            addToast('Khong the doc du lieu tu file Excel!', 'error');
-            loading.value = false;
-            return;
-        }
-        
-        let matchCount = 0;
-        
-        const formatDateCell = (cellValue: any): string => {
-            if (!cellValue) return '';
-            let rawStr = '';
-            if (cellValue instanceof Date) {
-                const y = cellValue.getFullYear();
-                const m = String(cellValue.getMonth() + 1).padStart(2, '0');
-                const d = String(cellValue.getDate()).padStart(2, '0');
-                rawStr = `${y}-${m}-${d}`;
-            } else if (typeof cellValue === 'object' && cellValue.result instanceof Date) {
-                const dateObj = cellValue.result;
-                const y = dateObj.getFullYear();
-                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const d = String(dateObj.getDate()).padStart(2, '0');
-                rawStr = `${y}-${m}-${d}`;
-            } else if (typeof cellValue === 'number') {
-                const date = new Date(Math.round((cellValue - 25569) * 86400 * 1000));
-                const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, '0');
-                const d = String(date.getDate()).padStart(2, '0');
-                rawStr = `${y}-${m}-${d}`;
-            } else {
-                const str = String(cellValue).trim();
-                if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-                    rawStr = str.slice(0, 10);
-                } else {
-                    rawStr = (str === 'undefined' || str === 'null') ? '' : str;
-                }
-            }
-            return sanitizeDate(rawStr);
-        };
-        
-        const formatNumberCell = (cellValue: any): number | undefined => {
-            if (cellValue === null || cellValue === undefined) return undefined;
-            if (typeof cellValue === 'number') return cellValue;
-            if (typeof cellValue === 'object' && typeof cellValue.result === 'number') return cellValue.result;
-            const strVal = String(cellValue).trim();
-            if (strVal === 'undefined' || strVal === 'null') return undefined;
-            const parsed = parseFloat(strVal.replace(/[^0-9.-]/g, ''));
-            return isNaN(parsed) ? undefined : parsed;
-        };
-        
-        const formatStringCell = (cellValue: any): string => {
-            if (cellValue === null || cellValue === undefined) return '';
-            let val = '';
-            if (typeof cellValue === 'object' && cellValue.result !== undefined) {
-                val = String(cellValue.result).trim();
-            } else {
-                val = String(cellValue).trim();
-            }
-            return (val === 'undefined' || val === 'null') ? '' : val;
-        };
-
-        const normalizeBargeName = (name: string): string => {
-            return name.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        };
-        
-        const systemBargesMap = new Map<string, Barge>();
-        vessels.value.forEach(v => {
-            if (v.barges) {
-                v.barges.forEach(b => {
-                    systemBargesMap.set(normalizeBargeName(b.name), b);
-                });
-            }
-        });
-        
-        for (let r = 2; r <= sheet.rowCount; r++) {
-            const row = sheet.getRow(r);
-            const rawName = formatStringCell(row.getCell(2).value);
-            if (!rawName) continue;
-            
-            const normName = normalizeBargeName(rawName);
-            const barge = systemBargesMap.get(normName);
-            
-            if (barge) {
-                const tonnage = formatNumberCell(row.getCell(3).value);
-                const hp = formatNumberCell(row.getCell(4).value);
-                const gcnNo = formatStringCell(row.getCell(5).value);
-                const gcnIssuedDate = formatDateCell(row.getCell(6).value);
-                const gcnExpiryDate = formatDateCell(row.getCell(7).value);
-                const dkNo = formatStringCell(row.getCell(8).value);
-                const dkIssuedDate = formatDateCell(row.getCell(9).value);
-                const dkExpiryDate = formatDateCell(row.getCell(10).value);
-                const bhNo = formatStringCell(row.getCell(11).value);
-                const bhIssuedDate = formatDateCell(row.getCell(12).value);
-                const bhExpiryDate = formatDateCell(row.getCell(13).value);
-                
-                const updatedConfig: BargeConfig = {
-                    ...(barge.config || {}),
-                    tonnage,
-                    hp,
-                    gcnNo,
-                    gcnIssuedDate,
-                    gcnExpiryDate,
-                    dkNo,
-                    dkIssuedDate,
-                    dkExpiryDate,
-                    bhNo,
-                    bhIssuedDate,
-                    bhExpiryDate,
-                    updatedAt: Date.now()
-                };
-                
-                await WeighbridgeService.updateBargeConfig(barge.id, updatedConfig);
-                matchCount++;
-            }
-        }
-        
-        if (matchCount > 0) {
-            addToast(`Da nap ho so thanh cong cho ${matchCount} sa lan!`, 'success');
-            window.dispatchEvent(new CustomEvent('barge-config-updated', { detail: { batch: true } }));
-            await loadData();
-        } else {
-            addToast('Khong tim thay sa lan trung khop ten!', 'info');
-        }
-    } catch (e) {
-        console.error('Loi nhap Excel:', e);
-        addToast('Loi khi doc file Excel!', 'error');
-    } finally {
-        loading.value = false;
-        if (excelFileInput.value) {
-            excelFileInput.value.value = '';
-        }
-    }
-}
 
 const handleOutsideClick = (event: MouseEvent) => {
     activePopover.value = null;
@@ -1692,14 +1533,6 @@ onUnmounted(() => {
                     
                     <!-- Right: Excel Actions -->
                     <div class="flex items-center gap-2 shrink-0">
-                        <!-- Excel Import -->
-                        <input 
-                            type="file" 
-                            ref="excelFileInput" 
-                            @change="handleExcelImport" 
-                            accept=".xlsx" 
-                            class="hidden" 
-                        />
                         <!-- Add Barge (Only for Phu My area) -->
                         <button 
                             v-if="activeSite === 'PhuMy'"
@@ -1709,14 +1542,6 @@ onUnmounted(() => {
                         >
                             <span class="material-symbols-outlined text-sm">add</span>
                             Thêm sà lan mới
-                        </button>
-                        <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'create')"
-                            @click="triggerExcelUpload"
-                            class="h-8 px-3.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-600/10 shrink-0"
-                            title="Nhập dữ liệu hồ sơ từ file Excel"
-                        >
-                            <span class="material-symbols-outlined text-sm">upload_file</span>
-                            Nhập từ Excel
                         </button>
                         <button 
                             @click="exportToExcel"
