@@ -154,6 +154,9 @@ const vesselFilterMonth = ref<string>('');
 const bargeSearchQuery = ref<string>('');
 const searchQuery = ref<string>('');
 const globalBargeSearchQuery = ref<string>('');
+const globalFilterType = ref<string>('');
+const globalFilterStartDate = ref<string>('');
+const globalFilterEndDate = ref<string>('');
 const globalFilterMonth = ref<string>('');
 const globalBargesSummary = ref<BargeSummary[]>([]);
 const loadingGlobalSummary = ref(false);
@@ -527,11 +530,24 @@ const filteredSidebarVessels = computed(() => selectedVesselStatusTab.value === 
 const isCurrentVesselDone = computed(() => activeVessel.value?.status === 'done');
 
 const allBarges = computed(() => {
-    const list: Array<{ id: number; name: string; vesselId: number; vesselName: string; created_at?: string; locked: boolean; orderNo: string }> = [];
+    const list: Array<{ 
+        id: number; 
+        name: string; 
+        vesselId: number; 
+        vesselName: string; 
+        created_at?: string; 
+        locked: boolean; 
+        orderNo: string;
+        tonnage?: number | null;
+    }> = [];
     const targetVessels = selectedVesselStatusTab.value === 'done' ? doneVessels.value : inProgressVessels.value;
     targetVessels.forEach(v => {
         if (v.barges) {
             v.barges.forEach(b => {
+                const rawTonnage = (b as any).tonnage !== undefined && (b as any).tonnage !== null
+                    ? (b as any).tonnage
+                    : (b.config?.tonnage !== undefined && b.config?.tonnage !== null ? b.config.tonnage : null);
+                const numTonnage = rawTonnage !== null && rawTonnage !== '' ? Number(rawTonnage) : null;
                 list.push({
                     id: b.id,
                     name: b.name,
@@ -539,7 +555,8 @@ const allBarges = computed(() => {
                     vesselName: v.name,
                     created_at: b.created_at,
                     locked: b.config?.locked || false,
-                    orderNo: b.config?.orderNo ? String(b.config.orderNo).trim() : ''
+                    orderNo: b.config?.orderNo ? String(b.config.orderNo).trim() : '',
+                    tonnage: (numTonnage && !isNaN(numTonnage)) ? numTonnage : null
                 });
             });
         }
@@ -558,32 +575,114 @@ const allBarges = computed(() => {
     });
 });
 
-const availableGlobalMonths = computed(() => {
-    if (!globalBargesSummary.value) return [];
+// Helper: Parse date string in ISO, YYYY-MM-DD HH:mm, or DD/MM/YYYY HH:mm into Date
+const parseBargeDate = (dStr: string): Date | null => {
+    if (!dStr) return null;
+    const str = String(dStr).trim();
+    const matchYmd = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{1,2}))?/);
+    if (matchYmd && matchYmd[1] && matchYmd[2] && matchYmd[3]) {
+        const y = parseInt(matchYmd[1], 10);
+        const m = parseInt(matchYmd[2], 10) - 1;
+        const d = parseInt(matchYmd[3], 10);
+        const h = matchYmd[4] ? parseInt(matchYmd[4], 10) : 0;
+        const min = matchYmd[5] ? parseInt(matchYmd[5], 10) : 0;
+        return new Date(y, m, d, h, min, 0);
+    }
+    const matchDmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[T\s]+(\d{1,2}):(\d{1,2}))?/);
+    if (matchDmy && matchDmy[1] && matchDmy[2] && matchDmy[3]) {
+        const d = parseInt(matchDmy[1], 10);
+        const m = parseInt(matchDmy[2], 10) - 1;
+        const y = parseInt(matchDmy[3], 10);
+        const h = matchDmy[4] ? parseInt(matchDmy[4], 10) : 0;
+        const min = matchDmy[5] ? parseInt(matchDmy[5], 10) : 0;
+        return new Date(y, m, d, h, min, 0);
+    }
+    const parsed = new Date(str.replace('T', ' '));
+    return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+// Chu kỳ tính phí cầu bến: Từ ngày 26 tháng trước đến 25 tháng này (ví dụ: 26/06 - 25/07 thuộc Kỳ 07)
+const getBillingPeriodKey = (d: Date): string => {
+    const day = d.getDate();
+    let month = d.getMonth() + 1; // 1-12
+    let year = d.getFullYear();
+    if (day > 25) {
+        month += 1;
+        if (month > 12) {
+            month = 1;
+            year += 1;
+        }
+    }
+    return `${year}-${String(month).padStart(2, '0')}`;
+};
+
+const getBillingPeriodRange = (periodKey: string): { start: Date; end: Date; label: string } => {
+    const [yStr, mStr] = periodKey.split('-');
+    const m = parseInt(mStr || '1', 10);
+    const y = parseInt(yStr || '2000', 10);
+    let prevM = m - 1;
+    let prevY = y;
+    if (prevM < 1) {
+        prevM = 12;
+        prevY -= 1;
+    }
+    const start = new Date(prevY, prevM - 1, 26, 0, 0, 0, 0);
+    const end = new Date(y, m - 1, 25, 23, 59, 59, 999);
+    const label = `Kỳ ${String(m).padStart(2, '0')}/${y} (26/${String(prevM).padStart(2, '0')} - 25/${String(m).padStart(2, '0')})`;
+    return { start, end, label };
+};
+
+interface BillingPeriodOption {
+    key: string;
+    label: string;
+    start: Date;
+    end: Date;
+}
+
+const availableBillingPeriods = computed<BillingPeriodOption[]>(() => {
+    const periodKeys = new Set<string>();
     
-    const months = new Set<string>();
-    globalBargesSummary.value.forEach(b => {
-        const dates = [b.dateStart, b.dateEnd].filter(Boolean);
-        dates.forEach(dStr => {
-            const date = new Date(dStr!);
-            if (!isNaN(date.getTime())) {
-                const mm = String(date.getMonth() + 1).padStart(2, '0');
-                const yyyy = date.getFullYear();
-                months.add(`${mm}/${yyyy}`);
+    // Luôn bao gồm kỳ tính phí hiện tại theo ngày hệ thống
+    const currentPeriod = getBillingPeriodKey(new Date());
+    periodKeys.add(currentPeriod);
+    
+    if (globalBargesSummary.value && globalBargesSummary.value.length > 0) {
+        globalBargesSummary.value.forEach(b => {
+            if (!b.dateEnd) return; // Chỉ tính sà lan đã hoàn thành làm hàng
+            const d = parseBargeDate(b.dateEnd);
+            if (d) {
+                periodKeys.add(getBillingPeriodKey(d));
             }
         });
-    });
+    }
     
-    return Array.from(months).sort((a, b) => {
-        const partsA = a.split('/');
-        const partsB = b.split('/');
-        const mA = Number(partsA[0]) || 0;
-        const yA = Number(partsA[1]) || 0;
-        const mB = Number(partsB[0]) || 0;
-        const yB = Number(partsB[1]) || 0;
-        if (yA !== yB) return yB - yA;
-        return mB - mA;
+    return Array.from(periodKeys).sort().reverse().map(key => {
+        const { start, end, label } = getBillingPeriodRange(key);
+        return { key, label, start, end };
     });
+});
+
+const currentFilterPeriodLabel = computed(() => {
+    if (globalFilterType.value === 'custom') {
+        const start = globalFilterStartDate.value ? globalFilterStartDate.value.split('-').reverse().join('/') : '';
+        const end = globalFilterEndDate.value ? globalFilterEndDate.value.split('-').reverse().join('/') : '';
+        if (start && end) return `Từ ${start} đến ${end}`;
+        if (start) return `Từ ${start}`;
+        if (end) return `Đến ${end}`;
+        return 'Tùy chọn khoảng ngày';
+    }
+    if (globalFilterType.value) {
+        const found = availableBillingPeriods.value.find(p => p.key === globalFilterType.value);
+        return found ? found.label : `Kỳ ${globalFilterType.value}`;
+    }
+    return 'Tất cả thời gian';
+});
+
+watch(globalFilterType, (newVal) => {
+    if (newVal !== 'custom') {
+        globalFilterStartDate.value = '';
+        globalFilterEndDate.value = '';
+    }
 });
 
 const filteredAllBarges = computed(() => {
@@ -598,12 +697,32 @@ const filteredAllBarges = computed(() => {
         };
     });
 
-    if (globalFilterMonth.value) {
+    if (globalFilterType.value === 'custom') {
+        const start = globalFilterStartDate.value ? new Date(`${globalFilterStartDate.value}T00:00:00`) : null;
+        const end = globalFilterEndDate.value ? new Date(`${globalFilterEndDate.value}T23:59:59.999`) : null;
+
+        list = list.filter(b => {
+            if (!b.dateEnd) return false;
+            const d = parseBargeDate(b.dateEnd);
+            if (!d) return false;
+            if (start && d < start) return false;
+            if (end && d > end) return false;
+            return true;
+        });
+    } else if (globalFilterType.value) {
+        const range = getBillingPeriodRange(globalFilterType.value);
+        list = list.filter(b => {
+            if (!b.dateEnd) return false; // Loại sà lan làm dở chưa kết thúc
+            const d = parseBargeDate(b.dateEnd);
+            if (!d) return false;
+            return d >= range.start && d <= range.end;
+        });
+    } else if (globalFilterMonth.value) {
         list = list.filter(b => {
             const dates = [b.dateStart, b.dateEnd].filter(Boolean);
             return dates.some(dStr => {
-                const d = new Date(dStr!);
-                if (isNaN(d.getTime())) return false;
+                const d = parseBargeDate(dStr!);
+                if (!d) return false;
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
                 const yyyy = d.getFullYear();
                 return `${mm}/${yyyy}` === globalFilterMonth.value;
@@ -1137,7 +1256,8 @@ const exportAllBargesToExcel = () => {
             sheet.views = [{ showGridLines: true }];
             
             sheet.addRow(['DANH SÁCH QUẢN LÝ TẤT CẢ SÀ LAN']);
-            sheet.addRow([`Cảng Nguyên Ngọc - Xuất lúc: ${formatDateTimeStr(new Date().toISOString())} - Tổng số: ${filteredAllBarges.value.length} sà lan`]);
+            const filterLabel = globalFilterType.value ? ` - ${currentFilterPeriodLabel.value}` : '';
+            sheet.addRow([`Cảng Nguyên Ngọc - Xuất lúc: ${formatDateTimeStr(new Date().toISOString())}${filterLabel} - Tổng số: ${filteredAllBarges.value.length} sà lan`]);
             sheet.addRow([]);
             
             const headerRow = sheet.addRow([
@@ -1145,6 +1265,7 @@ const exportAllBargesToExcel = () => {
                 'Tên sà lan', 
                 'Mã lệnh', 
                 'Thuộc Tàu', 
+                'Trọng tải (tấn)',
                 'Thời gian bắt đầu', 
                 'Thời gian kết thúc', 
                 'Số chuyến xe', 
@@ -1152,12 +1273,12 @@ const exportAllBargesToExcel = () => {
                 'Trạng thái'
             ]);
             
-            sheet.mergeCells('A1:I1');
+            sheet.mergeCells('A1:J1');
             const titleCell = sheet.getCell('A1');
             titleCell.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: '4A2C32' } };
             titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
             
-            sheet.mergeCells('A2:I2');
+            sheet.mergeCells('A2:J2');
             const subtitleCell = sheet.getCell('A2');
             subtitleCell.font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: '666666' } };
             subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1188,6 +1309,7 @@ const exportAllBargesToExcel = () => {
                     b.name || '',
                     b.orderNo || '-',
                     b.vesselName || '',
+                    b.tonnage ? b.tonnage : '-',
                     b.dateStart ? formatDateTimeStr(b.dateStart) : '-',
                     b.dateEnd ? formatDateTimeStr(b.dateEnd) : '-',
                     b.truckCount || 0,
@@ -1207,16 +1329,19 @@ const exportAllBargesToExcel = () => {
                         right: { style: 'thin', color: { argb: 'F3F4F6' } }
                     };
                     
-                    if (colNumber === 1 || colNumber === 3 || colNumber === 5 || colNumber === 6 || colNumber === 9) {
+                    if (colNumber === 1 || colNumber === 3 || colNumber === 5 || colNumber === 6 || colNumber === 7 || colNumber === 10) {
                         cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    } else if (colNumber === 7 || colNumber === 8) {
+                        if (colNumber === 5 && typeof b.tonnage === 'number') {
+                            cell.numFmt = '#,##0';
+                        }
+                    } else if (colNumber === 8 || colNumber === 9) {
                         cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                        if (colNumber === 8) cell.numFmt = '#,##0';
+                        if (colNumber === 9) cell.numFmt = '#,##0';
                     } else {
                         cell.alignment = { horizontal: 'left', vertical: 'middle' };
                     }
                     
-                    if (colNumber === 9) {
+                    if (colNumber === 10) {
                         if (b.locked) {
                             cell.font = { name: 'Segoe UI', size: 11, color: { argb: 'DC2626' }, bold: true };
                         } else {
@@ -1233,11 +1358,12 @@ const exportAllBargesToExcel = () => {
                 '',
                 '',
                 '',
+                '',
                 totalTrips,
                 grandTotalWeight,
                 ''
             ]);
-            sheet.mergeCells(`A${totalRow.number}:F${totalRow.number}`);
+            sheet.mergeCells(`A${totalRow.number}:G${totalRow.number}`);
             
             totalRow.font = { name: 'Segoe UI', size: 11, bold: true };
             totalRow.height = 22;
@@ -1255,9 +1381,9 @@ const exportAllBargesToExcel = () => {
                 };
                 if (colNumber === 1) {
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                } else if (colNumber === 7 || colNumber === 8) {
+                } else if (colNumber === 8 || colNumber === 9) {
                     cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                    if (colNumber === 8) cell.numFmt = '#,##0';
+                    if (colNumber === 9) cell.numFmt = '#,##0';
                 }
             });
             
@@ -4444,19 +4570,48 @@ onUnmounted(() => {
                                     </button>
                                 </div>
                                 
-                                <!-- Month Filter dropdown -->
-                                <div v-if="availableGlobalMonths.length > 0" class="relative min-w-[200px] flex items-center">
-                                    <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">calendar_month</span>
-                                    <select 
-                                        v-model="globalFilterMonth" 
-                                        class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-bold focus:outline-none focus:border-primary cursor-pointer appearance-none"
-                                    >
-                                        <option value="">Tất cả các tháng (Thời gian)</option>
-                                        <option v-for="month in availableGlobalMonths" :key="month" :value="month">
-                                            Tháng {{ month }}
-                                        </option>
-                                    </select>
-                                    <span class="material-symbols-outlined absolute right-3 text-gray-400 text-sm pointer-events-none">expand_more</span>
+                                <!-- Billing Period & Date Range Filter -->
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="relative min-w-[230px] flex items-center">
+                                        <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm pointer-events-none">calendar_month</span>
+                                        <select 
+                                            v-model="globalFilterType" 
+                                            class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-bold text-gray-700 focus:outline-none focus:border-primary cursor-pointer appearance-none shadow-sm"
+                                        >
+                                            <option value="">Tất cả thời gian</option>
+                                            <optgroup v-if="availableBillingPeriods.length > 0" label="── Kỳ chốt phí cầu bến (26 - 25) ──">
+                                                <option v-for="period in availableBillingPeriods" :key="period.key" :value="period.key">
+                                                    {{ period.label }}
+                                                </option>
+                                            </optgroup>
+                                            <option value="custom">📅 Tùy chọn khoảng ngày...</option>
+                                        </select>
+                                        <span class="material-symbols-outlined absolute right-3 text-gray-400 text-sm pointer-events-none">expand_more</span>
+                                    </div>
+
+                                    <!-- Custom Date Range picker -->
+                                    <div v-if="globalFilterType === 'custom'" class="flex items-center gap-1.5 bg-white border border-gray-200 px-2.5 py-1 rounded-[12px] shadow-sm">
+                                        <span class="text-[11px] font-bold text-gray-400">Từ</span>
+                                        <input 
+                                            type="date" 
+                                            v-model="globalFilterStartDate"
+                                            class="bg-transparent border-0 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-0 p-0"
+                                        />
+                                        <span class="text-[11px] font-bold text-gray-400">đến</span>
+                                        <input 
+                                            type="date" 
+                                            v-model="globalFilterEndDate"
+                                            class="bg-transparent border-0 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-0 p-0"
+                                        />
+                                        <button 
+                                            v-if="globalFilterStartDate || globalFilterEndDate"
+                                            @click="globalFilterStartDate = ''; globalFilterEndDate = ''"
+                                            title="Xóa khoảng ngày"
+                                            class="p-0.5 text-gray-400 hover:text-red-500 transition-colors flex items-center"
+                                        >
+                                            <span class="material-symbols-outlined text-xs">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
