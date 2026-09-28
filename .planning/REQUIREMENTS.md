@@ -47,6 +47,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **SYNC-DIRECT-05**: Chuẩn hóa cấu trúc dữ liệu, giao diện hiển thị bảng và mẫu xuất file Excel của Tab 2 (Sổ theo dõi) theo đúng form và các tiêu chí chuẩn giống hệt file gốc import ở Tab 1.
 
 
+### Wharfage Billing Period & Excel Tonnage (PHASE-14)
+
+- [x] **WHARFAGE-FILTER-01**: Cung cấp bộ lọc theo chu kỳ chốt phí cầu bến (ngày 26 tháng trước đến 25 tháng này) và tùy chọn khoảng ngày linh hoạt (từ ngày - đến ngày) tại Báo cáo tổng quan sà lan, căn cứ vào thời gian kết thúc làm hàng (`dateEnd`) của sà lan.
+- [x] **EXCEL-TONNAGE-01**: Bổ sung cột "Trọng tải (tấn)" vào file Excel xuất ra từ danh sách quản lý tất cả sà lan, lấy chính xác thông số kỹ thuật của sà lan và định dạng số phân cách hàng nghìn.
+
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -81,13 +87,15 @@ Which phases cover which requirements.
 | SYNC-DIRECT-03 | Phase 11 | Complete |
 | SYNC-DIRECT-04 | Phase 11 | Complete |
 | SYNC-DIRECT-05 | Phase 11 | Complete |
+| WHARFAGE-FILTER-01 | Phase 14 | Complete |
+| EXCEL-TONNAGE-01 | Phase 14 | Complete |
 
 **Coverage:**
-- v1.1 requirements: 18 total
-- Mapped to phases: 18
+- v1.1 requirements: 20 total
+- Mapped to phases: 20
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-09-11 after Phase 8 exploration*
+*Last updated: 2026-09-28 after Phase 14 implementation*

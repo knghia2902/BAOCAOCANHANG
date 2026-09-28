@@ -88,6 +88,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 11. Direct Barge Sync | v1.1 | 2/2 | Complete | 2026-09-23 |
 | 12. Single Barge Allocator | v1.1 | 2/2 | Complete | 2026-09-23 |
 | 13. Sync Barge Profile | v1.1 | 1/1 | Complete | 2026-09-24 |
+| 14. Lọc kỳ phí & Trọng tải Excel | v1.1 | 1/1 | Complete | 2026-09-28 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -149,5 +150,16 @@ Plans:
 Plans:
 
 - [x] 13-01: Triển khai nút "Truy xuất hồ sơ cũ", logic tìm kiếm sà lan lịch sử mới nhất theo tên, hộp thoại xác nhận và nạp toàn bộ thông số, giấy tờ, ảnh và thuyền viên vào form.
+
+### Phase 14: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel
+
+**Goal:** Nâng cấp bộ lọc thời gian tại Báo cáo tổng quan hệ thống sang chu kỳ tính phí cầu bến chuẩn (26 tháng trước - 25 tháng này), hỗ trợ tùy chọn khoảng ngày linh hoạt, và bổ sung cột Trọng tải sà lan vào file Excel xuất ra.
+**Requirements**: WHARFAGE-FILTER-01, EXCEL-TONNAGE-01
+**Depends on:** Phase 13
+**Plans:** 1 plan
+
+Plans:
+
+- [x] 14-01: Triển khai bộ lọc chu kỳ 26-25, tùy chọn khoảng ngày và bổ sung cột Trọng tải sà lan vào file Excel xuất ra.
 
 

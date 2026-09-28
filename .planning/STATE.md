@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 13
-current_phase_name: sync-barge-profile-from-history
+current_phase: 14
+current_phase_name: barge-wharfage-filter-excel
 status: completed
-stopped_at: Phase 13 completed (1/1 plans executed)
-last_updated: "2026-09-24T20:45:00.000Z"
-last_activity: 2026-09-24
-last_activity_desc: Phase 13 complete — Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử
+stopped_at: Phase 14 completed (1/1 plans executed)
+last_updated: "2026-09-28T21:55:00.000Z"
+last_activity: 2026-09-28
+last_activity_desc: Phase 14 complete — Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 17
-  completed_plans: 17
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 18
+  completed_plans: 18
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 13 — sync-barge-profile-from-history
+**Current focus:** Phase 14 — barge-wharfage-filter-excel
 
 ## Current Position
 
-Phase: 13 (sync-barge-profile-from-history) — COMPLETED
-Plans: 1/1 completed (13-01)
-Status: Completed Phase 13
-Last activity: 2026-09-24 — Phase 13 complete: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử
+Phase: 14 (barge-wharfage-filter-excel) — COMPLETED
+Plans: 1/1 completed (14-01)
+Status: Completed Phase 14
+Last activity: 2026-09-28 — Phase 14 complete: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Recent decisions affecting current work:
 - Phase 8 added: Phân loại tàu Đang làm hàng & Đã xong (Giao diện 2 Tab, chế độ Read-only, Admin mở lại)
 - Phase 9 added: Thiết kế lại database & khôi phục dữ liệu Tab Theo Dõi (bảng Supabase riêng, migrate 16,303 trips, khôi phục 1,657 trips)
 - Phase 13 added: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử (Barge Profile Sync from History)
+- Phase 14 added: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel (chu kỳ 26 - 25, tùy chọn khoảng ngày, bổ sung cột Trọng tải sà lan vào Excel)
 
 
 ### Pending Todos
