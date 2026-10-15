@@ -2,19 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 15
-current_phase_name: chuy-n-s-lan-gi-a-c-c-t-u-b-ng-k-o-th-an-to-n-trong-b-o-c-o
-status: completed
-stopped_at: Phase 15 completed (1/1 plans executed)
-last_updated: "2026-10-15T22:15:00.000Z"
+current_phase: 7
+current_phase_name: advanced filtering & excel export
+status: planning
+stopped_at: Phase 08 planned
+last_updated: "2026-10-15T15:50:26.100Z"
 last_activity: 2026-10-15
-last_activity_desc: Phase 15 complete — Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
+last_activity_desc: Phase 15 complete, transitioned to Phase 7
 progress:
   total_phases: 10
   completed_phases: 10
   total_plans: 19
   completed_plans: 19
-  percent: 100
 ---
 
 # Project State
@@ -28,16 +27,16 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 ## Current Position
 
-Phase: 15 (chuy-n-s-lan-gi-a-c-c-t-u-b-ng-k-o-th-an-to-n-trong-b-o-c-o) — COMPLETED
+Phase: 7 — advanced filtering & excel export
 Plans: 1/1 completed (15-01)
-Status: Completed Phase 15
-Last activity: 2026-10-15 — Phase 15 complete: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
+Status: Ready to plan
+Last activity: 2026-10-15 — Phase 15 complete, transitioned to Phase 7
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 5
+- Total plans completed: 1
 - Total execution time: ~1.0 hours
 
 **By Phase:**
@@ -48,6 +47,7 @@ Last activity: 2026-10-15 — Phase 15 complete: Chuyển sà lan giữa các t�
 | 2. Parsing & OCR | 3/3 | ~35m | ~12m |
 | 3. Pipelines | 0/2 | 0m | - |
 | 4. UI Dashboard | 0/2 | 0m | - |
+| 15 | 1 | - | - |
 
 **Recent Trend:**
 
@@ -80,7 +80,6 @@ Recent decisions affecting current work:
 - Phase 13 added: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử (Barge Profile Sync from History)
 - Phase 14 added: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel (chu kỳ 26 - 25, tùy chọn khoảng ngày, bổ sung cột Trọng tải sà lan vào Excel)
 - Phase 15 added: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
-
 
 ### Pending Todos
 

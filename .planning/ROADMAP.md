@@ -89,7 +89,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 12. Single Barge Allocator | v1.1 | 2/2 | Complete | 2026-09-23 |
 | 13. Sync Barge Profile | v1.1 | 1/1 | Complete | 2026-09-24 |
 | 14. Lọc kỳ phí & Trọng tải Excel | v1.1 | 1/1 | Complete | 2026-09-28 |
-| 15. Kéo thả sà lan an toàn | v1.2 | 1/1 | Complete | 2026-10-15 |
+| 15. Kéo thả sà lan an toàn | v1.2 | 1/1 | Complete    | 2026-10-15 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -168,7 +168,7 @@ Plans:
 **Goal:** Cho phép chuyển trọn gói sà lan (cùng toàn bộ dữ liệu phiếu cân, số xe, khối lượng và hồ sơ) từ Tàu mẹ A sang Tàu mẹ B trong Báo Cáo Tổng Quan thông qua thao tác Kéo - Thả (Drag & Drop) trực quan kèm Hộp thoại xác nhận an toàn (Confirm Modal chống thả nhầm) và nút bấm chuyển tàu dự phòng trên thiết bị di động.
 **Requirements**: MOVE-BARGE-01, MOVE-BARGE-02, MOVE-BARGE-03
 **Depends on:** Phase 14
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 
