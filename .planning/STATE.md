@@ -79,6 +79,7 @@ Recent decisions affecting current work:
 - Phase 9 added: Thiết kế lại database & khôi phục dữ liệu Tab Theo Dõi (bảng Supabase riêng, migrate 16,303 trips, khôi phục 1,657 trips)
 - Phase 13 added: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử (Barge Profile Sync from History)
 - Phase 14 added: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel (chu kỳ 26 - 25, tùy chọn khoảng ngày, bổ sung cột Trọng tải sà lan vào Excel)
+- Phase 15 added: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
 
 
 ### Pending Todos

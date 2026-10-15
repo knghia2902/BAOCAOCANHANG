@@ -162,4 +162,13 @@ Plans:
 
 - [x] 14-01: Triển khai bộ lọc chu kỳ 26-25, tùy chọn khoảng ngày và bổ sung cột Trọng tải sà lan vào file Excel xuất ra.
 
+### Phase 15: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
 
+**Goal:** Cho phép chuyển trọn gói sà lan (cùng toàn bộ dữ liệu phiếu cân, số xe, khối lượng và hồ sơ) từ Tàu mẹ A sang Tàu mẹ B trong Báo Cáo Tổng Quan thông qua thao tác Kéo - Thả (Drag & Drop) trực quan kèm Hộp thoại xác nhận an toàn (Confirm Modal chống thả nhầm) và nút bấm chuyển tàu dự phòng trên thiết bị di động.
+**Requirements**: MOVE-BARGE-01, MOVE-BARGE-02, MOVE-BARGE-03
+**Depends on:** Phase 14
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 15-01: Triển khai API chuyển sà lan (`moveBarge`), tính năng kéo-thả (HTML5 Drag & Drop) trong Sidebar `WeighbridgePrinter.vue` / `WbVesselSidebar.vue`, tích hợp Modal xác nhận chống trượt tay, chặn tàu đã chốt số liệu và nút chuyển tàu dự phòng.
