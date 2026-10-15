@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 14
-current_phase_name: barge-wharfage-filter-excel
+current_phase: 15
+current_phase_name: chuy-n-s-lan-gi-a-c-c-t-u-b-ng-k-o-th-an-to-n-trong-b-o-c-o
 status: completed
-stopped_at: Phase 14 completed (1/1 plans executed)
-last_updated: "2026-09-28T21:55:00.000Z"
-last_activity: 2026-09-28
-last_activity_desc: Phase 14 complete — Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel
+stopped_at: Phase 15 completed (1/1 plans executed)
+last_updated: "2026-10-15T22:15:00.000Z"
+last_activity: 2026-10-15
+last_activity_desc: Phase 15 complete — Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 18
-  completed_plans: 18
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 19
+  completed_plans: 19
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 14 — barge-wharfage-filter-excel
+**Current focus:** Phase 15 — chuy-n-s-lan-gi-a-c-c-t-u-b-ng-k-o-th-an-to-n-trong-b-o-c-o
 
 ## Current Position
 
-Phase: 14 (barge-wharfage-filter-excel) — COMPLETED
-Plans: 1/1 completed (14-01)
-Status: Completed Phase 14
-Last activity: 2026-09-28 — Phase 14 complete: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel
+Phase: 15 (chuy-n-s-lan-gi-a-c-c-t-u-b-ng-k-o-th-an-to-n-trong-b-o-c-o) — COMPLETED
+Plans: 1/1 completed (15-01)
+Status: Completed Phase 15
+Last activity: 2026-10-15 — Phase 15 complete: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
 
 ## Performance Metrics
 

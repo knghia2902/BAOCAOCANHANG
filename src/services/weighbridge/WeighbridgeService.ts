@@ -663,6 +663,71 @@ export const WeighbridgeService = {
     },
 
     /**
+     * Move a barge from its current vessel to a target vessel
+     */
+    async moveBarge(bargeId: number, targetVesselId: number): Promise<boolean> {
+        const local = await getLocalVessels();
+        let targetBarge: Barge | null = null;
+        let sourceVessel: Vessel | null = null;
+        const targetVessel = local.find(v => String(v.id) === String(targetVesselId));
+
+        if (!targetVessel) {
+            console.error('Target vessel not found:', targetVesselId);
+            return false;
+        }
+
+        // Find the barge and its source vessel
+        for (const vessel of local) {
+            if (vessel.barges) {
+                const bIdx = vessel.barges.findIndex(b => String(b.id) === String(bargeId));
+                if (bIdx !== -1) {
+                    sourceVessel = vessel;
+                    targetBarge = vessel.barges[bIdx] || null;
+                    // Remove from source vessel
+                    vessel.barges.splice(bIdx, 1);
+                    break;
+                }
+            }
+        }
+
+        if (!targetBarge || !sourceVessel) {
+            console.error('Source barge or vessel not found:', bargeId);
+            return false;
+        }
+
+        if (String(sourceVessel.id) === String(targetVesselId)) {
+            // Already in target vessel, nothing to do
+            return true;
+        }
+
+        // Update barge's vessel_id
+        targetBarge.vessel_id = targetVessel.id;
+        if (!targetVessel.barges) {
+            targetVessel.barges = [];
+        }
+        targetVessel.barges.push(targetBarge);
+
+        // Save updated local vessels cache
+        await saveLocalVessels(local);
+
+        // Update Supabase
+        try {
+            const { error } = await supabase
+                .from('weighbridge_barges')
+                .update({ vessel_id: targetVessel.id })
+                .eq('id', bargeId);
+
+            if (error) {
+                console.warn('Supabase move barge failed, kept local change:', error);
+            }
+            return true;
+        } catch (e) {
+            console.warn('Supabase offline, moved barge locally:', e);
+            return true;
+        }
+    },
+
+    /**
      * Get all trucks for a specific barge
      */
     async getTrucks(bargeId: number): Promise<Truck[]> {

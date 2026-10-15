@@ -2932,6 +2932,167 @@ const deleteBarge = async (_vesselId: number, id: number, name: string) => {
     }
 };
 
+// Drag & drop state for moving barges between vessels
+const draggedBarge = ref<{
+    vesselId: number;
+    bargeId: number;
+    bargeName: string;
+} | null>(null);
+const dragOverVesselId = ref<number | null>(null);
+
+// Move barge modal state
+const showMoveBargeModal = ref(false);
+const moveBargeTarget = ref<{
+    bargeId: number;
+    bargeName: string;
+    sourceVesselId: number;
+    sourceVesselName: string;
+    targetVesselId: number | null;
+} | null>(null);
+const isMovingBarge = ref(false);
+
+const availableTargetVessels = computed(() => {
+    if (!moveBargeTarget.value) return [];
+    return vessels.value.filter(v => 
+        v.id !== moveBargeTarget.value!.sourceVesselId && 
+        v.status !== 'done'
+    );
+});
+
+function handleBargeDragStart(event: DragEvent, vessel: Vessel, barge: Barge) {
+    if (vessel.status === 'done' || barge.config?.locked) {
+        event.preventDefault();
+        return;
+    }
+    draggedBarge.value = {
+        vesselId: vessel.id,
+        bargeId: barge.id,
+        bargeName: barge.name
+    };
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', JSON.stringify(draggedBarge.value));
+    }
+}
+
+function handleBargeDragEnd() {
+    draggedBarge.value = null;
+    dragOverVesselId.value = null;
+}
+
+function handleVesselDragOver(event: DragEvent, targetVessel: Vessel) {
+    if (!draggedBarge.value) return;
+    if (draggedBarge.value.vesselId === targetVessel.id || targetVessel.status === 'done') {
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'none';
+        }
+        return;
+    }
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+    }
+    dragOverVesselId.value = targetVessel.id;
+}
+
+function handleVesselDragLeave(_event: DragEvent, targetVessel: Vessel) {
+    if (dragOverVesselId.value === targetVessel.id) {
+        dragOverVesselId.value = null;
+    }
+}
+
+function handleVesselDrop(_event: DragEvent, targetVessel: Vessel) {
+    dragOverVesselId.value = null;
+    if (!draggedBarge.value) return;
+    if (draggedBarge.value.vesselId === targetVessel.id) {
+        draggedBarge.value = null;
+        return;
+    }
+    if (targetVessel.status === 'done') {
+        showToast('Không thể chuyển sà lan vào tàu đã chốt số liệu!', 'error');
+        draggedBarge.value = null;
+        return;
+    }
+
+    const sourceVessel = vessels.value.find(v => v.id === draggedBarge.value!.vesselId);
+    moveBargeTarget.value = {
+        bargeId: draggedBarge.value.bargeId,
+        bargeName: draggedBarge.value.bargeName,
+        sourceVesselId: draggedBarge.value.vesselId,
+        sourceVesselName: sourceVessel?.name || 'Tàu nguồn',
+        targetVesselId: targetVessel.id
+    };
+    showMoveBargeModal.value = true;
+    draggedBarge.value = null;
+}
+
+function openMoveBargeModal(vessel: Vessel, barge: Barge) {
+    if (vessel.status === 'done') {
+        showToast('Tàu này đã chốt số liệu, không thể chuyển sà lan!', 'error');
+        return;
+    }
+    if (barge.config?.locked) {
+        showToast('Sà lan đang bị khóa, vui lòng mở khóa trước khi chuyển!', 'warning');
+        return;
+    }
+    
+    const firstAvailableTarget = vessels.value.find(v => v.id !== vessel.id && v.status !== 'done');
+
+    moveBargeTarget.value = {
+        bargeId: barge.id,
+        bargeName: barge.name,
+        sourceVesselId: vessel.id,
+        sourceVesselName: vessel.name,
+        targetVesselId: firstAvailableTarget ? firstAvailableTarget.id : null
+    };
+    showMoveBargeModal.value = true;
+}
+
+async function confirmMoveBarge() {
+    if (!moveBargeTarget.value || !moveBargeTarget.value.targetVesselId) {
+        showToast('Vui lòng chọn tàu đích để chuyển sà lan!', 'warning');
+        return;
+    }
+    const { bargeId, bargeName, sourceVesselName, targetVesselId } = moveBargeTarget.value;
+    const targetVessel = vessels.value.find(v => v.id === targetVesselId);
+    if (!targetVessel) {
+        showToast('Không tìm thấy tàu đích!', 'error');
+        return;
+    }
+    if (targetVessel.status === 'done') {
+        showToast('Không thể chuyển vào tàu đã chốt số liệu!', 'error');
+        return;
+    }
+
+    isMovingBarge.value = true;
+    try {
+        const success = await WeighbridgeService.moveBarge(bargeId, targetVesselId);
+        if (success) {
+            showToast(`Đã chuyển sà lan "${bargeName}" từ "${sourceVesselName}" sang "${targetVessel.name}" thành công! 🚢`, 'success');
+            await LogService.logAction('Chuyển tàu mẹ sà lan', `Chuyển "${bargeName}" từ "${sourceVesselName}" sang "${targetVessel.name}"`);
+            
+            await loadVessels();
+            expandedVesselIds.value[targetVesselId] = true;
+            
+            if (activeBargeId.value === bargeId) {
+                activeVesselId.value = targetVesselId;
+            } else if (activeVesselId.value !== null) {
+                await refreshVesselSummary();
+            }
+            await refreshGlobalBargesSummary();
+            
+            showMoveBargeModal.value = false;
+            moveBargeTarget.value = null;
+        } else {
+            showToast('Chuyển sà lan thất bại, vui lòng thử lại!', 'error');
+        }
+    } catch (err) {
+        console.error('Error moving barge:', err);
+        showToast('Lỗi khi chuyển sà lan!', 'error');
+    } finally {
+        isMovingBarge.value = false;
+    }
+}
+
 // Smart name normalization and matching for allocator sync
 
 function isBargeMatch(trip: any, barge: Barge): boolean {
@@ -4391,7 +4552,19 @@ onUnmounted(() => {
                             {{ selectedVesselStatusTab === 'done' ? 'Chưa có tàu nào ở trạng thái Đã xong.' : 'Không có tàu nào đang làm hàng.' }}
                         </div>
 
-                        <div v-for="vessel in filteredSidebarVessels" :key="vessel.id" class="border border-primary/5 rounded-[16px] overflow-hidden bg-gray-50">
+                        <div 
+                            v-for="vessel in filteredSidebarVessels" 
+                            :key="vessel.id" 
+                            class="border rounded-[16px] overflow-hidden transition-all duration-200"
+                            :class="[
+                                dragOverVesselId === vessel.id && draggedBarge && draggedBarge.vesselId !== vessel.id && vessel.status !== 'done'
+                                    ? 'border-2 border-teal-500 bg-teal-50/80 shadow-md ring-2 ring-teal-400/30'
+                                    : 'border-primary/5 bg-gray-50'
+                            ]"
+                            @dragover.prevent="handleVesselDragOver($event, vessel)"
+                            @dragleave="handleVesselDragLeave($event, vessel)"
+                            @drop.prevent="handleVesselDrop($event, vessel)"
+                        >
                             <!-- Vessel Header -->
                             <div 
                                 @click="selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
@@ -4426,7 +4599,15 @@ onUnmounted(() => {
                                     v-for="barge in vessel.barges" 
                                     :key="barge.id"
                                     @click="selectBarge(vessel.id, barge.id)"
-                                    :class="['flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold gap-1.5', activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100']"
+                                    :draggable="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done' && !barge.config?.locked"
+                                    @dragstart="handleBargeDragStart($event, vessel, barge)"
+                                    @dragend="handleBargeDragEnd"
+                                    :class="[
+                                        'flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold gap-1.5',
+                                        activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100',
+                                        draggedBarge?.bargeId === barge.id ? 'opacity-40 border-2 border-dashed border-teal-500 scale-95' : ''
+                                    ]"
+                                    :title="vessel.status !== 'done' && !barge.config?.locked ? 'Nhấn để xem hoặc kéo thả sang tàu khác' : ''"
                                 >
                                     <div class="flex items-center gap-1.5 min-w-0 flex-1 truncate">
                                         <span class="material-symbols-outlined text-sm shrink-0">layers</span>
@@ -4443,6 +4624,9 @@ onUnmounted(() => {
                                         </div>
                                     </div>
                                     <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="flex items-center gap-0.5 shrink-0" @click.stopPropagation>
+                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="openMoveBargeModal(vessel, barge)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-teal-600'" title="Chuyển sang tàu khác">
+                                            <span class="material-symbols-outlined text-xs">swap_horiz</span>
+                                        </button>
                                         <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
                                             <span class="material-symbols-outlined text-xs">edit</span>
                                         </button>
@@ -4888,6 +5072,15 @@ onUnmounted(() => {
                                         :title="cfgForm.locked ? 'Mở khóa sà lan' : 'Khóa sà lan'"
                                     >
                                         <span class="material-symbols-outlined text-[12px] font-bold">{{ cfgForm.locked ? 'lock' : 'lock_open' }}</span>
+                                    </button>
+                                    <button 
+                                        v-if="!isCurrentVesselDone && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update'))"
+                                        @click="activeVessel && activeBarge && openMoveBargeModal(activeVessel, activeBarge)" 
+                                        class="ml-2 px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 text-[11px] font-bold transition-all bg-gray-100 text-gray-700 hover:bg-teal-50 hover:text-teal-700 border border-gray-200 hover:border-teal-300 shadow-xs"
+                                        title="Chuyển sà lan này sang tàu mẹ khác"
+                                    >
+                                        <span class="material-symbols-outlined text-[13px] text-teal-600">swap_horiz</span>
+                                        Chuyển tàu
                                     </button>
                                 </h1>
                             </div>
@@ -6008,6 +6201,115 @@ onUnmounted(() => {
                         ]"
                     >
                         {{ confirmDialog.okText }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
+    </Teleport>
+
+    <!-- Premium Custom Move Barge Modal -->
+    <Teleport to="body">
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div 
+            v-if="showMoveBargeModal && moveBargeTarget" 
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4 no-print"
+            @click.self="!isMovingBarge && (showMoveBargeModal = false)"
+        >
+            <div 
+                class="w-full max-w-[480px] bg-white rounded-[24px] border border-gray-100 shadow-2xl p-6 flex flex-col gap-4 transform transition-all scale-100"
+            >
+                <!-- Header -->
+                <div class="flex items-center gap-3">
+                    <div class="size-11 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-2xl">swap_horiz</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-gray-900 leading-tight">
+                            Chuyển sà lan sang tàu khác 🚢
+                        </h3>
+                        <p class="text-xs font-semibold text-gray-500 mt-0.5">
+                            Điều chuyển sà lan giữa các kế hoạch làm hàng
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Content Box -->
+                <div class="bg-gray-50 rounded-[16px] p-4 border border-gray-100 flex flex-col gap-3">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-500 font-bold">Sà lan cần chuyển:</span>
+                        <span class="text-gray-900 font-black text-sm px-2.5 py-1 bg-white rounded-lg border border-gray-200">
+                            {{ moveBargeTarget.bargeName }}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-5 items-center gap-2 py-2">
+                        <div class="col-span-2 flex flex-col gap-1">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase">Tàu hiện tại</span>
+                            <div class="p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-black text-primary truncate" :title="moveBargeTarget.sourceVesselName">
+                                {{ moveBargeTarget.sourceVesselName }}
+                            </div>
+                        </div>
+
+                        <div class="col-span-1 flex justify-center items-center text-teal-600">
+                            <span class="material-symbols-outlined text-xl">arrow_forward</span>
+                        </div>
+
+                        <div class="col-span-2 flex flex-col gap-1">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase">Tàu đích đến *</span>
+                            <select 
+                                v-model="moveBargeTarget.targetVesselId" 
+                                class="p-2.5 bg-white border-2 border-teal-500 rounded-xl text-xs font-black text-teal-700 focus:outline-none cursor-pointer"
+                            >
+                                <option :value="null" disabled>-- Chọn tàu đích --</option>
+                                <option 
+                                    v-for="v in availableTargetVessels" 
+                                    :key="v.id" 
+                                    :value="v.id"
+                                >
+                                    {{ v.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div v-if="availableTargetVessels.length === 0" class="text-xs text-red-500 font-bold bg-red-50 p-2.5 rounded-xl border border-red-200 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">warning</span>
+                        Hiện không có tàu mẹ nào khác đang mở làm hàng để chuyển đến!
+                    </div>
+
+                    <div class="text-[11px] text-gray-500 font-semibold leading-relaxed bg-teal-50/50 p-3 rounded-xl border border-teal-100 flex items-start gap-2">
+                        <span class="material-symbols-outlined text-teal-600 text-base shrink-0 mt-0.5">info</span>
+                        <div>
+                            Toàn bộ dữ liệu phiếu cân, số lượng xe, khối lượng hàng và cấu hình biên bản bên trong sà lan sẽ được <strong>bảo lưu 100%</strong> và tự động tính sang cho tàu đích.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button 
+                        @click="showMoveBargeModal = false; moveBargeTarget = null" 
+                        :disabled="isMovingBarge"
+                        class="h-10 px-4 rounded-[12px] text-xs font-bold text-gray-600 hover:bg-gray-100 active:scale-95 transition-all border border-gray-200"
+                    >
+                        Hủy bỏ
+                    </button>
+                    <button 
+                        @click="confirmMoveBarge" 
+                        :disabled="isMovingBarge || !moveBargeTarget.targetVesselId || availableTargetVessels.length === 0"
+                        class="h-10 px-5 rounded-[12px] text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 active:scale-95 transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span v-if="isMovingBarge" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                        <span v-else class="material-symbols-outlined text-sm">check</span>
+                        Xác nhận chuyển
                     </button>
                 </div>
             </div>

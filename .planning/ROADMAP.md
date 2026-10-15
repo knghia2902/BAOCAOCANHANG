@@ -89,6 +89,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 12. Single Barge Allocator | v1.1 | 2/2 | Complete | 2026-09-23 |
 | 13. Sync Barge Profile | v1.1 | 1/1 | Complete | 2026-09-24 |
 | 14. Lọc kỳ phí & Trọng tải Excel | v1.1 | 1/1 | Complete | 2026-09-28 |
+| 15. Kéo thả sà lan an toàn | v1.2 | 1/1 | Complete | 2026-10-15 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -171,4 +172,4 @@ Plans:
 
 Plans:
 
-- [ ] 15-01: Triển khai API chuyển sà lan (`moveBarge`), tính năng kéo-thả (HTML5 Drag & Drop) trong Sidebar `WeighbridgePrinter.vue` / `WbVesselSidebar.vue`, tích hợp Modal xác nhận chống trượt tay, chặn tàu đã chốt số liệu và nút chuyển tàu dự phòng.
+- [x] 15-01: Triển khai API chuyển sà lan (`moveBarge`), tính năng kéo-thả (HTML5 Drag & Drop) trong Sidebar `WeighbridgePrinter.vue`, tích hợp Modal xác nhận chống trượt tay, chặn tàu đã chốt số liệu và nút chuyển tàu dự phòng.
