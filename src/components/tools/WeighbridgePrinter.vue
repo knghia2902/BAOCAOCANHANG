@@ -4603,7 +4603,7 @@ onUnmounted(() => {
                                     @dragstart="handleBargeDragStart($event, vessel, barge)"
                                     @dragend="handleBargeDragEnd"
                                     :class="[
-                                        'flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold gap-1.5',
+                                        'group flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold gap-1.5',
                                         activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100',
                                         draggedBarge?.bargeId === barge.id ? 'opacity-40 border-2 border-dashed border-teal-500 scale-95' : ''
                                     ]"
@@ -4623,7 +4623,7 @@ onUnmounted(() => {
                                             <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
                                         </div>
                                     </div>
-                                    <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="flex items-center gap-0.5 shrink-0" @click.stopPropagation>
+                                    <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity" @click.stopPropagation>
                                         <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="openMoveBargeModal(vessel, barge)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-teal-600'" title="Chuyển sang tàu khác">
                                             <span class="material-symbols-outlined text-xs">swap_horiz</span>
                                         </button>
