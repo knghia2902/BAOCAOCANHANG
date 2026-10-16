@@ -158,6 +158,7 @@ const globalFilterType = ref<string>('');
 const globalFilterStartDate = ref<string>('');
 const globalFilterEndDate = ref<string>('');
 const globalFilterMonth = ref<string>('');
+const globalFilterVesselStatus = ref<string>('');
 const globalBargesSummary = ref<BargeSummary[]>([]);
 const loadingGlobalSummary = ref(false);
 const exportingGlobalBarges = ref(false);
@@ -535,12 +536,13 @@ const allBarges = computed(() => {
         name: string; 
         vesselId: number; 
         vesselName: string; 
+        vesselStatus: 'in_progress' | 'done';
         created_at?: string; 
         locked: boolean; 
         orderNo: string;
         tonnage?: number | null;
     }> = [];
-    const targetVessels = selectedVesselStatusTab.value === 'done' ? doneVessels.value : inProgressVessels.value;
+    const targetVessels = vessels.value;
     targetVessels.forEach(v => {
         if (v.barges) {
             v.barges.forEach(b => {
@@ -553,6 +555,7 @@ const allBarges = computed(() => {
                     name: b.name,
                     vesselId: v.id,
                     vesselName: v.name,
+                    vesselStatus: (v.status || 'in_progress') as 'in_progress' | 'done',
                     created_at: b.created_at,
                     locked: b.config?.locked || false,
                     orderNo: b.config?.orderNo ? String(b.config.orderNo).trim() : '',
@@ -696,6 +699,10 @@ const filteredAllBarges = computed(() => {
             totalWeight: summary ? summary.totalWeight : 0
         };
     });
+
+    if (globalFilterVesselStatus.value) {
+        list = list.filter(b => b.vesselStatus === globalFilterVesselStatus.value);
+    }
 
     if (globalFilterType.value === 'custom') {
         const start = globalFilterStartDate.value ? new Date(`${globalFilterStartDate.value}T00:00:00`) : null;
@@ -1256,7 +1263,8 @@ const exportAllBargesToExcel = () => {
             sheet.views = [{ showGridLines: true }];
             
             sheet.addRow(['DANH SÁCH QUẢN LÝ TẤT CẢ SÀ LAN']);
-            const filterLabel = globalFilterType.value ? ` - ${currentFilterPeriodLabel.value}` : '';
+            const vesselStatusLabel = globalFilterVesselStatus.value === 'done' ? ' - Tàu đã xong' : (globalFilterVesselStatus.value === 'in_progress' ? ' - Tàu đang làm hàng' : '');
+            const filterLabel = (globalFilterType.value ? ` - ${currentFilterPeriodLabel.value}` : '') + vesselStatusLabel;
             sheet.addRow([`Cảng Nguyên Ngọc - Xuất lúc: ${formatDateTimeStr(new Date().toISOString())}${filterLabel} - Tổng số: ${filteredAllBarges.value.length} sà lan`]);
             sheet.addRow([]);
             
@@ -4683,10 +4691,10 @@ onUnmounted(() => {
                                 </div>
                                 <div>
                                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        {{ selectedVesselStatusTab === 'done' ? 'Tàu đã xong' : 'Tàu đang làm hàng' }}
+                                        {{ globalFilterVesselStatus === 'done' ? 'Tàu đã xong' : (globalFilterVesselStatus === 'in_progress' ? 'Tàu đang làm hàng' : 'Tổng số tàu') }}
                                     </p>
                                     <h4 class="text-lg font-black text-[#1e293b]">
-                                        {{ selectedVesselStatusTab === 'done' ? doneVessels.length : inProgressVessels.length }} 
+                                        {{ globalFilterVesselStatus === 'done' ? doneVessels.length : (globalFilterVesselStatus === 'in_progress' ? inProgressVessels.length : vessels.length) }} 
                                         <span class="text-xs text-gray-400 font-bold">tàu</span>
                                     </h4>
                                 </div>
@@ -4760,6 +4768,20 @@ onUnmounted(() => {
                                 
                                 <!-- Billing Period & Date Range Filter -->
                                 <div class="flex flex-wrap items-center gap-2">
+                                    <!-- Vessel Status Filter -->
+                                    <div class="relative min-w-[170px] flex items-center">
+                                        <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm pointer-events-none">directions_boat</span>
+                                        <select 
+                                            v-model="globalFilterVesselStatus" 
+                                            class="w-full pl-9 pr-8 py-1.5 bg-white border border-gray-200 rounded-[12px] text-xs font-bold text-gray-700 focus:outline-none focus:border-primary cursor-pointer appearance-none shadow-sm"
+                                        >
+                                            <option value="">Tất cả trạng thái tàu</option>
+                                            <option value="in_progress">🚢 Đang làm hàng ({{ inProgressVessels.length }})</option>
+                                            <option value="done">✅ Đã xong ({{ doneVessels.length }})</option>
+                                        </select>
+                                        <span class="material-symbols-outlined absolute right-3 text-gray-400 text-sm pointer-events-none">expand_more</span>
+                                    </div>
+
                                     <div class="relative min-w-[230px] flex items-center">
                                         <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm pointer-events-none">calendar_month</span>
                                         <select 

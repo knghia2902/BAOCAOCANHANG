@@ -52,6 +52,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **WHARFAGE-FILTER-01**: Cung cấp bộ lọc theo chu kỳ chốt phí cầu bến (ngày 26 tháng trước đến 25 tháng này) và tùy chọn khoảng ngày linh hoạt (từ ngày - đến ngày) tại Báo cáo tổng quan sà lan, căn cứ vào thời gian kết thúc làm hàng (`dateEnd`) của sà lan.
 - [x] **EXCEL-TONNAGE-01**: Bổ sung cột "Trọng tải (tấn)" vào file Excel xuất ra từ danh sách quản lý tất cả sà lan, lấy chính xác thông số kỹ thuật của sà lan và định dạng số phân cách hàng nghìn.
 
+### Global Overview Barge Unification & Vessel Status Filter (PHASE-16)
+
+- [ ] **UNIFY-BARGES-01**: Bảng Danh sách quản lý tất cả sà lan tại Báo cáo tổng quan hiển thị 100% sà lan của toàn bộ hệ thống (cả tàu đang làm hàng và tàu đã xong), không bị chia cắt theo tab của Sidebar.
+- [ ] **VESSEL-FILTER-01**: Bổ sung bộ lọc Trạng thái tàu độc lập trên thanh công cụ lọc [Tất cả tàu | Tàu đang làm hàng | Tàu đã xong], hoạt động độc lập hoặc kết hợp linh hoạt với bộ lọc Kỳ tính phí.
+
 
 ## Future Requirements (v2+)
 
@@ -89,13 +94,15 @@ Which phases cover which requirements.
 | SYNC-DIRECT-05 | Phase 11 | Complete |
 | WHARFAGE-FILTER-01 | Phase 14 | Complete |
 | EXCEL-TONNAGE-01 | Phase 14 | Complete |
+| UNIFY-BARGES-01 | Phase 16 | Complete |
+| VESSEL-FILTER-01 | Phase 16 | Complete |
 
 **Coverage:**
-- v1.1 requirements: 20 total
-- Mapped to phases: 20
+- v1.1 / v1.2 requirements: 22 total
+- Mapped to phases: 22
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-09-28 after Phase 14 implementation*
+*Last updated: 2026-10-16 after Phase 16 specification*

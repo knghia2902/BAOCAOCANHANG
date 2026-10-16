@@ -90,6 +90,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 13. Sync Barge Profile | v1.1 | 1/1 | Complete | 2026-09-24 |
 | 14. Lọc kỳ phí & Trọng tải Excel | v1.1 | 1/1 | Complete | 2026-09-28 |
 | 15. Kéo thả sà lan an toàn | v1.2 | 1/1 | Complete    | 2026-10-15 |
+| 16. Hợp nhất sà lan & lọc trạng thái | v1.2 | 0/1 | In progress | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -173,3 +174,14 @@ Plans:
 Plans:
 
 - [x] 15-01: Triển khai API chuyển sà lan (`moveBarge`), tính năng kéo-thả (HTML5 Drag & Drop) trong Sidebar `WeighbridgePrinter.vue`, tích hợp Modal xác nhận chống trượt tay, chặn tàu đã chốt số liệu và nút chuyển tàu dự phòng.
+
+### Phase 16: Hợp nhất sà lan toàn hệ thống và bộ lọc trạng thái tàu tại Báo cáo tổng quan
+
+**Goal:** Hợp nhất toàn bộ dữ liệu sà lan (cả tàu đang làm hàng và tàu đã xong) tại bảng Báo cáo tổng quan để phục vụ tính phí cầu bến không bị chia cắt theo tab của Sidebar; đồng thời bổ sung bộ lọc Trạng thái tàu độc lập [Tất cả tàu | Tàu đang làm hàng | Tàu đã xong] trên thanh công cụ lọc.
+**Requirements**: UNIFY-BARGES-01, VESSEL-FILTER-01
+**Depends on:** Phase 15
+**Plans:** 1 plan
+
+Plans:
+
+- [x] 16-01: Cập nhật allBarges gom toàn bộ sà lan hệ thống, bổ sung dropdown lọc Trạng thái tàu độc lập và cập nhật các thẻ thống kê tổng quan.

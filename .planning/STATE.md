@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 7
-current_phase_name: advanced filtering & excel export
-status: planning
-stopped_at: Phase 08 planned
-last_updated: "2026-10-15T15:50:26.100Z"
-last_activity: 2026-10-15
-last_activity_desc: Phase 15 complete, transitioned to Phase 7
+current_phase: 16
+current_phase_name: unify-barges-and-vessel-status-filter
+status: completed
+stopped_at: Phase 16 complete
+last_updated: "2026-10-16T22:00:00.000Z"
+last_activity: 2026-10-16
+last_activity_desc: Phase 16 complete — Hợp nhất sà lan toàn hệ thống và bổ sung bộ lọc trạng thái tàu độc lập tại Báo cáo tổng quan
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 19
-  completed_plans: 19
+  total_phases: 11
+  completed_phases: 11
+  total_plans: 20
+  completed_plans: 20
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 15 — chuy-n-s-lan-gi-a-c-c-t-u-b-ng-k-o-th-an-to-n-trong-b-o-c-o
+**Current focus:** Phase 16 completed
 
 ## Current Position
 
-Phase: 7 — advanced filtering & excel export
-Plans: 1/1 completed (15-01)
-Status: Ready to plan
-Last activity: 2026-10-15 — Phase 15 complete, transitioned to Phase 7
+Phase: 16 — unify-barges-and-vessel-status-filter
+Plans: 1/1 completed
+Status: Phase complete
+Last activity: 2026-10-16 — Phase 16 complete
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Recent decisions affecting current work:
 - Phase 13 added: Truy xuất và đồng bộ hồ sơ sà lan từ lịch sử (Barge Profile Sync from History)
 - Phase 14 added: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel (chu kỳ 26 - 25, tùy chọn khoảng ngày, bổ sung cột Trọng tải sà lan vào Excel)
 - Phase 15 added: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
+- Phase 16 added: Hợp nhất sà lan toàn hệ thống và bộ lọc trạng thái tàu tại Báo cáo tổng quan
 
 ### Pending Todos
 
