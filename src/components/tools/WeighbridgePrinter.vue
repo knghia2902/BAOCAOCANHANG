@@ -4568,7 +4568,7 @@ onUnmounted(() => {
                             <!-- Vessel Header -->
                             <div 
                                 @click="selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
-                                :class="['flex items-center justify-between p-2.5 hover:bg-primary/10 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
+                                :class="['group flex items-center justify-between p-2.5 hover:bg-primary/10 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
                             >
                                 <div class="flex items-center gap-1.5 font-bold text-xs text-[#1e293b]">
                                     <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
@@ -4578,14 +4578,16 @@ onUnmounted(() => {
                                 
                                 <!-- Vessel Actions -->
                                 <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" class="flex items-center gap-0.5" @click.stopPropagation>
+                                    <div class="hidden group-hover:flex items-center gap-0.5">
+                                        <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done'" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
+                                            <span class="material-symbols-outlined text-xs">edit</span>
+                                        </button>
+                                        <button v-if="authStore.role === 'admin' || (hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete') && vessel.status !== 'done')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
+                                            <span class="material-symbols-outlined text-xs">delete</span>
+                                        </button>
+                                    </div>
                                     <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')) && vessel.status !== 'done'" @click="addBarge(vessel.id)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-primary/70 hover:text-primary transition-colors" title="Thêm sà lan">
                                         <span class="material-symbols-outlined text-xs">add</span>
-                                    </button>
-                                    <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done'" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
-                                        <span class="material-symbols-outlined text-xs">edit</span>
-                                    </button>
-                                    <button v-if="authStore.role === 'admin' || (hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete') && vessel.status !== 'done')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
-                                        <span class="material-symbols-outlined text-xs">delete</span>
                                     </button>
                                 </div>
                             </div>
@@ -4614,6 +4616,19 @@ onUnmounted(() => {
                                         <span class="truncate">{{ barge.name }}</span>
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0">
+                                        <!-- Barge Actions (Chỉ hiện khi rê chuột) -->
+                                        <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="hidden group-hover:flex items-center gap-0.5" @click.stopPropagation>
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="openMoveBargeModal(vessel, barge)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-teal-600'" title="Chuyển sang tàu khác">
+                                                <span class="material-symbols-outlined text-xs">swap_horiz</span>
+                                            </button>
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
+                                                <span class="material-symbols-outlined text-xs">edit</span>
+                                            </button>
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" @click="deleteBarge(vessel.id, barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-red-500'" title="Xóa sà lan">
+                                                <span class="material-symbols-outlined text-xs">delete</span>
+                                            </button>
+                                        </div>
+                                        <!-- Thứ tự & Khóa (Cố định sát mép phải) -->
                                         <div class="min-w-[24px] flex justify-center items-center shrink-0">
                                             <span v-if="barge.config?.orderNo" :class="['size-[22px] rounded-full inline-flex items-center justify-center text-[10px] border font-black uppercase leading-none shrink-0 select-none', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
                                                 {{ barge.config.orderNo }}
@@ -4622,17 +4637,6 @@ onUnmounted(() => {
                                         <div class="w-4 h-4 flex justify-center items-center shrink-0">
                                             <span v-if="barge.config?.locked" class="material-symbols-outlined text-xs" :class="activeBargeId === barge.id ? 'text-white/90' : 'text-red-500'" title="Sà lan đang bị khóa">lock</span>
                                         </div>
-                                    </div>
-                                    <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity" @click.stopPropagation>
-                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="openMoveBargeModal(vessel, barge)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-teal-600'" title="Chuyển sang tàu khác">
-                                            <span class="material-symbols-outlined text-xs">swap_horiz</span>
-                                        </button>
-                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="renameBarge(barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-primary'" title="Đổi tên">
-                                            <span class="material-symbols-outlined text-xs">edit</span>
-                                        </button>
-                                        <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" @click="deleteBarge(vessel.id, barge.id, barge.name)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-red-500'" title="Xóa sà lan">
-                                            <span class="material-symbols-outlined text-xs">delete</span>
-                                        </button>
                                     </div>
                                 </div>
                             </div>
