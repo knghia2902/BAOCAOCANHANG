@@ -1528,6 +1528,40 @@ function saveTicketsToSupabase(): Promise<void> {
 
 // Core state for sidebar
 const vessels = ref<Vessel[]>([]);
+
+// Chuẩn hóa tên tàu / sà lan để tìm kiếm không dấu
+function normalizeVesselSearchText(str: string): string {
+    return (str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toUpperCase()
+        .replace(/[\s_\-]+/g, ' ')
+        .trim();
+}
+
+// Chỉ hiển thị những sà lan thuộc nguồn tàu "NÔNG SẢN DE HEUS"
+const sourceVessels = computed(() => {
+    const matched = vessels.value.filter(v => {
+        const vName = normalizeVesselSearchText(v.name);
+        if (vName.includes('DE HEUS')) return true;
+        if (v.barges && v.barges.some(b => {
+            const bName = normalizeVesselSearchText(b.name);
+            const owner = normalizeVesselSearchText(b.config?.owner || '');
+            return bName.includes('DE HEUS') || owner.includes('DE HEUS');
+        })) {
+            return true;
+        }
+        return false;
+    });
+
+    if (matched.length > 0) {
+        return matched;
+    }
+    return vessels.value;
+});
+
 const expandedVesselIds = ref<Record<number, boolean>>({});
 const loading = ref(false);
 const saving = ref(false);
@@ -1696,35 +1730,19 @@ const loadVessels = async () => {
             }
         });
         
-        // Tự động chọn sà lan: ưu tiên DE HEUS / NÔNG SẢN, sau đó là sà lan đầu tiên
-        if (!activeBargeId.value) {
+        // Tự động chọn sà lan: ưu tiên sà lan thuộc nguồn tàu NÔNG SẢN DE HEUS
+        const isCurrentActiveValid = activeBargeId.value && sourceVessels.value.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
+        if (!isCurrentActiveValid) {
             let targetBargeId: number | null = null;
             let targetVesselId: number | null = null;
             
-            // Priority 1: DE HEUS / NÔNG SẢN
-            for (const v of data) {
-                if (v.barges) {
-                    const match = v.barges.find(b => 
-                        b.name.toUpperCase().includes('DE HEUS') || 
-                        b.name.toUpperCase().includes('NÔNG SẢN')
-                    );
-                    if (match) {
-                        targetBargeId = match.id;
+            for (const v of sourceVessels.value) {
+                if (v.barges && v.barges.length > 0) {
+                    const firstB = v.barges[0];
+                    if (firstB) {
+                        targetBargeId = firstB.id;
                         targetVesselId = v.id;
                         break;
-                    }
-                }
-            }
-            // Priority 2: First barge
-            if (!targetBargeId) {
-                for (const v of data) {
-                    if (v.barges && v.barges.length > 0) {
-                        const firstB = v.barges[0];
-                        if (firstB) {
-                            targetBargeId = firstB.id;
-                            targetVesselId = v.id;
-                            break;
-                        }
                     }
                 }
             }
@@ -1741,6 +1759,23 @@ const loadVessels = async () => {
         loading.value = false;
     }
 };
+
+watch(sourceVessels, (newVessels) => {
+    if (!newVessels || newVessels.length === 0) return;
+    const isValid = activeBargeId.value && newVessels.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
+    if (!isValid) {
+        for (const v of newVessels) {
+            if (v.barges && v.barges.length > 0) {
+                const first = v.barges[0];
+                if (first) {
+                    activeBargeId.value = first.id;
+                    activeVesselId.value = v.id;
+                    break;
+                }
+            }
+        }
+    }
+}, { immediate: true });
 
 watch(activeBargeId, (newBargeId) => {
     if (!newBargeId) return;
@@ -3522,8 +3557,8 @@ async function compileAndDownload() {
                                 v-model.number="activeBargeId" 
                                 class="w-full px-2.5 py-1.5 bg-white border border-primary/30 rounded-[8px] text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-xs cursor-pointer transition-all"
                             >
-                                <option :value="null" disabled>-- Chọn sà lan nguồn --</option>
-                                <template v-for="vessel in vessels" :key="vessel.id">
+                                <option :value="null" disabled>-- Chọn sà lan nguồn (NÔNG SẢN DE HEUS) --</option>
+                                <template v-for="vessel in sourceVessels" :key="vessel.id">
                                     <optgroup v-if="vessel.barges && vessel.barges.length > 0" :label="'Tàu: ' + vessel.name">
                                         <option 
                                             v-for="barge in vessel.barges" 
