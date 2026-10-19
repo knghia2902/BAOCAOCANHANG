@@ -58,6 +58,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **VESSEL-FILTER-01**: Bổ sung bộ lọc Trạng thái tàu độc lập trên thanh công cụ lọc [Tất cả tàu | Tàu đang làm hàng | Tàu đã xong], hoạt động độc lập hoặc kết hợp linh hoạt với bộ lọc Kỳ tính phí.
 
 
+### Allocator Barge Status Grouping (PHASE-17)
+
+- [ ] **ALLOC-GROUP-01**: Phân nhóm danh sách sà lan của tàu Nông Sản De Heus tại Sidebar thành 2 tab trạng thái trực quan [⏳ Chưa phân bổ (X) | ✅ Đã phân bổ (Y)] kèm số lượng đếm.
+- [ ] **ALLOC-GROUP-02**: Hiển thị danh sách thẻ sà lan chi tiết (tên sà lan, mã lệnh, hàng hóa, khối lượng/số chuyến). Khi bấm chọn sà lan trong "Đã phân bổ", hệ thống tự động chuyển sang Tab 3 (Sổ theo dõi) để xem dữ liệu và xuất Excel.
+- [ ] **ALLOC-GROUP-03**: Tự động chuyển trạng thái của sà lan từ "Chưa phân bổ" sang "Đã phân bổ" ngay khi người dùng lưu các chuyến xe phân bổ vào Sổ theo dõi.
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -96,13 +102,16 @@ Which phases cover which requirements.
 | EXCEL-TONNAGE-01 | Phase 14 | Complete |
 | UNIFY-BARGES-01 | Phase 16 | Complete |
 | VESSEL-FILTER-01 | Phase 16 | Complete |
+| ALLOC-GROUP-01 | Phase 17 | Pending |
+| ALLOC-GROUP-02 | Phase 17 | Pending |
+| ALLOC-GROUP-03 | Phase 17 | Pending |
 
 **Coverage:**
-- v1.1 / v1.2 requirements: 22 total
-- Mapped to phases: 22
+- v1.1 / v1.2 requirements: 25 total
+- Mapped to phases: 25
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-10-16 after Phase 16 specification*
+*Last updated: 2026-10-19 after Phase 17 specification*
