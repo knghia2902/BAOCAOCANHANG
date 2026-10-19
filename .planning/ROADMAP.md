@@ -185,3 +185,14 @@ Plans:
 Plans:
 
 - [x] 16-01: Cập nhật allBarges gom toàn bộ sà lan hệ thống, bổ sung dropdown lọc Trạng thái tàu độc lập và cập nhật các thẻ thống kê tổng quan.
+
+### Phase 17: Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
+
+**Goal:** Tổ chức danh sách sà lan thuộc nguồn tàu "NÔNG SẢN DE HEUS" tại Sidebar bên trái của công cụ Phân Bổ Tải Trọng (`/split`) thành 2 tab trạng thái trực quan [⏳ Chưa phân bổ | ✅ Đã phân bổ] kèm số lượng đếm; hiển thị danh sách thẻ sà lan kèm số lệnh và khối lượng; khi bấm chọn sà lan đã phân bổ thì tự động chuyển sang Tab 3 (Sổ theo dõi) để xem kết quả và xuất Excel; tự động chuyển sà lan từ Chưa phân bổ sang Đã phân bổ ngay khi lưu dữ liệu.
+**Requirements**: ALLOC-GROUP-01, ALLOC-GROUP-02, ALLOC-GROUP-03
+**Depends on:** Phase 12
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 17-01: Cập nhật Sidebar `SingleBargeAllocator.vue` với 2 tab trạng thái Chưa phân bổ / Đã phân bổ, danh sách thẻ sà lan chi tiết, tự động chuyển Tab 3 khi chọn sà lan đã phân bổ và tự động cập nhật trạng thái khi lưu Sổ theo dõi.

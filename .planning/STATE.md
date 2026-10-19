@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 16
-current_phase_name: unify-barges-and-vessel-status-filter
-status: completed
-stopped_at: Phase 16 complete
-last_updated: "2026-10-16T22:00:00.000Z"
-last_activity: 2026-10-16
-last_activity_desc: Phase 16 complete — Hợp nhất sà lan toàn hệ thống và bổ sung bộ lọc trạng thái tàu độc lập tại Báo cáo tổng quan
+current_phase: 17
+current_phase_name: phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus
+status: ready_to_plan
+stopped_at: Phase 17 added
+last_updated: "2026-10-19T13:37:00.000Z"
+last_activity: 2026-10-19
+last_activity_desc: Phase 17 added — Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
 progress:
   total_phases: 11
   completed_phases: 11
@@ -81,6 +81,7 @@ Recent decisions affecting current work:
 - Phase 14 added: Lọc sà lan theo kỳ tính phí cầu bến & Xuất Excel (chu kỳ 26 - 25, tùy chọn khoảng ngày, bổ sung cột Trọng tải sà lan vào Excel)
 - Phase 15 added: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
 - Phase 16 added: Hợp nhất sà lan toàn hệ thống và bộ lọc trạng thái tàu tại Báo cáo tổng quan
+- Phase 17 added: Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
 
 ### Pending Todos
 
