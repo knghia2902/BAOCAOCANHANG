@@ -1562,6 +1562,70 @@ const sourceVessels = computed(() => {
     return vessels.value;
 });
 
+// Tab trạng thái sà lan tại Sidebar: 'pending' (Chưa phân bổ) | 'completed' (Đã phân bổ)
+const selectedBargeStatusTab = ref<'pending' | 'completed'>('pending');
+
+// Helper kiểm tra sà lan đã được phân bổ hay chưa (dựa vào Sổ theo dõi / weighbridge_allocation_tracking)
+function isBargeAllocated(barge: { id: number; name: string; config?: any }): boolean {
+    if (!existingTrips.value || existingTrips.value.length === 0) return false;
+    const bName = (barge.name || '').trim().toUpperCase();
+    const orderNo = (barge.config?.orderNo || '').trim();
+    return existingTrips.value.some(t => {
+        if (t.bargeId && Number(t.bargeId) === Number(barge.id)) return true;
+        if (bName && t.bargeName && t.bargeName.trim().toUpperCase() === bName) return true;
+        if (orderNo && t.orderNo && t.orderNo.trim() === orderNo) return true;
+        return false;
+    });
+}
+
+// Thống kê kết quả phân bổ của sà lan (số chuyến, tổng tấn)
+function getBargeAllocatedSummary(barge: { id: number; name: string; config?: any }) {
+    if (!existingTrips.value) return { tripCount: 0, totalTons: 0 };
+    const bName = (barge.name || '').trim().toUpperCase();
+    const orderNo = (barge.config?.orderNo || '').trim();
+    const trips = existingTrips.value.filter(t => {
+        if (t.bargeId && Number(t.bargeId) === Number(barge.id)) return true;
+        if (bName && t.bargeName && t.bargeName.trim().toUpperCase() === bName) return true;
+        if (orderNo && t.orderNo && t.orderNo.trim() === orderNo) return true;
+        return false;
+    });
+    const totalTons = trips.reduce((sum, t) => {
+        if (typeof t.weightTons === 'number' && !isNaN(t.weightTons)) return sum + t.weightTons;
+        if (typeof t.weightNet === 'number' && !isNaN(t.weightNet)) return sum + (t.weightNet / 1000);
+        return sum;
+    }, 0);
+    return {
+        tripCount: trips.length,
+        totalTons: Math.round(totalTons * 100) / 100
+    };
+}
+
+// Danh sách toàn bộ sà lan De Heus
+const allDeHeusBarges = computed(() => {
+    const list: (Barge & { vesselName?: string })[] = [];
+    for (const v of sourceVessels.value) {
+        if (v.barges) {
+            for (const b of v.barges) {
+                list.push({
+                    ...b,
+                    vesselName: v.name
+                });
+            }
+        }
+    }
+    return list;
+});
+
+// Sà lan Chưa phân bổ
+const unallocatedBarges = computed(() => {
+    return allDeHeusBarges.value.filter(b => !isBargeAllocated(b));
+});
+
+// Sà lan Đã phân bổ
+const allocatedBarges = computed(() => {
+    return allDeHeusBarges.value.filter(b => isBargeAllocated(b));
+});
+
 const expandedVesselIds = ref<Record<number, boolean>>({});
 const loading = ref(false);
 const saving = ref(false);
@@ -1764,14 +1828,19 @@ watch(sourceVessels, (newVessels) => {
     if (!newVessels || newVessels.length === 0) return;
     const isValid = activeBargeId.value && newVessels.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
     if (!isValid) {
-        for (const v of newVessels) {
-            if (v.barges && v.barges.length > 0) {
-                const first = v.barges[0];
-                if (first) {
-                    activeBargeId.value = first.id;
-                    activeVesselId.value = v.id;
-                    break;
-                }
+        if (unallocatedBarges.value.length > 0) {
+            const first = unallocatedBarges.value[0];
+            if (first) {
+                activeBargeId.value = first.id;
+                activeVesselId.value = first.vesselId;
+                selectedBargeStatusTab.value = 'pending';
+            }
+        } else if (allocatedBarges.value.length > 0) {
+            const first = allocatedBarges.value[0];
+            if (first) {
+                activeBargeId.value = first.id;
+                activeVesselId.value = first.vesselId;
+                selectedBargeStatusTab.value = 'completed';
             }
         }
     }
@@ -2754,6 +2823,43 @@ const historySearchQuery = ref('');
 const historyCurrentPage = ref(1);
 const historyBargeFilter = ref<'all' | 'current'>('all');
 
+// Chọn sà lan từ danh sách thẻ ở Sidebar
+function selectBargeFromSidebar(barge: Barge, isAllocated: boolean) {
+    activeBargeId.value = barge.id;
+    activeVesselId.value = barge.vesselId;
+
+    if (isAllocated) {
+        historyBargeFilter.value = 'current';
+        activeDataTab.value = 'generated';
+    } else {
+        if (activeDataTab.value === 'generated') {
+            activeDataTab.value = 'source';
+        }
+    }
+}
+
+// Chuyển tab trạng thái sà lan tại Sidebar
+function switchBargeStatusTab(tab: 'pending' | 'completed') {
+    selectedBargeStatusTab.value = tab;
+    if (tab === 'pending') {
+        const isCurrentInPending = unallocatedBarges.value.some(b => Number(b.id) === Number(activeBargeId.value));
+        if (!isCurrentInPending && unallocatedBarges.value.length > 0) {
+            const first = unallocatedBarges.value[0];
+            if (first) {
+                selectBargeFromSidebar(first, false);
+            }
+        }
+    } else {
+        const isCurrentInCompleted = allocatedBarges.value.some(b => Number(b.id) === Number(activeBargeId.value));
+        if (!isCurrentInCompleted && allocatedBarges.value.length > 0) {
+            const first = allocatedBarges.value[0];
+            if (first) {
+                selectBargeFromSidebar(first, true);
+            }
+        }
+    }
+}
+
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
     if (historyBargeFilter.value === 'current' && activeBargeId.value) {
@@ -2932,8 +3038,10 @@ async function saveToHistory() {
         // Save empty tickets list to Supabase
         saveTicketsToSupabase();
         
-        // Switch tab to Tab 3 (Theo dõi)
+        // Switch tab to Tab 3 (Theo dõi) và tự động chuyển Sidebar sang Đã phân bổ
         activeDataTab.value = 'generated';
+        historyBargeFilter.value = 'current';
+        selectedBargeStatusTab.value = 'completed';
         addToast(`Đã lưu thành công ${tripsToSave.length} chuyến xe vào Sổ Theo Dõi!`, 'success');
         await LogService.logAction('Lưu Sổ Theo Dõi', `Lưu ${tripsToSave.length} chuyến xe vào bảng phân bổ riêng: ${bName}`);
     }
@@ -3536,40 +3644,127 @@ async function compileAndDownload() {
                 <!-- Sidebar Body: Scrollable Settings -->
                 <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-left custom-scrollbar">
                     
-                    <!-- Khối 1: Chọn sà lan nguồn -->
+                    <!-- Khối 1: Chọn sà lan nguồn (Tàu Nông Sản De Heus) -->
                     <div class="bg-primary/[0.03] border border-primary/15 rounded-[18px] p-3 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                                 <span class="material-symbols-outlined text-[15px]">directions_boat</span>
-                                Sà lan nguồn (Dữ liệu gốc)
+                                Sà lan Nông Sản De Heus
                             </h4>
-                            <span v-if="loading" class="text-[10px] text-primary font-bold animate-pulse">Đang tải...</span>
+                            <span v-if="allDeHeusBarges.length > 0" class="text-[10px] font-bold text-gray-500 bg-white px-1.5 py-0.5 rounded-full border border-gray-200">
+                                {{ allocatedBarges.length }}/{{ allDeHeusBarges.length }} đã xong
+                            </span>
                         </div>
 
-                        <div class="flex flex-col gap-1">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Chọn sà lan nguồn:</span>
-                                <span class="text-[10px] text-blue-600 font-semibold cursor-help" title="Dữ liệu phiếu cân đã cân của sà lan này sẽ được nạp vào Tab 1 để phân bổ">
-                                    Nguồn dữ liệu
-                                </span>
-                            </div>
-                            <select 
-                                v-model.number="activeBargeId" 
-                                class="w-full px-2.5 py-1.5 bg-white border border-primary/30 rounded-[8px] text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-xs cursor-pointer transition-all"
+                        <!-- 2 Tab Trạng thái: Chưa phân bổ | Đã phân bổ -->
+                        <div class="grid grid-cols-2 gap-1 bg-gray-200/60 p-1 rounded-xl">
+                            <button 
+                                type="button"
+                                @click="switchBargeStatusTab('pending')"
+                                :class="[
+                                    'py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center gap-1 transition-all',
+                                    selectedBargeStatusTab === 'pending'
+                                        ? 'bg-amber-500 text-white shadow-xs'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                ]"
                             >
-                                <option :value="null" disabled>-- Chọn sà lan nguồn (NÔNG SẢN DE HEUS) --</option>
-                                <template v-for="vessel in sourceVessels" :key="vessel.id">
-                                    <optgroup v-if="vessel.barges && vessel.barges.length > 0" :label="'Tàu: ' + vessel.name">
-                                        <option 
-                                            v-for="barge in vessel.barges" 
-                                            :key="barge.id" 
-                                            :value="barge.id"
-                                        >
-                                            {{ barge.name }} {{ barge.config?.orderNo ? `(Lệnh: ${barge.config.orderNo})` : '' }} {{ barge.config?.goods ? `- ${barge.config.goods}` : '' }}
-                                        </option>
-                                    </optgroup>
-                                </template>
-                            </select>
+                                <span class="material-symbols-outlined text-[14px]">pending</span>
+                                <span>Chưa phân bổ</span>
+                                <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-bold', selectedBargeStatusTab === 'pending' ? 'bg-black/20 text-white' : 'bg-white text-gray-700 shadow-2xs']">
+                                    {{ unallocatedBarges.length }}
+                                </span>
+                            </button>
+                            <button 
+                                type="button"
+                                @click="switchBargeStatusTab('completed')"
+                                :class="[
+                                    'py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center gap-1 transition-all',
+                                    selectedBargeStatusTab === 'completed'
+                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                <span>Đã phân bổ</span>
+                                <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-bold', selectedBargeStatusTab === 'completed' ? 'bg-black/20 text-white' : 'bg-white text-gray-700 shadow-2xs']">
+                                    {{ allocatedBarges.length }}
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Danh sách Thẻ Sà Lan -->
+                        <div class="max-h-[200px] overflow-y-auto space-y-1.5 pr-0.5 custom-scrollbar">
+                            <!-- Tab: Chưa phân bổ -->
+                            <template v-if="selectedBargeStatusTab === 'pending'">
+                                <div v-if="unallocatedBarges.length === 0" class="py-4 px-3 text-center bg-white rounded-xl border border-dashed border-emerald-300 space-y-1">
+                                    <span class="material-symbols-outlined text-emerald-500 text-2xl">task_alt</span>
+                                    <p class="text-[11px] font-bold text-emerald-700">Tuyệt vời!</p>
+                                    <p class="text-[10px] text-gray-500">Tất cả sà lan De Heus đã được phân bổ.</p>
+                                </div>
+                                <div 
+                                    v-for="barge in unallocatedBarges" 
+                                    :key="barge.id"
+                                    @click="selectBargeFromSidebar(barge, false)"
+                                    :class="[
+                                        'p-2 rounded-xl border text-xs cursor-pointer transition-all flex flex-col gap-1',
+                                        Number(activeBargeId) === Number(barge.id)
+                                            ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-400/20 shadow-xs'
+                                            : 'bg-white border-gray-200 hover:border-amber-300 hover:bg-amber-50/20'
+                                    ]"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1.5 font-black text-gray-800">
+                                            <span class="material-symbols-outlined text-[15px] text-amber-600">directions_boat</span>
+                                            <span>{{ barge.name }}</span>
+                                        </div>
+                                        <span v-if="barge.config?.orderNo" class="font-mono text-[10px] font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded">
+                                            Lệnh: {{ barge.config.orderNo }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-gray-500">
+                                        <span>{{ barge.config?.goods || 'NÔNG SẢN' }}</span>
+                                        <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">
+                                            Chờ phân bổ
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Tab: Đã phân bổ -->
+                            <template v-else>
+                                <div v-if="allocatedBarges.length === 0" class="py-4 px-3 text-center bg-white rounded-xl border border-dashed border-gray-300 space-y-1">
+                                    <span class="material-symbols-outlined text-gray-400 text-2xl">hourglass_empty</span>
+                                    <p class="text-[11px] font-bold text-gray-600">Chưa có sà lan nào</p>
+                                    <p class="text-[10px] text-gray-400">Các sà lan sau khi lưu Sổ theo dõi sẽ hiển thị tại đây.</p>
+                                </div>
+                                <div 
+                                    v-for="barge in allocatedBarges" 
+                                    :key="barge.id"
+                                    @click="selectBargeFromSidebar(barge, true)"
+                                    :class="[
+                                        'p-2 rounded-xl border text-xs cursor-pointer transition-all flex flex-col gap-1',
+                                        Number(activeBargeId) === Number(barge.id)
+                                            ? 'bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                                            : 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/20'
+                                    ]"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1.5 font-black text-gray-800">
+                                            <span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
+                                            <span>{{ barge.name }}</span>
+                                        </div>
+                                        <span v-if="barge.config?.orderNo" class="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                                            Lệnh: {{ barge.config.orderNo }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-gray-500">
+                                        <span>{{ barge.config?.goods || 'NÔNG SẢN' }}</span>
+                                        <span class="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                                            {{ getBargeAllocatedSummary(barge).tripCount }} chuyến • {{ formatNumber(getBargeAllocatedSummary(barge).totalTons) }}t
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
 
                         <!-- Card thông tin sà lan đang chọn -->

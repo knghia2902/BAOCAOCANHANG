@@ -60,9 +60,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Allocator Barge Status Grouping (PHASE-17)
 
-- [ ] **ALLOC-GROUP-01**: Phân nhóm danh sách sà lan của tàu Nông Sản De Heus tại Sidebar thành 2 tab trạng thái trực quan [⏳ Chưa phân bổ (X) | ✅ Đã phân bổ (Y)] kèm số lượng đếm.
-- [ ] **ALLOC-GROUP-02**: Hiển thị danh sách thẻ sà lan chi tiết (tên sà lan, mã lệnh, hàng hóa, khối lượng/số chuyến). Khi bấm chọn sà lan trong "Đã phân bổ", hệ thống tự động chuyển sang Tab 3 (Sổ theo dõi) để xem dữ liệu và xuất Excel.
-- [ ] **ALLOC-GROUP-03**: Tự động chuyển trạng thái của sà lan từ "Chưa phân bổ" sang "Đã phân bổ" ngay khi người dùng lưu các chuyến xe phân bổ vào Sổ theo dõi.
+- [x] **ALLOC-GROUP-01**: Phân nhóm danh sách sà lan của tàu Nông Sản De Heus tại Sidebar thành 2 tab trạng thái trực quan [⏳ Chưa phân bổ (X) | ✅ Đã phân bổ (Y)] kèm số lượng đếm.
+- [x] **ALLOC-GROUP-02**: Hiển thị danh sách thẻ sà lan chi tiết (tên sà lan, mã lệnh, hàng hóa, khối lượng/số chuyến). Khi bấm chọn sà lan trong "Đã phân bổ", hệ thống tự động chuyển sang Tab 3 (Sổ theo dõi) để xem dữ liệu và xuất Excel.
+- [x] **ALLOC-GROUP-03**: Tự động chuyển trạng thái của sà lan từ "Chưa phân bổ" sang "Đã phân bổ" ngay khi người dùng lưu các chuyến xe phân bổ vào Sổ theo dõi.
 
 ## Future Requirements (v2+)
 
@@ -102,9 +102,9 @@ Which phases cover which requirements.
 | EXCEL-TONNAGE-01 | Phase 14 | Complete |
 | UNIFY-BARGES-01 | Phase 16 | Complete |
 | VESSEL-FILTER-01 | Phase 16 | Complete |
-| ALLOC-GROUP-01 | Phase 17 | Pending |
-| ALLOC-GROUP-02 | Phase 17 | Pending |
-| ALLOC-GROUP-03 | Phase 17 | Pending |
+| ALLOC-GROUP-01 | Phase 17 | Complete |
+| ALLOC-GROUP-02 | Phase 17 | Complete |
+| ALLOC-GROUP-03 | Phase 17 | Complete |
 
 **Coverage:**
 - v1.1 / v1.2 requirements: 25 total

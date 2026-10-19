@@ -4,16 +4,16 @@ milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
 current_phase: 17
 current_phase_name: phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus
-status: ready_to_plan
-stopped_at: Phase 17 added
-last_updated: "2026-10-19T13:37:00.000Z"
+status: completed
+stopped_at: Phase 17 complete
+last_updated: "2026-10-19T13:56:00.000Z"
 last_activity: 2026-10-19
-last_activity_desc: Phase 17 added — Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
+last_activity_desc: Phase 17 complete — Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 20
-  completed_plans: 20
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 21
+  completed_plans: 21
 ---
 
 # Project State

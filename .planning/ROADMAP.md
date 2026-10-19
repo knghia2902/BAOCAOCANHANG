@@ -195,4 +195,4 @@ Plans:
 
 Plans:
 
-- [ ] 17-01: Cập nhật Sidebar `SingleBargeAllocator.vue` với 2 tab trạng thái Chưa phân bổ / Đã phân bổ, danh sách thẻ sà lan chi tiết, tự động chuyển Tab 3 khi chọn sà lan đã phân bổ và tự động cập nhật trạng thái khi lưu Sổ theo dõi.
+- [x] 17-01: Cập nhật Sidebar `SingleBargeAllocator.vue` với 2 tab trạng thái Chưa phân bổ / Đã phân bổ, danh sách thẻ sà lan chi tiết, tự động chuyển Tab 3 khi chọn sà lan đã phân bổ và tự động cập nhật trạng thái khi lưu Sổ theo dõi.
