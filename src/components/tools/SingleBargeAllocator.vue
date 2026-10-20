@@ -171,6 +171,7 @@ const importOrderNo = ref('');
 function triggerTicketFileInput() {
     ticketFileInput.value?.click();
 }
+void triggerTicketFileInput;
 const csvRecords = ref<CSVRecord[]>([]);
 const generatedTrips = ref<SplitTrip[]>([]);
 const existingTrips = ref<SplitTrip[]>([]);
@@ -916,6 +917,7 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
         loadingCSV.value = false;
     }
 }
+void handleTicketImport;
 
 const isLoadingSourceBargeTrucks = ref(false);
 
@@ -1107,6 +1109,7 @@ function openAddTicketDialog() {
     };
     showTicketDialog.value = true;
 }
+void openAddTicketDialog;
 
 function openEditTicketDialog(ticket: CSVRecord) {
     editingTicket.value = ticket;
@@ -4146,28 +4149,7 @@ async function compileAndDownload() {
                             {{ isLoadingSourceBargeTrucks ? 'Đang nạp...' : (activeBarge ? `Nạp từ sà lan (${activeBarge.name})` : 'Nạp từ sà lan') }}
                         </button>
 
-                        <input 
-                            type="file" 
-                            ref="ticketFileInput" 
-                            accept=".csv,.xlsx,.xls" 
-                            @change="handleTicketImport" 
-                            class="hidden"
-                        >
-                        <button 
-                            @click="triggerTicketFileInput"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
-                            :disabled="loadingCSV"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">upload_file</span>
-                            {{ loadingCSV ? 'Đang đọc...' : 'Import' }}
-                        </button>
-                        <button 
-                            @click="openAddTicketDialog"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">add</span>
-                            Thêm
-                        </button>
+
                         <button 
                             @click="clearAllTickets"
                             class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
