@@ -40,7 +40,7 @@ const props = defineProps<{
 const activeVesselId = ref<number | null>(null);
 const activeBargeId = ref<number | null>(null);
 const isMobileSettingsOpen = ref(false);
-const isConfigExpanded = ref(false);
+const isConfigExpanded = ref(true);
 
 const formatDateTimeStr = (isoString: string): string => {
     if (!isoString) return '';
@@ -922,13 +922,13 @@ void handleTicketImport;
 const isLoadingSourceBargeTrucks = ref(false);
 
 // Nạp dữ liệu phiếu cân trực tiếp từ sà lan nguồn thay cho bước import tệp
-async function loadTicketsFromSourceBarge() {
+async function loadTicketsFromSourceBarge(askConfirmation: boolean = false) {
     if (!activeBargeId.value || !activeBarge.value) {
         addToast('Vui lòng chọn sà lan nguồn trước!', 'info');
         return;
     }
 
-    if (csvRecords.value.length > 0) {
+    if (askConfirmation && csvRecords.value.length > 0) {
         const confirmReplace = await showConfirm({
             title: 'Nạp phiếu cân từ Sà lan nguồn',
             message: `Bạn có chắc chắn muốn nạp dữ liệu phiếu cân từ sà lan nguồn "${activeBarge.value.name}" vào Tab 1?\n\nDanh sách ${csvRecords.value.length} phiếu cân hiện tại ở Tab 1 sẽ được thay thế bằng dữ liệu từ sà lan này.`,
@@ -994,7 +994,11 @@ async function loadTicketsFromSourceBarge() {
         }
 
         if (sourceRecords.length === 0) {
-            addToast(`Sà lan "${activeBarge.value.name}" hiện chưa có dữ liệu cân hàng. Bạn có thể Import tệp Excel/CSV ở Tab 1.`, 'info');
+            csvRecords.value = [];
+            generatedTrips.value = [];
+            await dbContext.set('split_allocator_tickets', []);
+            await dbContext.set('split_allocator_generated_trips', []);
+            addToast(`Sà lan "${activeBarge.value.name}" hiện chưa có dữ liệu cân hàng.`, 'info');
             return;
         }
 
@@ -1002,8 +1006,7 @@ async function loadTicketsFromSourceBarge() {
         await dbContext.set('split_allocator_tickets', sourceRecords);
         regenerateAllocatedTrips();
         await saveTicketsToSupabase();
-        activeDataTab.value = 'source';
-        addToast(`Đã nạp thành công ${sourceRecords.length} phiếu cân từ sà lan nguồn "${activeBarge.value.name}"!`, 'success');
+        addToast(`Đã nạp thành công ${sourceRecords.length} phiếu cân từ sà lan "${activeBarge.value.name}"!`, 'success');
         await LogService.logAction('Nạp phiếu sà lan nguồn', `Nạp ${sourceRecords.length} phiếu từ sà lan nguồn: ${activeBarge.value.name}`);
     } catch (e: any) {
         console.error('Lỗi khi nạp dữ liệu từ sà lan nguồn:', e);
@@ -1812,25 +1815,12 @@ const loadVessels = async () => {
             }
         });
         
-        // Tự động chọn sà lan: ưu tiên sà lan thuộc nguồn tàu NÔNG SẢN DE HEUS
-        const isCurrentActiveValid = activeBargeId.value && sourceVessels.value.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
-        if (!isCurrentActiveValid) {
-            let targetBargeId: number | null = null;
-            let targetVesselId: number | null = null;
-            
-            for (const v of sourceVessels.value) {
-                if (v.barges && v.barges.length > 0) {
-                    const firstB = v.barges[0];
-                    if (firstB) {
-                        targetBargeId = firstB.id;
-                        targetVesselId = v.id;
-                        break;
-                    }
-                }
-            }
-            if (targetBargeId && targetVesselId) {
-                activeBargeId.value = targetBargeId;
-                activeVesselId.value = targetVesselId;
+        // Nếu sà lan đang chọn không còn tồn tại trong danh sách, đưa về trạng thái danh sách tàu (null)
+        if (activeBargeId.value) {
+            const isCurrentActiveValid = sourceVessels.value.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
+            if (!isCurrentActiveValid) {
+                activeBargeId.value = null;
+                activeVesselId.value = null;
             }
         }
         
@@ -1844,22 +1834,11 @@ const loadVessels = async () => {
 
 watch(sourceVessels, (newVessels) => {
     if (!newVessels || newVessels.length === 0) return;
-    const isValid = activeBargeId.value && newVessels.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
-    if (!isValid) {
-        if (unallocatedBarges.value.length > 0) {
-            const first = unallocatedBarges.value[0];
-            if (first) {
-                activeBargeId.value = first.id;
-                activeVesselId.value = first.vesselId;
-                selectedBargeStatusTab.value = 'pending';
-            }
-        } else if (allocatedBarges.value.length > 0) {
-            const first = allocatedBarges.value[0];
-            if (first) {
-                activeBargeId.value = first.id;
-                activeVesselId.value = first.vesselId;
-                selectedBargeStatusTab.value = 'completed';
-            }
+    if (activeBargeId.value) {
+        const isValid = newVessels.some(v => v.barges?.some(b => Number(b.id) === Number(activeBargeId.value)));
+        if (!isValid) {
+            activeBargeId.value = null;
+            activeVesselId.value = null;
         }
     }
 }, { immediate: true });
@@ -2841,41 +2820,47 @@ const historySearchQuery = ref('');
 const historyCurrentPage = ref(1);
 const historyBargeFilter = ref<'all' | 'current'>('all');
 
-// Chọn sà lan từ danh sách thẻ ở Sidebar
-function selectBargeFromSidebar(barge: Barge, isAllocated: boolean) {
+// Chọn sà lan từ bảng danh sách tàu bên phải để mở Phiếu cân của tàu đó
+async function selectBargeFromSidebar(barge: Barge, _isAllocated: boolean, targetTab: 'source' | 'generated' = 'source') {
     activeBargeId.value = barge.id;
     activeVesselId.value = barge.vesselId;
-
-    if (isAllocated) {
-        historyBargeFilter.value = 'current';
-        activeDataTab.value = 'generated';
-    } else {
-        if (activeDataTab.value === 'generated') {
-            activeDataTab.value = 'source';
-        }
-    }
+    historyBargeFilter.value = 'current';
+    sourceSearchQuery.value = '';
+    sourceCurrentPage.value = 1;
+    activeDataTab.value = targetTab;
+    await loadTicketsFromSourceBarge(false);
 }
 
-// Chuyển tab trạng thái sà lan tại Sidebar
+// Quay lại danh sách tàu ở khung bên phải
+function backToBargeList() {
+    activeBargeId.value = null;
+    sourceSearchQuery.value = '';
+    sourceCurrentPage.value = 1;
+    activeDataTab.value = 'source';
+}
+
+// Danh sách sà lan hiển thị ở bảng bên phải (lọc theo tab Chưa phân bổ / Đã phân bổ và ô tìm kiếm)
+const filteredRightPanelBarges = computed(() => {
+    const baseList = selectedBargeStatusTab.value === 'pending'
+        ? unallocatedBarges.value
+        : allocatedBarges.value;
+    const q = sourceSearchQuery.value.trim().toLowerCase();
+    if (!q) return baseList;
+    return baseList.filter(b =>
+        (b.name || '').toLowerCase().includes(q) ||
+        (b.config?.orderNo || '').toLowerCase().includes(q) ||
+        (b.config?.goods || '').toLowerCase().includes(q) ||
+        (b.vesselName || '').toLowerCase().includes(q)
+    );
+});
+
+// Chuyển tab trạng thái sà lan tại Sidebar (Chưa phân bổ / Đã phân bổ) -> hiển thị danh sách tàu tương ứng bên phải
 function switchBargeStatusTab(tab: 'pending' | 'completed') {
     selectedBargeStatusTab.value = tab;
-    if (tab === 'pending') {
-        const isCurrentInPending = unallocatedBarges.value.some(b => Number(b.id) === Number(activeBargeId.value));
-        if (!isCurrentInPending && unallocatedBarges.value.length > 0) {
-            const first = unallocatedBarges.value[0];
-            if (first) {
-                selectBargeFromSidebar(first, false);
-            }
-        }
-    } else {
-        const isCurrentInCompleted = allocatedBarges.value.some(b => Number(b.id) === Number(activeBargeId.value));
-        if (!isCurrentInCompleted && allocatedBarges.value.length > 0) {
-            const first = allocatedBarges.value[0];
-            if (first) {
-                selectBargeFromSidebar(first, true);
-            }
-        }
-    }
+    activeBargeId.value = null;
+    sourceSearchQuery.value = '';
+    sourceCurrentPage.value = 1;
+    activeDataTab.value = 'source';
 }
 
 const filteredHistoryTrips = computed(() => {
@@ -3716,82 +3701,6 @@ async function compileAndDownload() {
                                 </span>
                             </button>
                         </div>
-
-                        <!-- Danh sách Thẻ Sà Lan -->
-                        <div :class="['overflow-y-auto space-y-1.5 pr-0.5 custom-scrollbar transition-all', isConfigExpanded ? 'max-h-[200px]' : 'max-h-[calc(100vh-270px)]']">
-                            <!-- Tab: Chưa phân bổ -->
-                            <template v-if="selectedBargeStatusTab === 'pending'">
-                                <div v-if="unallocatedBarges.length === 0" class="py-4 px-3 text-center bg-white rounded-xl border border-dashed border-emerald-300 space-y-1">
-                                    <span class="material-symbols-outlined text-emerald-500 text-2xl">task_alt</span>
-                                    <p class="text-[11px] font-bold text-emerald-700">Tuyệt vời!</p>
-                                    <p class="text-[10px] text-gray-500">Tất cả sà lan De Heus đã được phân bổ.</p>
-                                </div>
-                                <div 
-                                    v-for="barge in unallocatedBarges" 
-                                    :key="barge.id"
-                                    @click="selectBargeFromSidebar(barge, false)"
-                                    :class="[
-                                        'p-2 rounded-xl border text-xs cursor-pointer transition-all flex flex-col gap-1',
-                                        Number(activeBargeId) === Number(barge.id)
-                                            ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-400/20 shadow-xs'
-                                            : 'bg-white border-gray-200 hover:border-amber-300 hover:bg-amber-50/20'
-                                    ]"
-                                >
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-1.5 font-black text-gray-800">
-                                            <span class="material-symbols-outlined text-[15px] text-amber-600">directions_boat</span>
-                                            <span>{{ barge.name }}</span>
-                                        </div>
-                                        <span v-if="barge.config?.orderNo" class="font-mono text-[10px] font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded">
-                                            Lệnh: {{ barge.config.orderNo }}
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center justify-between text-[11px] text-gray-500">
-                                        <span>{{ barge.config?.goods || 'NÔNG SẢN' }}</span>
-                                        <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">
-                                            Chờ phân bổ
-                                        </span>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- Tab: Đã phân bổ -->
-                            <template v-else>
-                                <div v-if="allocatedBarges.length === 0" class="py-4 px-3 text-center bg-white rounded-xl border border-dashed border-gray-300 space-y-1">
-                                    <span class="material-symbols-outlined text-gray-400 text-2xl">hourglass_empty</span>
-                                    <p class="text-[11px] font-bold text-gray-600">Chưa có sà lan nào</p>
-                                    <p class="text-[10px] text-gray-400">Các sà lan sau khi lưu Sổ theo dõi sẽ hiển thị tại đây.</p>
-                                </div>
-                                <div 
-                                    v-for="barge in allocatedBarges" 
-                                    :key="barge.id"
-                                    @click="selectBargeFromSidebar(barge, true)"
-                                    :class="[
-                                        'p-2 rounded-xl border text-xs cursor-pointer transition-all flex flex-col gap-1',
-                                        Number(activeBargeId) === Number(barge.id)
-                                            ? 'bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
-                                            : 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/20'
-                                    ]"
-                                >
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-1.5 font-black text-gray-800">
-                                            <span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
-                                            <span>{{ barge.name }}</span>
-                                        </div>
-                                        <span v-if="barge.config?.orderNo" class="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded">
-                                            Lệnh: {{ barge.config.orderNo }}
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center justify-between text-[11px] text-gray-500">
-                                        <span>{{ barge.config?.goods || 'NÔNG SẢN' }}</span>
-                                        <span class="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
-                                            {{ getBargeAllocatedSummary(barge).tripCount }} chuyến • {{ formatNumber(getBargeAllocatedSummary(barge).totalTons) }}t
-                                        </span>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-
                     </div>
 
                     <!-- Nút Ẩn / Hiện Cài đặt phân bổ & Số phiếu (Mặc định ẩn) -->
@@ -3987,6 +3896,15 @@ async function compileAndDownload() {
                     </div>
 
                     <div v-if="activeBarge" class="flex items-center gap-2 bg-primary/5 border border-primary/15 rounded-xl px-3 py-1.5 text-xs">
+                        <button
+                            type="button"
+                            @click="backToBargeList"
+                            class="px-2 py-0.5 bg-white hover:bg-primary/10 text-primary border border-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-all shadow-2xs"
+                            title="Quay lại danh sách tàu / sà lan"
+                        >
+                            <span class="material-symbols-outlined text-[13px]">arrow_back</span>
+                            <span>Danh sách tàu</span>
+                        </button>
                         <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
                         <div class="flex items-center gap-1.5">
                             <span class="text-gray-400 font-bold">Sà lan nguồn:</span>
@@ -4012,7 +3930,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        1. Phiếu cân ({{ csvRecords.length }})
+                        1. Phiếu cân ({{ activeBarge ? csvRecords.length : filteredRightPanelBarges.length }})
                     </button>
                     <button 
                         @click="activeDataTab = 'template'"
@@ -4048,7 +3966,7 @@ async function compileAndDownload() {
                             <input 
                                 type="text" 
                                 v-model="sourceSearchQuery" 
-                                placeholder="Tìm kiếm..." 
+                                :placeholder="activeBarge ? 'Tìm kiếm phiếu cân...' : 'Tìm kiếm tàu / sà lan...'" 
                                 class="w-full pl-9 pr-8 h-7 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
                             >
                             <button 
@@ -4133,38 +4051,63 @@ async function compileAndDownload() {
                     <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
                     <!-- Tab 1 Actions -->
                     <template v-if="activeDataTab === 'source'">
-                        <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
-                            KL: {{ totalCsvWeightTons.toFixed(2) }}t
-                        </div>
+                        <!-- Khi chưa chọn tàu: hiển thị tổng số tàu trong danh sách -->
+                        <template v-if="!activeBargeId">
+                            <div :class="[
+                                'h-7 px-3 rounded-[8px] border flex items-center gap-1.5 font-bold text-xs shrink-0',
+                                selectedBargeStatusTab === 'pending'
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            ]">
+                                <span class="material-symbols-outlined text-[14px]">{{ selectedBargeStatusTab === 'pending' ? 'pending' : 'check_circle' }}</span>
+                                <span>{{ selectedBargeStatusTab === 'pending' ? 'Chưa phân bổ' : 'Đã phân bổ' }}: {{ filteredRightPanelBarges.length }} tàu</span>
+                            </div>
+                        </template>
 
-                        <!-- Nút nạp trực tiếp từ sà lan nguồn thay cho import -->
-                        <button 
-                            @click="loadTicketsFromSourceBarge"
-                            :disabled="!activeBargeId || isLoadingSourceBargeTrucks"
-                            class="h-7 px-3 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-[8px] hover:bg-blue-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                            :title="activeBarge ? `Lấy dữ liệu phiếu cân trực tiếp từ sà lan nguồn ${activeBarge.name} thay cho import tệp` : 'Chọn sà lan nguồn'"
-                        >
-                            <span v-if="isLoadingSourceBargeTrucks" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                            <span v-else class="material-symbols-outlined text-[14px]">directions_boat</span>
-                            {{ isLoadingSourceBargeTrucks ? 'Đang nạp...' : (activeBarge ? `Nạp từ sà lan (${activeBarge.name})` : 'Nạp từ sà lan') }}
-                        </button>
+                        <!-- Khi đã chọn tàu: hiển thị nút quay lại Danh sách tàu và các thao tác phiếu cân -->
+                        <template v-else>
+                            <button
+                                type="button"
+                                @click="backToBargeList"
+                                class="h-7 px-3 bg-slate-100 text-gray-700 border border-gray-200 text-xs font-bold rounded-[8px] hover:bg-slate-200 active:scale-[0.98] transition-all flex items-center gap-1.5 shrink-0"
+                                title="Quay lại danh sách tàu / sà lan"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">arrow_back</span>
+                                Danh sách tàu
+                            </button>
 
+                            <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs shrink-0">
+                                KL: {{ totalCsvWeightTons.toFixed(2) }}t
+                            </div>
 
-                        <button 
-                            @click="clearAllTickets"
-                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">delete</span>
-                            Xóa hết
-                        </button>
-                        <button 
-                            @click="exportSourceTickets"
-                            :disabled="csvRecords.length === 0 || compiling"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">download</span>
-                            Xuất Excel
-                        </button>
+                            <!-- Nút nạp trực tiếp từ sà lan nguồn -->
+                            <button 
+                                @click="loadTicketsFromSourceBarge(true)"
+                                :disabled="!activeBargeId || isLoadingSourceBargeTrucks"
+                                class="h-7 px-3 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-[8px] hover:bg-blue-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                :title="activeBarge ? `Nạp lại dữ liệu phiếu cân từ sà lan nguồn ${activeBarge.name}` : 'Chọn sà lan nguồn'"
+                            >
+                                <span v-if="isLoadingSourceBargeTrucks" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                <span v-else class="material-symbols-outlined text-[14px]">directions_boat</span>
+                                {{ isLoadingSourceBargeTrucks ? 'Đang nạp...' : 'Nạp lại từ sà lan' }}
+                            </button>
+
+                            <button 
+                                @click="clearAllTickets"
+                                class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 shrink-0"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">delete</span>
+                                Xóa hết
+                            </button>
+                            <button 
+                                @click="exportSourceTickets"
+                                :disabled="csvRecords.length === 0 || compiling"
+                                class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            >
+                                <span class="material-symbols-outlined text-[14px]">download</span>
+                                Xuất Excel
+                            </button>
+                        </template>
                     </template>
 
                     <!-- Tab 2 Actions -->
@@ -4228,11 +4171,130 @@ async function compileAndDownload() {
                 </div>
             </div></div>
             
-            <!-- Tab Content: Source Tickets -->
+            <!-- Tab Content: Source Tickets (Barge List when no barge selected, Ticket Rows when barge selected) -->
             <div v-if="activeDataTab === 'source'" class="flex-1 flex flex-col gap-3 min-h-0">
 
+                <!-- 1A. KHI CHƯA CLICK VÀO TÀU: Hiển thị Danh sách Tàu / Sà lan -->
+                <template v-if="!activeBargeId">
+                    <div v-if="filteredRightPanelBarges.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs font-bold min-w-[800px] whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                                    <th class="py-2.5 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
+                                    <th class="py-2.5 px-3 bg-gray-55 font-bold">Tên tàu / Sà lan</th>
+                                    <th class="py-2.5 px-3 text-center bg-gray-55 font-bold">Mã lệnh</th>
+                                    <th class="py-2.5 px-3 bg-gray-55 font-bold">Tàu chủ quản</th>
+                                    <th class="py-2.5 px-3 bg-gray-55 font-bold">Loại hàng</th>
+                                    <th class="py-2.5 px-3 text-center bg-gray-55 font-bold">Trạng thái</th>
+                                    <th class="py-2.5 px-3 text-center w-44 bg-gray-55 font-bold select-none">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
+                                <tr
+                                    v-for="(barge, idx) in filteredRightPanelBarges"
+                                    :key="barge.id"
+                                    @click="selectBargeFromSidebar(barge, selectedBargeStatusTab === 'completed', 'source')"
+                                    class="hover:bg-primary/5 cursor-pointer transition-colors group"
+                                >
+                                    <td class="py-2.5 px-3 text-center font-bold text-gray-400">
+                                        {{ idx + 1 }}
+                                    </td>
+                                    <td class="py-2.5 px-3">
+                                        <div class="flex items-center gap-2">
+                                            <span :class="[
+                                                'material-symbols-outlined text-[18px]',
+                                                selectedBargeStatusTab === 'pending' ? 'text-amber-500' : 'text-emerald-600'
+                                            ]">
+                                                {{ selectedBargeStatusTab === 'pending' ? 'directions_boat' : 'verified' }}
+                                            </span>
+                                            <span class="font-black text-gray-800 group-hover:text-primary transition-colors">{{ barge.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center">
+                                        <span v-if="barge.config?.orderNo" class="font-mono text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md">
+                                            {{ barge.config.orderNo }}
+                                        </span>
+                                        <span v-else class="text-gray-400">-</span>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-gray-600 font-semibold">
+                                        {{ barge.vesselName || '-' }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-gray-700 font-semibold">
+                                        {{ barge.config?.goods || 'NÔNG SẢN' }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center">
+                                        <span
+                                            v-if="selectedBargeStatusTab === 'pending'"
+                                            class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70"
+                                        >
+                                            <span class="material-symbols-outlined text-[13px]">pending</span>
+                                            Chờ phân bổ
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/70"
+                                        >
+                                            <span class="material-symbols-outlined text-[13px]">check_circle</span>
+                                            {{ getBargeAllocatedSummary(barge).tripCount }} chuyến • {{ formatNumber(getBargeAllocatedSummary(barge).totalTons) }}t
+                                        </span>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center">
+                                        <div class="flex items-center justify-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                @click.stop="selectBargeFromSidebar(barge, selectedBargeStatusTab === 'completed', 'source')"
+                                                class="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                                            >
+                                                <span class="material-symbols-outlined text-[14px]">receipt_long</span>
+                                                <span>Xem phiếu cân</span>
+                                            </button>
+                                            <button
+                                                v-if="selectedBargeStatusTab === 'completed'"
+                                                type="button"
+                                                @click.stop="selectBargeFromSidebar(barge, true, 'generated')"
+                                                class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                                                title="Xem trong Sổ theo dõi (Tab 3)"
+                                            >
+                                                <span class="material-symbols-outlined text-[14px]">fact_check</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
+                        <span class="material-symbols-outlined text-4xl" :class="selectedBargeStatusTab === 'pending' ? 'text-emerald-400' : 'text-gray-300'">
+                            {{ selectedBargeStatusTab === 'pending' ? 'task_alt' : 'directions_boat' }}
+                        </span>
+                        <p class="text-xs font-semibold max-w-[340px] leading-relaxed">
+                            {{ selectedBargeStatusTab === 'pending'
+                                ? 'Không có sà lan nào đang chờ phân bổ.'
+                                : 'Chưa có sà lan nào hoàn tất lưu Sổ theo dõi.' }}
+                        </p>
+                    </div>
+
+                    <!-- Footer tóm tắt danh sách tàu -->
+                    <div class="flex items-center justify-between gap-4 pt-3 border-t border-gray-50 text-xs font-semibold text-gray-500">
+                        <div class="flex items-center gap-2">
+                            <span>Tổng số tàu:</span>
+                            <span class="font-black text-gray-700">{{ filteredRightPanelBarges.length }}</span>
+                        </div>
+                        <div class="text-[11px] text-gray-400 italic flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px] text-primary">touch_app</span>
+                            <span>Nhấn vào tàu để xem danh sách phiếu cân</span>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- 1B. KHI ĐÃ CLICK VÀO TÀU: Hiển thị danh sách Phiếu cân của tàu đó -->
+                <template v-else>
+                <div v-if="isLoadingSourceBargeTrucks" class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 gap-2">
+                    <span class="material-symbols-outlined text-3xl text-primary animate-spin">sync</span>
+                    <p class="text-xs font-bold text-gray-500">Đang tải phiếu cân của sà lan {{ activeBarge?.name }}...</p>
+                </div>
                 <!-- Source Tickets Table -->
-                <div v-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                <div v-else-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
@@ -4346,7 +4408,7 @@ async function compileAndDownload() {
                 <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
                     <span class="material-symbols-outlined text-4xl text-gray-300">inventory_2</span>
                     <p class="text-xs font-semibold max-w-[320px] leading-relaxed">
-                        {{ csvRecords.length === 0 ? 'Chưa có phiếu cân nào. Vui lòng bấm "Import" hoặc "Thêm" để bắt đầu.' : 'Không tìm thấy phiếu cân nào khớp bộ lọc!' }}
+                        {{ csvRecords.length === 0 ? `Sà lan "${activeBarge?.name || ''}" hiện chưa có phiếu cân nào.` : 'Không tìm thấy phiếu cân nào khớp bộ lọc!' }}
                     </p>
                 </div>
 
@@ -4392,6 +4454,7 @@ async function compileAndDownload() {
                         </template>
                     </div>
                 </div>
+                </template>
             </div>
 
             <!-- Tab Content: Generated Split Trips -->

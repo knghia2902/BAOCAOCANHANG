@@ -99,10 +99,16 @@ Items acknowledged and carried forward from previous milestone close:
 |----------|------|--------|-------------|
 | Review | Phase 2 code review | Deferred (quota) | 2026-05-29 |
 
+### Quick Tasks Completed
+
+| # | Description | Date | Directory |
+|---|-------------|------|-----------|
+| 261020-vmi | Chuyển danh sách sà lan từ Sidebar sang bảng bên phải, click vào tàu mới hiện phiếu cân | 2026-10-20 | [261020-vmi-chuyen-danh-sach-sa-lan-tu-sidebar-sang-](./quick/261020-vmi-chuyen-danh-sach-sa-lan-tu-sidebar-sang-/) |
+
 ## Session Continuity
 
-Last session: 2026-10-20T17:00:00.000Z
-Stopped at: Phase 17 complete and verified, UAT passed (4/4)
+Last session: 2026-10-20T22:56:00+07:00
+Stopped at: Completed quick task 261020-vmi (Chuyển danh sách sà lan từ Sidebar sang bảng bên phải)
 Resume file: None
 
 ## Operator Next Steps
