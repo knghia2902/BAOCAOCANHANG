@@ -90,7 +90,9 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 13. Sync Barge Profile | v1.1 | 1/1 | Complete | 2026-09-24 |
 | 14. Lọc kỳ phí & Trọng tải Excel | v1.1 | 1/1 | Complete | 2026-09-28 |
 | 15. Kéo thả sà lan an toàn | v1.2 | 1/1 | Complete    | 2026-10-15 |
-| 16. Hợp nhất sà lan & lọc trạng thái | v1.2 | 0/1 | In progress | - |
+| 16. Hợp nhất sà lan & lọc trạng thái | v1.2 | 1/1 | Complete    | 2026-10-18 |
+| 17. Phân nhóm sà lan De Heus | v1.2 | 1/1 | Complete    | 2026-10-19 |
+| 18. Sao lưu & Khôi phục Google Drive (/admin) | v1.2 | 0/2 | Not started | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -196,3 +198,15 @@ Plans:
 Plans:
 
 - [x] 17-01: Cập nhật Sidebar `SingleBargeAllocator.vue` với 2 tab trạng thái Chưa phân bổ / Đã phân bổ, danh sách thẻ sà lan chi tiết, tự động chuyển Tab 3 khi chọn sà lan đã phân bổ và tự động cập nhật trạng thái khi lưu Sổ theo dõi.
+
+### Phase 18: Hệ thống Sao lưu & Khôi phục Tự động qua Google Drive tại `/admin`
+
+**Goal:** Xây dựng phân hệ Sao lưu & Khôi phục toàn diện trong `/admin` (`AdminView.vue`): đóng gói toàn bộ cơ sở dữ liệu Supabase và toàn bộ hình ảnh/tài liệu trên Supabase Storage thành file nén `.zip`; tích hợp cầu nối Google Apps Script để tự động sao lưu lên Google Drive theo giờ cài đặt hằng ngày và giới hạn số bản lưu tối đa (`maxBackups`); hỗ trợ khôi phục (Restore) trực tiếp từ danh sách bản lưu trên Google Drive hoặc từ file `.zip` import từ máy tính.
+**Requirements**: BACKUP-01, BACKUP-02, BACKUP-03
+**Depends on:** Phase 10
+**Plans:** 2 plans
+
+Plans:
+
+- [ ] 18-01: Xây dựng `BackupService.ts` (đóng gói/giải nén `.zip` toàn bộ bảng DB + Storage assets, kết nối Google Apps Script Bridge, bộ lập lịch tự động theo giờ & xoay vòng số bản lưu).
+- [ ] 18-02: Tích hợp giao diện quản lý Backup & Restore trong `AdminView.vue` (cấu hình giờ chạy, số bản lưu, mã Google Apps Script mẫu, nút Sao lưu ngay, danh sách bản lưu trên Google Drive kèm nút Restore và Import file `.zip`).

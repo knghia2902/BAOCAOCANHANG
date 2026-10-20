@@ -64,6 +64,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **ALLOC-GROUP-02**: Hiển thị danh sách thẻ sà lan chi tiết (tên sà lan, mã lệnh, hàng hóa, khối lượng/số chuyến). Khi bấm chọn sà lan trong "Đã phân bổ", hệ thống tự động chuyển sang Tab 3 (Sổ theo dõi) để xem dữ liệu và xuất Excel.
 - [x] **ALLOC-GROUP-03**: Tự động chuyển trạng thái của sà lan từ "Chưa phân bổ" sang "Đã phân bổ" ngay khi người dùng lưu các chuyến xe phân bổ vào Sổ theo dõi.
 
+### Admin Google Drive Backup & Restore (PHASE-18)
+
+- [ ] **BACKUP-01**: Hệ thống trích xuất toàn bộ các bảng cơ sở dữ liệu Supabase và toàn bộ hình ảnh/tài liệu trên Supabase Storage (`portfolio-assets`), đóng gói nén thành một file `.zip` chuẩn kèm `manifest.json`.
+- [ ] **BACKUP-02**: Trang `/admin` cung cấp cấu hình tự động sao lưu lên Google Drive (thông qua cầu nối Google Apps Script) theo giờ cài đặt hằng ngày và giới hạn số bản lưu tối đa (`maxBackups` — tự động xóa bản cũ nhất khi vượt quá).
+- [ ] **BACKUP-03**: Trang `/admin` hiển thị danh sách lịch sử các bản sao lưu trên Google Drive, cho phép bấm nút **Restore (Khôi phục)** trực tiếp từ Google Drive hoặc **Import file `.zip`** từ máy tính để khôi phục toàn bộ database và hình ảnh/tài liệu.
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -105,13 +111,16 @@ Which phases cover which requirements.
 | ALLOC-GROUP-01 | Phase 17 | Complete |
 | ALLOC-GROUP-02 | Phase 17 | Complete |
 | ALLOC-GROUP-03 | Phase 17 | Complete |
+| BACKUP-01 | Phase 18 | Pending |
+| BACKUP-02 | Phase 18 | Pending |
+| BACKUP-03 | Phase 18 | Pending |
 
 **Coverage:**
-- v1.1 / v1.2 requirements: 25 total
-- Mapped to phases: 25
+- v1.1 / v1.2 requirements: 28 total
+- Mapped to phases: 28
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-10-19 after Phase 17 specification*
+*Last updated: 2026-10-20 after Phase 18 exploration*
