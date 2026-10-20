@@ -38,6 +38,7 @@ Shipped version **v1.0** containing PDF parsing, client-side OCR, and Word/Excel
 - ✓ User can convert Word (.docx) and Excel (.xlsx) documents to PDF format client-side — v1.0 (Phase 3)
 - ✓ User can perform OCR on scanned PDF pages and uploaded images to extract text — v1.0 (Phase 2)
 - ✓ User interface displays status indicators, conversion progress bars, and document previews for PDF/OCR conversions — v1.0 (Phase 4)
+- ✓ User can organize De Heus barges into "Chưa phân bổ" and "Đã phân bổ" status tabs at the sidebar of Single Barge Allocator with trip/tonnage badges and auto-tab switching — Phase 17
 
 ### Active
 
@@ -71,6 +72,7 @@ Shipped version **v1.0** containing PDF parsing, client-side OCR, and Word/Excel
 | Client-side OCR (Tesseract.js) | Serverless execution, no cloud hosting fees, high security for user documents | ✓ Good |
 | Client-side PDF Parsing (pdfjs-dist) | Powerful library to parse digital PDFs and render pages into canvases for OCR | ✓ Good |
 | ticketNo-based deduplication | Prevents skipping new trips when a plate number has existing trips on the barge | ✓ Good |
+| Strict barge trip matching (bargeId + orderNo fallback) | Prevents same-name barge collisions across different voyages/orders in Single Barge Allocator | ✓ Good |
 
 ## Evolution
 
@@ -90,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v1.0 milestone*
+*Last updated: 2026-10-20 after Phase 17*

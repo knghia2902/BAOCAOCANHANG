@@ -5,10 +5,10 @@ milestone_name: Dedicated Single-Barge Allocator Tool
 current_phase: 17
 current_phase_name: phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus
 status: completed
-stopped_at: Phase 17 complete
-last_updated: "2026-10-19T13:56:00.000Z"
-last_activity: 2026-10-19
-last_activity_desc: Phase 17 complete — Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
+stopped_at: Phase 17 complete and verified
+last_updated: "2026-10-20T17:00:00.000Z"
+last_activity: 2026-10-20
+last_activity_desc: Phase 17 UAT complete and verified — Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
 progress:
   total_phases: 12
   completed_phases: 12
@@ -20,17 +20,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25)
+See: .planning/PROJECT.md (updated 2026-10-20)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 16 completed
+**Current focus:** Phase 17 completed
 
 ## Current Position
 
-Phase: 16 — unify-barges-and-vessel-status-filter
+Phase: 17 — phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus
 Plans: 1/1 completed
-Status: Phase complete
-Last activity: 2026-10-16 — Phase 16 complete
+Status: Phase complete (UAT verified 4/4)
+Last activity: 2026-10-20 — Phase 17 complete
 
 ## Performance Metrics
 
@@ -101,10 +101,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-11T13:51:01.192Z
-Stopped at: Phase 08 planned
-Resume file: .planning/phases/08-vessel-status-and-permissions/08-01-PLAN.md
+Last session: 2026-10-20T17:00:00.000Z
+Stopped at: Phase 17 complete and verified, UAT passed (4/4)
+Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- All active phases in roadmap completed. Next steps: explore new features or milestone wrap-up.
