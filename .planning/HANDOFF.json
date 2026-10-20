@@ -1,25 +1,29 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-25T09:06:05Z",
-  "phase": "4",
-  "phase_name": "ui-integration-formats-dashboard",
-  "phase_dir": ".planning/phases/04-ui-integration-formats-dashboard",
-  "plan": 2,
-  "task": 2,
-  "total_tasks": 2,
+  "timestamp": "2026-10-20T15:27:00Z",
+  "phase": "17",
+  "phase_name": "phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus",
+  "phase_dir": ".planning/phases/17-phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-",
+  "plan": 1,
+  "task": 1,
+  "total_tasks": 1,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Integrate crew CCCD fields in UI and configuration", "status": "done", "commit": "3f18aa7"},
-    {"id": 2, "name": "Align crew profile form labels and fix sync deduplication logic", "status": "done", "commit": "bad320e"}
+    {"id": 1, "name": "Organize De Heus barges into [Chua phan bo | Da phan bo] tabs in SingleBargeAllocator sidebar", "status": "done", "commit": "831c532"},
+    {"id": 2, "name": "Strict ID and OrderNo matching to resolve same-name barge collision", "status": "done", "commit": "523540e"},
+    {"id": 3, "name": "Remove barge info card and collapse allocation settings in sidebar", "status": "done", "commit": "ddad301"},
+    {"id": 4, "name": "Remove Import and Add ticket buttons from Tab 1 toolbar", "status": "done", "commit": "6764b76"}
   ],
   "remaining_tasks": [],
   "blockers": [],
   "async_jobs": [],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "Use ticketNo-based deduplication instead of count-based plate matching", "rationale": "Prevents skipping new trips when a plate number has existing trips on the barge but the new sync contains different trips", "phase": "4"}
+    {"decision": "Strict trip matching by bargeId with orderNo fallback", "rationale": "Prevents collisions between voyages sharing identical barge names", "phase": "17"},
+    {"decision": "Remove redundant barge info card and default-collapse settings", "rationale": "Increases vertical viewport for the barge list in sidebar", "phase": "17"},
+    {"decision": "Remove Import and Add ticket buttons from Tab 1 toolbar", "rationale": "Barge allocator workflow solely relies on loading tickets directly from source barges", "phase": "17"}
   ],
   "uncommitted_files": [],
-  "next_action": "Complete and archive milestone v1.0 using the /gsd-complete-milestone command.",
-  "context_notes": "We successfully aligned all form input layouts, added Captain/Chief Engineer/Sailors CCCD fields, and fixed the sync deduplication bug. The system is fully working and verified."
+  "next_action": "Resume session with /gsd-resume-work or explore next feature/milestone.",
+  "context_notes": "Phase 17 fully completed and verified. UAT passed 4/4. Additional UI refinements requested by user (removing barge info card, collapsing settings, removing import/add buttons) are tested, cleanly built, and pushed to master."
 }
