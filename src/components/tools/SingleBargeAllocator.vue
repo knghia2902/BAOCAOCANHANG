@@ -40,6 +40,7 @@ const props = defineProps<{
 const activeVesselId = ref<number | null>(null);
 const activeBargeId = ref<number | null>(null);
 const isMobileSettingsOpen = ref(false);
+const isConfigExpanded = ref(false);
 
 const formatDateTimeStr = (isoString: string): string => {
     if (!isoString) return '';
@@ -3643,13 +3644,23 @@ async function compileAndDownload() {
                             <h3 class="text-xs font-black text-[#1e293b]">Cài đặt & Chọn sà lan</h3>
                         </div>
                     </div>
-                    <button 
-                        @click="loadVessels" 
-                        class="size-7 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5 flex items-center justify-center transition-colors"
-                        title="Tải lại danh sách sà lan"
-                    >
-                        <span :class="['material-symbols-outlined text-sm', loading ? 'animate-spin' : '']">sync</span>
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <button 
+                            type="button"
+                            @click="isConfigExpanded = !isConfigExpanded" 
+                            class="size-7 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5 flex items-center justify-center transition-colors"
+                            :title="isConfigExpanded ? 'Thu gọn cài đặt cấu hình' : 'Mở cài đặt phân bổ & số phiếu'"
+                        >
+                            <span class="material-symbols-outlined text-sm">tune</span>
+                        </button>
+                        <button 
+                            @click="loadVessels" 
+                            class="size-7 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5 flex items-center justify-center transition-colors"
+                            title="Tải lại danh sách sà lan"
+                        >
+                            <span :class="['material-symbols-outlined text-sm', loading ? 'animate-spin' : '']">sync</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Sidebar Body: Scrollable Settings -->
@@ -3704,7 +3715,7 @@ async function compileAndDownload() {
                         </div>
 
                         <!-- Danh sách Thẻ Sà Lan -->
-                        <div class="max-h-[200px] overflow-y-auto space-y-1.5 pr-0.5 custom-scrollbar">
+                        <div :class="['overflow-y-auto space-y-1.5 pr-0.5 custom-scrollbar transition-all', isConfigExpanded ? 'max-h-[200px]' : 'max-h-[calc(100vh-270px)]']">
                             <!-- Tab: Chưa phân bổ -->
                             <template v-if="selectedBargeStatusTab === 'pending'">
                                 <div v-if="unallocatedBarges.length === 0" class="py-4 px-3 text-center bg-white rounded-xl border border-dashed border-emerald-300 space-y-1">
@@ -3778,40 +3789,31 @@ async function compileAndDownload() {
                             </template>
                         </div>
 
-                        <!-- Card thông tin sà lan đang chọn -->
-                        <div v-if="activeBarge" class="bg-white rounded-[12px] p-2.5 border border-primary/10 space-y-1.5 text-xs">
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400 font-bold">Tàu mẹ:</span>
-                                <span class="font-black text-gray-800">{{ activeBarge.vesselName || 'Chưa gán' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400 font-bold">Số lệnh:</span>
-                                <span class="font-mono font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                    {{ activeBarge.config?.orderNo || 'Chưa có mã lệnh' }}
-                                </span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-400 font-bold">Loại hàng:</span>
-                                <span class="font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                    {{ activeBarge.config?.goods || 'Chưa xác định' }}
-                                </span>
-                            </div>
-
-                            <!-- Nút nạp phiếu cân từ sà lan này vào Tab 1 -->
-                            <button 
-                                @click="loadTicketsFromSourceBarge"
-                                :disabled="!activeBargeId || isLoadingSourceBargeTrucks"
-                                class="w-full mt-2 py-1.5 px-2.5 bg-primary text-white text-xs font-bold rounded-[8px] hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                                :title="`Lấy toàn bộ phiếu cân đã lưu của sà lan ${activeBarge.name} nạp vào Tab 1 thay cho import tệp`"
-                            >
-                                <span v-if="isLoadingSourceBargeTrucks" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
-                                <span v-else class="material-symbols-outlined text-[14px]">cloud_download</span>
-                                {{ isLoadingSourceBargeTrucks ? 'Đang nạp dữ liệu...' : 'Lấy phiếu cân từ sà lan này' }}
-                            </button>
-                        </div>
                     </div>
 
-                    <!-- Khối 2: Số phiếu tự động -->
+                    <!-- Nút Ẩn / Hiện Cài đặt phân bổ & Số phiếu (Mặc định ẩn) -->
+                    <div class="pt-0.5">
+                        <button 
+                            type="button" 
+                            @click="isConfigExpanded = !isConfigExpanded"
+                            class="w-full py-2 px-3 bg-slate-50/90 hover:bg-slate-100 border border-gray-200/80 rounded-xl text-gray-500 hover:text-primary text-xs font-bold flex items-center justify-between transition-all select-none shadow-2xs"
+                        >
+                            <span class="flex items-center gap-1.5 text-[11px]">
+                                <span class="material-symbols-outlined text-[16px] text-gray-400">tune</span>
+                                <span>Cài đặt phân bổ & Số phiếu</span>
+                            </span>
+                            <div class="flex items-center gap-1 text-[10px] text-gray-400 font-semibold">
+                                <span>{{ isConfigExpanded ? 'Thu gọn' : 'Mở rộng' }}</span>
+                                <span class="material-symbols-outlined text-[15px] transition-transform duration-200" :class="{ 'rotate-180': isConfigExpanded }">
+                                    expand_more
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Khu vực Cài đặt cấu hình (Mặc định ẩn) -->
+                    <div v-show="isConfigExpanded" class="space-y-3.5 pt-0.5 animate-fade-in">
+                        <!-- Khối 2: Số phiếu tự động -->
                     <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
@@ -3961,6 +3963,7 @@ async function compileAndDownload() {
                                 </span>
                             </div>
                         </div>
+                    </div>
                     </div>
 
                 </div>
