@@ -9,21 +9,20 @@ updated: "2026-10-20T14:58:00.000Z"
 
 ## Current Test
 
-number: 1
-name: Hiển thị 2 Tab trạng thái Chưa phân bổ và Đã phân bổ tại Sidebar
+number: 2
+name: Chọn sà lan Chưa phân bổ và nạp dữ liệu phân bổ
 expected: |
-  1. Truy cập vào trang Phân Bổ Tải Trọng (`/split`).
-  2. Tại Sidebar bên trái:
-     - Header hiển thị "Sà lan Nông Sản De Heus" và tiến độ tổng (X/Y đã xong).
-     - Có 2 nút tab chuyển đổi rõ ràng: `[⏳ Chưa phân bổ (X)]` và `[✅ Đã phân bổ (Y)]`.
-     - Danh sách sà lan chỉ hiển thị các sà lan thuộc nguồn tàu Nông Sản De Heus.
+  1. Tại Sidebar tab "Chưa phân bổ", bấm chọn một thẻ sà lan.
+  2. Thẻ sà lan được chọn hiển thị viền nổi bật (màu hổ phách) và card thông tin sà lan bên dưới cập nhật đúng Tên, Số lệnh, Loại hàng.
+  3. Khung bên phải giữ ở Tab 1 ("Phiếu cân") hoặc Tab 2 ("Phân bổ").
+  4. Bấm nút "Lấy phiếu cân từ sà lan này" (hoặc import tệp), các phiếu cân gốc của sà lan được nạp thành công vào bảng.
 awaiting: user response
 
 ## Tests
 
 ### 1. Hiển thị 2 Tab trạng thái Chưa phân bổ và Đã phân bổ tại Sidebar
 expected: Truy cập /split, Sidebar bên trái hiển thị 2 tab trạng thái: Chưa phân bổ và Đã phân bổ kèm số lượng đếm, danh sách chỉ gồm các sà lan của tàu Nông Sản De Heus.
-result: [pending]
+result: pass
 
 ### 2. Chọn sà lan Chưa phân bổ và nạp dữ liệu phân bổ
 expected: Bấm chọn một sà lan trong tab Chưa phân bổ, thẻ được chọn có hiệu ứng viền nổi bật. Khung làm việc mở Tab 1 / Tab 2, card bên dưới cho phép bấm nạp phiếu cân gốc của sà lan đó.
@@ -40,9 +39,9 @@ result: [pending]
 ## Summary
 
 total: 4
-passed: 0
+passed: 1
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 

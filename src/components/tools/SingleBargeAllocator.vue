@@ -1565,41 +1565,6 @@ const sourceVessels = computed(() => {
 // Tab trạng thái sà lan tại Sidebar: 'pending' (Chưa phân bổ) | 'completed' (Đã phân bổ)
 const selectedBargeStatusTab = ref<'pending' | 'completed'>('pending');
 
-// Helper kiểm tra sà lan đã được phân bổ hay chưa (dựa vào Sổ theo dõi / weighbridge_allocation_tracking)
-function isBargeAllocated(barge: { id: number; name: string; config?: any }): boolean {
-    if (!existingTrips.value || existingTrips.value.length === 0) return false;
-    const bName = (barge.name || '').trim().toUpperCase();
-    const orderNo = (barge.config?.orderNo || '').trim();
-    return existingTrips.value.some(t => {
-        if (t.bargeId && Number(t.bargeId) === Number(barge.id)) return true;
-        if (bName && t.bargeName && t.bargeName.trim().toUpperCase() === bName) return true;
-        if (orderNo && t.orderNo && t.orderNo.trim() === orderNo) return true;
-        return false;
-    });
-}
-
-// Thống kê kết quả phân bổ của sà lan (số chuyến, tổng tấn)
-function getBargeAllocatedSummary(barge: { id: number; name: string; config?: any }) {
-    if (!existingTrips.value) return { tripCount: 0, totalTons: 0 };
-    const bName = (barge.name || '').trim().toUpperCase();
-    const orderNo = (barge.config?.orderNo || '').trim();
-    const trips = existingTrips.value.filter(t => {
-        if (t.bargeId && Number(t.bargeId) === Number(barge.id)) return true;
-        if (bName && t.bargeName && t.bargeName.trim().toUpperCase() === bName) return true;
-        if (orderNo && t.orderNo && t.orderNo.trim() === orderNo) return true;
-        return false;
-    });
-    const totalTons = trips.reduce((sum, t) => {
-        if (typeof t.weightTons === 'number' && !isNaN(t.weightTons)) return sum + t.weightTons;
-        if (typeof t.weightNet === 'number' && !isNaN(t.weightNet)) return sum + (t.weightNet / 1000);
-        return sum;
-    }, 0);
-    return {
-        tripCount: trips.length,
-        totalTons: Math.round(totalTons * 100) / 100
-    };
-}
-
 // Danh sách toàn bộ sà lan De Heus
 const allDeHeusBarges = computed(() => {
     const list: (Barge & { vesselName?: string })[] = [];
@@ -1615,6 +1580,55 @@ const allDeHeusBarges = computed(() => {
     }
     return list;
 });
+
+// Helper kiểm tra 1 chuyến xe phân bổ có thuộc về sà lan cụ thể hay không (tránh trùng tên giữa các chuyến/lệnh khác nhau)
+function isTripBelongToBarge(t: SplitTrip, barge: { id: number; name: string; config?: any }): boolean {
+    const targetBargeId = Number(barge.id);
+    
+    // 1. So khớp chính xác theo ID sà lan (nếu chuyến xe có lưu bargeId)
+    if (t.bargeId != null && t.bargeId !== undefined && Number(t.bargeId) !== 0) {
+        return Number(t.bargeId) === targetBargeId;
+    }
+
+    // 2. Nếu chuyến xe không có bargeId (dữ liệu cũ/ngoài):
+    const bName = (barge.name || '').trim().toUpperCase();
+    const tBName = (t.bargeName || '').trim().toUpperCase();
+    if (!bName || !tBName || bName !== tBName) {
+        return false;
+    }
+
+    // Bắt buộc phải khớp Số lệnh nếu cả 2 bên đều có thông tin số lệnh
+    const orderNo = (barge.config?.orderNo || '').trim();
+    const tOrderNo = (t.orderNo || '').trim();
+    if (orderNo && tOrderNo) {
+        return orderNo === tOrderNo;
+    }
+
+    // Nếu không có thông tin lệnh để phân biệt, chỉ chấp nhận khớp nếu hệ thống chỉ có DUY NHẤT 1 sà lan mang tên này
+    const sameNameBarges = allDeHeusBarges.value.filter(b => (b.name || '').trim().toUpperCase() === bName);
+    return sameNameBarges.length === 1;
+}
+
+// Helper kiểm tra sà lan đã được phân bổ hay chưa (dựa vào Sổ theo dõi / weighbridge_allocation_tracking)
+function isBargeAllocated(barge: { id: number; name: string; config?: any }): boolean {
+    if (!existingTrips.value || existingTrips.value.length === 0) return false;
+    return existingTrips.value.some(t => isTripBelongToBarge(t, barge));
+}
+
+// Thống kê kết quả phân bổ của sà lan (số chuyến, tổng tấn)
+function getBargeAllocatedSummary(barge: { id: number; name: string; config?: any }) {
+    if (!existingTrips.value) return { tripCount: 0, totalTons: 0 };
+    const trips = existingTrips.value.filter(t => isTripBelongToBarge(t, barge));
+    const totalTons = trips.reduce((sum, t) => {
+        if (typeof t.weightTons === 'number' && !isNaN(t.weightTons)) return sum + t.weightTons;
+        if (typeof t.weightNet === 'number' && !isNaN(t.weightNet)) return sum + (t.weightNet / 1000);
+        return sum;
+    }, 0);
+    return {
+        tripCount: trips.length,
+        totalTons: Math.round(totalTons * 100) / 100
+    };
+}
 
 // Sà lan Chưa phân bổ
 const unallocatedBarges = computed(() => {
@@ -2862,11 +2876,8 @@ function switchBargeStatusTab(tab: 'pending' | 'completed') {
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
-    if (historyBargeFilter.value === 'current' && activeBargeId.value) {
-        list = list.filter(t => 
-            (t.bargeId && Number(t.bargeId) === Number(activeBargeId.value)) || 
-            (activeBarge.value?.name && t.bargeName === activeBarge.value.name)
-        );
+    if (historyBargeFilter.value === 'current' && activeBarge.value) {
+        list = list.filter(t => isTripBelongToBarge(t, activeBarge.value!));
     }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase();
