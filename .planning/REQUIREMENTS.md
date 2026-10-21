@@ -70,6 +70,14 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **BACKUP-02**: Trang `/admin` cung cấp cấu hình tự động sao lưu lên Google Drive (thông qua cầu nối Google Apps Script) theo giờ cài đặt hằng ngày và giới hạn số bản lưu tối đa (`maxBackups` — tự động xóa bản cũ nhất khi vượt quá).
 - [ ] **BACKUP-03**: Trang `/admin` hiển thị danh sách lịch sử các bản sao lưu trên Google Drive, cho phép bấm nút **Restore (Khôi phục)** trực tiếp từ Google Drive hoặc **Import file `.zip`** từ máy tính để khôi phục toàn bộ database và hình ảnh/tài liệu.
 
+### Daily Warehouse Inventory Reporting — 4 Kho (PHASE-20)
+
+- [ ] **INV-01**: Hỗ trợ tính năng "Nạp từ file Excel Báo cáo Tồn kho đang dùng" để khởi tạo và hút toàn bộ lịch sử `IMPORT`, `EXPORT`, `ĐI THẲNG / XÁ THẲNG`, danh mục `Data (Nhà xe)`, và mốc `Tồn đầu` hiện có của cả 4 Kho lên Supabase.
+- [ ] **INV-02**: Tự động phân loại phiếu cân từ file Weight List (CSV/Excel) theo ca chốt 6h sáng (06:00 hôm trước -> 05:59 hôm nay quy về ngày hôm trước) thành 3 luồng: Nhập kho (`Xuat/Nhap = Nhap` & `Loai Salan = KHO 1..4`), Xuất kho (`Xuat/Nhap = Xuat` & `Tai Xe = KHO 1..4`), và Đi thẳng (`Xuat/Nhap = Xuat` & `Tai Xe != KHO 1..4`).
+- [ ] **INV-03**: Thực hiện quy trình "Import 1 lần ở Tồn kho": khi import file CSV Xuất hàng tại màn hình Tồn kho, hệ thống tự động đẩy/đồng bộ các chuyến xuất sang Dữ liệu cân hàng (`allocator_tickets`) và Sà lan/Tàu mẹ tương ứng ở Báo cáo tổng quan.
+- [ ] **INV-04**: Hiển thị bảng tổng hợp `FINAL` cộng dồn lịch sử xuyên suốt theo từng Kho (không reset khi đổi khách hàng) kèm tính năng chụp/copy ảnh bảng tổng hợp nhanh để gửi qua Zalo mỗi buổi sáng.
+- [ ] **INV-05**: Xuất file Excel Báo cáo Tồn kho chuẩn mẫu khách hàng (gồm các sheet `IMPORT`, `EXPORT`, `FINAL`, `ĐI THẲNG`, `Data`) giữ nguyên công thức `SUMIFS`/`SUMIF` và công thức cộng dồn tồn cuối kỳ.
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -114,13 +122,18 @@ Which phases cover which requirements.
 | BACKUP-01 | Phase 18 | Pending |
 | BACKUP-02 | Phase 18 | Pending |
 | BACKUP-03 | Phase 18 | Pending |
+| INV-01 | Phase 20 | Pending |
+| INV-02 | Phase 20 | Pending |
+| INV-03 | Phase 20 | Pending |
+| INV-04 | Phase 20 | Pending |
+| INV-05 | Phase 20 | Pending |
 
 **Coverage:**
-- v1.1 / v1.2 requirements: 28 total
-- Mapped to phases: 28
+- v1.1 / v1.2 requirements: 33 total
+- Mapped to phases: 33
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-10-20 after Phase 18 exploration*
+*Last updated: 2026-10-21 after Phase 20 exploration*

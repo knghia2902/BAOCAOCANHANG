@@ -94,6 +94,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 17. Phân nhóm sà lan De Heus | v1.2 | 1/1 | Complete    | 2026-10-19 |
 | 18. Sao lưu & Khôi phục Google Drive (/admin) | v1.2 | 0/2 | Not started | - |
 | 19. Tách sà lan De Heus theo Khóa/Mở | v1.2 | 1/1 | Complete    | 2026-10-21 |
+| 20. Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng | v1.2 | 0/3 | Not started | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -222,3 +223,17 @@ Plans:
 Plans:
 
 - [x] 19-01: Cập nhật bộ lọc trạng thái tàu/sà lan (`inProgressVessels`, `doneVessels`, `filteredVesselBarges`, `allBarges`, `toggleBargeLock`) và ẩn nút Chốt số liệu tàu đối với nguồn Nông sản De Heus trong `WeighbridgePrinter.vue`.
+
+### Phase 20: Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng
+
+**Goal:** Xây dựng phân hệ Quản lý & Báo cáo Tồn Kho 4 Kho (`KHO 1`, `KHO 2`, `KHO 3`, `KHO 4`) tự động cộng dồn lịch sử xuyên suốt: hỗ trợ khởi tạo lịch sử từ file Excel Báo cáo Tồn kho đang dùng (`IMPORT`, `EXPORT`, `ĐI THẲNG`, `Data`, `Tồn đầu`), import 1 chạm từ file CSV trạm cân mỗi sáng (tự động quy đổi ngày báo cáo theo ca 6h sáng, tự động phân loại Nhập kho / Xuất kho / Đi thẳng và đẩy luôn chuyến xuất sang Dữ liệu cân hàng & Báo cáo tổng quan), hiển thị bảng tổng hợp `FINAL` kèm nút chụp/copy ảnh gửi Zalo và xuất file Excel đa sheet chuẩn mẫu từng khách hàng.
+**Requirements**: INV-01, INV-02, INV-03, INV-04, INV-05
+**Depends on:** Phase 11, Phase 19
+**Plans:** 3 plans
+
+Plans:
+
+- [ ] 20-01: Thiết kế bảng dữ liệu Supabase & `WarehouseInventoryService.ts` (logic cắt ca 6h sáng, phân loại Nhập kho / Xuất kho / Đi thẳng từ CSV, nạp lịch sử từ file Excel mẫu 4 kho, và tự động đẩy chuyến xuất sang `allocator_tickets` / Sà lan).
+- [ ] 20-02: Xây dựng giao diện Quản lý & Báo cáo Tồn Kho 4 Kho (bảng tổng hợp `FINAL` cộng dồn xuyên suốt theo từng kho & chế độ ghép ngang Kho 1-2-3, chi tiết `IMPORT / EXPORT / ĐI THẲNG`, kèm nút chụp/copy ảnh bảng tổng hợp gửi Zalo).
+- [ ] 20-03: Triển khai trình xuất file Excel Báo cáo Tồn kho chuẩn mẫu khách hàng (đa sheet `IMPORT`, `EXPORT`, `FINAL`, `ĐI THẲNG / XÁ THẲNG`, `Data` giữ nguyên công thức `SUMIFS`/`SUMIF` và định dạng in ấn).
+
