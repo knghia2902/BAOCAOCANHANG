@@ -15,8 +15,8 @@ updated: "2026-10-21T21:21:00.000Z"
 
 ## Tests
 
-### 1. Truy cập màn hình Báo Cáo Tồn Kho 4 Kho từ Sidebar
-expected: Trong Báo Cáo Cân Hàng (`/weighbridge`) hoặc Phân Bổ Hàng Hóa (`/allocator`), bấm vào mục "Báo cáo Tồn kho (4 Kho)" ở menu bên trái. Giao diện quản lý tồn kho 4 kho xuất hiện với 5 tab kho (KHO 1, KHO 2, KHO 3, KHO 4, TỔNG HỢP KHO 1-2-3).
+### 1. Truy cập màn hình Báo Cáo Tồn Kho 4 Kho
+expected: Bấm vào thẻ "Tồn Kho 4 Kho" tại Trang Chủ (`/`) hoặc danh sách Công Cụ (`/tools`), hoặc truy cập trực tiếp `/tools/warehouse`, hoặc bấm "Báo cáo Tồn kho (4 Kho)" ở menu bên trái của Báo Cáo Cân Hàng (`/weighbridge`) và Phân Bổ Hàng Hóa (`/allocator`). Giao diện Quản Lý Tồn Kho 4 Kho xuất hiện với 5 tab chọn kho (KHO 1, KHO 2, KHO 3, KHO 4, TỔNG HỢP KHO 1-2-3).
 result: pending
 
 ### 2. Import CSV Trạm Cân và quy tắc chốt ca 06:00 sáng

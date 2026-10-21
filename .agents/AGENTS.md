@@ -7,3 +7,8 @@
   3. Thực hiện `git commit -m "feat/fix/chore: <mô tả ngắn gọn về thay đổi>"` với thông điệp rõ ràng.
   4. Chạy `git push origin master` (hoặc nhánh đang phát triển) để đẩy mã nguồn lên GitHub.
   5. Kiểm tra kết quả lệnh push đảm bảo trạng thái thành công (exit code 0 và remote nhận đủ commit).
+
+## Database Migration Workflow
+- Khi một tính năng mới hoặc bản cập nhật có tạo hoặc thay đổi bảng cơ sở dữ liệu Supabase (có file `.sql` mới trong `database/migrations/`):
+  1. **BẮT BUỘC nhắc người dùng ngay trong phản hồi:** Nêu rõ tên file migration SQL, đường dẫn file và hướng dẫn các bước dán vào Supabase SQL Editor (kèm link Dashboard).
+  2. Tuyệt đối không được âm thầm dựa vào fallback mà không nhắc nhở người dùng chạy database chính thức.
