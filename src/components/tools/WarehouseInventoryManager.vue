@@ -258,6 +258,21 @@ async function handleHistoryExcelSelected(e: Event) {
     }
 }
 
+async function handleClearWarehouseData() {
+    const isCombined = selectedWarehouseMode.value === 'COMBINED_123';
+    const targetLabel = isCombined ? 'toàn bộ dữ liệu của cả 4 kho' : `toàn bộ phiếu của ${selectedWarehouseMode.value}`;
+    if (!confirm(`Bạn có chắc chắn muốn XÓA SẠCH ${targetLabel} để import lại từ đầu không?`)) {
+        return;
+    }
+    try {
+        await WarehouseInventoryService.clearWarehouseTickets(isCombined ? 'ALL' : activeSingleWarehouseId.value);
+        await loadAllData();
+        addToast(`Đã xóa sạch dữ liệu phiếu cân ${targetLabel}!`, 'success');
+    } catch (err: any) {
+        addToast('Lỗi khi xóa dữ liệu: ' + (err?.message || err), 'error');
+    }
+}
+
 // Save daily remark inline on FINAL table
 async function handleSaveDailyRemark(whId: WarehouseId, reportDate: string, newRemark: string) {
     const cfg = configs.value[whId];
@@ -831,6 +846,15 @@ async function handleDownloadZaloImage() {
                                         : `Xuất Excel ${selectedWarehouseMode}`
                             }}
                         </span>
+                    </button>
+
+                    <button
+                        @click="handleClearWarehouseData"
+                        class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-2xl text-xs transition-all flex items-center gap-1 cursor-pointer"
+                        title="Xóa dữ liệu phiếu cân của kho này hoặc toàn bộ kho để import lại từ đầu"
+                    >
+                        <span class="material-symbols-outlined text-sm">delete_sweep</span>
+                        <span>Xóa Dữ Liệu</span>
                     </button>
                 </div>
             </div>

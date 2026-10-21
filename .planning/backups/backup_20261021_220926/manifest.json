@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-10-21T15:09:26.159Z",
+  "backupDir": "C:\\Users\\TVPL-NgocAnh\\Desktop\\Tools\\BAOCAOCANHANG\\.planning\\backups\\backup_20261021_220926",
+  "tables": {
+    "content": {
+      "records": 1,
+      "sizeBytes": 2482807,
+      "sizeFormatted": "2424.62 KB",
+      "md5": "47c944e07e5b4fea731f26597cf2cae2",
+      "timeSeconds": 1.62
+    },
+    "projects": {
+      "records": 3,
+      "sizeBytes": 863,
+      "sizeFormatted": "0.84 KB",
+      "md5": "0e5c6f766f4a85d751fecf5eb1c936d1",
+      "timeSeconds": 0.14
+    },
+    "tools": {
+      "records": 5,
+      "sizeBytes": 804,
+      "sizeFormatted": "0.79 KB",
+      "md5": "11cdeac2b106d6cb7efb60056da8c439",
+      "timeSeconds": 0.12
+    },
+    "messages": {
+      "records": 0,
+      "sizeBytes": 2,
+      "sizeFormatted": "0.00 KB",
+      "md5": "d751713988987e9331980363e24189ce",
+      "timeSeconds": 0.4
+    },
+    "users": {
+      "records": 7,
+      "sizeBytes": 3154,
+      "sizeFormatted": "3.08 KB",
+      "md5": "87bccbf325848abee9958df51143a0f0",
+      "timeSeconds": 0.24
+    },
+    "activity_logs": {
+      "records": 538,
+      "sizeBytes": 147542,
+      "sizeFormatted": "144.08 KB",
+      "md5": "a94ebb5c1b9a853e9d6568c80909d693",
+      "timeSeconds": 0.8
+    },
+    "vehicle_profiles": {
+      "error": "Could not find the table 'public.vehicle_profiles' in the schema cache"
+    },
+    "weighbridge_vehicles": {
+      "records": 157,
+      "sizeBytes": 33106,
+      "sizeFormatted": "32.33 KB",
+      "md5": "4315627326d8a3977bdf38e4f55b994f",
+      "timeSeconds": 0.13
+    },
+    "weighbridge_vessels": {
+      "records": 27,
+      "sizeBytes": 3749,
+      "sizeFormatted": "3.66 KB",
+      "md5": "9bef53c788e6793788c3468110af5b1e",
+      "timeSeconds": 0.54
+    },
+    "weighbridge_barges": {
+      "records": 163,
+      "sizeBytes": 2282607,
+      "sizeFormatted": "2229.11 KB",
+      "md5": "f56978f7ce12934de8cd8875d0e9db0c",
+      "timeSeconds": 1.01
+    },
+    "weighbridge_trucks": {
+      "records": 18679,
+      "sizeBytes": 7104751,
+      "sizeFormatted": "6938.23 KB",
+      "md5": "e559b7fdab8f3f7e1cded942e011b075",
+      "timeSeconds": 7.88
+    },
+    "weighbridge_tracking": {
+      "records": 3319,
+      "sizeBytes": 2303464,
+      "sizeFormatted": "2249.48 KB",
+      "md5": "9e8980788024eeac1b0e7207bb0f558d",
+      "timeSeconds": 2.16
+    },
+    "weighbridge_allocation_tracking": {
+      "records": 2778,
+      "sizeBytes": 2071246,
+      "sizeFormatted": "2022.70 KB",
+      "md5": "778d3cea659935f8953e1787df88bf53",
+      "timeSeconds": 3.39
+    },
+    "allocator_history_trips": {
+      "error": "Could not find the table 'public.allocator_history_trips' in the schema cache"
+    },
+    "weighbridge_warehouse_tickets": {
+      "records": 0,
+      "sizeBytes": 2,
+      "sizeFormatted": "0.00 KB",
+      "md5": "d751713988987e9331980363e24189ce",
+      "timeSeconds": 0.13
+    },
+    "weighbridge_container_tickets": {
+      "error": "Could not find the table 'public.weighbridge_container_tickets' in the schema cache"
+    }
+  },
+  "totalRecords": 25677,
+  "totalSizeBytes": 16434097
+}

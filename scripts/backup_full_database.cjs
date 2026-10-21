@@ -30,16 +30,25 @@ let supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const projectRoot = path.resolve(__dirname, '..');
+
 const TABLES = [
     { name: 'content', primaryKey: 'id', isLarge: false },
+    { name: 'projects', primaryKey: 'id', isLarge: false },
+    { name: 'tools', primaryKey: 'id', isLarge: false },
+    { name: 'messages', primaryKey: 'id', isLarge: false },
+    { name: 'users', primaryKey: 'username', isLarge: false },
+    { name: 'activity_logs', primaryKey: 'id', isLarge: false },
+    { name: 'vehicle_profiles', primaryKey: 'id', isLarge: false },
+    { name: 'weighbridge_vehicles', primaryKey: 'id', isLarge: false },
     { name: 'weighbridge_vessels', primaryKey: 'id', isLarge: false },
     { name: 'weighbridge_barges', primaryKey: 'id', isLarge: false },
     { name: 'weighbridge_trucks', primaryKey: 'id', isLarge: true },
     { name: 'weighbridge_tracking', primaryKey: 'id', isLarge: true },
-    { name: 'vehicle_profiles', primaryKey: 'id', isLarge: false },
-    { name: 'weighbridge_vehicles', primaryKey: 'id', isLarge: false },
-    { name: 'activity_logs', primaryKey: 'id', isLarge: false },
-    { name: 'users', primaryKey: 'id', isLarge: false }
+    { name: 'weighbridge_allocation_tracking', primaryKey: 'id', isLarge: true },
+    { name: 'allocator_history_trips', primaryKey: 'id', isLarge: true },
+    { name: 'weighbridge_warehouse_tickets', primaryKey: 'id', isLarge: true },
+    { name: 'weighbridge_container_tickets', primaryKey: 'id', isLarge: true }
 ];
 
 async function fetchTableData(table) {

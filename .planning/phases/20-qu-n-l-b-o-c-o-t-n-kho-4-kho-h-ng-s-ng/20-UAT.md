@@ -11,13 +11,13 @@ updated: "2026-10-21T21:21:00.000Z"
 
 ## Current Test
 
-1. Truy cập màn hình Báo Cáo Tồn Kho 4 Kho từ Sidebar
+2. Import CSV Trạm Cân và quy tắc chốt ca 06:00 sáng
 
 ## Tests
 
 ### 1. Truy cập màn hình Báo Cáo Tồn Kho 4 Kho
 expected: Bấm vào thẻ "Tồn Kho 4 Kho" tại Trang Chủ (`/`) hoặc danh sách Công Cụ (`/tools`), hoặc truy cập trực tiếp `/tools/warehouse`, hoặc bấm "Báo cáo Tồn kho (4 Kho)" ở menu bên trái của Báo Cáo Cân Hàng (`/weighbridge`) và Phân Bổ Hàng Hóa (`/allocator`). Giao diện Quản Lý Tồn Kho 4 Kho xuất hiện với 5 tab chọn kho (KHO 1, KHO 2, KHO 3, KHO 4, TỔNG HỢP KHO 1-2-3).
-result: pending
+result: pass
 
 ### 2. Import CSV Trạm Cân và quy tắc chốt ca 06:00 sáng
 expected: Bấm nút "Import CSV Trạm Cân (Đồng bộ 1 chạm)" và chọn file `2010ok.csv` (hoặc cặp file `xxxx cc1`, `xxxx cc2`). Dữ liệu được tự động phân loại thành Nhập kho (vào sheet IMPORT), Xuất kho (vào sheet EXPORT), Đi thẳng (vào sheet ĐI THẲNG). Các chuyến cân ra từ 00:00 - 05:59 sáng được quy về ngày hôm trước.

@@ -1,0 +1,4844 @@
+[
+  {
+    "id": "ae8f6ca7-6ee8-432c-9539-6fccd127ec61",
+    "created_at": "2026-09-17T08:36:05.215+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "7edd22dc-33bb-47bd-a0dd-3f0e0dcfc6c2",
+    "created_at": "2026-09-17T03:08:28.698+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "e4675fc4-122b-47bf-a310-8b65279ddad5",
+    "created_at": "2026-09-17T09:13:56.362392+00:00",
+    "username": "system",
+    "display_name": "Hệ thống",
+    "role": "system",
+    "action": "Di cư dữ liệu",
+    "details": "Hoàn tất chuyển đổi danh mục xe và nhật ký sang bảng chuyên trách"
+  },
+  {
+    "id": "c9be1e24-3e7b-443a-a8f6-ac34f4ba4e02",
+    "created_at": "2026-09-17T10:26:52.721876+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TN-LA - 06789"
+  },
+  {
+    "id": "91150bdc-9ad0-4104-adfe-e321e6d4b7d1",
+    "created_at": "2026-09-17T10:28:25.404355+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "201ba2a7-48ec-41db-8500-c1e608643090",
+    "created_at": "2026-09-17T10:29:08.902821+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 9439"
+  },
+  {
+    "id": "dbedbcc5-73e7-463d-b6d7-db1634fa5a4d",
+    "created_at": "2026-09-17T10:34:00.143725+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "03fba8b6-8fee-4311-9bcc-b36506ab0f15",
+    "created_at": "2026-09-17T10:34:22.175226+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 90 mới, 0 cập nhật"
+  },
+  {
+    "id": "2a9b8a61-c2a6-41a6-92b3-6ac67f38febc",
+    "created_at": "2026-09-17T10:34:58.410757+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 17759"
+  },
+  {
+    "id": "c3b4cf7f-2c10-4f5f-8561-ec27456beb57",
+    "created_at": "2026-09-17T10:36:22.776367+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TN-LA - 06789"
+  },
+  {
+    "id": "e1a9436c-f9df-4eac-a452-d4ba2f1fc9c6",
+    "created_at": "2026-09-18T09:05:47.255961+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "bb12906c-4ed0-48a6-a376-913af5c12d7f",
+    "created_at": "2026-09-18T09:08:03.872899+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm xe",
+    "details": "Thêm xe mới: 61C 01923"
+  },
+  {
+    "id": "9bde9c28-5fe3-4bac-bc79-e0b22168714c",
+    "created_at": "2026-09-18T09:18:36.987735+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "3ffb8c83-9cb7-4e01-9c57-374890ac39fa",
+    "created_at": "2026-09-18T09:19:27.802087+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "52d5d7c7-9d9f-4b88-b3f4-dffa9aa52490",
+    "created_at": "2026-09-18T09:19:37.608245+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 112 mới, 0 cập nhật"
+  },
+  {
+    "id": "02bc9228-2da2-4d80-9d74-f5580c5402df",
+    "created_at": "2026-09-18T09:19:43.290194+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "ae590c7a-d340-4eb3-a781-89e4cf38dfa9",
+    "created_at": "2026-09-18T09:22:35.387152+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT-TG 15769"
+  },
+  {
+    "id": "58a22ea9-f168-4cba-8c07-885a4fdeeb54",
+    "created_at": "2026-09-18T09:23:30.281779+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "8cebc158-af4b-4416-b4e6-656d013e38ff",
+    "created_at": "2026-09-18T10:20:24.080749+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "8f7a0f5a-dba3-47bb-8eca-5dc39823cf99",
+    "created_at": "2026-09-18T10:20:29.715827+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 31 mới, 0 cập nhật"
+  },
+  {
+    "id": "78d0fc21-ade2-4895-a822-030d94a54335",
+    "created_at": "2026-09-18T10:53:03.604143+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "16570b54-01bc-485b-953c-b814fc59332a",
+    "created_at": "2026-09-18T10:55:11.221279+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 0 mới, 0 cập nhật"
+  },
+  {
+    "id": "8ed173b6-cd9b-4c97-9d62-4d36a52c4262",
+    "created_at": "2026-09-18T10:55:21.526021+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "17f70d66-b963-42b7-b146-54ab2ccddd61",
+    "created_at": "2026-09-18T10:55:27.718054+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 31 mới, 0 cập nhật"
+  },
+  {
+    "id": "2e81c6b8-8504-40ae-b5ab-1b70835e9b75",
+    "created_at": "2026-09-18T14:24:55.421088+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "9a9f08e6-97db-4cfe-a99c-1504fac6a7d1",
+    "created_at": "2026-09-18T14:25:03.654861+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "8c567101-b071-4b68-a80c-c9cdadde3fca",
+    "created_at": "2026-09-18T14:35:49.008198+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 10678"
+  },
+  {
+    "id": "781b899c-b61d-401f-8724-49d2ded7f305",
+    "created_at": "2026-09-18T14:37:43.993999+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7666"
+  },
+  {
+    "id": "f48fbbd4-45f7-4f95-a665-e0b8d7862bee",
+    "created_at": "2026-09-18T14:38:39.408454+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8019"
+  },
+  {
+    "id": "ab352533-e571-4460-b5d1-174bd72ebaeb",
+    "created_at": "2026-09-18T14:45:19.703887+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "fb16097f-f83f-4685-be77-968c998db872",
+    "created_at": "2026-09-18T14:46:13.065791+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "d62a322b-abed-4375-a9c5-a6a0109ebc8b",
+    "created_at": "2026-09-18T15:16:15.884195+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm phiếu cân",
+    "details": "Thêm phiếu cân mới: 123"
+  },
+  {
+    "id": "833c48cc-8c01-4ffe-b5c6-7667283b6dc6",
+    "created_at": "2026-09-18T15:16:34.338902+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa phiếu cân",
+    "details": "Cập nhật phiếu cân: 123"
+  },
+  {
+    "id": "186d6aef-28d4-4e1a-8fcd-06924d090cdb",
+    "created_at": "2026-09-18T15:17:17.833727+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa phiếu cân",
+    "details": "Cập nhật phiếu cân: 60c 01923"
+  },
+  {
+    "id": "93ba4b84-31b5-44d2-91d7-a419fc8c8103",
+    "created_at": "2026-09-18T15:17:49.536973+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa phiếu cân",
+    "details": "Cập nhật phiếu cân: 29K05483"
+  },
+  {
+    "id": "27666f45-1739-4380-b424-9dc3a806d0c1",
+    "created_at": "2026-09-18T15:21:00.771471+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "fd6af028-e176-4057-810c-d3d4b4912cd3",
+    "created_at": "2026-09-18T15:22:45.201896+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 0 mới, 0 cập nhật"
+  },
+  {
+    "id": "db6542f8-9b5c-4fa8-9e0e-197dddd3b64a",
+    "created_at": "2026-09-18T15:50:44.450834+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "e1ddbbea-6926-475d-9d94-6d324077178c",
+    "created_at": "2026-09-18T16:12:14.193633+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "615eb622-3896-41c5-a1ec-f204d7b69cce",
+    "created_at": "2026-09-18T16:42:21.977059+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "44b4d7e4-aa29-4c3a-ad62-59e4feaeed97",
+    "created_at": "2026-09-19T01:34:39.12918+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "70c9730b-9adf-4b8a-84bc-f85500f8ecf2",
+    "created_at": "2026-09-19T01:35:15.25196+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng xuất",
+    "details": "Đăng xuất khỏi hệ thống"
+  },
+  {
+    "id": "ce28cca5-dcd3-4ac1-8a0c-3ebb3637e5a5",
+    "created_at": "2026-09-19T01:35:20.631594+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "2933b0dd-7ac9-46e0-9a8f-077960f0a432",
+    "created_at": "2026-09-19T10:11:14.863815+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "7b583256-5dc6-4411-a468-f2fbed241b20",
+    "created_at": "2026-09-20T01:52:13.979446+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: PACIFIC BEAM"
+  },
+  {
+    "id": "e5c1e6a7-a888-41b4-b056-e5f4cba4ef02",
+    "created_at": "2026-09-20T01:52:32.135608+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 6409"
+  },
+  {
+    "id": "bc57ed34-8a37-4c83-8663-8443979471e1",
+    "created_at": "2026-09-20T01:53:40.821753+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 6409"
+  },
+  {
+    "id": "2f612433-6080-41de-a51c-d18e899f7e48",
+    "created_at": "2026-09-20T01:53:56.007608+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa sà lan",
+    "details": "Chỉnh sửa sà lan ID: 1789869220685, Tên mới: SG 5798"
+  },
+  {
+    "id": "5707d862-3489-4392-9d89-4d54eb7fc1d4",
+    "created_at": "2026-09-20T01:56:23.932775+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7666"
+  },
+  {
+    "id": "9c933299-e276-427e-9edd-4e8e07f362b6",
+    "created_at": "2026-09-20T01:56:29.532971+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa sà lan",
+    "details": "Xóa sà lan: SG 7666"
+  },
+  {
+    "id": "f0f50e59-9b0c-4a93-9c18-ac8bad3a845f",
+    "created_at": "2026-09-20T01:56:39.956362+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Sửa sà lan",
+    "details": "Chỉnh sửa sà lan ID: 1789869383355, Tên mới: SG 7666"
+  },
+  {
+    "id": "ce55f6ca-dbc2-45fb-ab9d-d87e28a1d075",
+    "created_at": "2026-09-20T01:57:17.870172+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 5696"
+  },
+  {
+    "id": "5a8f8494-6aed-47b7-a7bf-8a09f96494f1",
+    "created_at": "2026-09-20T01:59:32.925037+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: DT-TG 15769"
+  },
+  {
+    "id": "da0c8bf3-b559-4693-b40f-354dda9687c6",
+    "created_at": "2026-09-20T15:40:55.651505+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "f3751ed5-27cd-4b53-9d0b-fe69cdc6b8c3",
+    "created_at": "2026-09-20T15:41:14.738376+00:00",
+    "username": "khacnghia",
+    "display_name": "Bùi Khắc Nghĩa",
+    "role": "staff",
+    "action": "Đăng xuất",
+    "details": "Đăng xuất khỏi hệ thống"
+  },
+  {
+    "id": "be818965-c853-4753-ba91-8f6fb049202e",
+    "created_at": "2026-09-20T15:41:27.178965+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "6dc74ce4-7150-43ab-8fb3-b61d55d2e2fe",
+    "created_at": "2026-09-21T07:04:35.387068+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8009"
+  },
+  {
+    "id": "05f6993d-986e-4635-9d7a-af5f7af73a06",
+    "created_at": "2026-09-21T07:08:59.74544+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa sà lan",
+    "details": "Xóa sà lan: DT-TG 15769"
+  },
+  {
+    "id": "d32002ba-17c5-49d4-99ce-f7669c4d7633",
+    "created_at": "2026-09-21T07:10:14.917299+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: NBA MAGRITTE"
+  },
+  {
+    "id": "ce34f2f1-9bf5-4e7d-a701-ba4a99f20932",
+    "created_at": "2026-09-21T07:10:33.906149+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 15869"
+  },
+  {
+    "id": "fdaef1ca-1531-4860-b9b9-ddb92fd477cf",
+    "created_at": "2026-09-21T07:12:52.684463+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8282"
+  },
+  {
+    "id": "a5fab9df-f254-4954-89d3-5e546ee3da9c",
+    "created_at": "2026-09-21T07:13:40.852397+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 9746"
+  },
+  {
+    "id": "2f5756eb-19ac-4e1a-aa6e-69db1ca82460",
+    "created_at": "2026-09-21T15:54:12.122801+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "ca80ec53-9c81-4589-ac01-fa2c3045512d",
+    "created_at": "2026-09-21T16:02:39.822196+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 106 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "ef90b72a-e8ae-42dc-808a-eda48ce2b002",
+    "created_at": "2026-09-21T16:18:42.352989+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TEST1"
+  },
+  {
+    "id": "aed06ff6-b771-4075-9c7e-b979804ad0ba",
+    "created_at": "2026-09-22T06:32:03.962533+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở lại tàu",
+    "details": "Chuyển tàu APOLLO LEADER về trạng thái Đang làm hàng"
+  },
+  {
+    "id": "40bc25ef-5920-4fc4-9e6a-845153402a64",
+    "created_at": "2026-09-22T06:37:27.612588+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở lại tàu",
+    "details": "Chuyển tàu ETERNAL RAJANG về trạng thái Đang làm hàng"
+  },
+  {
+    "id": "616ec59a-b0bd-4184-af4b-7844301c2fe7",
+    "created_at": "2026-09-22T06:39:56.429499+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: LA 06789"
+  },
+  {
+    "id": "b563d8dd-d792-40d9-93c5-47047f92ee50",
+    "created_at": "2026-09-22T06:40:00.77+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách xe cân sà lan LA 06789 ra Excel"
+  },
+  {
+    "id": "803d05ff-f7db-4b95-9e48-c9592fff2b96",
+    "created_at": "2026-09-22T06:40:09.663694+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "102de426-c065-40bd-bf1f-6fde5e9408dc",
+    "created_at": "2026-09-22T06:40:18.876503+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách xe cân sà lan BV 3038 ra Excel"
+  },
+  {
+    "id": "c753c691-ef97-49c2-b9eb-775628aed851",
+    "created_at": "2026-09-22T06:40:23.756934+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "e98b77c1-a4e5-489b-9dd8-95b43290a9a7",
+    "created_at": "2026-09-22T06:40:27.223787+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "8e4e5fa0-1c91-458f-ac4d-a11fcac8b553",
+    "created_at": "2026-09-22T06:41:24.724063+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 84 mới, 0 cập nhật"
+  },
+  {
+    "id": "52ed9c33-b29e-40bc-932d-505afd948a30",
+    "created_at": "2026-09-23T07:50:46.821841+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa sà lan",
+    "details": "Xóa sà lan: TEST1"
+  },
+  {
+    "id": "e70c4a73-fa4c-4b08-a431-8d40524c6e89",
+    "created_at": "2026-09-23T07:51:00.814929+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TEST 1"
+  },
+  {
+    "id": "007824a0-aad5-4a8f-8cb7-978c6d1e85d7",
+    "created_at": "2026-09-23T07:51:07.75214+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa sà lan",
+    "details": "Xóa sà lan: TEST 1"
+  },
+  {
+    "id": "01e3bcf9-a9f1-4459-b1de-908a520bb6aa",
+    "created_at": "2026-09-23T07:55:36.589776+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 17759"
+  },
+  {
+    "id": "9b4bb8c7-e7c8-4f1f-90d6-61f7ad01a90b",
+    "created_at": "2026-09-23T07:58:18.524971+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đổi mật khẩu",
+    "details": "Đặt lại mật khẩu cho tài khoản: tanthanh"
+  },
+  {
+    "id": "0ab31210-662b-4870-8d66-422666f8e697",
+    "created_at": "2026-09-23T07:59:09.489904+00:00",
+    "username": "lamoanh",
+    "display_name": "Lâm Oanh",
+    "role": "staff",
+    "action": "Đăng xuất",
+    "details": "Đăng xuất khỏi hệ thống"
+  },
+  {
+    "id": "a9a59b4e-ef25-45e4-a594-94e508d772f1",
+    "created_at": "2026-09-23T07:59:18.340465+00:00",
+    "username": "tanthanh",
+    "display_name": "Tấn Thành",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "844bbc13-ee4d-4990-a6b1-6f93017b0536",
+    "created_at": "2026-09-23T08:00:01.179597+00:00",
+    "username": "tanthanh",
+    "display_name": "Tấn Thành",
+    "role": "staff",
+    "action": "Đăng xuất",
+    "details": "Đăng xuất khỏi hệ thống"
+  },
+  {
+    "id": "0bc8b17a-117b-4255-9a28-3101a2f109b2",
+    "created_at": "2026-09-23T08:00:20.229174+00:00",
+    "username": "tanthanh",
+    "display_name": "Tấn Thành",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "09f32836-895e-4889-9f58-99e639dd753e",
+    "created_at": "2026-09-23T08:00:40.891185+00:00",
+    "username": "tanthanh",
+    "display_name": "Tấn Thành",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "c534b598-66f7-4f62-a9cf-5c8e467a4e17",
+    "created_at": "2026-09-23T08:00:59.777234+00:00",
+    "username": "tanthanh",
+    "display_name": "Tấn Thành",
+    "role": "staff",
+    "action": "Đăng xuất",
+    "details": "Đăng xuất khỏi hệ thống"
+  },
+  {
+    "id": "6eed08a3-931a-4f25-92f5-794e156043cb",
+    "created_at": "2026-09-23T08:12:49.308601+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "5311d8d7-b9c9-46ae-8d4c-e7583794253d",
+    "created_at": "2026-09-23T08:14:03.752236+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "b4f717fd-7bac-4df3-b4e2-3b69b274f80a",
+    "created_at": "2026-09-23T08:14:20.036262+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "e5bfe47f-77e9-4469-848b-62d362f0e3f0",
+    "created_at": "2026-09-23T08:14:30.026975+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "f5c24f2f-e1e1-4e6f-96f8-cca3884210fb",
+    "created_at": "2026-09-23T08:14:38.666575+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 84 mới, 0 cập nhật"
+  },
+  {
+    "id": "28abf9ce-baa0-43d5-ba36-138decd24b8e",
+    "created_at": "2026-09-23T08:17:05.315776+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 84 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "71e8cd70-c000-4274-b8dd-c5c9503e424d",
+    "created_at": "2026-09-23T08:17:09.428162+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất Sổ theo dõi ra Excel"
+  },
+  {
+    "id": "8d54fb5e-5f25-4bf9-9955-44bbd3b63d84",
+    "created_at": "2026-09-23T08:18:35.368075+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất Sổ theo dõi ra Excel"
+  },
+  {
+    "id": "daf3e378-0c06-45bc-8708-8c6dcb53f795",
+    "created_at": "2026-09-23T08:39:47.331712+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 8272"
+  },
+  {
+    "id": "a39a5317-065c-498d-9ea8-91055fb0af7e",
+    "created_at": "2026-09-23T08:39:50.725255+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "29e14288-88a5-4192-84c5-ece912db3995",
+    "created_at": "2026-09-23T08:40:01.052342+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "a718fdb4-6259-4759-86a4-8212fb1c8a2d",
+    "created_at": "2026-09-23T08:40:08.868041+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "ffab0874-b935-414e-ae35-986c74ceaf1d",
+    "created_at": "2026-09-23T08:40:39.588802+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 55 mới, 0 cập nhật"
+  },
+  {
+    "id": "fd02075e-ecbe-4c69-9752-07cbd3a51e29",
+    "created_at": "2026-09-23T08:41:00.75071+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: LA 06789"
+  },
+  {
+    "id": "a30d1ce1-35d9-4805-9ab5-da7066fbd47a",
+    "created_at": "2026-09-23T08:41:08.011464+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "b4409d09-a53a-4eff-a1f6-60f81ad72441",
+    "created_at": "2026-09-23T08:41:20.534775+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 7749"
+  },
+  {
+    "id": "f0163494-67d0-4178-8f23-f69a06e318db",
+    "created_at": "2026-09-23T08:41:24.941168+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 5696"
+  },
+  {
+    "id": "9904d95b-5ed9-46a5-9963-72d8db631037",
+    "created_at": "2026-09-23T08:42:32.995815+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "a74d07f6-6b0a-4041-8b91-e61c25c10b34",
+    "created_at": "2026-09-23T08:44:23.947263+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 55 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "ea31d631-3674-4407-b158-07cb6daa4478",
+    "created_at": "2026-09-23T08:52:06.792542+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: LA 06789"
+  },
+  {
+    "id": "aa6cf7fb-20a0-449e-bb9b-1a2a32d4120e",
+    "created_at": "2026-09-23T08:52:09.939693+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "ead8b7f1-1c13-4050-bfaf-2f1b07fcc9fc",
+    "created_at": "2026-09-23T08:52:13.12095+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 9439"
+  },
+  {
+    "id": "5101aa15-3616-4051-94a3-23919efd4a8b",
+    "created_at": "2026-09-23T08:52:16.570904+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "e54281c1-548f-4a73-aecd-fa093d2efa95",
+    "created_at": "2026-09-23T08:53:05.616574+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "f531718d-674f-48a5-80ce-195871cff895",
+    "created_at": "2026-09-23T08:53:45.108016+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 98 mới, 0 cập nhật"
+  },
+  {
+    "id": "4e4c9c2f-ebb1-4f2f-b3c7-4fdf920a51c6",
+    "created_at": "2026-09-23T08:54:35.788499+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "9e6ad09c-57d2-47d2-81aa-795f01d60857",
+    "created_at": "2026-09-23T08:55:03.850097+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8272"
+  },
+  {
+    "id": "d5d36b28-ce90-4c25-bdcb-e809c7acf20a",
+    "created_at": "2026-09-23T08:55:13.627751+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: LA 06789"
+  },
+  {
+    "id": "9f2ffda4-01ce-4a8a-958e-43995d10a962",
+    "created_at": "2026-09-23T08:55:29.019979+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 98 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "e9d7a507-51b9-4df6-85cc-137b4ff73117",
+    "created_at": "2026-09-23T08:59:03.097098+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 86 mới, 0 cập nhật"
+  },
+  {
+    "id": "48d55c64-a726-4b28-aa94-d64d391f2ead",
+    "created_at": "2026-09-23T08:59:46.91119+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "e06f03ee-b7f1-4816-9ae7-a1fef1ba8b04",
+    "created_at": "2026-09-23T08:59:55.922586+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7749"
+  },
+  {
+    "id": "c9447d85-61ba-4c5a-b769-cede883c953b",
+    "created_at": "2026-09-23T09:00:10.005781+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9439"
+  },
+  {
+    "id": "6846849d-f97c-4a76-b2c1-8946599c34d4",
+    "created_at": "2026-09-23T09:00:30.706213+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu APOLLO LEADER sang trạng thái Đã xong"
+  },
+  {
+    "id": "1dee4c8c-210b-4936-b774-0a8ad4009cda",
+    "created_at": "2026-09-23T09:00:48.944038+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 86 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "cf7fa7d8-bd22-4aaa-b17f-fe055bfa61a4",
+    "created_at": "2026-09-23T09:01:29.165287+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 12 mới, 0 cập nhật"
+  },
+  {
+    "id": "f2b3f520-5acf-4b11-a482-a7f8b5bb69dc",
+    "created_at": "2026-09-23T09:02:23.958639+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "92eefdc8-a880-45d9-94d4-368c58d45e17",
+    "created_at": "2026-09-23T09:02:30.680398+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 12 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "7b6c4a5d-10d1-475f-85a7-98f7bef0df83",
+    "created_at": "2026-09-23T09:04:04.67876+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "030ae4b9-c1bc-40d4-8535-ec2f9d2e0f6b",
+    "created_at": "2026-09-23T09:04:07.747464+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: ĐT-TG 6409"
+  },
+  {
+    "id": "25732676-ec59-4f43-9038-c1484d9d157f",
+    "created_at": "2026-09-23T09:04:10.478166+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: ĐT-TG 17759"
+  },
+  {
+    "id": "f580f88a-46d6-4a83-a9fa-6b8a50f419dd",
+    "created_at": "2026-09-23T09:04:16.209828+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "b32f76a1-b123-4548-a97b-64f3dcfe8042",
+    "created_at": "2026-09-23T09:04:42.043288+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 8019"
+  },
+  {
+    "id": "e0770f5f-937d-4849-9606-97825167d8bc",
+    "created_at": "2026-09-23T09:04:45.759068+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "ca3eacc6-3687-47db-8bbc-2d27eb50d44d",
+    "created_at": "2026-09-23T09:04:48.960949+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 8028"
+  },
+  {
+    "id": "9091d78e-3e3e-4bd6-89dd-ebf945158b82",
+    "created_at": "2026-09-23T09:05:09.319711+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất Sổ theo dõi ra Excel"
+  },
+  {
+    "id": "847cf5b7-4bd5-4161-87db-a8b1c3d36a8f",
+    "created_at": "2026-09-23T09:08:44.47303+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 41 mới, 0 cập nhật"
+  },
+  {
+    "id": "f4e22ec6-3088-4bcf-8d3c-cacf2e75c85a",
+    "created_at": "2026-09-23T09:09:48.309437+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "3f533b87-2811-4b7f-900e-c0c3449ca517",
+    "created_at": "2026-09-23T09:09:48.789839+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "18088f12-8003-4f1f-bbe6-0a154dacd1e1",
+    "created_at": "2026-09-23T09:09:49.688747+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "f7912af3-2093-4192-8518-f7c11aec0d7d",
+    "created_at": "2026-09-23T09:11:37.844546+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 41 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "d459251e-a4f9-4d9e-9590-b4a3d2ee1b69",
+    "created_at": "2026-09-23T09:18:26.583156+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 17 mới, 0 cập nhật"
+  },
+  {
+    "id": "2a886e6b-1304-466b-ba6f-e4f3d8803465",
+    "created_at": "2026-09-23T09:19:10.55017+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 17 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "9c91e96d-5980-4e7b-8956-11e699604c04",
+    "created_at": "2026-09-23T09:20:35.798032+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 33 mới, 0 cập nhật"
+  },
+  {
+    "id": "73a973a3-d215-4dfe-81ce-fb70535d6e99",
+    "created_at": "2026-09-23T09:21:03.771395+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "444bc2e4-f50a-4e30-b88d-3b2cb8c4f81e",
+    "created_at": "2026-09-23T09:21:15.296986+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 5696"
+  },
+  {
+    "id": "b49e321b-d154-4f57-82ee-30c8c9e5a08c",
+    "created_at": "2026-09-23T09:21:28.68086+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu ETERNAL RAJANG sang trạng thái Đã xong"
+  },
+  {
+    "id": "ae7fecfb-f4f4-4579-9ac4-aa0fb03a6cf5",
+    "created_at": "2026-09-23T09:21:51.417737+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8019"
+  },
+  {
+    "id": "4b20e4a0-e9f3-4155-a82a-a2abeb8cb715",
+    "created_at": "2026-09-23T09:21:58.831968+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 33 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "9e87ba4e-c78f-45f9-896c-8b413fc18162",
+    "created_at": "2026-09-23T09:23:15.375831+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "d3069aed-1d41-458a-bd0d-baf6fb0e0ccc",
+    "created_at": "2026-09-23T09:23:20.008302+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "b426e42d-5c04-4385-930d-a1bdda6b9290",
+    "created_at": "2026-09-23T09:23:37.670657+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "99ad0887-f847-4a1c-9ae9-367d634e04e6",
+    "created_at": "2026-09-23T09:23:56.570223+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "4611e1a9-9758-4edb-8dc8-d2e1851c1f5f",
+    "created_at": "2026-09-23T09:23:59.935815+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "60961547-7719-4e93-b6c1-380065b4667b",
+    "created_at": "2026-09-23T09:24:03.670282+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "44f15653-149a-47d5-aced-d925766ab1db",
+    "created_at": "2026-09-23T09:24:31.740895+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "5239e987-1bda-4cc5-a263-ff307172e63f",
+    "created_at": "2026-09-23T09:24:36.395913+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "cce22b49-ad7e-4902-9e46-a9776143ee21",
+    "created_at": "2026-09-23T09:25:02.46965+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 109 mới, 0 cập nhật"
+  },
+  {
+    "id": "06175f18-e02b-4a81-b1ac-1187d759f404",
+    "created_at": "2026-09-23T09:26:21.991252+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "71fd28d0-3828-4548-9a6b-74cfbdf6c1ef",
+    "created_at": "2026-09-23T09:26:44.230802+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 7889"
+  },
+  {
+    "id": "d1cffe47-30b9-425b-8c2c-a721e35ccf78",
+    "created_at": "2026-09-23T09:26:47.807824+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "98b02c4d-5c62-4393-9383-c8a6ac17a2d9",
+    "created_at": "2026-09-23T09:26:51.307685+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TN-LA - 06789"
+  },
+  {
+    "id": "6fba3289-f2bc-48dd-a90d-fa75b507be92",
+    "created_at": "2026-09-23T09:26:54.464734+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "74cce2d8-9987-43e9-9652-e32b0a461e4d",
+    "created_at": "2026-09-23T09:27:00.426744+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "d8714f75-67ca-4ee4-9b8a-e387b872f17f",
+    "created_at": "2026-09-23T09:27:21.271316+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "f8eb58e6-1adb-4ffe-962d-8698048f1015",
+    "created_at": "2026-09-23T09:30:54.304165+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "706b19aa-9032-4678-bbf7-153daa739331",
+    "created_at": "2026-09-23T09:37:25.779247+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 109 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "4ab778de-51ee-4e73-a296-0a7c9a3f55f5",
+    "created_at": "2026-09-23T09:53:38.248111+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 6409"
+  },
+  {
+    "id": "8649702e-3171-4a38-b862-bd284f339483",
+    "created_at": "2026-09-23T09:54:10.979308+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 90 mới, 0 cập nhật"
+  },
+  {
+    "id": "21bd389d-83de-4646-97c6-ceb06b27ba56",
+    "created_at": "2026-09-23T09:54:50.121657+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8028"
+  },
+  {
+    "id": "e9a55e92-6ed4-434f-b6c1-785b8a8aa9fd",
+    "created_at": "2026-09-23T10:03:16.464082+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "4c556a28-0e9a-485e-b59b-fea60b19a947",
+    "created_at": "2026-09-23T10:09:20.010382+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7889"
+  },
+  {
+    "id": "70cb22a9-7223-404e-a1e2-e7a610ebc3f4",
+    "created_at": "2026-09-23T10:09:21.139205+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 7889"
+  },
+  {
+    "id": "9ba589bf-bbd5-42a1-9651-59404c825f00",
+    "created_at": "2026-09-23T10:09:23.760896+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7889"
+  },
+  {
+    "id": "1613d346-dd1b-448d-b493-67e7ca1cbb7e",
+    "created_at": "2026-09-23T10:14:55.999855+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 90 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "29192c09-8e71-43d9-90d3-f28182c504b3",
+    "created_at": "2026-09-23T10:16:48.975758+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm phiếu cân",
+    "details": "Thêm phiếu cân mới: 50E 33911"
+  },
+  {
+    "id": "45dffd94-0e24-4e3c-a515-e70a88e189cd",
+    "created_at": "2026-09-23T10:17:13.952955+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8282"
+  },
+  {
+    "id": "e962fd77-dd96-4249-a633-1d2b68df8f8b",
+    "created_at": "2026-09-23T10:17:27.564764+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 1 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "1697208f-b67f-4d05-807b-30ec36b1a30d",
+    "created_at": "2026-09-23T10:20:02.863159+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "026a58fa-01b8-43d4-9ce2-c436b413d380",
+    "created_at": "2026-09-23T10:20:17.122632+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "ad52e6da-85e3-4afa-90ed-e9f11cdb6fc9",
+    "created_at": "2026-09-23T10:21:57.934936+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 90 mới, 0 cập nhật"
+  },
+  {
+    "id": "c43efda1-c3f4-4185-8ce3-a4eac8e14df8",
+    "created_at": "2026-09-23T10:22:20.181844+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 17759"
+  },
+  {
+    "id": "9e1c567d-fe50-459a-9962-a32e38d9f9e5",
+    "created_at": "2026-09-23T10:24:31.734953+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TN-LA - 06789"
+  },
+  {
+    "id": "eea5acbb-55c7-4bc3-9b66-e7eed4ff4299",
+    "created_at": "2026-09-23T10:25:07.129136+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 90 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "35a769d8-c767-4557-8521-14206b6ac51d",
+    "created_at": "2026-09-23T10:30:51.476903+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "aa0349cb-15e9-4a2d-9adb-04add0749d02",
+    "created_at": "2026-09-23T10:31:45.057862+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 5696"
+  },
+  {
+    "id": "20e1fb95-66e0-4103-ba18-394201874ad4",
+    "created_at": "2026-09-23T14:14:24.730508+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "0494bf99-ae6a-4ef3-b660-bd71627b410b",
+    "created_at": "2026-09-23T14:14:38.120117+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "7bcacac0-09ba-4635-8db2-3386b9f6a6d9",
+    "created_at": "2026-09-23T14:15:15.066822+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 520 chuyến xe vào bảng phân bổ riêng: TG 15869"
+  },
+  {
+    "id": "4292ca54-5a4c-45d9-a1b7-ed0377e1c85f",
+    "created_at": "2026-09-23T14:24:50.111195+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa phiếu cân",
+    "details": "Xóa xe: 61C 16362"
+  },
+  {
+    "id": "5cc94baa-0fb0-4499-9d80-6bcb8b007391",
+    "created_at": "2026-09-23T14:25:32.008811+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "2fa199de-3674-48ac-b6a5-db41a57702b4",
+    "created_at": "2026-09-23T14:37:02.860421+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "04874730-1aaa-46ce-90f2-64410a0f5739",
+    "created_at": "2026-09-23T14:37:15.918126+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "b7c7b0c7-87d3-4995-bc08-f160e72d425a",
+    "created_at": "2026-09-23T14:37:48.336806+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "f695e636-7251-4ad1-9e81-ed22788b7af6",
+    "created_at": "2026-09-23T14:38:50.930507+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa phiếu cân",
+    "details": "Xóa xe: 61H 14644"
+  },
+  {
+    "id": "d01867fc-b542-48b5-9a93-c48f6c2454df",
+    "created_at": "2026-09-23T14:38:52.807518+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: TEST"
+  },
+  {
+    "id": "38584d91-7a87-4557-9519-d53594fce7c3",
+    "created_at": "2026-09-23T14:39:06.129006+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tàu",
+    "details": "Xóa tàu: TEST"
+  },
+  {
+    "id": "6f46827b-fd88-4f2c-9f40-9b5c0bd91966",
+    "created_at": "2026-09-23T14:39:06.904191+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9439"
+  },
+  {
+    "id": "bb125197-7048-44d8-8a1d-e2c995cfcf3d",
+    "created_at": "2026-09-23T14:39:36.025761+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "3010090c-7e4c-4f07-80b2-9c9b883b048e",
+    "created_at": "2026-09-23T14:39:40.764632+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 106 mới, 0 cập nhật"
+  },
+  {
+    "id": "007f8389-4b54-4cba-a3f1-51213bb81db8",
+    "created_at": "2026-09-23T14:39:58.245428+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 520 chuyến xe vào bảng phân bổ riêng: KHO 4"
+  },
+  {
+    "id": "b7f089e4-4643-4bc0-acdd-7f9884bfab92",
+    "created_at": "2026-09-23T14:42:24.977727+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "c8e2c9d7-9def-4af8-9378-747e77bcbfba",
+    "created_at": "2026-09-23T14:42:31.363851+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 110 mới, 0 cập nhật"
+  },
+  {
+    "id": "f2bebd45-19d1-49e3-9faa-b7e0d57352a8",
+    "created_at": "2026-09-23T14:43:30.884911+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 15769"
+  },
+  {
+    "id": "5870bb9d-e474-4445-b554-b5543e46a294",
+    "created_at": "2026-09-23T14:43:57.913022+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 110 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "d107e55d-0abe-4a78-9b1b-805d67c9bee2",
+    "created_at": "2026-09-23T14:44:32.498948+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất Sổ theo dõi ra Excel"
+  },
+  {
+    "id": "2e8ac6b3-2644-4fcc-a233-a54b2d6bc343",
+    "created_at": "2026-09-23T14:45:58.777156+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất Sổ theo dõi ra Excel"
+  },
+  {
+    "id": "abbbba27-7e7f-40a3-b911-1025208066cb",
+    "created_at": "2026-09-23T14:48:10.085792+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 84 mới, 0 cập nhật"
+  },
+  {
+    "id": "684f064a-33ef-48ed-80e6-2f49e3842c62",
+    "created_at": "2026-09-23T15:08:17.798602+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "ae21e8d6-7248-4930-a265-81618f13632b",
+    "created_at": "2026-09-23T15:08:45.900078+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 23 phiếu từ sà lan nguồn: TG 15869"
+  },
+  {
+    "id": "c6a8ec79-c63f-4408-989c-b49c10b6142f",
+    "created_at": "2026-09-23T15:13:14.348255+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "608138aa-4534-460e-8ceb-b09318c16853",
+    "created_at": "2026-09-23T15:14:44.365463+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 105 mới, 0 cập nhật"
+  },
+  {
+    "id": "8b97266d-79d1-4203-a2eb-f3c51e160cd0",
+    "created_at": "2026-09-23T15:17:14.990476+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7666"
+  },
+  {
+    "id": "76ee1498-f551-4000-8e25-67f55ad1ac0e",
+    "created_at": "2026-09-23T15:18:19.17683+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "645d06f7-b1bc-416a-b86f-ef5a07b1ed70",
+    "created_at": "2026-09-23T15:18:36.438649+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 105 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "df3f3eeb-7454-4912-8f2c-d0615a7e63ff",
+    "created_at": "2026-09-23T15:20:15.546261+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 23 phiếu từ sà lan nguồn: TG 15869"
+  },
+  {
+    "id": "e1e8855a-b3a7-46f5-bdf4-35e0d00d8d8d",
+    "created_at": "2026-09-23T15:44:53.686393+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 54 mới, 0 cập nhật"
+  },
+  {
+    "id": "b01cf94a-e56b-4fe6-bbe6-92277a291c84",
+    "created_at": "2026-09-23T15:46:07.283417+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 5798"
+  },
+  {
+    "id": "8b6d6d70-aa7a-4206-bf5f-8b31fb531d21",
+    "created_at": "2026-09-23T15:46:27.64496+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu VENETTA sang trạng thái Đã xong"
+  },
+  {
+    "id": "544de208-fbb3-4155-8f6f-bf1111161824",
+    "created_at": "2026-09-23T15:47:06.572787+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 54 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "b49fca1e-020d-474e-aabf-10a51ade8245",
+    "created_at": "2026-09-24T06:46:40.544739+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 148 mới, 0 cập nhật"
+  },
+  {
+    "id": "cbd9bad3-4ddd-4669-9857-d0f381c7c875",
+    "created_at": "2026-09-24T06:47:29.681093+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 6409"
+  },
+  {
+    "id": "1fe8ec3b-00aa-4dd2-90c7-6df2800b0fe1",
+    "created_at": "2026-09-24T06:48:25.98094+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8009"
+  },
+  {
+    "id": "0a7db6dc-16a6-4846-a751-4b3dee6f01e2",
+    "created_at": "2026-09-24T06:51:04.835746+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "14c88077-4723-40a9-9137-213e8bcc941a",
+    "created_at": "2026-09-24T06:51:27.714826+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 148 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "dd9d9825-7037-40e3-b9e6-564280bc7548",
+    "created_at": "2026-09-24T06:58:38.892192+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 56 mới, 0 cập nhật"
+  },
+  {
+    "id": "b3d7030c-6321-4045-b8bc-10c41f575c2d",
+    "created_at": "2026-09-24T06:59:41.82836+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8282"
+  },
+  {
+    "id": "7c903b5a-e0cf-4d38-8894-242d750b19c8",
+    "created_at": "2026-09-24T07:02:26.701445+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "9ab357d6-66d0-4b4e-9e16-acaa1879f6bf",
+    "created_at": "2026-09-24T07:02:32.521466+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 56 mới, 0 cập nhật"
+  },
+  {
+    "id": "a24b5ac6-830f-4bc6-aeec-1d2ebf240c86",
+    "created_at": "2026-09-24T07:03:48.210477+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 56 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "f1ea8d25-edf7-4c07-b28a-88b343bdf280",
+    "created_at": "2026-09-24T07:07:37.774293+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: AG 27322"
+  },
+  {
+    "id": "ad2d01a2-3ed4-4c96-95f6-c63cf9bb2fbd",
+    "created_at": "2026-09-24T07:09:18.355647+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: CT 10487"
+  },
+  {
+    "id": "1006b685-e11e-426e-b2ad-a802565574e2",
+    "created_at": "2026-09-24T07:10:07.59891+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 53 mới, 0 cập nhật"
+  },
+  {
+    "id": "f106c690-13f9-4632-a2ff-a6903ab27b1b",
+    "created_at": "2026-09-24T07:12:54.965756+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 17759"
+  },
+  {
+    "id": "07fa7856-de8c-48bc-8d95-c82815d524d1",
+    "created_at": "2026-09-24T07:13:54.647967+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8019"
+  },
+  {
+    "id": "2c3ffdaf-e37f-4b98-80b7-88f8503c20fc",
+    "created_at": "2026-09-24T07:14:20.863237+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9746"
+  },
+  {
+    "id": "1f6644c6-1498-4a9f-a9fe-46c107cb462e",
+    "created_at": "2026-09-24T07:14:32.368937+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 53 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "7c462428-9a2e-4cb5-97b7-b67471e17390",
+    "created_at": "2026-09-24T08:04:33.321826+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7666"
+  },
+  {
+    "id": "89d80685-3e34-40e6-bd27-91c69e7a314d",
+    "created_at": "2026-09-24T08:06:16.794259+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 88 mới, 0 cập nhật"
+  },
+  {
+    "id": "c28632ce-5969-47f9-ba3e-196585bfbea5",
+    "created_at": "2026-09-24T08:07:14.185613+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: CT 10487"
+  },
+  {
+    "id": "77981508-91a9-4481-a919-a376c313577f",
+    "created_at": "2026-09-24T08:07:44.775895+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7666"
+  },
+  {
+    "id": "7a5bd5b5-5034-4b03-b808-f8169475be34",
+    "created_at": "2026-09-24T08:08:27.351172+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: AG 27322"
+  },
+  {
+    "id": "62c476b5-f05d-4332-9297-2a4ac6161be3",
+    "created_at": "2026-09-24T08:09:25.004921+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 88 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "517bb2fe-331a-4118-a656-7aa55ce3298a",
+    "created_at": "2026-09-25T03:16:41.815415+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: CT 10487"
+  },
+  {
+    "id": "cfbcd628-3f0a-4973-83bd-1a3729331996",
+    "created_at": "2026-09-25T03:32:30.903552+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: LA 06789"
+  },
+  {
+    "id": "a953f4c2-1b83-4373-bdd1-3d4dafbaa4e6",
+    "created_at": "2026-09-25T03:33:53.636122+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8019"
+  },
+  {
+    "id": "204b2e81-0cec-4f3f-bcb2-1c079f251ba8",
+    "created_at": "2026-09-25T03:35:04.440676+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8028"
+  },
+  {
+    "id": "5e785018-314c-444f-b9a4-49163f5ac718",
+    "created_at": "2026-09-25T03:36:23.308851+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 113 mới, 0 cập nhật"
+  },
+  {
+    "id": "bf0495bd-842b-4476-9591-a2a36c6531e2",
+    "created_at": "2026-09-25T03:37:20.832453+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9809"
+  },
+  {
+    "id": "ecffbba7-065a-43be-83e6-cee0881a8eab",
+    "created_at": "2026-09-25T03:38:08.996717+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8028"
+  },
+  {
+    "id": "df65b6bb-8845-41c6-9c56-4d94600697ae",
+    "created_at": "2026-09-25T03:38:41.655143+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 8028"
+  },
+  {
+    "id": "2923c368-8546-47ff-be6e-a7d5db4785d4",
+    "created_at": "2026-09-25T03:49:26.104206+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 7889"
+  },
+  {
+    "id": "a77f6493-cbe5-485b-a5c0-91c341ab97b2",
+    "created_at": "2026-09-25T03:55:44.149233+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 8282"
+  },
+  {
+    "id": "ef55a6a3-4dfa-4e68-91a0-d2ff86025e1a",
+    "created_at": "2026-09-25T03:55:55.411436+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: LA 06789"
+  },
+  {
+    "id": "799d01d9-6196-4d0d-af7d-6efc135f1fe8",
+    "created_at": "2026-09-25T03:56:09.68002+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: TG 15869"
+  },
+  {
+    "id": "d282b9c8-44d4-4149-9c8e-5a14ec3568de",
+    "created_at": "2026-09-25T03:57:28.415292+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: LA 06789"
+  },
+  {
+    "id": "78bb7286-88e7-489f-ac11-8ee67d8ac572",
+    "created_at": "2026-09-25T03:58:30.371177+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: CT 10487"
+  },
+  {
+    "id": "3c6c2ad7-15eb-43ba-b913-504eb6469d46",
+    "created_at": "2026-09-25T03:58:52.236658+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: TG 15869"
+  },
+  {
+    "id": "1e091e4d-12ec-4d9e-a737-6163625c29e5",
+    "created_at": "2026-09-25T03:59:33.545521+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 9439"
+  },
+  {
+    "id": "a3426119-9cf5-4387-b128-f3a2934b2191",
+    "created_at": "2026-09-25T04:00:12.542925+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: TG 15869"
+  },
+  {
+    "id": "f4b3d029-11f9-4c01-a500-7269248bb165",
+    "created_at": "2026-09-25T04:00:49.433766+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 8019"
+  },
+  {
+    "id": "11c5171d-64a1-4da5-8c11-6863419bdc72",
+    "created_at": "2026-09-25T04:06:28.504017+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 5696"
+  },
+  {
+    "id": "0e19c52b-010e-4d78-b667-cdbe9b74268d",
+    "created_at": "2026-09-25T04:11:19.850122+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: ĐT-TG 6409"
+  },
+  {
+    "id": "aeb15417-3dd2-434f-aa7f-5d37f700593b",
+    "created_at": "2026-09-25T04:12:51.096838+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 8282"
+  },
+  {
+    "id": "940ec77b-e7d4-439f-b4c5-51ed298daeb6",
+    "created_at": "2026-09-25T04:13:33.558964+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 7889"
+  },
+  {
+    "id": "7fef7dec-00f3-4342-a345-8fcfd15c7b65",
+    "created_at": "2026-09-25T08:09:30.706287+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: TN-LA - 06789"
+  },
+  {
+    "id": "642089ce-699e-4023-a004-45054f5e0dba",
+    "created_at": "2026-09-25T08:09:42.908068+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 9439"
+  },
+  {
+    "id": "222816b4-39ba-4c07-a98d-9fdffad07981",
+    "created_at": "2026-09-25T08:10:10.769922+00:00",
+    "username": "huenhan",
+    "display_name": "Huệ Nhàn",
+    "role": "staff",
+    "action": "Lưu hồ sơ sà lan",
+    "details": "Cập nhật hồ sơ: SG 8019"
+  },
+  {
+    "id": "3e236450-1550-436c-9510-4f056048cae5",
+    "created_at": "2026-09-26T13:11:48.263704+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: OCEAN GALAXY"
+  },
+  {
+    "id": "67a8e721-259e-4ff2-aa5f-f798b5de1ca5",
+    "created_at": "2026-09-26T13:11:53.259967+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT-TG 6409"
+  },
+  {
+    "id": "8a2b172c-b8fe-482e-932a-06c3c7468661",
+    "created_at": "2026-09-26T13:14:59.697927+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: CT 10487"
+  },
+  {
+    "id": "03d6d7ec-ff77-4b44-b194-d0d3a390d9c2",
+    "created_at": "2026-09-26T13:16:26.34275+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "c819a8af-48b7-4d55-b0fd-918ccd61d25b",
+    "created_at": "2026-09-26T13:17:29.513983+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 113 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "744067ed-9ad4-400a-adee-e3153f1bf170",
+    "created_at": "2026-09-26T13:17:48.10687+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 87 mới, 0 cập nhật"
+  },
+  {
+    "id": "80c06826-f705-4662-87fc-7d0e57a11201",
+    "created_at": "2026-09-26T13:19:43.642202+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8019"
+  },
+  {
+    "id": "1a215535-cbfa-44bc-a814-8ec7793832c9",
+    "created_at": "2026-09-26T13:20:06.700854+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8028"
+  },
+  {
+    "id": "f61823a9-15ce-4ccf-8b62-4369d129130e",
+    "created_at": "2026-09-26T13:20:47.290011+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 6409"
+  },
+  {
+    "id": "ff73fbc9-b026-45fa-92a6-0c57f1ec6e06",
+    "created_at": "2026-09-26T13:22:34.125779+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa phiếu cân",
+    "details": "Xóa xe: 61C 33824"
+  },
+  {
+    "id": "159dab36-307e-4a22-a708-08f71db81dde",
+    "created_at": "2026-09-26T13:22:50.780881+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: CT 10487"
+  },
+  {
+    "id": "e3e1e948-c068-4626-a797-96aafd2cde3a",
+    "created_at": "2026-09-26T13:24:18.060579+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa phiếu cân",
+    "details": "Xóa phiếu cân: 014616/26B"
+  },
+  {
+    "id": "c6c7e0fb-e4f0-49b8-89ab-ac9c92ae3b55",
+    "created_at": "2026-09-26T13:24:29.002684+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 86 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "34eee345-bb81-4def-863c-9fb44b75c5cd",
+    "created_at": "2026-09-28T15:02:28.280431+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách quản lý sà lan ra Excel"
+  },
+  {
+    "id": "ec495868-d987-40dd-86f7-cf56fad94411",
+    "created_at": "2026-09-29T02:08:42.481966+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: CT 10487"
+  },
+  {
+    "id": "b3953303-7cba-4316-a5dc-482009118a78",
+    "created_at": "2026-09-29T02:09:23.998136+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8272"
+  },
+  {
+    "id": "38497308-d9c1-486f-b180-25fa606fa9c9",
+    "created_at": "2026-09-29T02:13:04.92027+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7889"
+  },
+  {
+    "id": "feed5f61-48dd-43a4-ac6b-24c9f8ba1a96",
+    "created_at": "2026-09-29T02:14:12.424001+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT TG 17759"
+  },
+  {
+    "id": "0d8ed7dc-aed9-4721-89a5-2a3bb66efb53",
+    "created_at": "2026-09-29T02:15:09.182312+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7666"
+  },
+  {
+    "id": "eeebfe21-0979-41b2-b918-4709ab926a45",
+    "created_at": "2026-09-29T02:15:51.323981+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 9809"
+  },
+  {
+    "id": "aa0f606f-c1ac-455f-8c8d-15869a280696",
+    "created_at": "2026-09-29T02:16:31.79126+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 10678"
+  },
+  {
+    "id": "b615a791-72cc-4c31-b577-78280c164cdc",
+    "created_at": "2026-09-29T02:31:33.161827+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 184 mới, 0 cập nhật"
+  },
+  {
+    "id": "b0f94d73-f30f-4d2f-aa61-ada8ab4a0ced",
+    "created_at": "2026-09-29T02:32:26.479291+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: CT 10487"
+  },
+  {
+    "id": "f0135900-8933-4269-bb5f-34be748850b6",
+    "created_at": "2026-09-29T02:32:59.683283+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "c0fc51b9-b449-42aa-b50c-1b124fd07d2e",
+    "created_at": "2026-09-29T02:33:26.970152+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8272"
+  },
+  {
+    "id": "dda34e52-0df8-43b8-9b75-42e3a171c506",
+    "created_at": "2026-09-29T02:34:11.899864+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT TG 17759"
+  },
+  {
+    "id": "5ebf2061-529f-4da3-b357-612941a991ab",
+    "created_at": "2026-09-29T02:34:28.830419+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7666"
+  },
+  {
+    "id": "3206d44c-a515-47d4-8c78-8866c2d5ecaf",
+    "created_at": "2026-09-29T02:35:40.261902+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 184 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "1dc18331-9d26-4cd4-afc8-a88065c8fee1",
+    "created_at": "2026-09-29T02:40:11.508945+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 49 mới, 0 cập nhật"
+  },
+  {
+    "id": "14f7e9f6-7ac4-4b87-b67c-641b457e0f3c",
+    "created_at": "2026-09-29T02:41:07.899978+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 49 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "b5bee5cb-4208-444a-b695-a60df13f4bf7",
+    "created_at": "2026-09-30T03:26:24.221241+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: COREOCEAN OL"
+  },
+  {
+    "id": "aac003db-6976-4ea0-8d73-9fc795f7dd66",
+    "created_at": "2026-09-30T03:27:32.550392+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "3f59f26a-5f47-4176-8464-53d4bc016b92",
+    "created_at": "2026-09-30T03:36:43.234313+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 46 mới, 0 cập nhật"
+  },
+  {
+    "id": "9a0ef939-509b-4015-9a35-980617f4a528",
+    "created_at": "2026-09-30T03:38:09.084683+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7889"
+  },
+  {
+    "id": "c977c0d0-900c-4fe5-985c-ece47d1f0226",
+    "created_at": "2026-09-30T03:38:55.963143+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9809"
+  },
+  {
+    "id": "eac84893-2c0c-4fdf-824d-f8ba3eae5296",
+    "created_at": "2026-09-30T03:39:16.9965+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "c4e8d8f5-722e-40b9-9204-338dee2df330",
+    "created_at": "2026-09-30T03:39:20.788511+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "8a3c6d0f-c1ef-4390-adcd-5ba8c716c7dd",
+    "created_at": "2026-09-30T03:39:23.883958+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "46ad85d1-315c-4ca6-8f1d-2b841fec74e8",
+    "created_at": "2026-09-30T03:40:09.79046+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 46 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "15eeba09-1513-47ee-be85-e487657b629a",
+    "created_at": "2026-09-30T03:41:07.90479+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu PACIFIC BEAM sang trạng thái Đã xong"
+  },
+  {
+    "id": "12b73ee9-5016-4c15-bc5c-bc8e8fdcf474",
+    "created_at": "2026-09-30T03:42:12.652817+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu ORIENT ORCHID-EW sang trạng thái Đã xong"
+  },
+  {
+    "id": "67958523-0100-4fa2-a1e8-b219c9f6c1c3",
+    "created_at": "2026-10-01T08:20:03.373712+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: LA 06789"
+  },
+  {
+    "id": "88c589c8-fb19-4af1-8dd8-d091f2ce4709",
+    "created_at": "2026-10-01T08:21:28.005577+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 23 phiếu từ sà lan nguồn: TG 15869"
+  },
+  {
+    "id": "ebe0cd37-5daa-4bf8-836d-7ad53084796b",
+    "created_at": "2026-10-01T08:21:43.856061+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 8019"
+  },
+  {
+    "id": "36050523-9128-4f35-b1a0-289510498484",
+    "created_at": "2026-10-01T08:22:01.425708+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 35 phiếu từ sà lan nguồn: SG 7889"
+  },
+  {
+    "id": "ef781990-c498-4b4e-ac0f-59d3ea9a21a2",
+    "created_at": "2026-10-01T08:23:22.679787+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "f78000b4-78dd-4a65-9c0e-1e406183badf",
+    "created_at": "2026-10-01T08:23:31.139749+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: LA 06789"
+  },
+  {
+    "id": "dfa12626-d0b1-4e82-85ef-946ffa9a9843",
+    "created_at": "2026-10-01T08:24:05.510455+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 218 chuyến xe vào bảng phân bổ riêng: LA 06789"
+  },
+  {
+    "id": "7a655cae-2b06-4882-88a0-c7e66f2197c3",
+    "created_at": "2026-10-01T08:24:16.380961+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 23 phiếu từ sà lan nguồn: TG 15869"
+  },
+  {
+    "id": "bb001cdd-ece6-44e2-997f-a56f35fdef48",
+    "created_at": "2026-10-01T08:24:27.80792+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 146 chuyến xe vào bảng phân bổ riêng: TG 15869"
+  },
+  {
+    "id": "1fcd30d0-8239-4e62-be41-b5f086a89ea8",
+    "created_at": "2026-10-01T08:24:46.913031+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 8019"
+  },
+  {
+    "id": "4f5b11d4-b1af-4700-9082-9c961890a3be",
+    "created_at": "2026-10-01T08:24:59.407141+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 224 chuyến xe vào bảng phân bổ riêng: SG 8019"
+  },
+  {
+    "id": "556964bc-7716-401f-a11d-6f0a3a87bb30",
+    "created_at": "2026-10-01T08:25:12.342736+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 35 phiếu từ sà lan nguồn: SG 7889"
+  },
+  {
+    "id": "f484ea8d-17f4-45e7-9500-c4bed12813b3",
+    "created_at": "2026-10-01T08:25:25.219323+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 221 chuyến xe vào bảng phân bổ riêng: SG 7889"
+  },
+  {
+    "id": "24432866-43c7-4d8e-a677-b6969ca87006",
+    "created_at": "2026-10-01T08:25:33.503584+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "712ba687-07b8-4a8d-91bb-1a8133329b3e",
+    "created_at": "2026-10-03T08:09:14.101233+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT TG 6409"
+  },
+  {
+    "id": "64906ba7-ce31-491a-a2a5-0585ebd05882",
+    "created_at": "2026-10-10T02:11:29.629691+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT -TG 15767"
+  },
+  {
+    "id": "92418008-d3ae-4617-9b93-b8ae6847ccf5",
+    "created_at": "2026-10-10T02:19:41.381293+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import Excel",
+    "details": "Import Excel phiếu cân: 63 mới, 0 cập nhật"
+  },
+  {
+    "id": "fc2941e0-7656-4674-8a3a-22590cea179e",
+    "created_at": "2026-10-10T02:26:29.28126+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 63 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "917def85-81ee-4846-b935-fa1658d964a7",
+    "created_at": "2026-10-10T02:35:49.309744+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 15869"
+  },
+  {
+    "id": "14ab3db3-30d9-4ceb-ba4d-39234a314c46",
+    "created_at": "2026-10-10T02:38:56.207582+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7889"
+  },
+  {
+    "id": "5461e45a-7b6f-4d88-a496-b7c2c3832bed",
+    "created_at": "2026-10-10T02:42:49.917817+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 92 mới, 0 cập nhật"
+  },
+  {
+    "id": "2bf1403e-87ee-44ab-b9db-ddc27095695d",
+    "created_at": "2026-10-10T02:43:42.8669+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "40df3fcc-6390-4db1-b184-8dfc97b06c2c",
+    "created_at": "2026-10-10T02:44:11.208905+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT TG 6409"
+  },
+  {
+    "id": "d7f535ad-985b-45e1-84b0-532e46e277f8",
+    "created_at": "2026-10-10T02:46:16.707527+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 92 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "9139422b-193a-4c0f-836a-b408a79fb605",
+    "created_at": "2026-10-10T02:49:25.05563+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8009"
+  },
+  {
+    "id": "b75721e3-e815-4be2-a55a-37b35c5396a0",
+    "created_at": "2026-10-10T02:51:22.9024+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 10678"
+  },
+  {
+    "id": "37f96451-b666-41af-8398-6732a21d2122",
+    "created_at": "2026-10-10T03:32:02.84317+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 100 mới, 0 cập nhật"
+  },
+  {
+    "id": "4e0ae41b-e7c6-4656-8211-c38bc83bdb67",
+    "created_at": "2026-10-10T03:32:30.537087+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "1a5f5209-1bac-4f0f-ad2a-db2cf4ba5714",
+    "created_at": "2026-10-10T03:32:48.657232+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 100 mới, 0 cập nhật"
+  },
+  {
+    "id": "8d4512ec-6068-472f-b012-7fe34604ed1d",
+    "created_at": "2026-10-10T03:33:07.670613+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "2199343c-6801-42c7-8870-bae04b0604f5",
+    "created_at": "2026-10-10T03:33:13.745404+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 100 mới, 0 cập nhật"
+  },
+  {
+    "id": "0f49bd3b-afe9-43ac-bfbe-de103c7ae057",
+    "created_at": "2026-10-10T03:33:40.83474+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT -TG 15767"
+  },
+  {
+    "id": "3b650c81-c852-45d3-a78d-3d5a58385e82",
+    "created_at": "2026-10-10T03:34:37.059118+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7889"
+  },
+  {
+    "id": "75cc0650-9879-4c88-99e1-4e74d3798e18",
+    "created_at": "2026-10-10T03:35:13.02147+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8009"
+  },
+  {
+    "id": "934fc851-d392-43e7-8429-59fe7f1755ad",
+    "created_at": "2026-10-10T03:36:16.579443+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 100 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "b7b33b72-9c27-41a2-816d-ef2f823684a5",
+    "created_at": "2026-10-10T03:38:15.904611+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 15869"
+  },
+  {
+    "id": "4d88ad42-bf5a-41d3-b7d5-46c01abfe45c",
+    "created_at": "2026-10-10T03:38:38.191254+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "d934a8d1-1cf5-4608-ba8b-7c42b8c6e1c7",
+    "created_at": "2026-10-10T03:39:18.422962+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: SHINLINE 11"
+  },
+  {
+    "id": "2ae6bbee-2f44-4a42-9a8e-aff93cfc0081",
+    "created_at": "2026-10-10T03:39:37.022688+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT - TG 15767"
+  },
+  {
+    "id": "3ebb453f-2729-4f5f-8c8b-c1e680e43cce",
+    "created_at": "2026-10-10T03:44:39.046432+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 107 mới, 0 cập nhật"
+  },
+  {
+    "id": "4b41b789-2bff-4227-bbd5-a73f46028777",
+    "created_at": "2026-10-10T03:45:59.050705+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "c2e38be8-c654-485c-a6d7-bdbe51753a49",
+    "created_at": "2026-10-10T03:47:02.752646+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 107 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "2265d420-1204-49d1-b240-28244afc8db4",
+    "created_at": "2026-10-10T03:49:41.644933+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 17759"
+  },
+  {
+    "id": "67a70fe6-d6ef-4de7-98cd-5c1ce96a22f0",
+    "created_at": "2026-10-10T03:50:24.517106+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT-TG 6409"
+  },
+  {
+    "id": "cba06cd9-b5f0-49f6-9f23-2b12680156b2",
+    "created_at": "2026-10-10T03:51:01.948634+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7272"
+  },
+  {
+    "id": "af751e8b-49d5-4f1d-969c-cc50ff56c245",
+    "created_at": "2026-10-10T03:54:20.274018+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 89 mới, 0 cập nhật"
+  },
+  {
+    "id": "3909e120-de64-47ad-bf7c-1ae32e07470f",
+    "created_at": "2026-10-10T03:55:12.313174+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "ae5d4e07-c59f-4d0c-899f-7c155d30b61d",
+    "created_at": "2026-10-10T03:55:52.157917+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT - TG 15767"
+  },
+  {
+    "id": "d353d580-f252-485b-9e7e-5c6fc86b0f58",
+    "created_at": "2026-10-10T03:56:31.256342+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 17759"
+  },
+  {
+    "id": "5320fccc-af52-4c68-bd17-813d5585f598",
+    "created_at": "2026-10-10T03:57:25.542066+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 89 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "7a437e73-f632-49f8-8168-a7d83bfa676f",
+    "created_at": "2026-10-10T03:59:42.639727+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: CT 10487"
+  },
+  {
+    "id": "71d31a14-a875-4e9d-8b42-a3cc72e97c07",
+    "created_at": "2026-10-10T04:05:42.208003+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 56 mới, 0 cập nhật"
+  },
+  {
+    "id": "59e50d21-2b69-4ef1-b7f2-5f554e3e4f5b",
+    "created_at": "2026-10-10T04:06:10.862591+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT-TG 6409"
+  },
+  {
+    "id": "29d1183d-a5cb-42af-9a24-68f1f5dcade8",
+    "created_at": "2026-10-10T04:07:04.093574+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 56 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "a8fed936-6c74-4bf2-9d5c-28e5a84662d2",
+    "created_at": "2026-10-10T04:11:18.894333+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 19 mới, 0 cập nhật"
+  },
+  {
+    "id": "7532351b-cd99-408b-b39b-e27ace2613a0",
+    "created_at": "2026-10-10T04:11:40.148266+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: CT 10487"
+  },
+  {
+    "id": "06e43f69-88f8-4e27-b26b-2086b6ee739d",
+    "created_at": "2026-10-10T04:12:20.739605+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 19 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "8b9a90af-c53d-455f-9d0c-222f4b8c9cff",
+    "created_at": "2026-10-10T04:13:37.591458+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 10678"
+  },
+  {
+    "id": "a83b24a1-345c-40ed-957b-72ccd41ecc21",
+    "created_at": "2026-10-10T04:17:54.477737+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 37 mới, 0 cập nhật"
+  },
+  {
+    "id": "02bcfece-c2c3-4296-b232-cea8a51045a2",
+    "created_at": "2026-10-10T04:18:15.482938+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "b23d2e04-e5d2-4dc6-9af8-9c3ccb59ae58",
+    "created_at": "2026-10-10T04:18:43.072067+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 37 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "7e4ff2c1-be0d-4f75-a2aa-7fcdc6bd6cc7",
+    "created_at": "2026-10-10T04:20:48.636487+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: KYPROS SPIRIT"
+  },
+  {
+    "id": "9d5d9f09-7c4b-48c9-b0e1-906e9dd9c4df",
+    "created_at": "2026-10-10T04:21:00.479111+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8282"
+  },
+  {
+    "id": "5c3c33d7-82a2-4259-bdc6-13c1a61bd92a",
+    "created_at": "2026-10-10T04:22:38.899832+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: MISSION REVIVAL"
+  },
+  {
+    "id": "211bffe0-a980-4e42-8ac9-ac15753a2d46",
+    "created_at": "2026-10-10T04:22:47.45584+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7272"
+  },
+  {
+    "id": "6349e109-d780-4e13-8b23-6ea831427909",
+    "created_at": "2026-10-11T02:06:59.27723+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 127 mới, 0 cập nhật"
+  },
+  {
+    "id": "866465b7-7e62-4ce9-bbb2-e90026d60c73",
+    "created_at": "2026-10-11T02:08:08.522574+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8282"
+  },
+  {
+    "id": "35f3d497-20b7-45d0-93cf-07641a5e2d33",
+    "created_at": "2026-10-12T07:48:50.123769+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 127 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "324325bd-2e70-4ed2-8b08-4a09b9452df8",
+    "created_at": "2026-10-12T08:04:02.939481+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT TG 6409"
+  },
+  {
+    "id": "59783bba-15e0-4ceb-a140-0c78f0b78309",
+    "created_at": "2026-10-12T08:04:40.062811+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG  17759"
+  },
+  {
+    "id": "08205661-9ae6-4c75-a7c6-569f46fd3f64",
+    "created_at": "2026-10-12T08:05:05.684778+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 9439"
+  },
+  {
+    "id": "0fe84c57-faa0-4536-8d67-2e7e51c4b367",
+    "created_at": "2026-10-12T08:05:58.787407+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "16286dff-b579-459a-9cfb-8ca6ad255516",
+    "created_at": "2026-10-12T08:06:40.62428+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8019"
+  },
+  {
+    "id": "a3e96604-a1d6-49e1-85ef-a332ec8e75a7",
+    "created_at": "2026-10-12T08:08:33.810255+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 188 mới, 0 cập nhật"
+  },
+  {
+    "id": "a726e19f-ddd8-49e6-b75b-4d4b27143402",
+    "created_at": "2026-10-12T08:11:09.618284+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "c4e94421-244a-4e47-9adb-806b503eca98",
+    "created_at": "2026-10-12T08:11:58.133253+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "53724971-9946-432d-b605-de6bffd799d3",
+    "created_at": "2026-10-12T08:12:28.931527+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT TG 6409"
+  },
+  {
+    "id": "c3f0ecce-08ff-45c4-8659-6955f6b5544c",
+    "created_at": "2026-10-12T08:13:37.121283+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG  17759"
+  },
+  {
+    "id": "61bae4ac-26b9-49db-99a0-82ed1735c3b8",
+    "created_at": "2026-10-12T08:14:10.40006+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9439"
+  },
+  {
+    "id": "01a4876e-8695-46c4-9447-18aecdf21bf3",
+    "created_at": "2026-10-12T08:19:22.540281+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 188 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "e27f8759-675f-431c-8263-aa5bdc90e655",
+    "created_at": "2026-10-13T06:19:46.067474+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8009"
+  },
+  {
+    "id": "f0566b3c-6763-47d7-ad69-5f9cf9a92435",
+    "created_at": "2026-10-13T06:20:45.306987+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 10678"
+  },
+  {
+    "id": "54ad2b1b-8ff4-40a9-9ed4-da2c85ec9433",
+    "created_at": "2026-10-13T06:22:44.261051+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 95 mới, 0 cập nhật"
+  },
+  {
+    "id": "ff8877bc-1cd3-4079-873a-d3e07cf6e14b",
+    "created_at": "2026-10-13T06:24:58.569478+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "ef61a65e-792c-4608-b6a8-d2e6c6dc61b4",
+    "created_at": "2026-10-13T06:27:31.277563+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8009"
+  },
+  {
+    "id": "d34dd8cb-0fea-47e3-a4fc-d01638fcda01",
+    "created_at": "2026-10-13T06:29:17.99288+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 95 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "1f58258e-7c70-4672-b47e-a6efbc309ab4",
+    "created_at": "2026-10-13T06:30:46.042247+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 23 phiếu từ sà lan nguồn: TG 15869"
+  },
+  {
+    "id": "439abc8e-b087-4d5a-a4a2-dc55b0c7bc87",
+    "created_at": "2026-10-13T06:31:46.500278+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 8019"
+  },
+  {
+    "id": "eaece3ec-d451-4906-8200-1700522c3155",
+    "created_at": "2026-10-14T02:16:45.144803+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: ĐT TG 15767"
+  },
+  {
+    "id": "d321d6a3-5f68-4b27-8a85-d31b0c751952",
+    "created_at": "2026-10-14T02:17:41.488535+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 9439"
+  },
+  {
+    "id": "8596bb70-2c62-4300-8642-14fddc97dc35",
+    "created_at": "2026-10-14T02:18:13.730953+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 17759"
+  },
+  {
+    "id": "9c6a2fe7-77de-4263-a967-f8abbcf2ab61",
+    "created_at": "2026-10-14T02:23:28.842346+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 114 mới, 0 cập nhật"
+  },
+  {
+    "id": "fd70d712-cbde-41b9-9cf9-89870f0f599c",
+    "created_at": "2026-10-14T02:24:07.807464+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "4b92c94e-047a-481a-9b29-7a2b7680c426",
+    "created_at": "2026-10-14T02:24:43.600882+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT TG 15767"
+  },
+  {
+    "id": "0bbc7bbf-0d46-4096-94fb-141fd04da5e2",
+    "created_at": "2026-10-14T02:25:57.435878+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu SHINLINE 11 sang trạng thái Đã xong"
+  },
+  {
+    "id": "5eff9df9-00fa-407f-a21d-06fa79b74a5e",
+    "created_at": "2026-10-14T03:57:13.434789+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Tạo tài khoản",
+    "details": "Tạo tài khoản mới: daothao"
+  },
+  {
+    "id": "96aeff0f-771f-48bd-ae76-08173fc2cd79",
+    "created_at": "2026-10-14T03:57:41.18404+00:00",
+    "username": "lamoanh",
+    "display_name": "Lâm Oanh",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "70a8190e-70e0-450e-98c2-5702f619f19b",
+    "created_at": "2026-10-14T04:01:05.871327+00:00",
+    "username": "lamoanh",
+    "display_name": "Lâm Oanh",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "11749832-38ad-46e7-a13c-ee81f1296f8e",
+    "created_at": "2026-10-14T04:01:51.127356+00:00",
+    "username": "daothao",
+    "display_name": "Đào Thảo",
+    "role": "staff",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "5dc1ad0e-fa21-445c-a9c5-d17a839503e4",
+    "created_at": "2026-10-14T04:04:23.544506+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 114 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "be65b431-7be9-472c-ac53-5153575fb701",
+    "created_at": "2026-10-14T12:49:51.009931+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "3df80245-e1d6-4997-b290-e679b2a4afee",
+    "created_at": "2026-10-15T14:42:02.381819+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: AC SESODA"
+  },
+  {
+    "id": "ddf88f20-b481-4529-99d5-7697548c7a82",
+    "created_at": "2026-10-15T14:42:28.902076+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 19439"
+  },
+  {
+    "id": "e7b7c3b7-a6a3-4d2c-85b8-83302f252898",
+    "created_at": "2026-10-15T14:44:47.6871+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 80 mới, 0 cập nhật"
+  },
+  {
+    "id": "cb27023b-019c-42ac-bb80-d60d11108263",
+    "created_at": "2026-10-15T14:48:52.305564+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 17759"
+  },
+  {
+    "id": "40a86d94-2173-4365-8762-2dfbc7dc7bdb",
+    "created_at": "2026-10-15T14:49:32.893955+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 19439"
+  },
+  {
+    "id": "827fcf53-e4c3-4841-bb7c-1254c74403b0",
+    "created_at": "2026-10-15T14:50:06.37103+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 80 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "bf2d5330-2730-4110-953f-c26f968a192e",
+    "created_at": "2026-10-15T15:33:22.372494+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"SG 8019\" từ \"NÔNG SẢN_DE HEUS\" sang \"GIẤY PHẾ LIỆU\""
+  },
+  {
+    "id": "ba1a0a72-e1ec-4f53-bde6-dbebb2d19970",
+    "created_at": "2026-10-15T15:33:50.495609+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"SG 8019\" từ \"GIẤY PHẾ LIỆU\" sang \"NÔNG SẢN_DE HEUS\""
+  },
+  {
+    "id": "7fd52fce-9a26-45bf-8642-b5447c22375a",
+    "created_at": "2026-10-15T15:39:25.488624+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "6ad24be7-2ece-4879-a2cc-c781d7d11ddf",
+    "created_at": "2026-10-15T15:39:32.847922+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"SG 10678\" từ \"ORIENT ORCHID - GBĐ\" sang \"NBA MAGRITTE\""
+  },
+  {
+    "id": "4726f39a-eaad-4049-8916-3d8dcb703d96",
+    "created_at": "2026-10-15T15:40:02.664792+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 10678"
+  },
+  {
+    "id": "320ebd1c-d8d3-4892-8e07-d7c2bc42625e",
+    "created_at": "2026-10-15T15:40:17.170192+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu NBA MAGRITTE sang trạng thái Đã xong"
+  },
+  {
+    "id": "03c179a8-8761-4a8f-9032-ab521ee8ea89",
+    "created_at": "2026-10-15T15:42:09.749724+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "9423d08d-fe55-453b-a9bc-d310bd49a84b",
+    "created_at": "2026-10-15T15:42:52.845708+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"BV 3038\" từ \"COREOCEAN OL\" sang \"OCEAN GALAXY\""
+  },
+  {
+    "id": "06b8cf05-80fe-4579-9758-67e0e9352480",
+    "created_at": "2026-10-15T15:43:06.424688+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "8482cb9f-a74c-439b-9a83-cdbebe5af2c1",
+    "created_at": "2026-10-15T15:43:21.750015+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu OCEAN GALAXY sang trạng thái Đã xong"
+  },
+  {
+    "id": "86f9804b-6bee-4641-ba49-e9c04c4b69c9",
+    "created_at": "2026-10-15T15:43:41.403623+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu COREOCEAN OL sang trạng thái Đã xong"
+  },
+  {
+    "id": "cbb8bb75-5812-4286-869f-38ffd3d6ced7",
+    "created_at": "2026-10-15T15:45:07.083209+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu ORIENT ORCHID - GBĐ sang trạng thái Đã xong"
+  },
+  {
+    "id": "5e6f7f8c-3889-47a8-8e76-509ab6a3e1b4",
+    "created_at": "2026-10-15T15:45:26.742238+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu TEST sang trạng thái Đã xong"
+  },
+  {
+    "id": "e92e5883-5dfd-4e66-ab30-6580f81bd5c6",
+    "created_at": "2026-10-16T03:22:49.061154+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 17768"
+  },
+  {
+    "id": "fdf0aa9a-fd24-4efe-8984-67401b5cb77f",
+    "created_at": "2026-10-16T03:27:14.919713+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: BV 3038"
+  },
+  {
+    "id": "6c7f866c-e65c-47b9-bfa3-28fa603bd3b7",
+    "created_at": "2026-10-16T03:30:02.639184+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 74 mới, 0 cập nhật"
+  },
+  {
+    "id": "bbcc0400-1797-4cd3-8018-e8a6477f7eb5",
+    "created_at": "2026-10-16T03:35:40.238039+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 9439"
+  },
+  {
+    "id": "e0b6d307-5c5c-4850-b927-ce2d5babdf53",
+    "created_at": "2026-10-16T03:37:22.774832+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "26df99c9-cc72-48a3-b115-cdd3cdcdffc5",
+    "created_at": "2026-10-16T03:37:48.670198+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 74 mới, 0 cập nhật"
+  },
+  {
+    "id": "c66179c8-0b8f-4233-abf0-66a8c8ec130e",
+    "created_at": "2026-10-16T03:56:08.867239+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "d1be0bf3-3afa-4fee-8537-137823a6e21d",
+    "created_at": "2026-10-16T03:56:12.905711+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 74 mới, 0 cập nhật"
+  },
+  {
+    "id": "94fdd13a-c0af-4572-84b4-2aba19989ec0",
+    "created_at": "2026-10-16T03:58:48.792065+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 17768"
+  },
+  {
+    "id": "f33f6c65-f31a-48a3-8d82-860d960ce3e7",
+    "created_at": "2026-10-16T03:59:34.560144+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 74 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "4a225161-8101-4cb3-a7d6-5e8a230024e0",
+    "created_at": "2026-10-16T04:13:02.783905+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 22 phiếu từ sà lan nguồn: SG 8019"
+  },
+  {
+    "id": "89ce3631-96ac-4aa7-b584-0af2420dd745",
+    "created_at": "2026-10-16T04:13:37.942296+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "5df772cb-7ac0-4232-bd2a-f7c34da15e33",
+    "created_at": "2026-10-16T04:15:57.249065+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: ĐT -TG 15767"
+  },
+  {
+    "id": "1f9ed607-4f68-4b7a-94ae-0f98db1a40fd",
+    "created_at": "2026-10-16T04:16:31.646189+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm xe",
+    "details": "Thêm xe mới: 50E-33963"
+  },
+  {
+    "id": "8d310024-73c3-464e-a555-d86d989f7939",
+    "created_at": "2026-10-16T04:16:41.575254+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 218 chuyến xe vào bảng phân bổ riêng: ĐT -TG 15767"
+  },
+  {
+    "id": "e8260360-36e4-4ab0-8ff4-1a2be92c3998",
+    "created_at": "2026-10-16T04:17:24.407367+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 7272"
+  },
+  {
+    "id": "a4ecd9b1-0b68-488d-9b1f-333a5c0d901c",
+    "created_at": "2026-10-16T04:17:39.465061+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "ffa5b593-b616-4134-b301-0b7a273d909c",
+    "created_at": "2026-10-16T04:17:48.793216+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "16a6d160-2919-47e3-b61e-aeb12faaa3f7",
+    "created_at": "2026-10-16T04:17:59.320934+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 7272"
+  },
+  {
+    "id": "af89b429-f74e-45b1-8ebc-2c3233591ced",
+    "created_at": "2026-10-16T04:18:39.504909+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 211 chuyến xe vào bảng phân bổ riêng: SG 7272"
+  },
+  {
+    "id": "2fe7beaf-33c8-4055-a10b-bf2926979497",
+    "created_at": "2026-10-16T10:31:10.327979+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách quản lý sà lan ra Excel"
+  },
+  {
+    "id": "2a6d503e-a5d8-4560-8d17-445ab5f7214c",
+    "created_at": "2026-10-16T10:34:56.417767+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách quản lý sà lan ra Excel"
+  },
+  {
+    "id": "1b583430-fe02-46f0-94e8-a0d9a38efa7b",
+    "created_at": "2026-10-16T15:18:45.696696+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách quản lý sà lan ra Excel"
+  },
+  {
+    "id": "4578ae36-c272-4b4c-bb22-0ba075ea776c",
+    "created_at": "2026-10-19T02:12:27.201137+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8272"
+  },
+  {
+    "id": "1971cc0e-7d75-4b4f-b12f-83701a5c9fc7",
+    "created_at": "2026-10-19T02:13:50.432588+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 72 mới, 0 cập nhật"
+  },
+  {
+    "id": "c0dbd9e9-f602-4267-b411-611dc75e7b4a",
+    "created_at": "2026-10-19T02:14:11.785556+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8019"
+  },
+  {
+    "id": "30999c43-3c38-44b3-8c38-bfd1543502a7",
+    "created_at": "2026-10-19T02:16:10.603859+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: BV 3038"
+  },
+  {
+    "id": "527f76b2-36e5-442d-985a-7ce6f2b77a7d",
+    "created_at": "2026-10-19T02:21:43.520538+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa phiếu cân",
+    "details": "Xóa xe: 61C 16362"
+  },
+  {
+    "id": "c06fe836-da05-415c-b815-b644eeaae3b8",
+    "created_at": "2026-10-19T02:22:12.989586+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa phiếu cân",
+    "details": "Xóa phiếu cân: 016401/26B"
+  },
+  {
+    "id": "1843dd72-9f59-4ad8-a1bb-5471bd4c2e22",
+    "created_at": "2026-10-19T02:22:48.00376+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 71 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "89091d11-8c72-4227-9517-8248637fd0a2",
+    "created_at": "2026-10-19T03:16:21.504142+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 8019"
+  },
+  {
+    "id": "15c6b774-bc92-4fa4-aa9f-8fe07694c887",
+    "created_at": "2026-10-19T03:18:10.196967+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 49 mới, 0 cập nhật"
+  },
+  {
+    "id": "b8fe3e2e-0636-4257-a134-769af7bdcb7b",
+    "created_at": "2026-10-19T03:20:18.134024+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8272"
+  },
+  {
+    "id": "795dba53-de95-4dad-87a8-6a8897ecc0a4",
+    "created_at": "2026-10-19T03:20:57.220917+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu KYPROS SPIRIT sang trạng thái Đã xong"
+  },
+  {
+    "id": "4c99794e-1927-482f-ac16-e5116dfae87b",
+    "created_at": "2026-10-19T03:21:29.501404+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8019"
+  },
+  {
+    "id": "c1f0bf4a-077b-4681-af8f-f322831144c4",
+    "created_at": "2026-10-19T03:24:10.545669+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "78f530bf-1018-4823-aa92-3f8861434028",
+    "created_at": "2026-10-19T03:24:18.148184+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"SG 7272\" từ \"MISSION REVIVAL\" sang \"AC SESODA\""
+  },
+  {
+    "id": "592087fd-6f38-4c54-9766-58d285626319",
+    "created_at": "2026-10-19T03:24:27.530739+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: SG 8009"
+  },
+  {
+    "id": "c0c75c96-3e9e-4b88-a455-d02965073521",
+    "created_at": "2026-10-19T03:24:32.008347+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"SG 8009\" từ \"MISSION REVIVAL\" sang \"AC SESODA\""
+  },
+  {
+    "id": "04273812-5c50-4bef-bfca-d5bb3369bee2",
+    "created_at": "2026-10-19T03:24:43.626621+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: ĐT TG 15767"
+  },
+  {
+    "id": "3a6e86ba-7179-408c-9192-5b9fbd2ccb40",
+    "created_at": "2026-10-19T03:24:48.348188+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chuyển tàu mẹ sà lan",
+    "details": "Chuyển \"ĐT TG 15767\" từ \"MISSION REVIVAL\" sang \"AC SESODA\""
+  },
+  {
+    "id": "23909203-bd38-4fdb-8527-741f3a09ea9e",
+    "created_at": "2026-10-19T03:25:43.570987+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7272"
+  },
+  {
+    "id": "d936dff2-d209-45de-a143-0e293865fd4e",
+    "created_at": "2026-10-19T03:25:46.605163+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 8009"
+  },
+  {
+    "id": "8d1369a0-e3c7-492b-bd35-441590c8e084",
+    "created_at": "2026-10-19T03:25:49.625822+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: ĐT TG 15767"
+  },
+  {
+    "id": "cc1d14be-0d01-4935-85db-dd2a69edbb15",
+    "created_at": "2026-10-19T03:29:41.142592+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất danh sách xe cân sà lan TG 17768 ra Excel"
+  },
+  {
+    "id": "67d2f917-36a3-4407-be3b-ca82d6d34f7b",
+    "created_at": "2026-10-19T03:30:05.828441+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 49 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "89efd9cb-4aa0-47d0-8f10-a7a4de1a00c0",
+    "created_at": "2026-10-19T03:37:29.154611+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TG 17768"
+  },
+  {
+    "id": "b3855052-f1be-406c-8814-ad71b62bceda",
+    "created_at": "2026-10-19T03:41:32.508479+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa sạch danh sách xe của sà lan"
+  },
+  {
+    "id": "5de50885-a1aa-4586-a801-1f545237e3d2",
+    "created_at": "2026-10-19T03:41:46.954418+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 0 mới, 0 cập nhật"
+  },
+  {
+    "id": "d58717b1-aa45-40ef-8518-da7e6261e35c",
+    "created_at": "2026-10-19T03:42:05.887962+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 74 mới, 0 cập nhật"
+  },
+  {
+    "id": "5e085eee-15cc-4808-a50f-1a6bd11e2999",
+    "created_at": "2026-10-19T03:42:34.159398+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 17768"
+  },
+  {
+    "id": "336af8df-66ec-44e5-99f7-84c08f779a88",
+    "created_at": "2026-10-19T03:49:28.08658+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất Sổ theo dõi ra Excel"
+  },
+  {
+    "id": "7f3b6373-1992-4f33-8ad3-b914d888704c",
+    "created_at": "2026-10-19T03:50:34.393931+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xóa tất cả phiếu cân",
+    "details": "Xóa toàn bộ danh sách phiếu cân"
+  },
+  {
+    "id": "e4ced0b4-a6ac-4bf5-ac26-970b5dd0d61d",
+    "created_at": "2026-10-19T03:50:38.805501+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 38 mới, 0 cập nhật"
+  },
+  {
+    "id": "979e9548-116b-4030-b40c-0f039e4aa089",
+    "created_at": "2026-10-19T03:50:49.68195+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 38 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "da6ccc8a-0098-4b8a-8485-af3540edbb4a",
+    "created_at": "2026-10-19T03:51:10.742351+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Chốt số liệu tàu",
+    "details": "Chuyển tàu AC SESODA sang trạng thái Đã xong"
+  },
+  {
+    "id": "77d4650c-7dc3-4340-8ee9-e1e1890320ea",
+    "created_at": "2026-10-20T02:19:20.974856+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm tàu",
+    "details": "Thêm tàu: EPOCH WIND"
+  },
+  {
+    "id": "dedecd4c-dbd3-47cd-99cf-b096b91e9b3f",
+    "created_at": "2026-10-20T02:19:30.115321+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: CT 10487"
+  },
+  {
+    "id": "5a09ee24-d4dd-43f9-962b-3ade17ef6e01",
+    "created_at": "2026-10-20T02:20:47.266764+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TG 13939"
+  },
+  {
+    "id": "df25b00c-7327-43fa-998b-7179b97cf54e",
+    "created_at": "2026-10-20T02:22:51.873652+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 70 mới, 0 cập nhật"
+  },
+  {
+    "id": "97eec0fc-e998-49ca-893f-e35836de8973",
+    "created_at": "2026-10-20T02:23:56.339017+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: CT 10487"
+  },
+  {
+    "id": "3ce185ab-e1b5-4070-8bd3-6fc7a1df9ba5",
+    "created_at": "2026-10-20T02:25:17.340473+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TG 13939"
+  },
+  {
+    "id": "ab3c831f-23e2-4d48-a45b-d2def7b85ff5",
+    "created_at": "2026-10-20T02:25:27.862527+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 70 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "329fe5fa-af7d-424a-a005-42b4f9e05497",
+    "created_at": "2026-10-20T08:51:57.801665+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "715b6a22-bdb8-4888-a1ba-c7dc9191ebf1",
+    "created_at": "2026-10-20T08:52:55.912717+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "cc7fd061-d2f3-4637-bb99-a60f4fdc776c",
+    "created_at": "2026-10-20T08:54:44.704749+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 219 phiếu từ sà lan nguồn: SG 7272"
+  },
+  {
+    "id": "8427928b-2953-4dc6-ab52-320ee8858cff",
+    "created_at": "2026-10-20T08:54:54.991316+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 219 chuyến xe vào bảng phân bổ riêng: SG 7272"
+  },
+  {
+    "id": "f55af93a-04bb-44b3-9ef6-e859c291d8d2",
+    "created_at": "2026-10-20T08:55:10.981736+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 218 phiếu từ sà lan nguồn: TG 15769"
+  },
+  {
+    "id": "f5321468-095c-4b0d-86d6-771dfeefbb65",
+    "created_at": "2026-10-20T08:55:18.88777+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 218 chuyến xe vào bảng phân bổ riêng: TG 15769"
+  },
+  {
+    "id": "67be755c-1793-49ff-8d36-ffb9c08764ad",
+    "created_at": "2026-10-20T08:55:37.657149+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 217 phiếu từ sà lan nguồn: SG 7889"
+  },
+  {
+    "id": "e5d12759-f295-4a28-8cb2-99da36577c13",
+    "created_at": "2026-10-20T08:55:45.769411+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 217 chuyến xe vào bảng phân bổ riêng: SG 7889"
+  },
+  {
+    "id": "8edaa00e-53e3-4674-b643-290b8bff7b97",
+    "created_at": "2026-10-20T08:56:08.374524+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "48bf2648-2ba1-44e3-9230-c7e1b2c41427",
+    "created_at": "2026-10-20T09:39:46.543076+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 170 phiếu từ sà lan nguồn: CT 10487"
+  },
+  {
+    "id": "ec0d42f1-4012-4e15-85f4-b7b21ab1d1a9",
+    "created_at": "2026-10-20T09:39:55.2061+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 170 chuyến xe vào bảng phân bổ riêng: CT 10487"
+  },
+  {
+    "id": "7a6b4c53-5b7d-442a-9ee5-2e0107e04a78",
+    "created_at": "2026-10-20T09:40:58.341903+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 276 phiếu từ sà lan nguồn: SG 9809"
+  },
+  {
+    "id": "064485a3-0d19-497f-9ea5-87ff07f2a071",
+    "created_at": "2026-10-20T09:41:16.374253+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 276 chuyến xe vào bảng phân bổ riêng: SG 9809"
+  },
+  {
+    "id": "dbe7eb71-2dd3-464f-8163-46f55102c090",
+    "created_at": "2026-10-20T09:41:24.364693+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 221 phiếu từ sà lan nguồn: SG 8009"
+  },
+  {
+    "id": "1f24d343-b514-4aa1-ba0d-cde76e4c1b2c",
+    "created_at": "2026-10-20T09:41:31.920892+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 221 chuyến xe vào bảng phân bổ riêng: SG 8009"
+  },
+  {
+    "id": "86e7c331-87ef-4b6d-a146-0caace58e44c",
+    "created_at": "2026-10-20T09:41:41.403111+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: LA 06789"
+  },
+  {
+    "id": "71fa6cfb-28f3-425d-8868-139d5a21829a",
+    "created_at": "2026-10-20T09:41:51.442398+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 218 chuyến xe vào bảng phân bổ riêng: LA 06789"
+  },
+  {
+    "id": "3390638a-93ff-4a1b-b3b4-171ff1d697ab",
+    "created_at": "2026-10-20T09:42:03.02495+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 23 phiếu từ sà lan nguồn: TG 15869"
+  },
+  {
+    "id": "7d4892d8-774e-4047-aa61-419bfeabeb6c",
+    "created_at": "2026-10-20T09:42:09.124835+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 146 chuyến xe vào bảng phân bổ riêng: TG 15869"
+  },
+  {
+    "id": "a0c561ba-1ba2-4b4d-9d74-b0733b8fd9ca",
+    "created_at": "2026-10-20T09:42:30.930963+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 8019"
+  },
+  {
+    "id": "fbfff7ff-82eb-4a9e-92aa-06e97a0e24c4",
+    "created_at": "2026-10-20T09:42:38.673995+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 224 chuyến xe vào bảng phân bổ riêng: SG 8019"
+  },
+  {
+    "id": "b22c6a01-c829-44f3-a75d-f3ae9468d8e5",
+    "created_at": "2026-10-20T09:42:51.173223+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 35 phiếu từ sà lan nguồn: SG 7889"
+  },
+  {
+    "id": "9f74660b-bcb0-43da-9b87-b8c70a7bad25",
+    "created_at": "2026-10-20T09:43:05.538894+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 221 chuyến xe vào bảng phân bổ riêng: SG 7889"
+  },
+  {
+    "id": "b87c3d29-5162-4e47-a529-570247cced81",
+    "created_at": "2026-10-20T09:43:18.122653+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: ĐT -TG 15767"
+  },
+  {
+    "id": "f3a57360-4620-4ce8-9faa-b28fdcfcdbb9",
+    "created_at": "2026-10-20T09:44:55.953841+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 218 chuyến xe vào bảng phân bổ riêng: ĐT -TG 15767"
+  },
+  {
+    "id": "19482db3-5f51-4b96-b6cc-6204797ac742",
+    "created_at": "2026-10-20T09:45:14.50943+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 34 phiếu từ sà lan nguồn: SG 7272"
+  },
+  {
+    "id": "bd79df07-d7ac-4256-8152-9c977ee086b5",
+    "created_at": "2026-10-20T09:45:26.166077+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 211 chuyến xe vào bảng phân bổ riêng: SG 7272"
+  },
+  {
+    "id": "6291e67f-448a-45e2-879c-0c3792f5a032",
+    "created_at": "2026-10-20T09:45:37.265798+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 35 phiếu từ sà lan nguồn: SG 8019"
+  },
+  {
+    "id": "09259119-f49e-4059-8cae-e367f3eab12e",
+    "created_at": "2026-10-20T09:45:46.837978+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 219 chuyến xe vào bảng phân bổ riêng: SG 8019"
+  },
+  {
+    "id": "200d9564-374e-4a1e-876d-fa783be5d1b5",
+    "created_at": "2026-10-20T09:48:54.291086+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Xuất Excel",
+    "details": "Xuất báo cáo cân hàng ra Excel"
+  },
+  {
+    "id": "fa4227ba-4738-4e92-825c-51cd57a69eff",
+    "created_at": "2026-10-20T10:17:53.029313+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: TEST"
+  },
+  {
+    "id": "b8b61e49-eb4e-4bb1-9b8c-4fbc3612e43a",
+    "created_at": "2026-10-20T10:18:40.198318+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TEST"
+  },
+  {
+    "id": "b612d2cb-020a-446b-9dcb-b1a73822e264",
+    "created_at": "2026-10-20T10:19:01.558435+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 1 phiếu từ sà lan nguồn: TEST"
+  },
+  {
+    "id": "6ee4f883-3853-43c1-aad8-78e32a9fd451",
+    "created_at": "2026-10-20T14:32:43.974282+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TEST"
+  },
+  {
+    "id": "3fbd725a-fb42-402d-8625-fc2ecc4a51e3",
+    "created_at": "2026-10-20T15:59:12.988588+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 1 phiếu từ sà lan nguồn: TEST"
+  },
+  {
+    "id": "353dd9eb-e4d2-485a-a4a9-a8ce8f9178a1",
+    "created_at": "2026-10-20T15:59:20.099442+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 1 phiếu từ sà lan nguồn: TEST"
+  },
+  {
+    "id": "3616bcba-343f-4d45-83cd-10799f9103da",
+    "created_at": "2026-10-20T15:59:33.024649+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 170 phiếu từ sà lan nguồn: CT 10487"
+  },
+  {
+    "id": "74c950c1-3ce1-4030-8973-12f91c7a9d38",
+    "created_at": "2026-10-20T16:00:54.908+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 219 phiếu từ sà lan nguồn: SG 7272"
+  },
+  {
+    "id": "0c0c730b-edb6-41e2-a7ce-b6ec1233cc54",
+    "created_at": "2026-10-20T16:01:27.078581+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 1 phiếu từ sà lan nguồn: TEST"
+  },
+  {
+    "id": "6be7af9d-4583-44a8-856c-fe3c31b76c85",
+    "created_at": "2026-10-20T16:04:18.045497+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 276 phiếu từ sà lan nguồn: LA 06789"
+  },
+  {
+    "id": "493bfb76-0a65-408e-9a3a-6d7de32b058d",
+    "created_at": "2026-10-21T02:12:46.178497+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7749"
+  },
+  {
+    "id": "9eb0b9b1-cdd4-4d15-bdc6-e27ca9b1f8d5",
+    "created_at": "2026-10-21T02:13:16.212496+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Thêm sà lan",
+    "details": "Thêm sà lan: SG 7272"
+  },
+  {
+    "id": "87d35fad-3286-4f7f-a1b2-70517151f5aa",
+    "created_at": "2026-10-21T02:14:05.299142+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Import CSV",
+    "details": "Import CSV: 81 mới, 0 cập nhật"
+  },
+  {
+    "id": "8197460a-263d-40f7-b0b5-aca3edf5fcb5",
+    "created_at": "2026-10-21T02:16:31.254786+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: SG 7749"
+  },
+  {
+    "id": "5260c280-8152-4f1d-a1b4-3a8a907d3375",
+    "created_at": "2026-10-21T02:17:24.375128+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Lưu Sổ Theo Dõi",
+    "details": "Lưu 81 phiếu cân vào sổ theo dõi"
+  },
+  {
+    "id": "858ca93b-b780-47e6-8144-5950cfbb06ea",
+    "created_at": "2026-10-21T02:33:48.339129+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 1 phiếu từ sà lan nguồn: TEST"
+  },
+  {
+    "id": "39f0afc0-c904-4c18-af79-a78f621da96b",
+    "created_at": "2026-10-21T03:25:23.62731+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Đăng nhập",
+    "details": "Đăng nhập thành công vào hệ thống"
+  },
+  {
+    "id": "868e46bf-4288-4863-8c46-3490e3308e9b",
+    "created_at": "2026-10-21T03:26:15.403623+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 219 phiếu từ sà lan nguồn: SG 7272"
+  },
+  {
+    "id": "eb46de29-370e-4e1a-88a8-ccc81170e897",
+    "created_at": "2026-10-21T05:04:59.424074+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Khóa sà lan",
+    "details": "Sà lan: TEST"
+  },
+  {
+    "id": "6b6cea28-a84c-4bb3-b90a-9583051e54de",
+    "created_at": "2026-10-21T05:05:16.603188+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Mở khóa sà lan",
+    "details": "Sà lan: TEST"
+  },
+  {
+    "id": "fc4bfd0f-8c26-4ba8-9a37-fce73fedd1c1",
+    "created_at": "2026-10-21T05:24:57.451641+00:00",
+    "username": "admin",
+    "display_name": "Admin",
+    "role": "admin",
+    "action": "Nạp phiếu sà lan nguồn",
+    "details": "Nạp 1 phiếu từ sà lan nguồn: TEST"
+  }
+]
