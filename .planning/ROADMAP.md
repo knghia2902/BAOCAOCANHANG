@@ -93,6 +93,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 16. Hợp nhất sà lan & lọc trạng thái | v1.2 | 1/1 | Complete    | 2026-10-18 |
 | 17. Phân nhóm sà lan De Heus | v1.2 | 1/1 | Complete    | 2026-10-19 |
 | 18. Sao lưu & Khôi phục Google Drive (/admin) | v1.2 | 0/2 | Not started | - |
+| 19. Tách sà lan De Heus theo Khóa/Mở | v1.2 | 1/1 | Complete    | 2026-10-21 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -210,3 +211,14 @@ Plans:
 
 - [ ] 18-01: Xây dựng `BackupService.ts` (đóng gói/giải nén `.zip` toàn bộ bảng DB + Storage assets, kết nối Google Apps Script Bridge, bộ lập lịch tự động theo giờ & xoay vòng số bản lưu).
 - [ ] 18-02: Tích hợp giao diện quản lý Backup & Restore trong `AdminView.vue` (cấu hình giờ chạy, số bản lưu, mã Google Apps Script mẫu, nút Sao lưu ngay, danh sách bản lưu trên Google Drive kèm nút Restore và Import file `.zip`).
+
+### Phase 19: Tách sà lan Nông sản De Heus theo trạng thái Khóa/Mở tại Báo Cáo Tổng Quan
+
+**Goal:** Đối với nguồn tàu liên tục "Nông sản De Heus" (không chấm dứt/chốt tàu như các tàu khác), tự động phân tách danh sách sà lan giữa 2 tab "Đang làm" (chỉ hiển thị sà lan đang mở `locked = false`) và "Đã xong" (hiển thị các sà lan đã chốt/khóa `locked = true`) tại cả Sidebar bên trái lẫn bảng Báo cáo tổng hợp tàu ở giữa màn hình, giúp tiết kiệm diện tích Sidebar và đồng bộ thống kê theo từng trạng thái.
+**Requirements**: DEHEUS-SPLIT-01, DEHEUS-SPLIT-02
+**Depends on:** Phase 8, Phase 16
+**Plans:** 1 plan
+
+Plans:
+
+- [x] 19-01: Cập nhật bộ lọc trạng thái tàu/sà lan (`inProgressVessels`, `doneVessels`, `filteredVesselBarges`, `allBarges`, `toggleBargeLock`) và ẩn nút Chốt số liệu tàu đối với nguồn Nông sản De Heus trong `WeighbridgePrinter.vue`.

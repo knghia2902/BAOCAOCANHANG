@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 17
-current_phase_name: phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus
+current_phase: 19
+current_phase_name: tach-sa-lan-nong-san-de-heus-theo-trang-thai-khoa-mo-tai-bao-cao-tong-quan
 status: completed
-stopped_at: Phase 17 complete and verified
-last_updated: "2026-10-20T17:00:00.000Z"
-last_activity: 2026-10-20
-last_activity_desc: Phase 17 UAT complete and verified — Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
+stopped_at: Phase 19 complete and verified
+last_updated: "2026-10-21T11:34:00+07:00"
+last_activity: 2026-10-21
+last_activity_desc: Phase 19 complete — Tách sà lan Nông sản De Heus theo trạng thái Khóa/Mở tại Báo Cáo Tổng Quan
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 21
-  completed_plans: 21
+  total_phases: 13
+  completed_phases: 13
+  total_plans: 22
+  completed_plans: 22
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-20)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 17 completed
+**Current focus:** Phase 19 completed
 
 ## Current Position
 
-Phase: 17 — phan-nhom-sa-lan-chua-phan-bo-va-da-phan-bo-tai-sidebar-cho-tau-nong-san-de-heus
+Phase: 19 — Tách sà lan Nông sản De Heus theo trạng thái Khóa/Mở tại Báo Cáo Tổng Quan
 Plans: 1/1 completed
-Status: Phase complete (UAT verified 4/4)
-Last activity: 2026-10-20 — Phase 17 complete
+Status: Phase complete
+Last activity: 2026-10-21 — Phase 19 complete
 
 ## Performance Metrics
 
@@ -82,6 +82,8 @@ Recent decisions affecting current work:
 - Phase 15 added: Chuyển sà lan giữa các tàu bằng kéo thả an toàn trong Báo Cáo Tổng Quan
 - Phase 16 added: Hợp nhất sà lan toàn hệ thống và bộ lọc trạng thái tàu tại Báo cáo tổng quan
 - Phase 17 added: Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
+- Phase 18 added: Hệ thống Sao lưu & Khôi phục Tự động qua Google Drive tại /admin
+- Phase 19 added: Tách sà lan Nông sản De Heus theo trạng thái Khóa/Mở tại Báo Cáo Tổng Quan
 
 ### Pending Todos
 
