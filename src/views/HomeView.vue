@@ -230,7 +230,6 @@ onMounted(async () => {
 
                 <!-- Báo Cáo Tồn Kho 4 Kho -->
                 <router-link
-                    v-if="allowedTools.includes('warehouse')"
                     to="/tools/warehouse"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >

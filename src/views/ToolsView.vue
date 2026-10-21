@@ -118,6 +118,7 @@ const toolsList = computed(() => {
                  allowedStaffTools.value.includes('merger') || 
                  allowedStaffTools.value.includes('ocr');
       }
+      if (t.id === 'warehouse') return true;
       if (t.id === 'vehicles') return allowedStaffTools.value.includes('vehicles') || allowedStaffTools.value.includes('barge-profile');
       return allowedStaffTools.value.includes(t.id);
   });
