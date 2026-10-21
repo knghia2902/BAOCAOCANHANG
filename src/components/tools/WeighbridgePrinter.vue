@@ -524,11 +524,62 @@ const toggleSort = (key: string) => {
 const activeVessel = computed(() => vessels.value.find(v => v.id === activeVesselId.value) || null);
 const activeBarge = computed<Barge | null>(() => activeVessel.value?.barges?.find(b => b.id === activeBargeId.value) || null);
 
+// Helper kiểm tra nguồn tàu Nông sản De Heus (lô hàng liên tục không chốt tàu)
+const isDeHeusVessel = (vessel?: Vessel | null): boolean => {
+    if (!vessel || !vessel.name) return false;
+    return removeAccents(vessel.name)
+        .toUpperCase()
+        .replace(/[\s_\-]+/g, ' ')
+        .includes('DE HEUS');
+};
+
 // Vessel status lifecycle computed filters
-const inProgressVessels = computed(() => vessels.value.filter(v => (v.status || 'in_progress') === 'in_progress'));
-const doneVessels = computed(() => vessels.value.filter(v => v.status === 'done'));
+const inProgressVessels = computed(() => {
+    const result: Vessel[] = [];
+    for (const v of vessels.value) {
+        if (isDeHeusVessel(v)) {
+            const unlockedBarges = (v.barges || []).filter(b => !b.config?.locked);
+            if (unlockedBarges.length > 0 || (v.barges || []).length === 0 || (v.status || 'in_progress') === 'in_progress') {
+                result.push({
+                    ...v,
+                    status: 'in_progress',
+                    barges: unlockedBarges
+                });
+            }
+        } else if ((v.status || 'in_progress') === 'in_progress') {
+            result.push(v);
+        }
+    }
+    return result;
+});
+
+const doneVessels = computed(() => {
+    const result: Vessel[] = [];
+    for (const v of vessels.value) {
+        if (isDeHeusVessel(v)) {
+            const lockedBarges = (v.barges || []).filter(b => !!b.config?.locked);
+            if (lockedBarges.length > 0 || v.status === 'done') {
+                result.push({
+                    ...v,
+                    status: 'done',
+                    barges: lockedBarges
+                });
+            }
+        } else if (v.status === 'done') {
+            result.push(v);
+        }
+    }
+    return result;
+});
+
 const filteredSidebarVessels = computed(() => selectedVesselStatusTab.value === 'done' ? doneVessels.value : inProgressVessels.value);
-const isCurrentVesselDone = computed(() => activeVessel.value?.status === 'done');
+const isCurrentVesselDone = computed(() => {
+    if (!activeVessel.value) return false;
+    if (isDeHeusVessel(activeVessel.value)) {
+        return false;
+    }
+    return activeVessel.value.status === 'done';
+});
 
 const allBarges = computed(() => {
     const list: Array<{ 
@@ -545,19 +596,24 @@ const allBarges = computed(() => {
     const targetVessels = vessels.value;
     targetVessels.forEach(v => {
         if (v.barges) {
+            const isDeHeus = isDeHeusVessel(v);
             v.barges.forEach(b => {
                 const rawTonnage = (b as any).tonnage !== undefined && (b as any).tonnage !== null
                     ? (b as any).tonnage
                     : (b.config?.tonnage !== undefined && b.config?.tonnage !== null ? b.config.tonnage : null);
                 const numTonnage = rawTonnage !== null && rawTonnage !== '' ? Number(rawTonnage) : null;
+                const isLocked = b.config?.locked || false;
+                const effectiveStatus: 'in_progress' | 'done' = isDeHeus
+                    ? (isLocked ? 'done' : 'in_progress')
+                    : ((v.status || 'in_progress') as 'in_progress' | 'done');
                 list.push({
                     id: b.id,
                     name: b.name,
                     vesselId: v.id,
                     vesselName: v.name,
-                    vesselStatus: (v.status || 'in_progress') as 'in_progress' | 'done',
+                    vesselStatus: effectiveStatus,
                     created_at: b.created_at,
-                    locked: b.config?.locked || false,
+                    locked: isLocked,
                     orderNo: b.config?.orderNo ? String(b.config.orderNo).trim() : '',
                     tonnage: (numTonnage && !isNaN(numTonnage)) ? numTonnage : null
                 });
@@ -752,7 +808,12 @@ const availableVesselMonths = computed(() => {
     if (!vessel || !vesselBargesSummary.value) return [];
     
     const months = new Set<string>();
+    const isDeHeus = isDeHeusVessel(vessel);
     vesselBargesSummary.value.forEach(b => {
+        if (isDeHeus) {
+            const shouldBeLocked = selectedVesselStatusTab.value === 'done';
+            if (Boolean(b.locked) !== shouldBeLocked) return;
+        }
         const dates = [b.dateStart, b.dateEnd].filter(Boolean);
         dates.forEach(dStr => {
             const date = new Date(dStr!);
@@ -778,6 +839,11 @@ const availableVesselMonths = computed(() => {
 
 const filteredVesselBarges = computed<BargeSummary[]>(() => {
     let list = vesselBargesSummary.value;
+    
+    if (isDeHeusVessel(activeVessel.value)) {
+        const shouldBeLocked = selectedVesselStatusTab.value === 'done';
+        list = list.filter(b => Boolean(b.locked) === shouldBeLocked);
+    }
     
     if (vesselFilterMonth.value) {
         list = list.filter(b => {
@@ -993,7 +1059,10 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
     activeBargeId.value = bargeId;
     
     const currentV = vessels.value.find(v => v.id === vesselId);
-    if (currentV?.status === 'done') {
+    if (isDeHeusVessel(currentV)) {
+        const targetBarge = currentV?.barges?.find(b => b.id === bargeId);
+        selectedVesselStatusTab.value = targetBarge?.config?.locked ? 'done' : 'in_progress';
+    } else if (currentV?.status === 'done') {
         selectedVesselStatusTab.value = 'done';
     } else if (currentV) {
         selectedVesselStatusTab.value = 'in_progress';
@@ -1439,10 +1508,12 @@ const selectVessel = async (vesselId: number) => {
     bargeSearchQuery.value = '';
 
     const currentV = vessels.value.find(v => v.id === vesselId);
-    if (currentV?.status === 'done') {
-        selectedVesselStatusTab.value = 'done';
-    } else if (currentV) {
-        selectedVesselStatusTab.value = 'in_progress';
+    if (!isDeHeusVessel(currentV)) {
+        if (currentV?.status === 'done') {
+            selectedVesselStatusTab.value = 'done';
+        } else if (currentV) {
+            selectedVesselStatusTab.value = 'in_progress';
+        }
     }
 
     if (isSameVessel && isBargeNull) {
@@ -1709,6 +1780,16 @@ const toggleBargeLock = async () => {
                     b.config = { ...cfgForm, locked: newLockState, updatedAt: Date.now() };
                 }
             });
+            // Sync summary lists
+            const vSummary = vesselBargesSummary.value.find(s => s.id === bargeId);
+            if (vSummary) vSummary.locked = newLockState;
+            const gSummary = globalBargesSummary.value.find(s => s.id === bargeId);
+            if (gSummary) gSummary.locked = newLockState;
+
+            if (isDeHeusVessel(activeVessel.value)) {
+                selectedVesselStatusTab.value = newLockState ? 'done' : 'in_progress';
+            }
+
             showToast(cfgForm.locked ? 'Đã khóa sà lan thành công! 🔒' : 'Đã mở khóa sà lan thành công! 🔓');
             await LogService.logAction(cfgForm.locked ? 'Khóa sà lan' : 'Mở khóa sà lan', 'Sà lan: ' + (activeBarge.value?.name || bargeId));
         } else {
@@ -4900,9 +4981,9 @@ onUnmounted(() => {
                                         <span @click="activeVesselId = null; activeBargeId = null" class="text-gray-400 hover:text-primary cursor-pointer transition-colors flex items-center gap-0.5" title="Quay lại Tổng quan"><span class="material-symbols-outlined text-base">home</span>Tổng quan</span>
                                         <span class="text-gray-300">&rsaquo;</span>
                                         Tàu: <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black">{{ activeVessel?.name }}</span>
-                                        <span v-if="activeVessel?.status === 'done'" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-300 flex items-center gap-1">
+                                        <span v-if="(isDeHeusVessel(activeVessel) ? selectedVesselStatusTab === 'done' : activeVessel?.status === 'done')" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-300 flex items-center gap-1">
                                             <span class="material-symbols-outlined text-xs">check_circle</span>
-                                            Đã xong
+                                            {{ isDeHeusVessel(activeVessel) ? 'Sà lan đã chốt' : 'Đã xong' }}
                                         </span>
                                         <span v-else class="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-xs font-bold border border-sky-300 flex items-center gap-1">
                                             <span class="material-symbols-outlined text-xs">schedule</span>
@@ -4913,9 +4994,9 @@ onUnmounted(() => {
                             </div>
                             
                             <div class="flex items-center gap-2 flex-wrap">
-                                <!-- Close vessel button: available when vessel is in_progress -->
+                                <!-- Close vessel button: available when vessel is in_progress (hidden for De Heus continuous vessel) -->
                                 <button 
-                                    v-if="activeVessel?.status !== 'done'"
+                                    v-if="activeVessel?.status !== 'done' && !isDeHeusVessel(activeVessel)"
                                     @click="handleCloseVessel(activeVesselId!)"
                                     :disabled="isUpdatingVesselStatus"
                                     class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
@@ -4927,7 +5008,7 @@ onUnmounted(() => {
 
                                 <!-- Admin-only Re-open button: available when vessel is done -->
                                 <button 
-                                    v-if="activeVessel?.status === 'done' && authStore.role === 'admin'"
+                                    v-if="activeVessel?.status === 'done' && !isDeHeusVessel(activeVessel) && authStore.role === 'admin'"
                                     @click="handleReopenVessel(activeVesselId!)"
                                     :disabled="isUpdatingVesselStatus"
                                     class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
