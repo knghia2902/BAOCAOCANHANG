@@ -107,11 +107,12 @@ Items acknowledged and carried forward from previous milestone close:
 |---|-------------|------|-----------|
 | 261020-vmi | Chuyển danh sách sà lan từ Sidebar sang bảng bên phải, click vào tàu mới hiện phiếu cân | 2026-10-20 | [261020-vmi-chuyen-danh-sach-sa-lan-tu-sidebar-sang-](./quick/261020-vmi-chuyen-danh-sach-sa-lan-tu-sidebar-sang-/) |
 | 261021-d78 | Ẩn 3 tab phiếu cân khi chưa chọn tàu ở bảng bên phải | 2026-10-21 | [261021-d78-an-3-tab-phieu-can-khi-chua-chon-tau-o-b](./quick/261021-d78-an-3-tab-phieu-can-khi-chua-chon-tau-o-b/) |
+| 261021-h9k | Tối ưu tốc độ tải phiếu cân tức thì khi click chọn tàu / sà lan | 2026-10-21 | [261021-h9k-toi-uu-toc-do-tai-phieu-can-khi-click-ch](./quick/261021-h9k-toi-uu-toc-do-tai-phieu-can-khi-click-ch/) |
 
 ## Session Continuity
 
-Last session: 2026-10-21T09:31:00+07:00
-Stopped at: Completed quick task 261021-d78 (Ẩn 3 tab phiếu cân khi chưa chọn tàu ở bảng bên phải)
+Last session: 2026-10-21T12:28:00+07:00
+Stopped at: Completed quick task 261021-h9k (Tối ưu tốc độ tải phiếu cân tức thì khi click chọn tàu / sà lan)
 Resume file: None
 
 ## Operator Next Steps

@@ -921,17 +921,86 @@ void handleTicketImport;
 
 const isLoadingSourceBargeTrucks = ref(false);
 
-// Nạp dữ liệu phiếu cân trực tiếp từ sà lan nguồn thay cho bước import tệp
+// Bộ nhớ đệm (in-memory cache) phiếu cân theo từng sà lan giúp mở tàu tức thì (0ms)
+const bargeTicketsCache = new Map<number, CSVRecord[]>();
+
+function mapTrucksToCSVRecords(trucks: any[], barge: Barge | null | undefined): CSVRecord[] {
+    if (!trucks || trucks.length === 0) return [];
+    const owner = barge?.config?.owner || '';
+    const goods = barge?.config?.goods || 'NÔNG SẢN';
+    const bargeName = barge?.name || '';
+    const orderNo = barge?.config?.orderNo || '';
+
+    return trucks.map((t, idx) => {
+        let dateInStr = '';
+        let timeInStr = '';
+        let dateOutStr = '';
+        let timeOutStr = '';
+        const rawDateIn = t.dateIn ?? t.date_in;
+        const rawDateOut = t.dateOut ?? t.date_out;
+        if (rawDateIn) {
+            const d = new Date(rawDateIn);
+            if (!isNaN(d.getTime())) {
+                dateInStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                timeInStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+        }
+        if (rawDateOut) {
+            const d = new Date(rawDateOut);
+            if (!isNaN(d.getTime())) {
+                dateOutStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                timeOutStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+        }
+        return {
+            id: String(t.id || Date.now() + idx),
+            ticketNo: t.ticketNo ?? t.ticket_no ?? '',
+            plateNumber: t.plateNumber ?? t.plate_number ?? '',
+            customer: owner,
+            weight1: Number(t.weight1 ?? t.weight_1) || 0,
+            weight2: Number(t.weight2 ?? t.weight_2) || 0,
+            weightNet: Number(t.weightNet ?? t.weight_net) || 0,
+            dateInStr,
+            timeInStr,
+            dateOutStr,
+            timeOutStr,
+            direction: 'Xuất',
+            cargoType: goods,
+            bargeName,
+            driverName: t.driver || '',
+            notes: t.note || '',
+            orderNo
+        };
+    });
+}
+
+function applySourceRecordsToState(sourceRecords: CSVRecord[]) {
+    if (sourceRecords.length === 0) {
+        csvRecords.value = [];
+        generatedTrips.value = [];
+        void dbContext.set('split_allocator_tickets', []);
+        void dbContext.set('split_allocator_generated_trips', []);
+        return;
+    }
+    // Gán csvRecords sẽ tự động kích hoạt watch() gọi regenerateAllocatedTrips() và lưu nền
+    csvRecords.value = sourceRecords;
+    void dbContext.set('split_allocator_tickets', sourceRecords);
+}
+
+// Nạp dữ liệu phiếu cân trực tiếp từ sà lan nguồn (Tức thì từ Cache/IndexedDB + Đồng bộ ngầm)
 async function loadTicketsFromSourceBarge(askConfirmation: boolean = false) {
     if (!activeBargeId.value || !activeBarge.value) {
         addToast('Vui lòng chọn sà lan nguồn trước!', 'info');
         return;
     }
 
+    const targetBarge = activeBarge.value;
+    const bId = Number(activeBargeId.value);
+
     if (askConfirmation && csvRecords.value.length > 0) {
         const confirmReplace = await showConfirm({
             title: 'Nạp phiếu cân từ Sà lan nguồn',
-            message: `Bạn có chắc chắn muốn nạp dữ liệu phiếu cân từ sà lan nguồn "${activeBarge.value.name}" vào Tab 1?\n\nDanh sách ${csvRecords.value.length} phiếu cân hiện tại ở Tab 1 sẽ được thay thế bằng dữ liệu từ sà lan này.`,
+            message: `Bạn có chắc chắn muốn nạp dữ liệu phiếu cân từ sà lan nguồn "${targetBarge.name}" vào Tab 1?\n\nDanh sách ${csvRecords.value.length} phiếu cân hiện tại ở Tab 1 sẽ được thay thế bằng dữ liệu từ sà lan này.`,
             type: 'warning',
             okText: 'Nạp thay thế',
             cancelText: 'Hủy'
@@ -939,75 +1008,79 @@ async function loadTicketsFromSourceBarge(askConfirmation: boolean = false) {
         if (!confirmReplace) return;
     }
 
+    // 1. Nếu là thao tác click mở tàu (!askConfirmation) và đã có sẵn trong bộ nhớ đệm -> hiển thị TỨC THÌ (0ms)
+    if (!askConfirmation && bargeTicketsCache.has(bId)) {
+        const cached = bargeTicketsCache.get(bId) || [];
+        applySourceRecordsToState(cached);
+        isLoadingSourceBargeTrucks.value = false;
+
+        // Làm mới ngầm từ Supabase nếu có thay đổi mới
+        void WeighbridgeService.getTrucks(bId).then(remoteTrucks => {
+            if (Number(activeBargeId.value) !== bId) return;
+            if (remoteTrucks && remoteTrucks.length > 0) {
+                const freshRecords = mapTrucksToCSVRecords(remoteTrucks, targetBarge);
+                bargeTicketsCache.set(bId, freshRecords);
+                if (freshRecords.length !== cached.length || JSON.stringify(freshRecords) !== JSON.stringify(cached)) {
+                    applySourceRecordsToState(freshRecords);
+                }
+            }
+        }).catch(() => {});
+        return;
+    }
+
+    // 2. Kiểm tra nhanh trong IndexedDB cục bộ trước khi gọi mạng (chỉ mất ~2ms)
+    if (!askConfirmation) {
+        const localTrucks = await dbContext.get<any[]>(`wb_trucks_${bId}`);
+        if (localTrucks && localTrucks.length > 0) {
+            const localMapped = mapTrucksToCSVRecords(localTrucks, targetBarge);
+            bargeTicketsCache.set(bId, localMapped);
+            applySourceRecordsToState(localMapped);
+            isLoadingSourceBargeTrucks.value = false;
+
+            // Đồng bộ ngầm từ Supabase
+            void WeighbridgeService.getTrucks(bId).then(remoteTrucks => {
+                if (Number(activeBargeId.value) !== bId) return;
+                if (remoteTrucks && remoteTrucks.length > 0) {
+                    const freshRecords = mapTrucksToCSVRecords(remoteTrucks, targetBarge);
+                    bargeTicketsCache.set(bId, freshRecords);
+                    if (freshRecords.length !== localMapped.length) {
+                        applySourceRecordsToState(freshRecords);
+                    }
+                }
+            }).catch(() => {});
+            return;
+        }
+    }
+
+    // 3. Trường hợp chưa có cache hoặc người dùng chủ động bấm "Nạp lại từ sà lan"
     isLoadingSourceBargeTrucks.value = true;
     try {
-        const bId = Number(activeBargeId.value);
         const trucks = await WeighbridgeService.getTrucks(bId);
-        
         let sourceRecords: CSVRecord[] = [];
         if (trucks && trucks.length > 0) {
-            sourceRecords = trucks.map((t, idx) => {
-                let dateInStr = '';
-                let timeInStr = '';
-                let dateOutStr = '';
-                let timeOutStr = '';
-                if (t.dateIn) {
-                    const d = new Date(t.dateIn);
-                    if (!isNaN(d.getTime())) {
-                        dateInStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                        timeInStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-                    }
-                }
-                if (t.dateOut) {
-                    const d = new Date(t.dateOut);
-                    if (!isNaN(d.getTime())) {
-                        dateOutStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                        timeOutStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-                    }
-                }
-                return {
-                    id: String(t.id || Date.now() + idx),
-                    ticketNo: t.ticketNo || '',
-                    plateNumber: t.plateNumber || '',
-                    customer: activeBarge.value?.config?.owner || '',
-                    weight1: Number(t.weight1) || 0,
-                    weight2: Number(t.weight2) || 0,
-                    weightNet: Number(t.weightNet) || 0,
-                    dateInStr,
-                    timeInStr,
-                    dateOutStr,
-                    timeOutStr,
-                    direction: 'Xuất',
-                    cargoType: activeBarge.value?.config?.goods || 'NÔNG SẢN',
-                    bargeName: activeBarge.value?.name || '',
-                    driverName: t.driver || '',
-                    notes: t.note || '',
-                    orderNo: activeBarge.value?.config?.orderNo || ''
-                };
-            });
+            sourceRecords = mapTrucksToCSVRecords(trucks, targetBarge);
         } else {
-            // Check allocator_tickets_{bargeId} in IndexedDB
             const localBargeTickets = await dbContext.get<CSVRecord[]>('allocator_tickets_' + bId);
             if (localBargeTickets && localBargeTickets.length > 0) {
                 sourceRecords = localBargeTickets;
             }
         }
 
+        bargeTicketsCache.set(bId, sourceRecords);
+        if (Number(activeBargeId.value) !== bId) return;
+
+        applySourceRecordsToState(sourceRecords);
+        isLoadingSourceBargeTrucks.value = false;
+
         if (sourceRecords.length === 0) {
-            csvRecords.value = [];
-            generatedTrips.value = [];
-            await dbContext.set('split_allocator_tickets', []);
-            await dbContext.set('split_allocator_generated_trips', []);
-            addToast(`Sà lan "${activeBarge.value.name}" hiện chưa có dữ liệu cân hàng.`, 'info');
+            addToast(`Sà lan "${targetBarge.name}" hiện chưa có dữ liệu cân hàng.`, 'info');
             return;
         }
 
-        csvRecords.value = sourceRecords;
-        await dbContext.set('split_allocator_tickets', sourceRecords);
-        regenerateAllocatedTrips();
-        await saveTicketsToSupabase();
-        addToast(`Đã nạp thành công ${sourceRecords.length} phiếu cân từ sà lan "${activeBarge.value.name}"!`, 'success');
-        await LogService.logAction('Nạp phiếu sà lan nguồn', `Nạp ${sourceRecords.length} phiếu từ sà lan nguồn: ${activeBarge.value.name}`);
+        if (askConfirmation) {
+            addToast(`Đã nạp thành công ${sourceRecords.length} phiếu cân từ sà lan "${targetBarge.name}"!`, 'success');
+            void LogService.logAction('Nạp phiếu sà lan nguồn', `Nạp ${sourceRecords.length} phiếu từ sà lan nguồn: ${targetBarge.name}`);
+        }
     } catch (e: any) {
         console.error('Lỗi khi nạp dữ liệu từ sà lan nguồn:', e);
         addToast('Lỗi khi nạp phiếu từ sà lan nguồn: ' + (e.message || e), 'error');
@@ -1450,56 +1523,18 @@ async function doExecuteSaveTicketsToSupabase() {
             notes: g.notes || ''
         }));
 
-        // Clean history trips
-        const cleanHistory = (existingTrips.value || []).map(h => ({
-            stt: h.stt,
-            timeStr: h.timeStr,
-            plateNumber: h.plateNumber,
-            tttp: h.tttp,
-            limit: h.limit,
-            ticketNo: h.ticketNo,
-            sourceTicketNo: h.sourceTicketNo || '',
-            cargoType: h.cargoType,
-            weight1: h.weight1,
-            weight2: h.weight2,
-            weightNet: h.weightNet,
-            weightTons: typeof h.weightTons === 'number' ? h.weightTons : (Number(h.weightNet) / 1000 || 0),
-            direction: h.direction,
-            bargeName: h.bargeName,
-            orderNo: h.orderNo,
-            customer: h.customer,
-            date1Obj: h.date1Obj,
-            date2Obj: h.date2Obj,
-            notes: h.notes || ''
-        }));
-
         const updatedSettings = {
             ...currentSettings,
             split_allocator_tickets: cleanTickets,
-            split_allocator_history_trips: cleanHistory,
             split_allocator_generated_trips: cleanGenerated
         };
 
-        let { error: updateError } = await supabase
+        const { error: updateError } = await supabase
             .from('content')
             .update({ settings: updatedSettings })
             .eq('id', 'main');
 
-        // Fallback: If payload is too large, update generated trips and tickets without re-sending full history
-        if (updateError) {
-            console.warn('Full Supabase update failed, retrying fallback payload without history:', updateError);
-            const fallbackSettings = {
-                ...currentSettings,
-                split_allocator_tickets: cleanTickets,
-                split_allocator_generated_trips: cleanGenerated
-            };
-            const { error: fallbackErr } = await supabase
-                .from('content')
-                .update({ settings: fallbackSettings })
-                .eq('id', 'main');
-
-            if (fallbackErr) throw fallbackErr;
-        }
+        if (updateError) throw updateError;
         
         syncStatus.value = 'synced';
     } catch (e) {
@@ -1587,6 +1622,86 @@ const allDeHeusBarges = computed(() => {
     }
     return list;
 });
+
+// Tải trước (Prefetch) toàn bộ phiếu cân của các sà lan De Heus bằng 1 truy vấn gộp duy nhất
+let isPrefetchingBargeTrucks = false;
+async function prefetchDeHeusBargeTrucks() {
+    if (isPrefetchingBargeTrucks) return;
+    const barges = allDeHeusBarges.value;
+    if (!barges || barges.length === 0) return;
+
+    isPrefetchingBargeTrucks = true;
+    try {
+        const bargeMap = new Map<number, Barge>();
+        const bargeIds: number[] = [];
+        for (const b of barges) {
+            const bId = Number(b.id);
+            if (bId) {
+                bargeMap.set(bId, b);
+                bargeIds.push(bId);
+            }
+        }
+        if (bargeIds.length === 0) return;
+
+        // 1. Nạp nhanh từ IndexedDB cục bộ vào RAM trước
+        await Promise.all(bargeIds.map(async (bId) => {
+            if (bargeTicketsCache.has(bId)) return;
+            const localTrucks = await dbContext.get<any[]>(`wb_trucks_${bId}`);
+            if (localTrucks && localTrucks.length > 0) {
+                bargeTicketsCache.set(bId, mapTrucksToCSVRecords(localTrucks, bargeMap.get(bId)));
+            }
+        }));
+
+        // 2. Gọi 1 truy vấn batch duy nhất lên Supabase lấy toàn bộ phiếu cân của các sà lan De Heus
+        const { data, error } = await supabase
+            .from('weighbridge_trucks')
+            .select('*')
+            .in('barge_id', bargeIds)
+            .order('created_at', { ascending: true });
+
+        if (!error && data) {
+            const grouped = new Map<number, any[]>();
+            for (const bId of bargeIds) {
+                grouped.set(bId, []);
+            }
+            for (const row of data) {
+                const bId = Number(row.barge_id);
+                const arr = grouped.get(bId);
+                if (arr) {
+                    arr.push({
+                        id: row.id,
+                        barge_id: row.barge_id,
+                        ticketNo: row.ticket_no,
+                        plateNumber: row.plate_number,
+                        driver: row.driver || '',
+                        weight1: Number(row.weight_1),
+                        weight2: Number(row.weight_2),
+                        weightNet: Number(row.weight_net),
+                        dateIn: row.date_in || '',
+                        dateOut: row.date_out || '',
+                        note: row.note || '',
+                        created_at: row.created_at
+                    });
+                }
+            }
+
+            for (const [bId, trucks] of grouped.entries()) {
+                const barge = bargeMap.get(bId);
+                if (trucks.length > 0) {
+                    const mapped = mapTrucksToCSVRecords(trucks, barge);
+                    bargeTicketsCache.set(bId, mapped);
+                    void dbContext.set(`wb_trucks_${bId}`, trucks);
+                } else if (!bargeTicketsCache.has(bId)) {
+                    bargeTicketsCache.set(bId, []);
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Prefetch phiếu cân sà lan De Heus không thành công:', err);
+    } finally {
+        isPrefetchingBargeTrucks = false;
+    }
+}
 
 // Helper kiểm tra 1 chuyến xe phân bổ có thuộc về sà lan cụ thể hay không (tránh trùng tên giữa các chuyến/lệnh khác nhau)
 function isTripBelongToBarge(t: SplitTrip, barge: { id: number; name: string; config?: any }): boolean {
@@ -1824,7 +1939,9 @@ const loadVessels = async () => {
             }
         }
         
-        await refreshGlobalBargesSummary();
+        // Chạy ngầm việc tải trước toàn bộ phiếu cân của các sà lan De Heus để click vào tàu là hiện ngay
+        void prefetchDeHeusBargeTrucks();
+        void refreshGlobalBargesSummary();
     } catch (e) {
         addToast('Không thể tải danh sách sà lan!', 'error');
     } finally {
@@ -1841,6 +1958,7 @@ watch(sourceVessels, (newVessels) => {
             activeVesselId.value = null;
         }
     }
+    void prefetchDeHeusBargeTrucks();
 }, { immediate: true });
 
 watch(activeBargeId, (newBargeId) => {
