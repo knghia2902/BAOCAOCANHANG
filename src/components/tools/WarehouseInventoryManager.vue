@@ -1104,24 +1104,24 @@ async function handleDownloadZaloImage() {
                         />
                         <span>Hiển thị cột Xá thẳng</span>
                     </label>
-                </div>
 
-                <div v-else-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT'" class="flex flex-wrap items-center gap-2">
-                    <div class="px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 text-xs font-black">
-                        {{ filteredDetailTickets.length }} chuyến • {{ formatTons(detailTotalTons) }} Tấn
-                    </div>
-                    <input
-                        v-model="detailFilterDate"
-                        type="date"
-                        class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold"
-                        title="Lọc theo ngày báo cáo (Ca 6h sáng)"
-                    />
-                    <input
-                        v-model="detailSearchQuery"
-                        type="text"
-                        placeholder="Tìm phiếu, số xe, nhà xe, sà lan..."
-                        class="h-7 px-3 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold w-48"
-                    />
+                    <template v-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT'">
+                        <div class="px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 text-xs font-black">
+                            {{ filteredDetailTickets.length }} chuyến • {{ formatTons(detailTotalTons) }} Tấn
+                        </div>
+                        <input
+                            v-model="detailFilterDate"
+                            type="date"
+                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold"
+                            title="Lọc theo ngày báo cáo (Ca 6h sáng)"
+                        />
+                        <input
+                            v-model="detailSearchQuery"
+                            type="text"
+                            placeholder="Tìm phiếu, số xe, nhà xe, sà lan..."
+                            class="h-7 px-3 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold w-48"
+                        />
+                    </template>
                 </div>
             </div>
 
