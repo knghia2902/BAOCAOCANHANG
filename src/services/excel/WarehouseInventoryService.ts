@@ -1154,15 +1154,18 @@ export const WarehouseInventoryService = {
     },
 
     /**
-     * Single-Point Import Sync: Push EXPORT & DIRECT weighbridge rows directly to
+     * Single-Point Import Sync: Push weighbridge rows directly to
      * `allocator_tickets` (CargoAllocator Tab 1 - Phiếu Cân).
+     * 
+     * Quy tắc:
+     * - Nếu file có tên chứa "cc2" (ví dụ xxxx cc2.csv, xxxx_cc2.xlsx): nạp TOÀN BỘ phiếu trong file cc2 (bao gồm cả Nhập và Xuất).
+     * - Nếu không phân tách cc1/cc2 rõ rệt: nạp tất cả các dòng Xuất (Xuat/nhap = Xuat).
      */
-    async syncExportRowsToAllocator(rawRows: RawWeighbridgeRow[]): Promise<{
+    async syncRowsToAllocator(rowsToSync: RawWeighbridgeRow[]): Promise<{
         syncedTicketsCount: number;
         matchedBargesCount: number;
     }> {
-        const exportRows = rawRows.filter(r => stripAccents(r.xuatNhap || '').toUpperCase().includes('XUAT'));
-        if (exportRows.length === 0) {
+        if (!rowsToSync || rowsToSync.length === 0) {
             return { syncedTicketsCount: 0, matchedBargesCount: 0 };
         }
 
@@ -1170,7 +1173,7 @@ export const WarehouseInventoryService = {
         const existingAllocatorTickets = (await dbContext.get<any[]>('allocator_tickets')) || [];
         let syncedCount = 0;
 
-        for (const r of exportRows) {
+        for (const r of rowsToSync) {
             const ticketNo = String(r.soPhieu || '').trim();
             const plateNumber = String(r.soXe || '').trim();
             const weight1 = normalizeWeightToKg(r.kl1);
@@ -1286,15 +1289,19 @@ export const WarehouseInventoryService = {
         } catch (_) {}
 
         const allRawRows: RawWeighbridgeRow[] = [];
+        const cc2RawRows: RawWeighbridgeRow[] = [];
         const fileArray = Array.from(files);
 
         for (const file of fileArray) {
             try {
                 const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                const fileNameLower = file.name.toLowerCase();
+                const isCc2File = fileNameLower.includes('cc2') || fileNameLower.includes('cc 2');
+                let fileRows: RawWeighbridgeRow[] = [];
+
                 if (ext === 'csv') {
                     const text = await readCsvFileDecoded(file);
-                    const rows = parseWeighbridgeCsvText(text);
-                    allRawRows.push(...rows);
+                    fileRows = parseWeighbridgeCsvText(text);
                 } else if (ext === 'xlsx' || ext === 'xls') {
                     const ExcelJS = await import('exceljs');
                     const wb = new ExcelJS.Workbook();
@@ -1315,8 +1322,13 @@ export const WarehouseInventoryService = {
                             }
                             csvLines.push(vals.join(','));
                         });
-                        allRawRows.push(...parseWeighbridgeCsvText(csvLines.join('\n')));
+                        fileRows = parseWeighbridgeCsvText(csvLines.join('\n'));
                     }
+                }
+
+                allRawRows.push(...fileRows);
+                if (isCc2File) {
+                    cc2RawRows.push(...fileRows);
                 }
             } catch (err: any) {
                 summary.errors.push(`Lỗi đọc file ${file.name}: ${err?.message || err}`);
@@ -1355,8 +1367,14 @@ export const WarehouseInventoryService = {
         }
         summary.warehousesUpdated = Array.from(updatedWhSet);
 
-        // Single-point sync of Xuat rows to CargoAllocator Tab 1 (Phiếu Cân)
-        const syncRes = await this.syncExportRowsToAllocator(allRawRows);
+        // Quy tắc nạp vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng:
+        // - Nếu có nạp file "cc2" (ví dụ xxxx cc2.csv): nạp TOÀN BỘ phiếu trong file cc2 (bao gồm cả Nhập và Xuất).
+        // - Nếu không có file cc2: nạp các dòng Xuất (Xuat/nhap = Xuat) từ các file đã chọn.
+        const rowsToSyncToAllocator = cc2RawRows.length > 0
+            ? cc2RawRows
+            : allRawRows.filter(r => stripAccents(r.xuatNhap || '').toUpperCase().includes('XUAT'));
+
+        const syncRes = await this.syncRowsToAllocator(rowsToSyncToAllocator);
         summary.syncedToAllocatorCount = syncRes.syncedTicketsCount;
         summary.matchedBargesCount = syncRes.matchedBargesCount;
 
