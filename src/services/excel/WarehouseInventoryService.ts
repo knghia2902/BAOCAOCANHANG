@@ -803,12 +803,12 @@ export const WarehouseInventoryService = {
 
     async getConfigs(): Promise<Record<WarehouseId, WarehouseConfig>> {
         const defaults = getDefaultConfigs();
-        const local = (await dbContext.get<Record<WarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {};
+        const local = (await dbContext.get<Record<string, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {};
         const merged: Record<WarehouseId, WarehouseConfig> = {
-            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
-            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
-            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
-            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) }
+            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] as WarehouseConfig || {}) },
+            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] as WarehouseConfig || {}) },
+            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] as WarehouseConfig || {}) },
+            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] as WarehouseConfig || {}) }
         };
 
         if (!dedicatedTablesMissing) {
@@ -857,12 +857,12 @@ export const WarehouseInventoryService = {
 
     async saveConfig(config: WarehouseConfig): Promise<boolean> {
         const defaults = getDefaultConfigs();
-        const local = (await dbContext.get<Record<WarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {};
+        const local = (await dbContext.get<Record<string, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {};
         const current: Record<WarehouseId, WarehouseConfig> = {
-            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
-            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
-            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
-            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) }
+            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] as WarehouseConfig || {}) },
+            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] as WarehouseConfig || {}) },
+            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] as WarehouseConfig || {}) },
+            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] as WarehouseConfig || {}) }
         };
         current[config.warehouseId] = {
             ...config,
