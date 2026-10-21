@@ -11,7 +11,7 @@ export interface RolePermissionConfig {
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissionConfig> = {
     admin: {
-        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes'],
+        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'],
         description: 'Qu?n tr? vi�n to�n quy?n h? th?ng',
         canCreate: true,
         canUpdate: true,

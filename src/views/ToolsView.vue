@@ -14,7 +14,7 @@ const loadTools = async () => {
     loading.value = true;
     if (authStore.isAuthenticated) {
         if (authStore.role === 'admin') {
-            allowedStaffTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split'];
+            allowedStaffTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'];
         } else {
             try {
                 const rolePerms = await ContentService.loadRolePermissions();
@@ -89,6 +89,14 @@ const allTools = [
     icon: 'call_split',
     bgIcon: 'bg-indigo-500/10 text-indigo-600',
     tags: ['Phân bổ tải', 'Tách chuyến', 'Định mức xe', 'Sà lan']
+  },
+  {
+    id: 'warehouse',
+    name: 'Báo Cáo Tồn Kho 4 Kho 🏭',
+    desc: 'Báo cáo tồn kho hàng sáng 4 kho, import 1 chạm từ file cân, cộng dồn lũy kế không đổi lô, chụp ảnh gửi Zalo và xuất Excel.',
+    icon: 'warehouse',
+    bgIcon: 'bg-amber-600/10 text-amber-600',
+    tags: ['Tồn kho 4 kho', 'Báo cáo sáng', 'Zalo', 'Excel']
   },
   {
     id: 'utilities',

@@ -47,6 +47,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/tools/warehouse',
+            name: 'tools-warehouse',
+            component: () => import('./views/tools/WarehouseInventoryView.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/split',
             name: 'split-allocator',
             component: () => import('./views/tools/SplitAllocatorView.vue'),

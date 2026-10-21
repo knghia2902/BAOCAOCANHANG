@@ -474,6 +474,8 @@ const allToolsWithMinutes = [
   { id: 'allocator', name: 'Dữ Liệu Cân Hàng 🚢', description: 'Quản lý dữ liệu cân hàng, theo dõi sổ lịch sử cân và phân bổ trọng lượng xe sà lan tự động' },
   { id: 'vehicles', name: 'Quản Lý Hồ Sơ Phương Tiện 🚢', description: 'Quản lý thông tin kỹ thuật, giấy tờ đăng kiểm, bảo hiểm và hồ sơ thuyền viên phương tiện' },
   { id: 'minutes', name: 'Biên Bản Sà Lan 🚢', description: 'Tự động tính toán số liệu xuất kho, xá thẳng và lập bộ 4 biên bản làm hàng sà lan' },
+  { id: 'split', name: 'Phân Bổ Tải Trọng 🚢', description: 'Phân bổ tải trọng xe cho từng sà lan theo định mức và tách chuyến' },
+  { id: 'warehouse', name: 'Báo Cáo Tồn Kho 4 Kho 🏭', description: 'Báo cáo tồn kho hàng sáng 4 kho, import 1 chạm, cộng dồn lũy kế, chụp ảnh Zalo và xuất Excel' },
   { id: 'utilities', name: 'Bộ Công Cụ Tiện Ích Excel & PDF 🛠️', description: 'Chuyển đổi định dạng file, gộp Excel thông minh và trích xuất dữ liệu OCR' }
 ];
 

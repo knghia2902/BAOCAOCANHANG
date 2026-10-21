@@ -53,7 +53,7 @@ const allBarges = computed(() => {
 const loadToolsConfig = async () => {
     loadingTools.value = true;
     if (authStore.role === 'admin') {
-        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes'];
+        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'];
     } else if (authStore.role === 'staff') {
         allowedTools.value = await ContentService.loadStaffTools();
     } else {
@@ -225,6 +225,21 @@ onMounted(async () => {
                     <div class="text-center">
                         <p class="font-bold text-lg leading-none">Biên Bản Sà Lan</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Báo Cáo Tồn Kho 4 Kho -->
+                <router-link
+                    v-if="allowedTools.includes('warehouse')"
+                    to="/tools/warehouse"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-amber-600 transition-colors group-hover:bg-amber-600/5">
+                        <span class="material-symbols-outlined text-3xl">warehouse</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Tồn Kho 4 Kho</p>
+                        <p class="text-[10px] text-amber-600 font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
