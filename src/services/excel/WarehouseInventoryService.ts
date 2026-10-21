@@ -1256,57 +1256,9 @@ export const WarehouseInventoryService = {
             }
         } catch (_) {}
 
-        // 2. Auto-push to matching unlocked Barges in WeighbridgeService
-        let matchedBargesCount = 0;
-        try {
-            const vessels = await WeighbridgeService.getVessels();
-            for (const vessel of vessels) {
-                if (!vessel.barges) continue;
-                for (const barge of vessel.barges) {
-                    if (barge.config?.locked) continue;
-                    const bargeOrderNo = String(barge.config?.orderNo || '').trim().toLowerCase();
-                    if (!bargeOrderNo) continue;
-
-                    const matchedForBarge = existingAllocatorTickets.filter(t => {
-                        const tOrder = String(t.orderNo || '').trim().toLowerCase();
-                        return tOrder === bargeOrderNo;
-                    });
-                    if (matchedForBarge.length === 0) continue;
-
-                    const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
-                    const newTrucks = matchedForBarge
-                        .filter(t => {
-                            if (t.ticketNo) {
-                                return !currentTrucks.some(ct => ct.ticketNo === t.ticketNo || ct.sourceTicketNo === t.ticketNo);
-                            }
-                            return !currentTrucks.some(ct => ct.plateNumber === t.plateNumber && ct.weightNet === t.weightNet);
-                        })
-                        .map((t, i) => ({
-                            id: Date.now() + i,
-                            barge_id: barge.id,
-                            ticketNo: t.ticketNo || '',
-                            sourceTicketNo: t.ticketNo || '',
-                            plateNumber: t.plateNumber || '',
-                            driver: t.driverName || '',
-                            weight1: Number(t.weight1) || 0,
-                            weight2: Number(t.weight2) || 0,
-                            weightNet: Number(t.weightNet) || 0,
-                            dateIn: t.date1Obj ? String(t.date1Obj).slice(0, 16) : '',
-                            dateOut: t.date2Obj ? String(t.date2Obj).slice(0, 16) : '',
-                            note: t.notes || ''
-                        }));
-
-                    if (newTrucks.length > 0) {
-                        await WeighbridgeService.saveTrucks(barge.id, [...currentTrucks, ...newTrucks]);
-                        matchedBargesCount++;
-                    }
-                }
-            }
-        } catch (err) {
-            console.warn('Auto-sync to barges warning:', err);
-        }
-
-        return { syncedTicketsCount: syncedCount, matchedBargesCount };
+        // 2. Không tự động ghép vào sà lan. Dữ liệu chỉ nạp vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng (allocator_tickets),
+        // việc đồng bộ vào từng sà lan người dùng sẽ chủ động tiến hành như trước đây.
+        return { syncedTicketsCount: syncedCount, matchedBargesCount: 0 };
     },
 
     /**

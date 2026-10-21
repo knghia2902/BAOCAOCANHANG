@@ -204,11 +204,11 @@ async function handleCsvFilesSelected(e: Event) {
         const msgParts = [
             `Đã nạp ${summary.importedCount} phiếu vào Tồn kho (Nhập kho: ${summary.importFlowCount}, Xuất kho: ${summary.exportFlowCount}, Đi thẳng: ${summary.directFlowCount})`
         ];
-        if (summary.syncedToAllocatorCount > 0 || summary.matchedBargesCount > 0) {
-            msgParts.push(`Đồng bộ ${summary.syncedToAllocatorCount} chuyến Xuất sang Báo cáo cân hàng (${summary.matchedBargesCount} sà lan khớp lệnh)`);
+        if (summary.syncedToAllocatorCount > 0) {
+            msgParts.push(`Đã nạp ${summary.syncedToAllocatorCount} chuyến Xuất vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng`);
             emit('synced-to-allocator', {
                 syncedTicketsCount: summary.syncedToAllocatorCount,
-                matchedBargesCount: summary.matchedBargesCount
+                matchedBargesCount: 0
             });
         }
         addToast(msgParts.join(' • '), 'success');
