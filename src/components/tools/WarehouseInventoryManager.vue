@@ -205,7 +205,7 @@ async function handleCsvFilesSelected(e: Event) {
             `Đã nạp ${summary.importedCount} phiếu vào Tồn kho (Nhập kho: ${summary.importFlowCount}, Xuất kho: ${summary.exportFlowCount}, Đi thẳng: ${summary.directFlowCount})`
         ];
         if (summary.syncedToAllocatorCount > 0) {
-            msgParts.push(`Đã nạp ${summary.syncedToAllocatorCount} phiếu vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng`);
+            msgParts.push(`Đã nạp ${summary.syncedToAllocatorCount} chuyến Xuất vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng`);
             emit('synced-to-allocator', {
                 syncedTicketsCount: summary.syncedToAllocatorCount,
                 matchedBargesCount: 0
