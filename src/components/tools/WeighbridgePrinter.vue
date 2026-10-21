@@ -6,6 +6,7 @@ import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
 import { WeighbridgeService, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement } from '@/services/excel/WeighbridgeService';
 import { LogService } from '@/services/storage/LogService';
+import WarehouseInventoryManager from '@/components/tools/WarehouseInventoryManager.vue';
 const props = withDefaults(defineProps<{
     hideCard?: boolean;
 }>(), {
@@ -15,6 +16,7 @@ const props = withDefaults(defineProps<{
 // Fullscreen state
 const isOpen = ref(false);
 const activeTab = ref<'data' | 'config' | 'goods'>('data');
+const showWarehouseInventoryView = ref(false);
 
 // Global goods list state & sync channel
 const globalGoodsList = ref<string[]>([]);
@@ -28,6 +30,9 @@ syncChannel.onmessage = async (event) => {
             }
         } else if (event.data.type === 'manual_sync_request') {
             await autoSyncAllBarges(true);
+        } else if (event.data.type === 'tickets') {
+            await autoSyncAllBarges(false);
+            await loadVessels();
         }
     } catch (e) {
         console.error('Lỗi khi đồng bộ qua in phiếu cân:', e);
@@ -4586,17 +4591,35 @@ onUnmounted(() => {
                         (activeVesselId || activeBargeId) ? 'hidden md:flex' : 'flex'
                     ]"
                 >
-                    <div class="p-3 border-b border-primary/5 flex items-center justify-between">
-                        <span 
-                            @click="activeVesselId = null; activeBargeId = null" 
-                            class="text-xs font-black text-gray-500 hover:text-primary cursor-pointer uppercase tracking-wider transition-colors flex items-center gap-1"
-                            title="Quay lại Trang tổng quan"
+                    <div class="p-2.5 border-b border-primary/5 flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <span 
+                                @click="showWarehouseInventoryView = false; activeVesselId = null; activeBargeId = null" 
+                                :class="['text-xs font-black cursor-pointer uppercase tracking-wider transition-colors flex items-center gap-1', !showWarehouseInventoryView && !activeVesselId && !activeBargeId ? 'text-primary' : 'text-gray-500 hover:text-primary']"
+                                title="Quay lại Trang tổng quan"
+                            >
+                                <span class="material-symbols-outlined text-sm">home</span>
+                                Tổng quan
+                            </span>
+                            <button @click="loadVessels" class="size-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Tải lại danh sách">
+                                <span class="material-symbols-outlined text-lg" :class="{'animate-spin': loading}">refresh</span>
+                            </button>
+                        </div>
+
+                        <button
+                            @click="showWarehouseInventoryView = true; activeVesselId = null; activeBargeId = null"
+                            :class="[
+                                'w-full py-2 px-3 rounded-xl text-xs font-black flex items-center justify-between transition-all cursor-pointer border',
+                                showWarehouseInventoryView
+                                    ? 'bg-primary text-white border-primary shadow-sm'
+                                    : 'bg-teal-50/70 hover:bg-teal-100/80 text-teal-800 border-teal-200'
+                            ]"
                         >
-                            <span class="material-symbols-outlined text-sm">home</span>
-                            Tổng quan
-                        </span>
-                        <button @click="loadVessels" class="size-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Tải lại danh sách">
-                            <span class="material-symbols-outlined text-lg" :class="{'animate-spin': loading}">refresh</span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm">warehouse</span>
+                                <span>Báo Cáo Tồn Kho (4 Kho)</span>
+                            </span>
+                            <span class="material-symbols-outlined text-xs">chevron_right</span>
                         </button>
                     </div>
 
@@ -4657,8 +4680,8 @@ onUnmounted(() => {
                         >
                             <!-- Vessel Header -->
                             <div 
-                                @click="selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
-                                :class="['group flex items-center justify-between p-2.5 hover:bg-primary/10 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
+                                @click="showWarehouseInventoryView = false; selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
+                                :class="['group flex items-center justify-between p-2.5 hover:bg-primary/10 cursor-pointer transition-colors', !showWarehouseInventoryView && activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
                             >
                                 <div class="flex items-center gap-1.5 font-bold text-xs text-[#1e293b]">
                                     <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
@@ -4690,13 +4713,13 @@ onUnmounted(() => {
                                 <div 
                                     v-for="barge in vessel.barges" 
                                     :key="barge.id"
-                                    @click="selectBarge(vessel.id, barge.id)"
+                                    @click="showWarehouseInventoryView = false; selectBarge(vessel.id, barge.id)"
                                     :draggable="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done' && !barge.config?.locked"
                                     @dragstart="handleBargeDragStart($event, vessel, barge)"
                                     @dragend="handleBargeDragEnd"
                                     :class="[
                                         'group flex items-center justify-between p-2 rounded-[12px] cursor-pointer transition-all text-xs font-bold gap-1.5',
-                                        activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100',
+                                        !showWarehouseInventoryView && activeBargeId === barge.id ? 'bg-primary text-white shadow-soft' : 'text-gray-700 hover:bg-gray-100',
                                         draggedBarge?.bargeId === barge.id ? 'opacity-40 border-2 border-dashed border-teal-500 scale-95' : ''
                                     ]"
                                     :title="vessel.status !== 'done' && !barge.config?.locked ? 'Nhấn để xem hoặc kéo thả sang tàu khác' : ''"
@@ -4750,11 +4773,16 @@ onUnmounted(() => {
                 <main 
                     :class="[
                         'flex-1 min-h-0 flex flex-col gap-4 p-0 overflow-y-auto md:overflow-hidden',
-                        (!activeVesselId && !activeBargeId) ? 'hidden md:flex' : 'flex'
+                        (!activeVesselId && !activeBargeId && !showWarehouseInventoryView) ? 'hidden md:flex' : 'flex'
                     ]"
                 >
+                    <!-- 4-Warehouse Morning Inventory View -->
+                    <div v-if="showWarehouseInventoryView" class="flex-1 flex flex-col w-full max-w-[1500px] mx-auto min-h-0">
+                        <WarehouseInventoryManager @synced-to-allocator="loadVessels" />
+                    </div>
+
                     <!-- Global Dashboard (Empty State replaced by All Barges Overview) -->
-                    <div v-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 animate-fade-in min-h-0">
+                    <div v-else-if="!activeVesselId" class="flex-1 flex flex-col gap-4 w-full max-w-[1500px] mx-auto pb-4 md:pb-0 animate-fade-in min-h-0">
                         <!-- Welcome Header banner -->
                         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 gap-3">
                             <div>

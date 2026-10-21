@@ -121,3 +121,81 @@ export interface ContainerTicket {
     createdAt?: string | Date;
 }
 
+/**
+ * 4-Warehouse Daily Morning Inventory Types (Phase 20)
+ */
+export type WarehouseId = 'KHO 1' | 'KHO 2' | 'KHO 3' | 'KHO 4';
+
+export type WarehouseFlowType = 'IMPORT' | 'EXPORT' | 'DIRECT';
+
+export interface WarehouseInventoryTicket {
+    id: string;
+    soPhieu: string;
+    maLenh?: string;
+    reportDate: string; // YYYY-MM-DD (after 06:00 AM cutoff)
+    weighInDate?: string;
+    weighInTime?: string;
+    weighOutDate: string; // DD/MM/YYYY or YYYY-MM-DD
+    weighOutTime: string; // HH:mm:ss or HH:mm
+    flowType: WarehouseFlowType;
+    warehouseId: WarehouseId | null;
+    customerName: string;
+    cargoType: string;
+    vehiclePlate: string;
+    carrierName: string; // Nhà xe (from Data lookup or sheet)
+    grossWeight: number; // Tons
+    tareWeight: number; // Tons
+    netWeight: number; // Tons (e.g. 42.20)
+    factoryWeight?: number | null; // KL Phiếu nhà máy (Tons) for IMPORT
+    bargeInfo?: string; // Loai Salan for EXPORT / DIRECT
+    vesselName?: string; // Tàu mẹ / Đích đến for EXPORT / DIRECT
+    sourceOrRemark?: string; // Tai Xe (Factory name for IMPORT, Direct source for DIRECT)
+    rawNote?: string;
+    createdAt?: string;
+}
+
+export interface WarehouseConfig {
+    warehouseId: WarehouseId;
+    initialStock: number; // Tồn đầu kỳ (Tons)
+    initialDate: string; // YYYY-MM-DD or DD/MM/YYYY
+    currentCustomer: string;
+    dailyRemarks: Record<string, string>; // Key: reportDate (YYYY-MM-DD) -> Remark text
+    updatedAt?: string;
+}
+
+export interface WarehouseVehicleMap {
+    vehiclePlate: string; // Normalized key (uppercase alphanumeric)
+    displayPlate: string; // Display plate (e.g. 50H-235.64)
+    carrierName: string; // Nhà xe (e.g. NGUYÊN NGỌC, TẤN PHÁT)
+}
+
+export interface WarehouseFinalRow {
+    reportDate: string; // YYYY-MM-DD
+    displayDate: string; // DD/MM/YYYY
+    importTons: number;
+    importTrips: number;
+    exportTons: number;
+    exportTrips: number;
+    directTons: number;
+    directTrips: number;
+    remainingStockTons: number; // Tồn kho cộng dồn liên tục
+    remark: string; // Ghi chú (kết hợp tự động tàu/sà lan xuất + ghi chú tay)
+    autoRemark: string;
+    manualRemark: string;
+    customers: string[];
+}
+
+export interface WarehouseImportSummary {
+    importedCount: number;
+    importFlowCount: number;
+    exportFlowCount: number;
+    directFlowCount: number;
+    ignoredCount: number;
+    syncedToAllocatorCount: number;
+    matchedBargesCount: number;
+    vehiclesLearnedCount: number;
+    warehousesUpdated: WarehouseId[];
+    errors: string[];
+}
+
+

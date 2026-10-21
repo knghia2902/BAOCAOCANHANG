@@ -233,7 +233,7 @@ Plans:
 
 Plans:
 
-- [ ] 20-01: Thiết kế bảng dữ liệu Supabase & `WarehouseInventoryService.ts` (logic cắt ca 6h sáng, phân loại Nhập kho / Xuất kho / Đi thẳng từ CSV, nạp lịch sử từ file Excel mẫu 4 kho, và tự động đẩy chuyến xuất sang `allocator_tickets` / Sà lan).
-- [ ] 20-02: Xây dựng giao diện Quản lý & Báo cáo Tồn Kho 4 Kho (bảng tổng hợp `FINAL` cộng dồn xuyên suốt theo từng kho & chế độ ghép ngang Kho 1-2-3, chi tiết `IMPORT / EXPORT / ĐI THẲNG`, kèm nút chụp/copy ảnh bảng tổng hợp gửi Zalo).
-- [ ] 20-03: Triển khai trình xuất file Excel Báo cáo Tồn kho chuẩn mẫu khách hàng (đa sheet `IMPORT`, `EXPORT`, `FINAL`, `ĐI THẲNG / XÁ THẲNG`, `Data` giữ nguyên công thức `SUMIFS`/`SUMIF` và định dạng in ấn).
+- [x] 20-01: Thiết kế bảng dữ liệu Supabase & `WarehouseInventoryService.ts` (logic cắt ca 6h sáng, phân loại Nhập kho / Xuất kho / Đi thẳng từ CSV, nạp lịch sử từ file Excel mẫu 4 kho, và tự động đẩy chuyến xuất sang `allocator_tickets` / Sà lan).
+- [x] 20-02: Xây dựng giao diện Quản lý & Báo cáo Tồn Kho 4 Kho (bảng tổng hợp `FINAL` cộng dồn xuyên suốt theo từng kho & chế độ ghép ngang Kho 1-2-3, chi tiết `IMPORT / EXPORT / ĐI THẲNG`, kèm nút chụp/copy ảnh bảng tổng hợp gửi Zalo).
+- [x] 20-03: Triển khai trình xuất file Excel Báo cáo Tồn kho chuẩn mẫu khách hàng (đa sheet `IMPORT`, `EXPORT`, `FINAL`, `ĐI THẲNG / XÁ THẲNG`, `Data` giữ nguyên công thức `SUMIFS`/`SUMIF` và định dạng in ấn).
 
