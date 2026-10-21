@@ -1154,15 +1154,14 @@ export const WarehouseInventoryService = {
     },
 
     /**
-     * Single-Point Import Sync: Push EXPORT & DIRECT weighbridge rows directly to
-     * `allocator_tickets` (CargoAllocator Tab 1) AND matching unlocked Barges in `WeighbridgeService`.
+     * Single-Point Import Sync: Push ALL weighbridge rows (kể cả Nhập và Xuất) directly to
+     * `allocator_tickets` (CargoAllocator Tab 1 - Phiếu Cân) để tiến hành phân bổ.
      */
-    async syncExportRowsToAllocator(rawRows: RawWeighbridgeRow[]): Promise<{
+    async syncAllRowsToAllocator(rawRows: RawWeighbridgeRow[]): Promise<{
         syncedTicketsCount: number;
         matchedBargesCount: number;
     }> {
-        const exportRows = rawRows.filter(r => stripAccents(r.xuatNhap || '').toUpperCase().includes('XUAT'));
-        if (exportRows.length === 0) {
+        if (!rawRows || rawRows.length === 0) {
             return { syncedTicketsCount: 0, matchedBargesCount: 0 };
         }
 
@@ -1170,7 +1169,7 @@ export const WarehouseInventoryService = {
         const existingAllocatorTickets = (await dbContext.get<any[]>('allocator_tickets')) || [];
         let syncedCount = 0;
 
-        for (const r of exportRows) {
+        for (const r of rawRows) {
             const ticketNo = String(r.soPhieu || '').trim();
             const plateNumber = String(r.soXe || '').trim();
             const weight1 = normalizeWeightToKg(r.kl1);
@@ -1355,8 +1354,8 @@ export const WarehouseInventoryService = {
         }
         summary.warehousesUpdated = Array.from(updatedWhSet);
 
-        // Single-point sync of all Xuat rows to CargoAllocator & WeighbridgePrinter barges
-        const syncRes = await this.syncExportRowsToAllocator(allRawRows);
+        // Single-point sync of ALL rows (kể cả Nhập và Xuất) to CargoAllocator Tab 1 (Phiếu Cân)
+        const syncRes = await this.syncAllRowsToAllocator(allRawRows);
         summary.syncedToAllocatorCount = syncRes.syncedTicketsCount;
         summary.matchedBargesCount = syncRes.matchedBargesCount;
 
