@@ -3919,8 +3919,8 @@ async function compileAndDownload() {
         <div class="bg-white rounded-[24px] p-5 pb-3 soft-shadow border border-primary/5 flex flex-col gap-4 animate-fade-in w-full flex-1 min-h-0 overflow-hidden">
             <!-- Tabs Header -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                <!-- Tabs Navigation Strip -->
-                <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 xl:pb-0 shrink-0">
+                <!-- Tabs Navigation Strip (Chỉ hiện 3 tab khi đã click chọn tàu) -->
+                <div v-if="activeBargeId" class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 xl:pb-0 shrink-0">
                     <button 
                         @click="activeDataTab = 'source'"
                         :class="[
@@ -3930,7 +3930,7 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        1. Phiếu cân ({{ activeBarge ? csvRecords.length : filteredRightPanelBarges.length }})
+                        1. Phiếu cân ({{ csvRecords.length }})
                     </button>
                     <button 
                         @click="activeDataTab = 'template'"
@@ -3952,8 +3952,28 @@ async function compileAndDownload() {
                                 : 'text-gray-500 hover:bg-gray-50'
                         ]"
                     >
-                        3. Theo dõi ({{ existingTrips.length }})
+                        3. Theo dõi ({{ filteredHistoryTrips.length }})
                     </button>
+                </div>
+                <!-- Tiêu đề màn hình Danh sách tàu (Khi chưa click chọn tàu) -->
+                <div v-else class="flex items-center gap-2 shrink-0">
+                    <span :class="[
+                        'material-symbols-outlined text-lg',
+                        selectedBargeStatusTab === 'pending' ? 'text-amber-500' : 'text-emerald-600'
+                    ]">
+                        directions_boat
+                    </span>
+                    <h2 class="text-xs sm:text-sm font-black text-[#1e293b]">
+                        {{ selectedBargeStatusTab === 'pending' ? 'Danh sách tàu / sà lan chờ phân bổ' : 'Danh sách tàu / sà lan đã phân bổ' }}
+                    </h2>
+                    <span :class="[
+                        'text-[11px] font-black px-2 py-0.5 rounded-full border',
+                        selectedBargeStatusTab === 'pending'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ]">
+                        {{ filteredRightPanelBarges.length }} tàu
+                    </span>
                 </div>
 
                 <!-- Controls, Search, and Action Buttons (Aligned Row) -->
@@ -4050,22 +4070,9 @@ async function compileAndDownload() {
                     <!-- Right Side: Action Buttons -->
                     <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
                     <!-- Tab 1 Actions -->
-                    <template v-if="activeDataTab === 'source'">
-                        <!-- Khi chưa chọn tàu: hiển thị tổng số tàu trong danh sách -->
-                        <template v-if="!activeBargeId">
-                            <div :class="[
-                                'h-7 px-3 rounded-[8px] border flex items-center gap-1.5 font-bold text-xs shrink-0',
-                                selectedBargeStatusTab === 'pending'
-                                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            ]">
-                                <span class="material-symbols-outlined text-[14px]">{{ selectedBargeStatusTab === 'pending' ? 'pending' : 'check_circle' }}</span>
-                                <span>{{ selectedBargeStatusTab === 'pending' ? 'Chưa phân bổ' : 'Đã phân bổ' }}: {{ filteredRightPanelBarges.length }} tàu</span>
-                            </div>
-                        </template>
-
+                    <template v-if="activeDataTab === 'source' && activeBargeId">
                         <!-- Khi đã chọn tàu: hiển thị nút quay lại Danh sách tàu và các thao tác phiếu cân -->
-                        <template v-else>
+                        <template v-if="activeBargeId">
                             <button
                                 type="button"
                                 @click="backToBargeList"
