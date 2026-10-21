@@ -1035,10 +1035,10 @@ const loadVessels = async () => {
                 barges: (v.barges || []).filter(b => b.config?.site !== 'PhuMy')
             }));
         
-        // Expand all vessels by default
+        // Collapse all vessels by default in left sidebar
         vessels.value.forEach(v => {
             if (expandedVesselIds.value[v.id] === undefined) {
-                expandedVesselIds.value[v.id] = true;
+                expandedVesselIds.value[v.id] = false;
             }
         });
 
@@ -1057,6 +1057,7 @@ const loadVessels = async () => {
 const selectBarge = async (vesselId: number, bargeId: number) => {
     activeVesselId.value = vesselId;
     activeBargeId.value = bargeId;
+    expandedVesselIds.value[vesselId] = true;
     
     const currentV = vessels.value.find(v => v.id === vesselId);
     if (isDeHeusVessel(currentV)) {

@@ -573,7 +573,7 @@ async function loadData() {
         vessels.value = await WeighbridgeService.getVessels() || [];
         vessels.value.forEach(v => {
             if (expandedVesselIds.value[v.id] === undefined) {
-                expandedVesselIds.value[v.id] = true;
+                expandedVesselIds.value[v.id] = false;
             }
         });
     } catch (e) {
