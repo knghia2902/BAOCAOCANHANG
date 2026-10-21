@@ -850,10 +850,10 @@ async function handleDownloadZaloImage() {
 
                     <button
                         @click="handleClearWarehouseData"
-                        class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-2xl text-xs transition-all flex items-center gap-1 cursor-pointer"
+                        class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
                         title="Xóa dữ liệu phiếu cân của kho này hoặc toàn bộ kho để import lại từ đầu"
                     >
-                        <span class="material-symbols-outlined text-sm">delete_sweep</span>
+                        <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
                         <span>Xóa Dữ Liệu</span>
                     </button>
                 </div>
@@ -1086,8 +1086,17 @@ async function handleDownloadZaloImage() {
                 </div>
 
                 <!-- Right contextual controls -->
-                <div v-if="activeSheetTab === 'FINAL' && selectedWarehouseMode !== 'COMBINED_123'" class="flex items-center gap-2">
-                    <label class="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer select-none">
+                <div class="flex items-center gap-2">
+                    <button
+                        @click="handleClearWarehouseData"
+                        class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer"
+                        title="Xóa dữ liệu để nạp lại"
+                    >
+                        <span class="material-symbols-outlined text-sm text-rose-600">delete</span>
+                        <span>Xóa Dữ Liệu</span>
+                    </button>
+
+                    <label v-if="activeSheetTab === 'FINAL' && selectedWarehouseMode !== 'COMBINED_123'" class="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer select-none ml-2">
                         <input
                             v-model="showDirectColumnInSingleFinal"
                             type="checkbox"
