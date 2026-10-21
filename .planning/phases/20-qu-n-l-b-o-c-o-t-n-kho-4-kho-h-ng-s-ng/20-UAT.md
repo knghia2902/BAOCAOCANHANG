@@ -11,7 +11,7 @@ updated: "2026-10-21T21:21:00.000Z"
 
 ## Current Test
 
-2. Import CSV Trạm Cân và quy tắc chốt ca 06:00 sáng
+3. Đồng bộ các phiếu trong file cc2 sang Tab Phiếu Cân ở Dữ Liệu Cân Hàng
 
 ## Tests
 
@@ -21,7 +21,7 @@ result: pass
 
 ### 2. Import CSV Trạm Cân và quy tắc chốt ca 06:00 sáng
 expected: Bấm nút "Import CSV Trạm Cân (Đồng bộ 1 chạm)" và chọn file `2010ok.csv` (hoặc cặp file `xxxx cc1`, `xxxx cc2`). Dữ liệu được tự động phân loại thành Nhập kho (vào sheet IMPORT), Xuất kho (vào sheet EXPORT), Đi thẳng (vào sheet ĐI THẲNG). Các chuyến cân ra từ 00:00 - 05:59 sáng được quy về ngày hôm trước.
-result: pending
+result: pass
 
 ### 3. Đồng bộ các phiếu trong file cc2 sang Tab Phiếu Cân ở Dữ Liệu Cân Hàng
 expected: Khi import file có tên chứa "cc2", toàn bộ phiếu trong file cc2 (bao gồm cả Nhập và Xuất) được tự động nạp sang Tab 1 (Phiếu Cân) trong Dữ Liệu Cân Hàng (`allocator_tickets`) mà không tự động ghép vào sà lan.
@@ -42,9 +42,9 @@ result: pending
 ## Summary
 
 total: 6
-passed: 0
+passed: 2
 issues: 0
-pending: 6
+pending: 4
 skipped: 0
 blocked: 0
 

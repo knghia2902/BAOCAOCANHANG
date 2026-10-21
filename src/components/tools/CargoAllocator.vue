@@ -7,7 +7,6 @@ import { authStore, hasDetailPermission } from '@/stores/auth';
 import VehicleManager from '@/components/tools/VehicleManager.vue';
 import GoodsManager from '@/components/tools/GoodsManager.vue';
 import WeighbridgeOtherManager from '@/components/tools/WeighbridgeOtherManager.vue';
-import WarehouseInventoryManager from '@/components/tools/WarehouseInventoryManager.vue';
 import { LogService } from '@/services/storage/LogService';
 import { AllocatorService } from '@/services/excel/AllocatorService';
 import { VehicleService } from '@/services/excel/VehicleService';
@@ -40,7 +39,7 @@ const props = defineProps<{
 // Local navigation selection state
 const activeVesselId = ref<number | null>(null);
 const activeBargeId = ref<number | 'vehicles' | null>(null);
-const activeSubViewMode = ref<'allocator' | 'vehicles' | 'goods' | 'other_tickets' | 'warehouse_inventory'>('allocator');
+const activeSubViewMode = ref<'allocator' | 'vehicles' | 'goods' | 'other_tickets'>('allocator');
 
 const formatDateTimeStr = (isoString: string): string => {
     if (!isoString) return '';
@@ -2774,17 +2773,6 @@ async function compileAndDownload() {
         compiling.value = false;
     }
 }
-
-async function handleWarehouseSyncToAllocator() {
-    try {
-        const updatedTickets = await dbContext.get<CSVRecord[]>('allocator_tickets');
-        if (Array.isArray(updatedTickets)) {
-            csvRecords.value = updatedTickets;
-        }
-    } catch (err) {
-        console.warn('Error reloading allocator_tickets after warehouse sync:', err);
-    }
-}
 </script>
 
 <template>
@@ -2799,13 +2787,6 @@ async function handleWarehouseSyncToAllocator() {
                 >
                     <span class="material-symbols-outlined text-sm">analytics</span>
                     <span>Phân bổ tải trọng</span>
-                </button>
-                <button 
-                    @click="activeSubViewMode = 'warehouse_inventory'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'warehouse_inventory' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
-                >
-                    <span class="material-symbols-outlined text-sm">warehouse</span>
-                    <span>Báo cáo Tồn kho (4 Kho)</span>
                 </button>
                 <button 
                     @click="activeSubViewMode = 'vehicles'"
@@ -2852,14 +2833,6 @@ async function handleWarehouseSyncToAllocator() {
                     </div>
 
                     <div 
-                        @click="activeSubViewMode = 'warehouse_inventory'"
-                        :class="['flex items-center gap-2.5 p-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border', activeSubViewMode === 'warehouse_inventory' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100']"
-                    >
-                        <span class="material-symbols-outlined text-base">warehouse</span>
-                        Báo cáo Tồn kho (4 Kho)
-                    </div>
-
-                    <div 
                         @click="activeSubViewMode = 'vehicles'"
                         :class="['flex items-center gap-2.5 p-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border', activeSubViewMode === 'vehicles' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100']"
                     >
@@ -2886,13 +2859,8 @@ async function handleWarehouseSyncToAllocator() {
             </aside>
 
             <main class="flex-1 min-h-0 flex flex-col md:overflow-hidden">
-                <!-- Chế độ 5: Báo Cáo Tồn Kho 4 Kho Hàng Sáng -->
-                <div v-if="activeSubViewMode === 'warehouse_inventory'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0 md:h-full">
-                    <WarehouseInventoryManager @synced-to-allocator="handleWarehouseSyncToAllocator" />
-                </div>
-
                 <!-- Chế độ 1: Quản lý danh sách xe -->
-                <div v-else-if="activeSubViewMode === 'vehicles'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
+                <div v-if="activeSubViewMode === 'vehicles'" class="w-full max-w-[1500px] mx-auto flex-1 flex flex-col min-h-0">
                     <VehicleManager />
                 </div>
 
