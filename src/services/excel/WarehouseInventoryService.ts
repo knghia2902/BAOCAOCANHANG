@@ -199,6 +199,58 @@ export function normalizeWeightToKg(rawVal: any): number {
     return Math.round(num);
 }
 
+export type CustomerGroup = 'KHO_4' | 'KHO_123';
+
+/**
+ * Filter and sanitize customer name string.
+ * Strips date objects or Excel date serialization artifacts (e.g. "Sat Dec 30 1899 ...").
+ */
+export function sanitizeCustomerName(val: any, fallback = ''): string {
+    if (!val) return fallback;
+    if (val instanceof Date) return fallback;
+    const s = String(val).trim();
+    if (!s) return fallback;
+    if (/1899|1900/.test(s)) return fallback;
+    if (/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s[A-Z][a-z]{2}\s\d{1,2}\s\d{4}/i.test(s)) return fallback;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return fallback;
+    return s;
+}
+
+/**
+ * Determine which Customer Group a ticket belongs to:
+ * - KHO_4: Customer owning Kho 4 (Default EASTWOOD)
+ * - KHO_123: Customer owning Kho 1, 2, 3 (Default GỖ BÌNH ĐỊNH)
+ */
+export function getTicketCustomerGroup(
+    ticket: WarehouseInventoryTicket,
+    configs?: Partial<Record<WarehouseId, WarehouseConfig>>
+): 'KHO_4' | 'KHO_123' {
+    if (ticket.warehouseId === 'KHO 4') return 'KHO_4';
+    if (ticket.warehouseId === 'KHO 1' || ticket.warehouseId === 'KHO 2' || ticket.warehouseId === 'KHO 3') return 'KHO_123';
+
+    const custClean = stripAccents(ticket.customerName || '').toUpperCase().trim();
+    const custKho4 = stripAccents(configs?.['KHO 4']?.currentCustomer || 'EASTWOOD').toUpperCase().trim();
+    const custKho123 = stripAccents(configs?.['KHO 1']?.currentCustomer || 'GO BINH DINH').toUpperCase().trim();
+
+    if (custClean) {
+        if (custClean.includes('EASTWOOD') || custClean.includes('EW') || (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean)))) {
+            return 'KHO_4';
+        }
+        if (custClean.includes('BINH DINH') || custClean.includes('GBD') || (custKho123 && (custClean.includes(custKho123) || custKho123.includes(custClean)))) {
+            return 'KHO_123';
+        }
+    }
+
+    const remarkClean = stripAccents(ticket.sourceOrRemark || '').toUpperCase();
+    if (remarkClean.includes('KHO 4') || remarkClean.includes('EW')) return 'KHO_4';
+    if (remarkClean.includes('KHO 1') || remarkClean.includes('KHO 2') || remarkClean.includes('KHO 3') || remarkClean.includes('GBD')) return 'KHO_123';
+
+    if (ticket.id.includes('KHO 4') || ticket.id.includes('EW')) return 'KHO_4';
+    if (ticket.id.includes('KHO 1') || ticket.id.includes('KHO 2') || ticket.id.includes('KHO 3') || ticket.id.includes('GBD')) return 'KHO_123';
+
+    return 'KHO_123';
+}
+
 function getDefaultConfigs(): Record<WarehouseId, WarehouseConfig> {
     return {
         'KHO 1': {
@@ -445,16 +497,14 @@ export function computeWarehouseFinalTable(
     closingStockTons: number;
 } {
     const whTickets = allTickets.filter(t => t.warehouseId === warehouseId && (t.flowType === 'IMPORT' || t.flowType === 'EXPORT'));
-    const currentCustomerClean = stripAccents(config.currentCustomer || '').toUpperCase().trim();
+    const targetGroup = warehouseId === 'KHO 4' ? 'KHO_4' : 'KHO_123';
 
-    // Direct tickets matching this warehouse's customer (or all direct tickets if warehouse is KHO 4 / EW or GBD)
+    // Direct tickets matching this warehouse's customer group:
+    // Kho 4 -> Customer 1 (EASTWOOD); Kho 1..3 -> Customer 2 (GỖ BÌNH ĐỊNH)
     const directTickets = allTickets.filter(t => {
         if (t.flowType !== 'DIRECT') return false;
         if (options?.includeDirectForCustomer === false) return false;
-        if (!currentCustomerClean) return true;
-        const tCust = stripAccents(t.customerName || '').toUpperCase().trim();
-        if (!tCust) return true;
-        return tCust.includes(currentCustomerClean) || currentCustomerClean.includes(tCust);
+        return getTicketCustomerGroup(t, { [warehouseId]: config } as any) === targetGroup;
     });
 
     const dateSet = new Set<string>();
@@ -852,6 +902,12 @@ export const WarehouseInventoryService = {
             }
         }
 
+        // Sanitize customer names to eliminate date strings or Excel date serial artifacts
+        merged['KHO 4'].currentCustomer = sanitizeCustomerName(merged['KHO 4'].currentCustomer, 'EASTWOOD');
+        merged['KHO 1'].currentCustomer = sanitizeCustomerName(merged['KHO 1'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+        merged['KHO 2'].currentCustomer = sanitizeCustomerName(merged['KHO 2'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+        merged['KHO 3'].currentCustomer = sanitizeCustomerName(merged['KHO 3'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+
         return merged;
     },
 
@@ -1118,8 +1174,12 @@ export const WarehouseInventoryService = {
         return true;
     },
 
-    async clearWarehouseTickets(target?: WarehouseId | 'ALL' | 'DIRECT'): Promise<boolean> {
+    async clearWarehouseTickets(
+        target?: WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
+    ): Promise<boolean> {
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
+        const configs = await this.getConfigs();
+
         if (!target || target === 'ALL') {
             await dbContext.set(LOCAL_TICKETS_KEY, []);
             try {
@@ -1133,6 +1193,33 @@ export const WarehouseInventoryService = {
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT');
+            } catch (_) {}
+            return true;
+        }
+
+        if (target === 'DIRECT_KHO4') {
+            const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_4'));
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            try {
+                await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT').eq('warehouse_id', 'KHO 4');
+            } catch (_) {}
+            return true;
+        }
+
+        if (target === 'DIRECT_KHO123') {
+            const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123'));
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            try {
+                await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT').neq('warehouse_id', 'KHO 4');
+            } catch (_) {}
+            return true;
+        }
+
+        if (target === 'GROUP_KHO123') {
+            const remaining = current.filter(t => getTicketCustomerGroup(t, configs) !== 'KHO_123');
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            try {
+                await supabase.from('warehouse_inventory_tickets').delete().in('warehouse_id', ['KHO 1', 'KHO 2', 'KHO 3']);
             } catch (_) {}
             return true;
         }
@@ -1586,11 +1673,11 @@ export const WarehouseInventoryService = {
                         const bargeInfo = String(getCellPrimitive(row.getCell(colBarge)) || '').trim();
                         const vesselName = String(getCellPrimitive(row.getCell(colVessel)) || '').trim();
                         const weighOutTime = parseToTimeStr(getCellPrimitive(row.getCell(colTime)));
-                        const custVal = colCust > 0 ? String(getCellPrimitive(row.getCell(colCust)) || '').trim() : '';
+                        const custVal = colCust > 0 ? sanitizeCustomerName(getCellPrimitive(row.getCell(colCust)), '') : '';
                         const customerName = custVal || inferredFileCustomer || configs[sheetWh]?.currentCustomer || '';
 
-                        if (customerName && configs[sheetWh]) {
-                            configs[sheetWh].currentCustomer = customerName;
+                        if (customerName && configs[sheetWh] && sanitizeCustomerName(customerName, '')) {
+                            configs[sheetWh].currentCustomer = sanitizeCustomerName(customerName, configs[sheetWh].currentCustomer);
                         }
 
                         const id = `EXPORT_${sheetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
@@ -1630,7 +1717,13 @@ export const WarehouseInventoryService = {
                         const weighOutTime = parseToTimeStr(getCellPrimitive(row.getCell(colTime)));
                         const sourceOrRemark = String(getCellPrimitive(row.getCell(colRemark)) || '').trim();
 
-                        const id = `DIRECT_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
+                        const isKho4File = defaultWh === 'KHO 4' || inferredFileCustomer === 'EASTWOOD' || fileNameClean.includes('EW') || fileNameClean.includes('KHO 4');
+                        const targetWh: WarehouseId = isKho4File ? 'KHO 4' : 'KHO 1';
+                        const directCust = isKho4File
+                            ? sanitizeCustomerName(inferredFileCustomer, configs['KHO 4']?.currentCustomer || 'EASTWOOD')
+                            : sanitizeCustomerName(inferredFileCustomer, configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH');
+
+                        const id = `DIRECT_${targetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
                         allTickets.push({
                             id,
                             soPhieu,
@@ -1641,8 +1734,8 @@ export const WarehouseInventoryService = {
                             weighOutDate: reportDate,
                             weighOutTime,
                             flowType: 'DIRECT',
-                            warehouseId: null,
-                            customerName: inferredFileCustomer || '',
+                            warehouseId: targetWh,
+                            customerName: directCust,
                             cargoType: 'Viên nén gỗ',
                             vehiclePlate: rawPlateVal,
                             carrierName,
@@ -1756,7 +1849,8 @@ export const WarehouseInventoryService = {
 
         const whImports = allTickets.filter(t => t.warehouseId === warehouseId && t.flowType === 'IMPORT');
         const whExports = allTickets.filter(t => t.warehouseId === warehouseId && t.flowType === 'EXPORT');
-        const directTickets = allTickets.filter(t => t.flowType === 'DIRECT');
+        const targetGroup = warehouseId === 'KHO 4' ? 'KHO_4' : 'KHO_123';
+        const directTickets = allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === targetGroup);
 
         const finalCalc = computeWarehouseFinalTable(warehouseId, allTickets, config, options);
 
@@ -1874,9 +1968,12 @@ export const WarehouseInventoryService = {
             );
         }
 
-        // 3. Sheet XÁ THẲNG
+        // 3. Sheet XÁ THẲNG (Kho 1-2-3 / Gỗ Bình Định)
         const wsDirect = workbook.addWorksheet('XÁ THẲNG');
-        this.populateDirectWorksheet(wsDirect, allTickets.filter(t => t.flowType === 'DIRECT'));
+        this.populateDirectWorksheet(
+            wsDirect,
+            allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123')
+        );
 
         // 4. Sheet Data
         const wsData = workbook.addWorksheet('Data');

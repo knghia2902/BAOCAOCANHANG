@@ -4,7 +4,9 @@ import { useToast } from '@/composables/useToast';
 import {
     WarehouseInventoryService,
     computeWarehouseFinalTable,
-    formatIsoToDmy
+    formatIsoToDmy,
+    getTicketCustomerGroup,
+    sanitizeCustomerName
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -68,6 +70,55 @@ const editingConfigForm = ref<{
     currentCustomer: 'EASTWOOD',
     initialStock: 0,
     initialDate: ''
+});
+
+// Customer inline editing modal
+const showEditCustomerModal = ref(false);
+const editingCustomerGroup = ref<'KHO_4' | 'KHO_123'>('KHO_4');
+const editingCustomerName = ref('');
+
+function openEditCustomerModal(group: 'KHO_4' | 'KHO_123') {
+    editingCustomerGroup.value = group;
+    if (group === 'KHO_4') {
+        editingCustomerName.value = configs.value['KHO 4']?.currentCustomer || 'EASTWOOD';
+    } else {
+        editingCustomerName.value = configs.value['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH';
+    }
+    showEditCustomerModal.value = true;
+}
+
+async function saveCustomerNameModal() {
+    const newName = sanitizeCustomerName(editingCustomerName.value.trim(), '');
+    if (!newName) {
+        addToast('Vui lòng nhập tên khách hàng hợp lệ', 'error');
+        return;
+    }
+
+    try {
+        if (editingCustomerGroup.value === 'KHO_4') {
+            configs.value['KHO 4'].currentCustomer = newName;
+            await WarehouseInventoryService.saveConfig(configs.value['KHO 4']);
+        } else {
+            configs.value['KHO 1'].currentCustomer = newName;
+            configs.value['KHO 2'].currentCustomer = newName;
+            configs.value['KHO 3'].currentCustomer = newName;
+            await Promise.all([
+                WarehouseInventoryService.saveConfig(configs.value['KHO 1']),
+                WarehouseInventoryService.saveConfig(configs.value['KHO 2']),
+                WarehouseInventoryService.saveConfig(configs.value['KHO 3'])
+            ]);
+        }
+        showEditCustomerModal.value = false;
+        await loadAllData();
+        addToast(`Đã đổi tên khách hàng thành "${newName}"!`, 'success');
+    } catch (err: any) {
+        addToast('Lỗi lưu tên khách hàng: ' + (err?.message || err), 'error');
+    }
+}
+
+// Active customer group
+const activeCustomerGroup = computed<'KHO_4' | 'KHO_123'>(() => {
+    return selectedWarehouseMode.value === 'KHO 4' ? 'KHO_4' : 'KHO_123';
 });
 
 // Vehicle Data tab states
@@ -141,7 +192,7 @@ const filteredDetailTickets = computed(() => {
             return t.flowType === 'EXPORT' && t.warehouseId === whId;
         }
         if (activeSheetTab.value === 'DIRECT') {
-            return t.flowType === 'DIRECT';
+            return t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs.value) === activeCustomerGroup.value;
         }
         return false;
     });
@@ -264,15 +315,20 @@ async function handleHistoryExcelSelected(e: Event) {
 }
 
 async function handleClearWarehouseData() {
-    let targetKey: WarehouseId | 'ALL' | 'DIRECT';
+    let targetKey: WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123';
     let targetLabel = '';
 
     if (activeSheetTab.value === 'DIRECT') {
-        targetKey = 'DIRECT';
-        targetLabel = 'toàn bộ phiếu XÁ THẲNG';
+        if (selectedWarehouseMode.value === 'KHO 4') {
+            targetKey = 'DIRECT_KHO4';
+            targetLabel = `toàn bộ phiếu XÁ THẲNG của ${configs.value['KHO 4']?.currentCustomer || 'Kho 4'}`;
+        } else {
+            targetKey = 'DIRECT_KHO123';
+            targetLabel = `toàn bộ phiếu XÁ THẲNG của ${configs.value['KHO 1']?.currentCustomer || 'Kho 1-2-3'}`;
+        }
     } else if (selectedWarehouseMode.value === 'COMBINED_123') {
-        targetKey = 'ALL';
-        targetLabel = 'toàn bộ dữ liệu của cả 4 kho và xá thẳng';
+        targetKey = 'GROUP_KHO123';
+        targetLabel = `toàn bộ dữ liệu của Kho 1, 2, 3 và Xá thẳng của ${configs.value['KHO 1']?.currentCustomer || 'Gỗ Bình Định'}`;
     } else {
         targetKey = activeSingleWarehouseId.value;
         targetLabel = `toàn bộ phiếu của ${selectedWarehouseMode.value}`;
@@ -897,46 +953,86 @@ async function handleDownloadZaloImage() {
 
                 <!-- Tree Group 1: EASTWOOD (Kho 4) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
-                    <!-- Customer Node Header -->
+                    <!-- Customer Node Header (Click to view Overview / FINAL Kho 4) -->
                     <div
-                        @click="expandedCustomer['EASTWOOD'] = !expandedCustomer['EASTWOOD']"
-                        class="p-2.5 flex items-center justify-between hover:bg-slate-100/70 cursor-pointer select-none transition-colors"
+                        @click="selectedWarehouseMode = 'KHO 4'; activeSheetTab = 'FINAL'"
+                        :class="[
+                            'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
+                            selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
+                                ? 'bg-primary text-white shadow-sm font-black'
+                                : 'hover:bg-slate-100/70 text-[#1e293b]'
+                        ]"
                     >
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="material-symbols-outlined text-base text-primary shrink-0">corporate_fare</span>
-                            <div class="min-w-0">
-                                <div class="text-xs font-black text-[#1e293b] truncate">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span
+                                class="material-symbols-outlined text-base shrink-0"
+                                :class="selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                            >
+                                corporate_fare
+                            </span>
+                            <div class="min-w-0 flex items-center gap-1">
+                                <span class="text-xs font-black truncate max-w-[100px]">
                                     {{ configs['KHO 4']?.currentCustomer || 'EASTWOOD' }}
-                                </div>
-                                <div class="text-[10px] font-semibold text-slate-400">1 Kho độc lập</div>
+                                </span>
+                                <!-- Quick edit customer name button -->
+                                <button
+                                    @click.stop="openEditCustomerModal('KHO_4')"
+                                    :class="[
+                                        'size-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-colors',
+                                        selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
+                                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                    ]"
+                                    title="Đổi tên khách hàng"
+                                >
+                                    <span class="material-symbols-outlined text-[11px]">edit</span>
+                                </button>
                             </div>
                         </div>
-                        <div class="flex items-center gap-1">
-                            <span class="text-[11px] font-mono font-black text-primary">
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span
+                                class="text-[11px] font-mono font-black"
+                                :class="selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                            >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
                             </span>
-                            <span class="material-symbols-outlined text-sm text-slate-400 transition-transform" :class="{'rotate-180': expandedCustomer['EASTWOOD']}">
-                                expand_more
-                            </span>
+                            <button
+                                @click.stop="expandedCustomer['EASTWOOD'] = !expandedCustomer['EASTWOOD']"
+                                class="size-5 rounded flex items-center justify-center cursor-pointer hover:bg-black/10"
+                                title="Đóng/mở nhánh"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-sm transition-transform"
+                                    :class="[
+                                        {'rotate-180': expandedCustomer['EASTWOOD']},
+                                        selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
+                                    ]"
+                                >
+                                    expand_more
+                                </span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Child Warehouses of EASTWOOD -->
+                    <!-- Child Warehouses of EASTWOOD: Kho 4 with subdirectory_arrow_right -->
                     <div v-if="expandedCustomer['EASTWOOD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
                         <button
                             @click="selectedWarehouseMode = 'KHO 4'"
                             :class="[
-                                'w-full px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5',
-                                selectedWarehouseMode === 'KHO 4'
+                                'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
+                                selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
                         >
                             <span class="flex items-center gap-1.5 text-xs truncate">
-                                <span class="material-symbols-outlined text-sm">warehouse</span>
+                                <span class="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
                                 <span>KHO 4</span>
                             </span>
-                            <span class="text-[11px] font-mono font-black shrink-0" :class="selectedWarehouseMode === 'KHO 4' ? 'text-white' : 'text-slate-600'">
+                            <span
+                                class="text-[11px] font-mono font-black shrink-0"
+                                :class="selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                            >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
                             </span>
                         </button>
@@ -945,22 +1041,47 @@ async function handleDownloadZaloImage() {
 
                 <!-- Tree Group 2: GỖ BÌNH ĐỊNH (Kho 1, 2, 3) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
-                    <!-- Customer Node Header -->
+                    <!-- Customer Node Header (Click to view Combined overview Kho 1-2-3) -->
                     <div
-                        @click="expandedCustomer['GBD'] = !expandedCustomer['GBD']"
-                        class="p-2.5 flex items-center justify-between hover:bg-slate-100/70 cursor-pointer select-none transition-colors"
+                        @click="selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
+                        :class="[
+                            'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
+                            selectedWarehouseMode === 'COMBINED_123'
+                                ? 'bg-teal-600 text-white shadow-sm font-black'
+                                : 'hover:bg-slate-100/70 text-[#1e293b]'
+                        ]"
                     >
-                        <div class="flex items-center gap-2 min-w-0">
-                            <span class="material-symbols-outlined text-base text-teal-600 shrink-0">apartment</span>
-                            <div class="min-w-0">
-                                <div class="text-xs font-black text-[#1e293b] truncate">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span
+                                class="material-symbols-outlined text-base shrink-0"
+                                :class="selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-600'"
+                            >
+                                apartment
+                            </span>
+                            <div class="min-w-0 flex items-center gap-1">
+                                <span class="text-xs font-black truncate max-w-[100px]">
                                     {{ configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH' }}
-                                </div>
-                                <div class="text-[10px] font-semibold text-slate-400">3 Kho liên kết</div>
+                                </span>
+                                <!-- Quick edit customer name button -->
+                                <button
+                                    @click.stop="openEditCustomerModal('KHO_123')"
+                                    :class="[
+                                        'size-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-colors',
+                                        selectedWarehouseMode === 'COMBINED_123'
+                                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                                            : 'bg-teal-600/10 hover:bg-teal-600/20 text-teal-700'
+                                    ]"
+                                    title="Đổi tên khách hàng"
+                                >
+                                    <span class="material-symbols-outlined text-[11px]">edit</span>
+                                </button>
                             </div>
                         </div>
-                        <div class="flex items-center gap-1">
-                            <span class="text-[11px] font-mono font-black text-teal-700">
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span
+                                class="text-[11px] font-mono font-black"
+                                :class="selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-700'"
+                            >
                                 {{
                                     formatTons(
                                         finalTablesByWarehouse['KHO 1'].closingStockTons +
@@ -969,39 +1090,26 @@ async function handleDownloadZaloImage() {
                                     )
                                 }} T
                             </span>
-                            <span class="material-symbols-outlined text-sm text-slate-400 transition-transform" :class="{'rotate-180': expandedCustomer['GBD']}">
-                                expand_more
-                            </span>
+                            <button
+                                @click.stop="expandedCustomer['GBD'] = !expandedCustomer['GBD']"
+                                class="size-5 rounded flex items-center justify-center cursor-pointer hover:bg-black/10"
+                                title="Đóng/mở nhánh"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-sm transition-transform"
+                                    :class="[
+                                        {'rotate-180': expandedCustomer['GBD']},
+                                        selectedWarehouseMode === 'COMBINED_123' ? 'text-white/80' : 'text-slate-400'
+                                    ]"
+                                >
+                                    expand_more
+                                </span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Child Warehouses of GỖ BÌNH ĐỊNH -->
+                    <!-- Child Warehouses of GỖ BÌNH ĐỊNH: Kho 1, 2, 3 with subdirectory_arrow_right -->
                     <div v-if="expandedCustomer['GBD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
-                        <!-- Combined 1-2-3 Button -->
-                        <button
-                            @click="selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
-                            :class="[
-                                'w-full px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 border',
-                                selectedWarehouseMode === 'COMBINED_123'
-                                    ? 'bg-teal-600 text-white font-black border-teal-600 shadow-sm'
-                                    : 'bg-teal-50/60 hover:bg-teal-100/70 text-teal-900 border-teal-200/70 font-bold'
-                            ]"
-                        >
-                            <span class="flex items-center gap-1.5 text-xs truncate">
-                                <span class="material-symbols-outlined text-sm">view_column</span>
-                                <span>GỘP KHO 1 - 2 - 3</span>
-                            </span>
-                            <span class="text-[11px] font-mono font-black shrink-0" :class="selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-800'">
-                                {{
-                                    formatTons(
-                                        finalTablesByWarehouse['KHO 1'].closingStockTons +
-                                        finalTablesByWarehouse['KHO 2'].closingStockTons +
-                                        finalTablesByWarehouse['KHO 3'].closingStockTons
-                                    )
-                                }} T
-                            </span>
-                        </button>
-
                         <!-- Individual Warehouse 1, 2, 3 Buttons -->
                         <button
                             v-for="whId in (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[])"
@@ -1202,7 +1310,7 @@ async function handleDownloadZaloImage() {
                                 ]"
                             >
                                 <span class="material-symbols-outlined text-sm">bolt</span>
-                                <span>XÁ THẲNG</span>
+                                <span>XÁ THẲNG ({{ selectedWarehouseMode === 'KHO 4' ? (configs['KHO 4']?.currentCustomer || 'Kho 4') : (configs['KHO 1']?.currentCustomer || 'Kho 1-2-3') }})</span>
                             </button>
 
                             <button
@@ -1823,6 +1931,61 @@ async function handleDownloadZaloImage() {
                         class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
                     >
                         Lưu Cấu Hình
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Edit Customer Name -->
+        <div
+            v-if="showEditCustomerModal"
+            class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+            <div class="bg-white rounded-[2rem] p-6 w-full max-w-md border border-primary/10 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-black text-[#1e293b]">
+                        Đổi Tên Khách Hàng ({{ editingCustomerGroup === 'KHO_4' ? 'Kho 4' : 'Kho 1 - 2 - 3' }})
+                    </h3>
+                    <button
+                        @click="showEditCustomerModal = false"
+                        class="size-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-500 hover:text-rose-600 cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-col gap-3 text-xs font-bold">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-slate-600">Tên Khách Hàng</label>
+                        <input
+                            v-model="editingCustomerName"
+                            type="text"
+                            placeholder="VD: EASTWOOD, GỖ BÌNH ĐỊNH..."
+                            @keydown.enter="saveCustomerNameModal"
+                            class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-primary"
+                        />
+                        <span class="text-[11px] text-slate-400 font-normal">
+                            {{
+                                editingCustomerGroup === 'KHO_4'
+                                    ? 'Tên này sẽ áp dụng cho toàn bộ báo cáo và phiếu của Kho 4.'
+                                    : 'Tên này sẽ áp dụng đồng bộ cho cả 3 Kho 1, 2, 3 và bảng Gộp Kho.'
+                            }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        @click="showEditCustomerModal = false"
+                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs cursor-pointer"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        @click="saveCustomerNameModal"
+                        class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
+                    >
+                        Lưu Tên Khách Hàng
                     </button>
                 </div>
             </div>

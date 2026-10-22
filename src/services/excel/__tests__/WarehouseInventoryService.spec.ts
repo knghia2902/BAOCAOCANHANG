@@ -36,11 +36,56 @@ import {
     computeReportDate,
     normalizeWarehouseId,
     classifyWeighbridgeRow,
-    computeWarehouseFinalTable
+    computeWarehouseFinalTable,
+    sanitizeCustomerName,
+    getTicketCustomerGroup
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
 describe('WarehouseInventoryService', () => {
+    describe('sanitizeCustomerName', () => {
+        it('cleans date strings, 1899/1900 artifacts and restores fallback', () => {
+            expect(sanitizeCustomerName('Sat Dec 30 1899 00:00:00 GMT+0706', 'EASTWOOD')).toBe('EASTWOOD');
+            expect(sanitizeCustomerName(new Date(0), 'EASTWOOD')).toBe('EASTWOOD');
+            expect(sanitizeCustomerName('2026-10-22', 'GỖ BÌNH ĐỊNH')).toBe('GỖ BÌNH ĐỊNH');
+            expect(sanitizeCustomerName('', 'EASTWOOD')).toBe('EASTWOOD');
+            expect(sanitizeCustomerName('EASTWOOD', 'DEFAULT')).toBe('EASTWOOD');
+            expect(sanitizeCustomerName('GỖ BÌNH ĐỊNH', 'DEFAULT')).toBe('GỖ BÌNH ĐỊNH');
+        });
+    });
+
+    describe('getTicketCustomerGroup', () => {
+        it('identifies Kho 4 vs Kho 1-2-3 customer groups for both direct and warehouse tickets', () => {
+            const ticketWh4: WarehouseInventoryTicket = {
+                id: '1', soPhieu: '1', reportDate: '2026-10-20', weighOutDate: '2026-10-20',
+                weighOutTime: '10:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'EASTWOOD',
+                cargoType: 'Viên nén', vehiclePlate: '50H1', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+            };
+            expect(getTicketCustomerGroup(ticketWh4)).toBe('KHO_4');
+
+            const ticketWh1: WarehouseInventoryTicket = {
+                id: '2', soPhieu: '2', reportDate: '2026-10-20', weighOutDate: '2026-10-20',
+                weighOutTime: '10:00', flowType: 'IMPORT', warehouseId: 'KHO 1', customerName: 'GBD',
+                cargoType: 'Viên nén', vehiclePlate: '50H2', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+            };
+            expect(getTicketCustomerGroup(ticketWh1)).toBe('KHO_123');
+
+            const ticketDirectEW: WarehouseInventoryTicket = {
+                id: '3', soPhieu: '3', reportDate: '2026-10-20', weighOutDate: '2026-10-20',
+                weighOutTime: '10:00', flowType: 'DIRECT', warehouseId: null, customerName: 'EASTWOOD',
+                cargoType: 'Viên nén', vehiclePlate: '50H3', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+            };
+            expect(getTicketCustomerGroup(ticketDirectEW)).toBe('KHO_4');
+
+            const ticketDirectGBD: WarehouseInventoryTicket = {
+                id: '4', soPhieu: '4', reportDate: '2026-10-20', weighOutDate: '2026-10-20',
+                weighOutTime: '10:00', flowType: 'DIRECT', warehouseId: null, customerName: 'GỖ BÌNH ĐỊNH',
+                cargoType: 'Viên nén', vehiclePlate: '50H4', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+            };
+            expect(getTicketCustomerGroup(ticketDirectGBD)).toBe('KHO_123');
+        });
+    });
+
     describe('normalizeWarehouseId', () => {
         it('normalizes warehouse names and sheet names accurately', () => {
             expect(normalizeWarehouseId('Kho 1')).toBe('KHO 1');
@@ -357,5 +402,26 @@ describe('WarehouseInventoryService', () => {
                 'Data'
             ]);
         }, 30000);
+
+        it('clears only Kho 4 direct tickets when target is DIRECT_KHO4', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'DIR_K4', soPhieu: '1', reportDate: '2026-10-20', weighOutDate: '2026-10-20',
+                    weighOutTime: '10:00', flowType: 'DIRECT', warehouseId: 'KHO 4', customerName: 'EASTWOOD',
+                    cargoType: 'Viên nén', vehiclePlate: '50H1', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+                },
+                {
+                    id: 'DIR_GBD', soPhieu: '2', reportDate: '2026-10-20', weighOutDate: '2026-10-20',
+                    weighOutTime: '10:00', flowType: 'DIRECT', warehouseId: 'KHO 1', customerName: 'GỖ BÌNH ĐỊNH',
+                    cargoType: 'Viên nén', vehiclePlate: '50H2', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+                }
+            ]);
+
+            await WarehouseInventoryService.clearWarehouseTickets('DIRECT_KHO4');
+            const remaining = await WarehouseInventoryService.getAllTickets();
+            expect(remaining).toHaveLength(1);
+            expect(remaining[0]?.id).toBe('DIR_GBD');
+        });
     });
 });
