@@ -11,7 +11,7 @@ updated: "2026-10-21T21:21:00.000Z"
 
 ## Current Test
 
-3. Đồng bộ các phiếu trong file cc2 sang Tab Phiếu Cân ở Dữ Liệu Cân Hàng
+4. Nạp từ Excel Báo Cáo Tồn Kho đang dùng (Bootstrap Lịch Sử)
 
 ## Tests
 
@@ -25,7 +25,7 @@ result: pass
 
 ### 3. Đồng bộ các phiếu trong file cc2 sang Tab Phiếu Cân ở Dữ Liệu Cân Hàng
 expected: Khi import file có tên chứa "cc2", toàn bộ phiếu trong file cc2 (bao gồm cả Nhập và Xuất) được tự động nạp sang Tab 1 (Phiếu Cân) trong Dữ Liệu Cân Hàng (`allocator_tickets`) mà không tự động ghép vào sà lan.
-result: pending
+result: pass
 
 ### 4. Nạp từ Excel Báo Cáo Tồn Kho đang dùng (Bootstrap Lịch Sử)
 expected: Bấm nút "Nạp từ Excel Tồn Kho Đang Dùng", chọn file Excel tồn kho hiện tại (mẫu Eastwood hoặc GBD). Hệ thống nạp đầy đủ lịch sử Nhập, Xuất, Đi thẳng, Data danh mục nhà máy - xe và Tồn đầu kỳ lên Web.
@@ -42,9 +42,9 @@ result: pending
 ## Summary
 
 total: 6
-passed: 2
+passed: 3
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 

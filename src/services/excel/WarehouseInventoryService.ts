@@ -1118,19 +1118,29 @@ export const WarehouseInventoryService = {
         return true;
     },
 
-    async clearWarehouseTickets(warehouseId?: WarehouseId | 'ALL'): Promise<boolean> {
+    async clearWarehouseTickets(target?: WarehouseId | 'ALL' | 'DIRECT'): Promise<boolean> {
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
-        if (!warehouseId || warehouseId === 'ALL') {
+        if (!target || target === 'ALL') {
             await dbContext.set(LOCAL_TICKETS_KEY, []);
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().neq('id', '');
             } catch (_) {}
             return true;
         }
-        const remaining = current.filter(t => t.warehouseId !== warehouseId);
+
+        if (target === 'DIRECT') {
+            const remaining = current.filter(t => t.flowType !== 'DIRECT');
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            try {
+                await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT');
+            } catch (_) {}
+            return true;
+        }
+
+        const remaining = current.filter(t => t.warehouseId !== target);
         await dbContext.set(LOCAL_TICKETS_KEY, remaining);
         try {
-            await supabase.from('warehouse_inventory_tickets').delete().eq('warehouse_id', warehouseId);
+            await supabase.from('warehouse_inventory_tickets').delete().eq('warehouse_id', target);
         } catch (_) {}
         return true;
     },
@@ -1459,7 +1469,7 @@ export const WarehouseInventoryService = {
             const vehicleMap = await this.getVehicles();
             const allTickets: WarehouseInventoryTicket[] = [];
 
-            // 2. Parse IMPORT, EXPORT, and ĐI THẲNG / XÁ THẲNG sheets
+            // 2. Parse IMPORT, EXPORT, and XÁ THẲNG sheets
             for (const sheet of workbook.worksheets) {
                 const sNameClean = stripAccents(sheet.name).toUpperCase().trim();
                 if (sNameClean === 'DATA' || sNameClean.startsWith('FINAL') || sNameClean.includes('BUI CANG')) {
@@ -1737,7 +1747,7 @@ export const WarehouseInventoryService = {
         const importSheetName = `IMPORT ${whNum}`;
         const exportSheetName = `EXPORT ${whNum}`;
         const finalSheetName = `FINAL ${whNum}`;
-        const directSheetName = 'ĐI THẲNG';
+        const directSheetName = 'XÁ THẲNG';
 
         const allTickets = await this.getAllTickets();
         const configs = await this.getConfigs();
@@ -1771,7 +1781,7 @@ export const WarehouseInventoryService = {
             finalCalc.rows
         );
 
-        // 4. Sheet ĐI THẲNG
+        // 4. Sheet XÁ THẲNG
         const wsDirect = workbook.addWorksheet(directSheetName);
         this.populateDirectWorksheet(wsDirect, directTickets);
 
@@ -2039,7 +2049,7 @@ export const WarehouseInventoryService = {
             right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
         };
 
-        sheet.getCell('A2').value = 'THEO DÕI HÀNG ĐI THẲNG (XÁ THẲNG) VIÊN NÉN GỖ';
+        sheet.getCell('A2').value = 'THEO DÕI HÀNG XÁ THẲNG VIÊN NÉN GỖ';
         sheet.getCell('A2').font = { name: 'Times New Roman', size: 13, bold: true };
 
         const lastRow = Math.max(6, tickets.length + 5);

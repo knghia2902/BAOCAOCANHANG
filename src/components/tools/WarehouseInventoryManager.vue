@@ -259,13 +259,25 @@ async function handleHistoryExcelSelected(e: Event) {
 }
 
 async function handleClearWarehouseData() {
-    const isCombined = selectedWarehouseMode.value === 'COMBINED_123';
-    const targetLabel = isCombined ? 'toàn bộ dữ liệu của cả 4 kho' : `toàn bộ phiếu của ${selectedWarehouseMode.value}`;
+    let targetKey: WarehouseId | 'ALL' | 'DIRECT';
+    let targetLabel = '';
+
+    if (activeSheetTab.value === 'DIRECT') {
+        targetKey = 'DIRECT';
+        targetLabel = 'toàn bộ phiếu XÁ THẲNG';
+    } else if (selectedWarehouseMode.value === 'COMBINED_123') {
+        targetKey = 'ALL';
+        targetLabel = 'toàn bộ dữ liệu của cả 4 kho và xá thẳng';
+    } else {
+        targetKey = activeSingleWarehouseId.value;
+        targetLabel = `toàn bộ phiếu của ${selectedWarehouseMode.value}`;
+    }
+
     if (!confirm(`Bạn có chắc chắn muốn XÓA SẠCH ${targetLabel} để import lại từ đầu không?`)) {
         return;
     }
     try {
-        await WarehouseInventoryService.clearWarehouseTickets(isCombined ? 'ALL' : activeSingleWarehouseId.value);
+        await WarehouseInventoryService.clearWarehouseTickets(targetKey);
         await loadAllData();
         addToast(`Đã xóa sạch dữ liệu phiếu cân ${targetLabel}!`, 'success');
     } catch (err: any) {
@@ -805,7 +817,7 @@ async function handleDownloadZaloImage() {
                         @click="triggerHistoryExcelImport"
                         :disabled="importingHistoryExcel"
                         class="px-3.5 py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                        title="Hút toàn bộ lịch sử IMPORT, EXPORT, ĐI THẲNG, Data (Nhà xe) và Ghi chú từ file Excel Báo cáo Tồn kho đang dùng"
+                        title="Hút toàn bộ lịch sử IMPORT, EXPORT, XÁ THẲNG, Data (Nhà xe) và Ghi chú từ file Excel Báo cáo Tồn kho đang dùng"
                     >
                         <span class="material-symbols-outlined text-sm">{{ importingHistoryExcel ? 'sync' : 'folder_open' }}</span>
                         <span>{{ importingHistoryExcel ? 'Đang hút lịch sử...' : 'Nạp từ Excel Tồn Kho Đang Dùng' }}</span>
@@ -1068,7 +1080,7 @@ async function handleDownloadZaloImage() {
                         ]"
                     >
                         <span class="material-symbols-outlined text-sm">bolt</span>
-                        <span>ĐI THẲNG / XÁ THẲNG</span>
+                        <span>XÁ THẲNG</span>
                     </button>
 
                     <button
@@ -1457,7 +1469,7 @@ async function handleDownloadZaloImage() {
                 </div>
             </div>
 
-            <!-- TAB 4: DIRECT / XÁ THẲNG DETAILS -->
+            <!-- TAB 4: XÁ THẲNG DETAILS -->
             <div
                 v-else-if="activeSheetTab === 'DIRECT'"
                 class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
@@ -1474,7 +1486,7 @@ async function handleDownloadZaloImage() {
                             <th class="py-2.5 px-3">Sà lan</th>
                             <th class="py-2.5 px-3">Tàu</th>
                             <th class="py-2.5 px-3 text-center">Giờ cân ra</th>
-                            <th class="py-2.5 px-3">Nguồn đi thẳng (Tai Xe)</th>
+                            <th class="py-2.5 px-3">Nguồn xá thẳng (Tai Xe)</th>
                             <th class="py-2.5 px-3">Khách hàng</th>
                             <th class="py-2.5 px-3 text-center w-16">Xóa</th>
                         </tr>

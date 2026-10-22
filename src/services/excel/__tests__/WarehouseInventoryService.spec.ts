@@ -313,7 +313,7 @@ describe('WarehouseInventoryService', () => {
             ]);
         });
 
-        it('exports Single-Warehouse workbook with IMPORT 4, EXPORT 4, FINAL 4, ĐI THẲNG, Data and live formulas', async () => {
+        it('exports Single-Warehouse workbook with IMPORT 4, EXPORT 4, FINAL 4, XÁ THẲNG, Data and live formulas', async () => {
             const { buffer, filename } = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4');
             expect(filename).toContain('KHO 4');
             expect(buffer.byteLength).toBeGreaterThan(1000);
@@ -323,7 +323,7 @@ describe('WarehouseInventoryService', () => {
             await wb.xlsx.load(buffer);
 
             const sheetNames = wb.worksheets.map(s => s.name);
-            expect(sheetNames).toEqual(['IMPORT 4', 'EXPORT 4', 'FINAL 4', 'ĐI THẲNG', 'Data']);
+            expect(sheetNames).toEqual(['IMPORT 4', 'EXPORT 4', 'FINAL 4', 'XÁ THẲNG', 'Data']);
 
             const finalSheet = wb.getWorksheet('FINAL 4')!;
             const row9ImportCell = finalSheet.getRow(9).getCell(3).value as any;
