@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import {
     WarehouseInventoryService,
-    ALL_WAREHOUSES,
     computeWarehouseFinalTable,
     formatIsoToDmy
 } from '@/services/excel/WarehouseInventoryService';
@@ -47,6 +46,12 @@ const filterToDate = ref('');
 const showDirectColumnInSingleFinal = ref(true);
 const detailSearchQuery = ref('');
 const detailFilterDate = ref('');
+
+// Sidebar tree collapse state
+const expandedCustomer = ref<Record<string, boolean>>({
+    'EASTWOOD': true,
+    'GBD': true
+});
 
 // Batch Vessel assignment for EXPORT tab
 const batchVesselName = ref('');
@@ -797,7 +802,7 @@ async function handleDownloadZaloImage() {
                     </div>
                     <h1 class="text-base md:text-xl font-black text-[#1e293b] flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary text-xl">warehouse</span>
-                        Báo Cáo Tồn Kho 4 Kho & Xuất Thẳng Sà Lan
+                        Báo Cáo Tồn Kho & Xuất Thẳng Sà Lan
                     </h1>
                 </div>
 
@@ -870,272 +875,389 @@ async function handleDownloadZaloImage() {
                     </button>
                 </div>
             </div>
-
-            <!-- Warehouse Selector Strip (KHO 1..4 + GỘP KHO 1-2-3) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
-                <button
-                    v-for="whId in ALL_WAREHOUSES"
-                    :key="whId"
-                    @click="selectedWarehouseMode = whId"
-                    :class="[
-                        'p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1',
-                        selectedWarehouseMode === whId
-                            ? 'bg-primary text-white border-primary shadow-md'
-                            : 'bg-[#f8fafc] hover:bg-[#e2ecfc]/50 text-[#1e293b] border-slate-200'
-                    ]"
-                >
-                    <div class="flex items-center justify-between gap-1">
-                        <span class="text-xs font-black tracking-wide">{{ whId }}</span>
-                        <span
-                            :class="[
-                                'px-2 py-0.5 rounded-full text-[10px] font-bold truncate max-w-[110px]',
-                                selectedWarehouseMode === whId
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-primary/10 text-primary'
-                            ]"
-                        >
-                            {{ configs[whId]?.currentCustomer || 'Chưa gán KH' }}
-                        </span>
-                    </div>
-                    <div class="flex items-baseline justify-between mt-0.5">
-                        <span :class="['text-[11px] font-semibold', selectedWarehouseMode === whId ? 'text-white/80' : 'text-slate-500']">
-                            Tồn hiện tại:
-                        </span>
-                        <span class="text-sm font-black font-mono">
-                            {{ formatTons(finalTablesByWarehouse[whId].closingStockTons) }} T
-                        </span>
-                    </div>
-                </button>
-
-                <!-- Combined 1-2-3 Mode Button -->
-                <button
-                    @click="selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
-                    :class="[
-                        'p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1',
-                        selectedWarehouseMode === 'COMBINED_123'
-                            ? 'bg-teal-600 text-white border-teal-600 shadow-md'
-                            : 'bg-teal-50/60 hover:bg-teal-100/70 text-teal-900 border-teal-200'
-                    ]"
-                >
-                    <div class="flex items-center justify-between gap-1">
-                        <span class="text-xs font-black">GỘP KHO 1 - 2 - 3</span>
-                        <span class="material-symbols-outlined text-sm">view_column</span>
-                    </div>
-                    <div class="flex items-baseline justify-between mt-0.5">
-                        <span :class="['text-[11px] font-semibold', selectedWarehouseMode === 'COMBINED_123' ? 'text-white/80' : 'text-teal-700']">
-                            Tổng tồn 1+2+3:
-                        </span>
-                        <span class="text-sm font-black font-mono">
-                            {{
-                                formatTons(
-                                    finalTablesByWarehouse['KHO 1'].closingStockTons +
-                                    finalTablesByWarehouse['KHO 2'].closingStockTons +
-                                    finalTablesByWarehouse['KHO 3'].closingStockTons
-                                )
-                            }} T
-                        </span>
-                    </div>
-                </button>
-            </div>
         </div>
 
-        <!-- Card 2: KPI Summary & Config Bar for Active Single Warehouse -->
-        <div
-            v-if="selectedWarehouseMode !== 'COMBINED_123'"
-            class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow shrink-0 flex flex-wrap items-center justify-between gap-3"
-        >
-            <div class="flex flex-wrap items-center gap-4 md:gap-6">
-                <div>
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Kho & Khách hàng</div>
-                    <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
-                        <span>{{ activeSingleWarehouseId }}</span>
-                        <span class="text-primary">({{ configs[activeSingleWarehouseId]?.currentCustomer || 'Chưa gán' }})</span>
-                        <button
-                            @click="openEditConfigModal(activeSingleWarehouseId)"
-                            class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer"
-                            title="Sửa Tồn đầu kỳ & Tên khách hàng"
-                        >
-                            <span class="material-symbols-outlined text-xs">edit</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="h-7 w-px bg-slate-100 hidden sm:block"></div>
-
-                <div>
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Tồn đầu kỳ</div>
-                    <div class="text-sm font-black text-slate-700 font-mono">
-                        {{ formatTons(activeFinalCalc.openingStockBeforeFilter) }} Tấn
-                    </div>
-                </div>
-
-                <div>
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng Nhập ({{ activeFinalCalc.totalImportTrips }} xe)</div>
-                    <div class="text-sm font-black text-primary font-mono">
-                        +{{ formatTons(activeFinalCalc.totalImportTons) }} Tấn
-                    </div>
-                </div>
-
-                <div>
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng Xuất Kho ({{ activeFinalCalc.totalExportTrips }} xe)</div>
-                    <div class="text-sm font-black text-amber-600 font-mono">
-                        -{{ formatTons(activeFinalCalc.totalExportTons) }} Tấn
-                    </div>
-                </div>
-
-                <div>
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Xá Thẳng ({{ activeFinalCalc.totalDirectTrips }} xe)</div>
-                    <div class="text-sm font-black text-purple-600 font-mono">
-                        {{ formatTons(activeFinalCalc.totalDirectTons) }} Tấn
-                    </div>
-                </div>
-
-                <div class="px-3.5 py-1.5 rounded-2xl bg-teal-50 border border-teal-200">
-                    <div class="text-[10px] font-black text-teal-700 uppercase">Tồn Kho Chốt 06:00 Sáng</div>
-                    <div class="text-base font-black text-teal-700 font-mono">
-                        {{ formatTons(activeFinalCalc.closingStockTons) }} Tấn
-                    </div>
-                </div>
-            </div>
-
-            <!-- Date range filter for FINAL -->
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span class="font-bold text-slate-500">Lọc ngày:</span>
-                <input
-                    v-model="filterFromDate"
-                    type="date"
-                    class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold"
-                />
-                <span class="text-slate-400">→</span>
-                <input
-                    v-model="filterToDate"
-                    type="date"
-                    class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold"
-                />
-                <button
-                    v-if="filterFromDate || filterToDate"
-                    @click="filterFromDate = ''; filterToDate = ''"
-                    class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
-                >
-                    Xóa lọc
-                </button>
-            </div>
-        </div>
-
-        <!-- Card 3: Sheet Tabs + Main Table Content -->
-        <div class="bg-white rounded-[24px] p-4 border border-primary/5 soft-shadow flex-1 flex flex-col gap-3 min-h-[460px] md:min-h-0 overflow-hidden">
-            <!-- Sheet Tabs Navigation -->
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 shrink-0">
-                <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <!-- Main Master-Detail Work Area: Sidebar Tree + Content -->
+        <div class="flex-1 flex flex-col md:flex-row gap-3.5 min-h-0 overflow-hidden">
+            <!-- Sidebar: Tree Structure by Customer & Warehouses -->
+            <aside class="w-full md:w-64 bg-white rounded-[24px] p-3 border border-primary/5 soft-shadow flex flex-col gap-2 shrink-0 overflow-y-auto">
+                <div class="px-2 py-1 flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span class="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base text-primary">account_tree</span>
+                        Cây Khách Hàng & Kho
+                    </span>
                     <button
-                        @click="activeSheetTab = 'FINAL'"
-                        :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                            activeSheetTab === 'FINAL'
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                        ]"
+                        @click="openEditConfigModal(activeSingleWarehouseId)"
+                        class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer transition-colors"
+                        title="Cấu hình tồn đầu & khách hàng"
                     >
-                        <span class="material-symbols-outlined text-sm">table_chart</span>
-                        <span>
-                            {{ selectedWarehouseMode === 'COMBINED_123' ? 'FINAL (Gộp Kho 1-2-3)' : `FINAL (${activeSingleWarehouseId})` }}
-                        </span>
-                    </button>
-
-                    <template v-if="selectedWarehouseMode !== 'COMBINED_123'">
-                        <button
-                            @click="activeSheetTab = 'IMPORT'"
-                            :class="[
-                                'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                                activeSheetTab === 'IMPORT'
-                                    ? 'bg-primary text-white shadow-sm'
-                                    : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                            ]"
-                        >
-                            <span class="material-symbols-outlined text-sm">south_west</span>
-                            <span>IMPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Nhập kho)</span>
-                        </button>
-
-                        <button
-                            @click="activeSheetTab = 'EXPORT'"
-                            :class="[
-                                'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                                activeSheetTab === 'EXPORT'
-                                    ? 'bg-primary text-white shadow-sm'
-                                    : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                            ]"
-                        >
-                            <span class="material-symbols-outlined text-sm">north_east</span>
-                            <span>EXPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Xuất kho)</span>
-                        </button>
-                    </template>
-
-                    <button
-                        @click="activeSheetTab = 'DIRECT'"
-                        :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                            activeSheetTab === 'DIRECT'
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                        ]"
-                    >
-                        <span class="material-symbols-outlined text-sm">bolt</span>
-                        <span>XÁ THẲNG</span>
-                    </button>
-
-                    <button
-                        @click="activeSheetTab = 'DATA'"
-                        :class="[
-                            'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                            activeSheetTab === 'DATA'
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                        ]"
-                    >
-                        <span class="material-symbols-outlined text-sm">local_shipping</span>
-                        <span>Data Nhà Xe ({{ Object.keys(vehiclesMap).length }})</span>
+                        <span class="material-symbols-outlined text-xs">settings</span>
                     </button>
                 </div>
 
-                <!-- Right contextual controls -->
-                <div class="flex items-center gap-2">
-                    <button
-                        @click="handleClearWarehouseData"
-                        class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer"
-                        title="Xóa dữ liệu để nạp lại"
+                <!-- Tree Group 1: EASTWOOD (Kho 4) -->
+                <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
+                    <!-- Customer Node Header -->
+                    <div
+                        @click="expandedCustomer['EASTWOOD'] = !expandedCustomer['EASTWOOD']"
+                        class="p-2.5 flex items-center justify-between hover:bg-slate-100/70 cursor-pointer select-none transition-colors"
                     >
-                        <span class="material-symbols-outlined text-sm text-rose-600">delete</span>
-                        <span>Xóa Dữ Liệu</span>
-                    </button>
-
-                    <label v-if="activeSheetTab === 'FINAL' && selectedWarehouseMode !== 'COMBINED_123'" class="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer select-none ml-2">
-                        <input
-                            v-model="showDirectColumnInSingleFinal"
-                            type="checkbox"
-                            class="rounded border-slate-300 text-primary focus:ring-primary"
-                        />
-                        <span>Hiển thị cột Xá thẳng</span>
-                    </label>
-
-                    <template v-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT'">
-                        <div class="px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 text-xs font-black">
-                            {{ filteredDetailTickets.length }} chuyến • {{ formatTons(detailTotalTons) }} Tấn
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="material-symbols-outlined text-base text-primary shrink-0">corporate_fare</span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-black text-[#1e293b] truncate">
+                                    {{ configs['KHO 4']?.currentCustomer || 'EASTWOOD' }}
+                                </div>
+                                <div class="text-[10px] font-semibold text-slate-400">1 Kho độc lập</div>
+                            </div>
                         </div>
-                        <input
-                            v-model="detailFilterDate"
-                            type="date"
-                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold"
-                            title="Lọc theo ngày báo cáo (Ca 6h sáng)"
-                        />
-                        <input
-                            v-model="detailSearchQuery"
-                            type="text"
-                            placeholder="Tìm phiếu, số xe, nhà xe, sà lan..."
-                            class="h-7 px-3 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold w-48"
-                        />
-                    </template>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[11px] font-mono font-black text-primary">
+                                {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
+                            </span>
+                            <span class="material-symbols-outlined text-sm text-slate-400 transition-transform" :class="{'rotate-180': expandedCustomer['EASTWOOD']}">
+                                expand_more
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Child Warehouses of EASTWOOD -->
+                    <div v-if="expandedCustomer['EASTWOOD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
+                        <button
+                            @click="selectedWarehouseMode = 'KHO 4'"
+                            :class="[
+                                'w-full px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5',
+                                selectedWarehouseMode === 'KHO 4'
+                                    ? 'bg-primary text-white font-black shadow-sm'
+                                    : 'hover:bg-slate-50 text-slate-700 font-bold'
+                            ]"
+                        >
+                            <span class="flex items-center gap-1.5 text-xs truncate">
+                                <span class="material-symbols-outlined text-sm">warehouse</span>
+                                <span>KHO 4</span>
+                            </span>
+                            <span class="text-[11px] font-mono font-black shrink-0" :class="selectedWarehouseMode === 'KHO 4' ? 'text-white' : 'text-slate-600'">
+                                {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
+                            </span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Tree Group 2: GỖ BÌNH ĐỊNH (Kho 1, 2, 3) -->
+                <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
+                    <!-- Customer Node Header -->
+                    <div
+                        @click="expandedCustomer['GBD'] = !expandedCustomer['GBD']"
+                        class="p-2.5 flex items-center justify-between hover:bg-slate-100/70 cursor-pointer select-none transition-colors"
+                    >
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="material-symbols-outlined text-base text-teal-600 shrink-0">apartment</span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-black text-[#1e293b] truncate">
+                                    {{ configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH' }}
+                                </div>
+                                <div class="text-[10px] font-semibold text-slate-400">3 Kho liên kết</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[11px] font-mono font-black text-teal-700">
+                                {{
+                                    formatTons(
+                                        finalTablesByWarehouse['KHO 1'].closingStockTons +
+                                        finalTablesByWarehouse['KHO 2'].closingStockTons +
+                                        finalTablesByWarehouse['KHO 3'].closingStockTons
+                                    )
+                                }} T
+                            </span>
+                            <span class="material-symbols-outlined text-sm text-slate-400 transition-transform" :class="{'rotate-180': expandedCustomer['GBD']}">
+                                expand_more
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Child Warehouses of GỖ BÌNH ĐỊNH -->
+                    <div v-if="expandedCustomer['GBD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
+                        <!-- Combined 1-2-3 Button -->
+                        <button
+                            @click="selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
+                            :class="[
+                                'w-full px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 border',
+                                selectedWarehouseMode === 'COMBINED_123'
+                                    ? 'bg-teal-600 text-white font-black border-teal-600 shadow-sm'
+                                    : 'bg-teal-50/60 hover:bg-teal-100/70 text-teal-900 border-teal-200/70 font-bold'
+                            ]"
+                        >
+                            <span class="flex items-center gap-1.5 text-xs truncate">
+                                <span class="material-symbols-outlined text-sm">view_column</span>
+                                <span>GỘP KHO 1 - 2 - 3</span>
+                            </span>
+                            <span class="text-[11px] font-mono font-black shrink-0" :class="selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-800'">
+                                {{
+                                    formatTons(
+                                        finalTablesByWarehouse['KHO 1'].closingStockTons +
+                                        finalTablesByWarehouse['KHO 2'].closingStockTons +
+                                        finalTablesByWarehouse['KHO 3'].closingStockTons
+                                    )
+                                }} T
+                            </span>
+                        </button>
+
+                        <!-- Individual Warehouse 1, 2, 3 Buttons -->
+                        <button
+                            v-for="whId in (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[])"
+                            :key="whId"
+                            @click="selectedWarehouseMode = whId"
+                            :class="[
+                                'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
+                                selectedWarehouseMode === whId
+                                    ? 'bg-primary text-white font-black shadow-sm'
+                                    : 'hover:bg-slate-50 text-slate-700 font-bold'
+                            ]"
+                        >
+                            <span class="flex items-center gap-1.5 text-xs truncate">
+                                <span class="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
+                                <span>{{ whId }}</span>
+                            </span>
+                            <span class="text-[11px] font-mono font-black shrink-0" :class="selectedWarehouseMode === whId ? 'text-white' : 'text-slate-600'">
+                                {{ formatTons(finalTablesByWarehouse[whId].closingStockTons) }} T
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Help / Information -->
+                <div class="mt-auto p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-500 font-semibold flex flex-col gap-1">
+                    <div class="font-bold text-slate-700 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs text-primary">info</span>
+                        Quy tắc dữ liệu
+                    </div>
+                    <div>• <b>EASTWOOD</b>: Quản lý độc lập tại Kho 4.</div>
+                    <div>• <b>GỖ BÌNH ĐỊNH</b>: Quản lý chung qua 3 Kho 1, 2, 3 và bảng Gộp.</div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area: KPI Banner + Sheet Tabs + Tables -->
+            <div class="flex-1 flex flex-col gap-3.5 min-h-0 overflow-hidden">
+                <!-- Card 2: KPI Summary & Config Bar for Active View -->
+                <div
+                    class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow shrink-0 flex flex-wrap items-center justify-between gap-3"
+                >
+                    <div class="flex flex-wrap items-center gap-4 md:gap-6">
+                        <div>
+                            <div class="text-[11px] font-bold text-slate-400 uppercase">Đang xem</div>
+                            <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
+                                <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : activeSingleWarehouseId }}</span>
+                                <span class="text-primary">
+                                    ({{
+                                        selectedWarehouseMode === 'COMBINED_123'
+                                            ? (configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH')
+                                            : (configs[activeSingleWarehouseId]?.currentCustomer || 'Chưa gán')
+                                    }})
+                                </span>
+                                <button
+                                    v-if="selectedWarehouseMode !== 'COMBINED_123'"
+                                    @click="openEditConfigModal(activeSingleWarehouseId)"
+                                    class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer"
+                                    title="Sửa Tồn đầu kỳ & Tên khách hàng"
+                                >
+                                    <span class="material-symbols-outlined text-xs">edit</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="h-7 w-px bg-slate-100 hidden sm:block"></div>
+
+                        <template v-if="selectedWarehouseMode !== 'COMBINED_123'">
+                            <div>
+                                <div class="text-[11px] font-bold text-slate-400 uppercase">Tồn đầu kỳ</div>
+                                <div class="text-sm font-black text-slate-700 font-mono">
+                                    {{ formatTons(activeFinalCalc.openingStockBeforeFilter) }} Tấn
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng Nhập ({{ activeFinalCalc.totalImportTrips }} xe)</div>
+                                <div class="text-sm font-black text-primary font-mono">
+                                    +{{ formatTons(activeFinalCalc.totalImportTons) }} Tấn
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng Xuất Kho ({{ activeFinalCalc.totalExportTrips }} xe)</div>
+                                <div class="text-sm font-black text-amber-600 font-mono">
+                                    -{{ formatTons(activeFinalCalc.totalExportTons) }} Tấn
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-[11px] font-bold text-slate-400 uppercase">Xá Thẳng ({{ activeFinalCalc.totalDirectTrips }} xe)</div>
+                                <div class="text-sm font-black text-purple-600 font-mono">
+                                    {{ formatTons(activeFinalCalc.totalDirectTons) }} Tấn
+                                </div>
+                            </div>
+
+                            <div class="px-3.5 py-1.5 rounded-2xl bg-teal-50 border border-teal-200">
+                                <div class="text-[10px] font-black text-teal-700 uppercase">Tồn Kho Chốt 06:00 Sáng</div>
+                                <div class="text-base font-black text-teal-700 font-mono">
+                                    {{ formatTons(activeFinalCalc.closingStockTons) }} Tấn
+                                </div>
+                            </div>
+                        </template>
+
+                        <template v-else>
+                            <div class="px-3.5 py-1.5 rounded-2xl bg-teal-50 border border-teal-200">
+                                <div class="text-[10px] font-black text-teal-700 uppercase">Tổng Tồn 3 Kho Chốt 06:00 Sáng</div>
+                                <div class="text-base font-black text-teal-700 font-mono">
+                                    {{
+                                        formatTons(
+                                            finalTablesByWarehouse['KHO 1'].closingStockTons +
+                                            finalTablesByWarehouse['KHO 2'].closingStockTons +
+                                            finalTablesByWarehouse['KHO 3'].closingStockTons
+                                        )
+                                    }} Tấn
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Date range filter for FINAL -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="font-bold text-slate-500">Lọc ngày:</span>
+                        <input
+                            v-model="filterFromDate"
+                            type="date"
+                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold"
+                        />
+                        <span class="text-slate-400">→</span>
+                        <input
+                            v-model="filterToDate"
+                            type="date"
+                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold"
+                        />
+                        <button
+                            v-if="filterFromDate || filterToDate"
+                            @click="filterFromDate = ''; filterToDate = ''"
+                            class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
+                        >
+                            Xóa lọc
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 3: Sheet Tabs + Main Table Content -->
+                <div class="bg-white rounded-[24px] p-4 border border-primary/5 soft-shadow flex-1 flex flex-col gap-3 min-h-[460px] md:min-h-0 overflow-hidden">
+                    <!-- Sheet Tabs Navigation -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 shrink-0">
+                        <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                            <button
+                                @click="activeSheetTab = 'FINAL'"
+                                :class="[
+                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                    activeSheetTab === 'FINAL'
+                                        ? 'bg-primary text-white shadow-sm'
+                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-sm">table_chart</span>
+                                <span>
+                                    {{ selectedWarehouseMode === 'COMBINED_123' ? 'FINAL (Gộp Kho 1-2-3)' : `FINAL (${activeSingleWarehouseId})` }}
+                                </span>
+                            </button>
+
+                            <template v-if="selectedWarehouseMode !== 'COMBINED_123'">
+                                <button
+                                    @click="activeSheetTab = 'IMPORT'"
+                                    :class="[
+                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                        activeSheetTab === 'IMPORT'
+                                            ? 'bg-primary text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">south_west</span>
+                                    <span>IMPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Nhập kho)</span>
+                                </button>
+
+                                <button
+                                    @click="activeSheetTab = 'EXPORT'"
+                                    :class="[
+                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                        activeSheetTab === 'EXPORT'
+                                            ? 'bg-primary text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">north_east</span>
+                                    <span>EXPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Xuất kho)</span>
+                                </button>
+                            </template>
+
+                            <button
+                                @click="activeSheetTab = 'DIRECT'"
+                                :class="[
+                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                    activeSheetTab === 'DIRECT'
+                                        ? 'bg-primary text-white shadow-sm'
+                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-sm">bolt</span>
+                                <span>XÁ THẲNG</span>
+                            </button>
+
+                            <button
+                                @click="activeSheetTab = 'DATA'"
+                                :class="[
+                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                    activeSheetTab === 'DATA'
+                                        ? 'bg-primary text-white shadow-sm'
+                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-sm">local_shipping</span>
+                                <span>Data Nhà Xe ({{ Object.keys(vehiclesMap).length }})</span>
+                            </button>
+                        </div>
+
+                        <!-- Right contextual controls -->
+                        <div class="flex items-center gap-2">
+                            <button
+                                @click="handleClearWarehouseData"
+                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Xóa dữ liệu để nạp lại"
+                            >
+                                <span class="material-symbols-outlined text-sm text-rose-600">delete</span>
+                                <span>Xóa Dữ Liệu</span>
+                            </button>
+
+                            <label v-if="activeSheetTab === 'FINAL' && selectedWarehouseMode !== 'COMBINED_123'" class="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer select-none ml-2">
+                                <input
+                                    v-model="showDirectColumnInSingleFinal"
+                                    type="checkbox"
+                                    class="rounded border-slate-300 text-primary focus:ring-primary"
+                                />
+                                <span>Hiển thị cột Xá thẳng</span>
+                            </label>
+
+                            <template v-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT'">
+                                <div class="px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 text-xs font-black">
+                                    {{ filteredDetailTickets.length }} chuyến • {{ formatTons(detailTotalTons) }} Tấn
+                                </div>
+                                <input
+                                    v-model="detailFilterDate"
+                                    type="date"
+                                    class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold"
+                                    title="Lọc theo ngày báo cáo (Ca 6h sáng)"
+                                />
+                                <input
+                                    v-model="detailSearchQuery"
+                                    type="text"
+                                    placeholder="Tìm phiếu, số xe, nhà xe, sà lan..."
+                                    class="h-7 px-3 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-semibold w-48"
+                                />
+                            </template>
+                        </div>
+                    </div>
 
             <!-- TAB 1A: SINGLE WAREHOUSE FINAL TABLE -->
             <div
@@ -1630,6 +1752,11 @@ async function handleDownloadZaloImage() {
                     </table>
                 </div>
             </div>
+            <!-- /Card 3: Sheet Tabs + Main Table Content -->
+            </div>
+        <!-- /Main Content Area: line 1040 -->
+        </div>
+        <!-- /Main Master-Detail Work Area: line 881 -->
         </div>
 
         <!-- Modal: Edit Warehouse Config (Customer & Initial Stock) -->
