@@ -637,28 +637,7 @@ export function computeWarehouseFinalTable(
 
         runningStock = round2(runningStock + importTons - exportTons);
 
-        const vesselsOnDay = Array.from(
-            new Set(
-                dayExports
-                    .map(t => (t.vesselName || '').trim())
-                    .filter(Boolean)
-            )
-        );
-        const bargesOnDay = Array.from(
-            new Set(
-                dayExports
-                    .map(t => (t.bargeInfo || '').trim().split('(')[0]?.trim() || '')
-                    .filter(Boolean)
-            )
-        );
-
-        let autoRemark = '';
-        if (vesselsOnDay.length > 0) {
-            autoRemark = `Xuất tàu ${vesselsOnDay.join(', ')}`;
-        } else if (bargesOnDay.length > 0) {
-            autoRemark = `Xuất SL ${bargesOnDay.join(', ')}`;
-        }
-
+        const autoRemark = '';
         const manualRemark = validRemarks[d] ? validRemarks[d]! : '';
         const customers = Array.from(
             new Set(
@@ -678,7 +657,7 @@ export function computeWarehouseFinalTable(
             directTons,
             directTrips: dayDirects.length,
             remainingStockTons: runningStock,
-            remark: manualRemark !== '' ? manualRemark : autoRemark,
+            remark: manualRemark,
             autoRemark,
             manualRemark,
             customers
@@ -2102,7 +2081,7 @@ export const WarehouseInventoryService = {
 
     /**
      * Build Single-Warehouse Morning Excel Report (.xlsx)
-     * Sheets: IMPORT {num}, EXPORT {num}, FINAL {num}, ĐI THẲNG, Data
+     * Sheets: IMPORT {num}, EXPORT {num}, FINAL {num}, XÁ THẲNG
      */
     async exportSingleWarehouseWorkbook(
         warehouseId: WarehouseId,
@@ -2122,7 +2101,6 @@ export const WarehouseInventoryService = {
 
         const allTickets = await this.getAllTickets();
         const configs = await this.getConfigs();
-        const vehicleMap = await this.getVehicles();
         const config = configs[warehouseId];
 
         const whImports = allTickets.filter(t => t.warehouseId === warehouseId && t.flowType === 'IMPORT');
@@ -2150,16 +2128,13 @@ export const WarehouseInventoryService = {
             exportSheetName,
             directSheetName,
             finalCalc.openingStockBeforeFilter,
-            finalCalc.rows
+            finalCalc.rows,
+            config.initialDate
         );
 
         // 4. Sheet XÁ THẲNG
         const wsDirect = workbook.addWorksheet(directSheetName);
-        this.populateDirectWorksheet(wsDirect, directTickets);
-
-        // 5. Sheet Data
-        const wsData = workbook.addWorksheet('Data');
-        this.populateDataWorksheet(wsData, Object.values(vehicleMap));
+        this.populateDirectWorksheet(wsDirect, directTickets, config.currentCustomer);
 
         const now = new Date();
         const ddmmyyyy = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
@@ -2183,7 +2158,6 @@ export const WarehouseInventoryService = {
 
         const allTickets = await this.getAllTickets();
         const configs = await this.getConfigs();
-        const vehicleMap = await this.getVehicles();
 
         const calc1 = computeWarehouseFinalTable('KHO 1', allTickets, configs['KHO 1'], options);
         const calc2 = computeWarehouseFinalTable('KHO 2', allTickets, configs['KHO 2'], options);
@@ -2250,12 +2224,9 @@ export const WarehouseInventoryService = {
         const wsDirect = workbook.addWorksheet('XÁ THẲNG');
         this.populateDirectWorksheet(
             wsDirect,
-            allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123')
+            allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123'),
+            configs['KHO 1'].currentCustomer
         );
-
-        // 4. Sheet Data
-        const wsData = workbook.addWorksheet('Data');
-        this.populateDataWorksheet(wsData, Object.values(vehicleMap));
 
         const now = new Date();
         const ddmmyyyy = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
@@ -2272,22 +2243,57 @@ export const WarehouseInventoryService = {
         tickets: WarehouseInventoryTicket[]
     ) {
         const thinBorder = {
-            top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            bottom: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const kgFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+        const greenHeaderFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { theme: 9, tint: 0.3999755851924192 },
+            bgColor: { indexed: 64 }
         };
 
-        sheet.getCell('A2').value = `BẢNG KÊ TRỌNG LƯỢNG HÀNG NHẬP (WEIGHT LIST OF IMPORT CARGO) - ${warehouseId}`;
-        sheet.getCell('A2').font = { name: 'Times New Roman', size: 13, bold: true };
-        sheet.getCell('C4').value = 'Khách hàng\n(Customer):';
-        sheet.getCell('C4').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('E4').value = customerName || '';
-        sheet.getCell('E4').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('I4').value = 'Loại hàng (Cargo):';
-        sheet.getCell('I4').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('J4').value = 'Viên nén gỗ (Wood pellets)';
-        sheet.getCell('J4').font = { name: 'Times New Roman', size: 11, bold: true };
+        sheet.mergeCells('A1:L1');
+        sheet.getCell('A1').value = 'BÁO CÁO CHI TIẾT CÂN NHẬP KHO';
+        sheet.getCell('A1').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(1).height = 20;
+
+        sheet.mergeCells('A2:L2');
+        sheet.getCell('A2').value = '(WEIGHING LIST REPORT)';
+        sheet.getCell('A2').font = { name: 'Cambria', family: 1, size: 12, bold: true, italic: true, color: { theme: 1 } };
+        sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(2).height = 20;
+
+        sheet.getRow(3).height = 20;
+        sheet.getCell('A3').value = 'Kho (Warehouse):            ';
+        sheet.getCell('A3').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('A3').alignment = { vertical: 'middle' };
+        sheet.mergeCells('C3:D3');
+        sheet.getCell('C3').value = `NGUYÊN NGỌC ${warehouseId}`;
+        sheet.getCell('C3').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('C3').alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+
+        sheet.getRow(4).height = 20;
+        sheet.getCell('A4').value = 'Hàng hóa (Cargo):';
+        sheet.getCell('A4').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('A4').alignment = { vertical: 'middle' };
+        sheet.mergeCells('C4:D4');
+        sheet.getCell('C4').value = 'VIÊN GỖ NÉN';
+        sheet.getCell('C4').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('C4').alignment = { horizontal: 'left', vertical: 'middle' };
+
+        sheet.getRow(5).height = 20;
+        sheet.getCell('A5').value = 'Khách hàng ( Customer): ';
+        sheet.getCell('A5').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('A5').alignment = { vertical: 'middle' };
+        sheet.mergeCells('C5:D5');
+        sheet.getCell('C5').value = customerName || '';
+        sheet.getCell('C5').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('C5').alignment = { horizontal: 'left', vertical: 'middle' };
 
         const headers = [
             'STT (No)',
@@ -2307,54 +2313,76 @@ export const WarehouseInventoryService = {
         ];
         const hRow = sheet.getRow(6);
         headers.forEach((h, i) => {
-            const cell = hRow.getCell(i + 1);
+            const colIdx = i + 1;
+            const cell = hRow.getCell(colIdx);
             cell.value = h;
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
             cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            cell.fill = colIdx === 14
+                ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' }, bgColor: { indexed: 64 } }
+                : greenHeaderFill;
             cell.border = thinBorder;
         });
-        hRow.height = 28;
+        hRow.height = 39.6;
 
         tickets.forEach((t, idx) => {
             const rNum = idx + 7;
             const row = sheet.getRow(rNum);
+            row.height = 20;
             const dtParts = (t.reportDate || '').split('-').map(Number);
             const excelDate = dtParts.length === 3
                 ? new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1))
                 : t.reportDate;
 
+            const grossKg = Math.round((Number(t.grossWeight) || 0) * 1000);
+            const tareKg = Math.round((Number(t.tareWeight) || 0) * 1000);
+            const netKg = Math.round((Number(t.netWeight) || 0) * 1000);
+
             row.getCell(1).value = idx + 1;
+            row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             row.getCell(2).value = excelDate;
-            row.getCell(2).numFmt = 'dd/mm/yyyy';
+            row.getCell(2).numFmt = 'mm-dd-yy';
+            row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(3).value = t.soPhieu;
+            row.getCell(3).alignment = { vertical: 'middle' };
             row.getCell(4).value = t.vehiclePlate;
-            row.getCell(5).value = round2(t.grossWeight || 0);
-            row.getCell(5).numFmt = '#,##0.00';
-            row.getCell(6).value = round2(t.tareWeight || 0);
-            row.getCell(6).numFmt = '#,##0.00';
-            row.getCell(7).value = round2(t.netWeight);
-            row.getCell(7).numFmt = '#,##0.00';
+            row.getCell(4).alignment = { vertical: 'middle' };
+            row.getCell(5).value = grossKg;
+            row.getCell(5).numFmt = kgFmt;
+            row.getCell(5).alignment = { vertical: 'middle' };
+            row.getCell(6).value = tareKg;
+            row.getCell(6).numFmt = kgFmt;
+            row.getCell(6).alignment = { vertical: 'middle' };
+            row.getCell(7).value = netKg;
+            row.getCell(7).numFmt = kgFmt;
+            row.getCell(7).alignment = { vertical: 'middle' };
             row.getCell(8).value = t.weighInTime || '';
+            row.getCell(8).numFmt = 'h:mm:ss';
+            row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(9).value = t.weighOutTime || '';
+            row.getCell(9).numFmt = 'h:mm:ss';
+            row.getCell(9).alignment = { horizontal: 'center', vertical: 'middle' };
             if (t.factoryWeight != null && t.factoryWeight > 0) {
-                row.getCell(10).value = round2(t.factoryWeight);
-                row.getCell(10).numFmt = '#,##0.00';
+                const factoryKg = Math.round(Number(t.factoryWeight) * 1000);
+                row.getCell(10).value = factoryKg;
+                row.getCell(10).numFmt = kgFmt;
+                row.getCell(10).alignment = { vertical: 'middle' };
                 row.getCell(11).value = {
                     formula: `G${rNum}-J${rNum}`,
-                    result: round2(t.netWeight - t.factoryWeight)
+                    result: netKg - factoryKg
                 };
-                row.getCell(11).numFmt = '#,##0.00';
+                row.getCell(11).numFmt = kgFmt;
+                row.getCell(11).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             }
             row.getCell(12).value = t.sourceOrRemark || '';
+            row.getCell(12).alignment = { vertical: 'middle' };
             row.getCell(13).value = t.rawNote || '';
-            row.getCell(14).value = {
-                formula: `IFERROR(VLOOKUP(D${rNum},Data!$A$2:$B$500,2,0),"")`,
-                result: t.carrierName || ''
-            };
+            row.getCell(13).alignment = { vertical: 'middle' };
+            row.getCell(14).value = t.carrierName || '';
+            row.getCell(14).alignment = { vertical: 'middle' };
 
             for (let c = 1; c <= 14; c++) {
-                row.getCell(c).font = { name: 'Times New Roman', size: 11 };
+                row.getCell(c).font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
                 row.getCell(c).border = thinBorder;
             }
         });
@@ -2362,34 +2390,33 @@ export const WarehouseInventoryService = {
         const lastDataRow = Math.max(7, tickets.length + 6);
         const totalRowNum = tickets.length + 7;
         const totalRow = sheet.getRow(totalRowNum);
-        const totalGross = round2(tickets.reduce((s, t) => s + (Number(t.grossWeight) || 0), 0));
-        const totalTare = round2(tickets.reduce((s, t) => s + (Number(t.tareWeight) || 0), 0));
-        const totalNet = round2(tickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
-        const totalFactory = round2(tickets.reduce((s, t) => s + (Number(t.factoryWeight) || 0), 0));
-        const totalDiff = round2(
-            tickets.reduce((s, t) => s + (t.factoryWeight != null && t.factoryWeight > 0 ? (Number(t.netWeight) || 0) - Number(t.factoryWeight) : 0), 0)
-        );
+        totalRow.height = 20;
 
-        totalRow.getCell(1).value = 'Tổng cộng (Total):';
-        totalRow.getCell(5).value = { formula: `SUBTOTAL(9,E7:E${lastDataRow})`, result: totalGross };
-        totalRow.getCell(6).value = { formula: `SUBTOTAL(9,F7:F${lastDataRow})`, result: totalTare };
-        totalRow.getCell(7).value = { formula: `SUBTOTAL(9,G7:G${lastDataRow})`, result: totalNet };
-        totalRow.getCell(10).value = { formula: `SUBTOTAL(9,J7:J${lastDataRow})`, result: totalFactory };
-        totalRow.getCell(11).value = { formula: `SUBTOTAL(9,K7:K${lastDataRow})`, result: totalDiff };
+        const totalNetKg = tickets.reduce((s, t) => s + Math.round((Number(t.netWeight) || 0) * 1000), 0);
+        const totalFactoryKg = tickets.reduce((s, t) => s + (t.factoryWeight != null && t.factoryWeight > 0 ? Math.round(Number(t.factoryWeight) * 1000) : 0), 0);
 
-        for (let c = 1; c <= 14; c++) {
+        sheet.mergeCells(`A${totalRowNum}:F${totalRowNum}`);
+        totalRow.getCell(1).value = 'Tổng cộng (Total)';
+        totalRow.getCell(7).value = { formula: `SUBTOTAL(9,G7:G${lastDataRow})`, result: totalNetKg };
+        totalRow.getCell(10).value = { formula: `SUBTOTAL(9,J7:J${lastDataRow})`, result: totalFactoryKg };
+
+        for (let c = 1; c <= 13; c++) {
             const cell = totalRow.getCell(c);
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+            cell.fill = greenHeaderFill;
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             cell.border = thinBorder;
-            if ((c >= 5 && c <= 7) || c === 10 || c === 11) {
-                cell.numFmt = '#,##0.00';
+            if (c === 7 || c === 10 || c === 11) {
+                cell.numFmt = kgFmt;
             }
         }
+        totalRow.getCell(14).font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        totalRow.getCell(14).border = thinBorder;
 
         sheet.columns = [
-            { width: 9 }, { width: 13 }, { width: 15 }, { width: 18 }, { width: 16 },
-            { width: 16 }, { width: 16 }, { width: 13 }, { width: 13 }, { width: 14 },
-            { width: 13 }, { width: 18 }, { width: 14 }, { width: 16 }
+            { width: 7.4 }, { width: 17.1 }, { width: 17.6 }, { width: 15.1 }, { width: 18.2 },
+            { width: 18.3 }, { width: 17.4 }, { width: 14.1 }, { width: 12.8 }, { width: 17.9 },
+            { width: 13.9 }, { width: 21 }, { width: 50.6 }, { width: 12 }
         ];
     },
 
@@ -2400,28 +2427,68 @@ export const WarehouseInventoryService = {
         tickets: WarehouseInventoryTicket[]
     ) {
         const thinBorder = {
-            top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            bottom: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const kgFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+        const exportHeaderFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { theme: 9, tint: 0.5999938962981048 },
+            bgColor: { indexed: 64 }
         };
 
+        sheet.mergeCells('A1:N1');
         sheet.getCell('A1').value = 'BÁO CÁO CHI TIẾT CÂN XUẤT KHO';
-        sheet.getCell('A1').font = { name: 'Times New Roman', size: 13, bold: true };
+        sheet.getCell('A1').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(1).height = 20;
+
+        sheet.mergeCells('A2:N2');
         sheet.getCell('A2').value = '(WEIGHING LIST REPORT)';
-        sheet.getCell('A2').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('A3').value = 'Nguồn gốc (Origin):';
+        sheet.getCell('A2').font = { name: 'Cambria', family: 1, size: 12, bold: true, italic: true, color: { theme: 1 } };
+        sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(2).height = 20;
+
+        sheet.getRow(3).height = 20;
+        sheet.mergeCells('A3:B3');
+        sheet.getCell('A3').value = 'Nguồn gốc (Origin):            ';
+        sheet.getCell('A3').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('A3').alignment = { vertical: 'middle' };
+        sheet.mergeCells('C3:D3');
         sheet.getCell('C3').value = warehouseId;
+        sheet.getCell('C3').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('C3').alignment = { vertical: 'middle' };
+
+        sheet.getRow(4).height = 20;
+        sheet.mergeCells('A4:B4');
         sheet.getCell('A4').value = 'Hàng hóa (Cargo):';
+        sheet.getCell('A4').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('A4').alignment = { vertical: 'middle' };
         sheet.getCell('C4').value = 'VIÊN GỖ NÉN';
+        sheet.getCell('C4').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('C4').alignment = { vertical: 'middle' };
+        sheet.getCell('L4').value = 'ĐVT : kg';
+        sheet.getCell('L4').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('L4').alignment = { vertical: 'middle', wrapText: true };
+
+        sheet.getRow(5).height = 20;
         sheet.getCell('A5').value = 'Khách hàng ( Customer):';
+        sheet.getCell('A5').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('A5').alignment = { vertical: 'middle' };
         sheet.getCell('C5').value = customerName || '';
+        sheet.getCell('C5').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('C5').alignment = { vertical: 'middle' };
 
         const lastDataRow = Math.max(8, tickets.length + 7);
-        const totalTons = round2(tickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
-        sheet.getCell('G6').value = { formula: `SUBTOTAL(9,G8:G${lastDataRow})`, result: totalTons };
-        sheet.getCell('G6').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('G6').numFmt = '#,##0.00';
+        const totalNetKg = tickets.reduce((s, t) => s + Math.round((Number(t.netWeight) || 0) * 1000), 0);
+        sheet.getRow(6).height = 20;
+        sheet.getCell('G6').value = { formula: `SUBTOTAL(9,G8:G${lastDataRow})`, result: totalNetKg };
+        sheet.getCell('G6').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('G6').alignment = { vertical: 'middle' };
+        sheet.getCell('G6').numFmt = kgFmt;
 
         const headers = [
             'STT (No)',
@@ -2443,69 +2510,131 @@ export const WarehouseInventoryService = {
         headers.forEach((h, i) => {
             const cell = hRow.getCell(i + 1);
             cell.value = h;
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
             cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            cell.fill = exportHeaderFill;
             cell.border = thinBorder;
         });
-        hRow.height = 28;
+        hRow.height = 52.2;
 
         tickets.forEach((t, idx) => {
             const rNum = idx + 8;
             const row = sheet.getRow(rNum);
+            row.height = 20;
             const dtParts = (t.reportDate || '').split('-').map(Number);
             const excelDate = dtParts.length === 3
                 ? new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1))
                 : t.reportDate;
 
+            const grossKg = Math.round((Number(t.grossWeight) || 0) * 1000);
+            const tareKg = Math.round((Number(t.tareWeight) || 0) * 1000);
+            const netKg = Math.round((Number(t.netWeight) || 0) * 1000);
+
             row.getCell(1).value = idx + 1;
+            row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             row.getCell(2).value = excelDate;
-            row.getCell(2).numFmt = 'dd/mm/yyyy';
+            row.getCell(2).numFmt = 'mm-dd-yy';
+            row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(3).value = t.soPhieu;
+            row.getCell(3).alignment = { vertical: 'middle' };
             row.getCell(4).value = t.vehiclePlate;
-            row.getCell(5).value = round2(t.grossWeight || 0);
-            row.getCell(5).numFmt = '#,##0.00';
-            row.getCell(6).value = round2(t.tareWeight || 0);
-            row.getCell(6).numFmt = '#,##0.00';
-            row.getCell(7).value = round2(t.netWeight);
-            row.getCell(7).numFmt = '#,##0.00';
+            row.getCell(4).alignment = { vertical: 'middle' };
+            row.getCell(5).value = grossKg;
+            row.getCell(5).numFmt = kgFmt;
+            row.getCell(5).alignment = { vertical: 'middle' };
+            row.getCell(6).value = tareKg;
+            row.getCell(6).numFmt = kgFmt;
+            row.getCell(6).alignment = { vertical: 'middle' };
+            row.getCell(7).value = netKg;
+            row.getCell(7).numFmt = kgFmt;
+            row.getCell(7).alignment = { vertical: 'middle' };
             row.getCell(8).value = t.maLenh || 'Xuất';
+            row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(9).value = t.sourceOrRemark || warehouseId;
+            row.getCell(9).alignment = { vertical: 'middle' };
             row.getCell(10).value = t.weighInTime || '';
+            row.getCell(10).numFmt = 'h:mm:ss';
+            row.getCell(10).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(11).value = t.weighOutTime || '';
+            row.getCell(11).numFmt = 'h:mm:ss';
+            row.getCell(11).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(12).value = t.bargeInfo || '';
+            row.getCell(12).alignment = { vertical: 'middle' };
             row.getCell(13).value = t.vesselName || '';
+            row.getCell(13).alignment = { vertical: 'middle' };
             row.getCell(14).value = t.rawNote || '';
+            row.getCell(14).alignment = { vertical: 'middle' };
 
             for (let c = 1; c <= 14; c++) {
-                row.getCell(c).font = { name: 'Times New Roman', size: 11 };
+                row.getCell(c).font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
                 row.getCell(c).border = thinBorder;
             }
         });
 
+        const totalRowNum = tickets.length + 8;
+        const totalRow = sheet.getRow(totalRowNum);
+        totalRow.height = 20;
+        sheet.mergeCells(`A${totalRowNum}:F${totalRowNum}`);
+        totalRow.getCell(1).value = 'TỔNG CỘNG';
+        totalRow.getCell(7).value = { formula: `SUBTOTAL(9,G8:G${lastDataRow})`, result: totalNetKg };
+        for (let c = 1; c <= 14; c++) {
+            const cell = totalRow.getCell(c);
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+            cell.fill = exportHeaderFill;
+            cell.alignment = { horizontal: c <= 6 ? 'center' : undefined, vertical: 'middle' };
+            cell.border = thinBorder;
+            if (c === 7) cell.numFmt = kgFmt;
+        }
+
         sheet.columns = [
-            { width: 9 }, { width: 13 }, { width: 15 }, { width: 18 }, { width: 16 },
-            { width: 16 }, { width: 16 }, { width: 14 }, { width: 15 }, { width: 13 },
-            { width: 13 }, { width: 26 }, { width: 20 }, { width: 20 }
+            { width: 8 }, { width: 17.1 }, { width: 15.1 }, { width: 12.8 }, { width: 16.3 },
+            { width: 15.8 }, { width: 18 }, { width: 15.1 }, { width: 17.4 }, { width: 17.3 },
+            { width: 15.2 }, { width: 41.1 }, { width: 19.7 }, { width: 46.4 }
         ];
     },
 
-    populateDirectWorksheet(sheet: any, tickets: WarehouseInventoryTicket[]) {
+    populateDirectWorksheet(sheet: any, tickets: WarehouseInventoryTicket[], customerName?: string) {
         const thinBorder = {
-            top: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            left: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            bottom: { style: 'thin', color: { argb: 'FFBFBFBF' } },
-            right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const kgFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+        const totalGrayFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { theme: 0, tint: -0.1499984740745262 },
+            bgColor: { indexed: 64 }
         };
 
+        sheet.mergeCells('A1:N1');
         sheet.getCell('A1').value = 'BÁO CÁO CHI TIẾT CÂN XE ĐI THẲNG';
-        sheet.getCell('A1').font = { name: 'Times New Roman', size: 13, bold: true };
+        sheet.getCell('A1').font = { name: 'Cambria', family: 1, size: 12, bold: true };
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(1).height = 20;
+
+        sheet.mergeCells('A2:N2');
         sheet.getCell('A2').value = '(WEIGHING LIST REPORT)';
-        sheet.getCell('A2').font = { name: 'Times New Roman', size: 11, bold: true };
+        sheet.getCell('A2').font = { name: 'Cambria', family: 1, size: 12, bold: true, italic: true };
+        sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(2).height = 20;
+
+        sheet.getRow(4).height = 20;
         sheet.getCell('A4').value = 'Hàng hóa (Cargo):';
+        sheet.getCell('A4').font = { name: 'Cambria', family: 1, size: 12, bold: true };
+        sheet.getCell('A4').alignment = { horizontal: 'left', vertical: 'middle' };
         sheet.getCell('C4').value = 'Viên Nén Gỗ (FSC Mix 1%)';
+        sheet.getCell('C4').font = { name: 'Cambria', family: 1, size: 12 };
+        sheet.getCell('C4').alignment = { horizontal: 'left', vertical: 'middle' };
+
+        sheet.getRow(5).height = 20;
         sheet.getCell('A5').value = 'Khách hàng (Customer):';
-        sheet.getCell('C5').value = tickets[0]?.customerName || '';
+        sheet.getCell('A5').font = { name: 'Cambria', family: 1, size: 12, bold: true };
+        sheet.getCell('A5').alignment = { horizontal: 'left', vertical: 'middle' };
+        sheet.getCell('C5').value = customerName || tickets[0]?.customerName || '';
+        sheet.getCell('C5').font = { name: 'Cambria', family: 1, size: 12 };
+        sheet.getCell('C5').alignment = { horizontal: 'left', vertical: 'middle' };
 
         const headers = [
             'STT (No)',
@@ -2515,7 +2644,6 @@ export const WarehouseInventoryService = {
             'T.Lượng vào (Weight in)',
             'T.Lượng ra (Weight out)',
             'T.Lượng hàng (N.Weight)',
-            'Nhập/ Xuất',
             'Ngày cân vào',
             'Ngày cân ra',
             'Cân Nhà Máy',
@@ -2528,50 +2656,71 @@ export const WarehouseInventoryService = {
         headers.forEach((h, i) => {
             const cell = hRow.getCell(i + 1);
             cell.value = h;
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true };
             cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' }, bgColor: { indexed: 64 } };
             cell.border = thinBorder;
         });
-        hRow.height = 28;
+        hRow.height = 30;
 
         tickets.forEach((t, idx) => {
             const rNum = idx + 8;
             const row = sheet.getRow(rNum);
+            row.height = 20;
             const dtParts = (t.reportDate || '').split('-').map(Number);
             const excelDate = dtParts.length === 3
                 ? new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1))
                 : t.reportDate;
 
-            row.getCell(1).value = idx + 1;
-            row.getCell(2).value = excelDate;
-            row.getCell(2).numFmt = 'dd/mm/yyyy';
-            row.getCell(3).value = t.soPhieu;
-            row.getCell(4).value = t.vehiclePlate;
-            row.getCell(5).value = round2(t.grossWeight || 0);
-            row.getCell(5).numFmt = '#,##0.00';
-            row.getCell(6).value = round2(t.tareWeight || 0);
-            row.getCell(6).numFmt = '#,##0.00';
-            row.getCell(7).value = round2(t.netWeight);
-            row.getCell(7).numFmt = '#,##0.00';
-            row.getCell(8).value = t.maLenh || '';
-            row.getCell(9).value = t.weighInTime || '';
-            row.getCell(10).value = t.weighOutTime || '';
-            if (t.factoryWeight != null && t.factoryWeight > 0) {
-                row.getCell(11).value = round2(t.factoryWeight);
-                row.getCell(11).numFmt = '#,##0.00';
-                row.getCell(12).value = {
-                    formula: `G${rNum}-K${rNum}`,
-                    result: round2(t.netWeight - t.factoryWeight)
-                };
-                row.getCell(12).numFmt = '#,##0.00';
-            }
-            row.getCell(13).value = t.bargeInfo || '';
-            row.getCell(14).value = t.sourceOrRemark || '';
-            row.getCell(15).value = t.vesselName || '';
+            const grossKg = Math.round((Number(t.grossWeight) || 0) * 1000);
+            const tareKg = Math.round((Number(t.tareWeight) || 0) * 1000);
+            const netKg = Math.round((Number(t.netWeight) || 0) * 1000);
 
-            for (let c = 1; c <= 15; c++) {
-                row.getCell(c).font = { name: 'Times New Roman', size: 11 };
+            row.getCell(1).value = idx + 1;
+            row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            row.getCell(2).value = excelDate;
+            row.getCell(2).numFmt = 'mm-dd-yy';
+            row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+            row.getCell(3).value = t.soPhieu;
+            row.getCell(3).alignment = { vertical: 'middle' };
+            row.getCell(4).value = t.vehiclePlate;
+            row.getCell(4).alignment = { vertical: 'middle' };
+            row.getCell(5).value = grossKg;
+            row.getCell(5).numFmt = kgFmt;
+            row.getCell(5).alignment = { vertical: 'middle' };
+            row.getCell(6).value = tareKg;
+            row.getCell(6).numFmt = kgFmt;
+            row.getCell(6).alignment = { vertical: 'middle' };
+            row.getCell(7).value = netKg;
+            row.getCell(7).numFmt = kgFmt;
+            row.getCell(7).alignment = { vertical: 'middle' };
+            row.getCell(8).value = t.weighInTime || '';
+            row.getCell(8).numFmt = 'h:mm:ss';
+            row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+            row.getCell(9).value = t.weighOutTime || '';
+            row.getCell(9).numFmt = 'h:mm:ss';
+            row.getCell(9).alignment = { horizontal: 'center', vertical: 'middle' };
+            if (t.factoryWeight != null && t.factoryWeight > 0) {
+                const factoryKg = Math.round(Number(t.factoryWeight) * 1000);
+                row.getCell(10).value = factoryKg;
+                row.getCell(10).numFmt = kgFmt;
+                row.getCell(10).alignment = { vertical: 'middle' };
+                row.getCell(11).value = {
+                    formula: `G${rNum}-J${rNum}`,
+                    result: netKg - factoryKg
+                };
+                row.getCell(11).numFmt = kgFmt;
+                row.getCell(11).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            }
+            row.getCell(12).value = t.bargeInfo || '';
+            row.getCell(12).alignment = { vertical: 'middle' };
+            row.getCell(13).value = t.sourceOrRemark || '';
+            row.getCell(13).alignment = { vertical: 'middle' };
+            row.getCell(14).value = t.vesselName || '';
+            row.getCell(14).alignment = { vertical: 'middle' };
+
+            for (let c = 1; c <= 14; c++) {
+                row.getCell(c).font = { name: 'Cambria', family: 1, size: 12 };
                 row.getCell(c).border = thinBorder;
             }
         });
@@ -2579,20 +2728,24 @@ export const WarehouseInventoryService = {
         const lastDataRow = Math.max(8, tickets.length + 7);
         const totalRowNum = tickets.length + 8;
         const totalRow = sheet.getRow(totalRowNum);
-        const totalTons = round2(tickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
+        totalRow.height = 20;
+        const totalNetKg = tickets.reduce((s, t) => s + Math.round((Number(t.netWeight) || 0) * 1000), 0);
+        sheet.mergeCells(`A${totalRowNum}:D${totalRowNum}`);
         totalRow.getCell(1).value = 'TỔNG CỘNG';
-        totalRow.getCell(7).value = { formula: `SUBTOTAL(9,G8:G${lastDataRow})`, result: totalTons };
-        for (let c = 1; c <= 15; c++) {
+        totalRow.getCell(7).value = { formula: `SUBTOTAL(9,G8:G${lastDataRow})`, result: totalNetKg };
+        for (let c = 1; c <= 14; c++) {
             const cell = totalRow.getCell(c);
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true };
+            cell.fill = totalGrayFill;
+            cell.alignment = { horizontal: c <= 4 ? 'center' : undefined, vertical: 'middle' };
             cell.border = thinBorder;
-            if (c === 7) cell.numFmt = '#,##0.00';
+            if (c === 5 || c === 6 || c === 7 || c === 10) cell.numFmt = kgFmt;
         }
 
         sheet.columns = [
-            { width: 9 }, { width: 13 }, { width: 15 }, { width: 18 }, { width: 16 },
-            { width: 16 }, { width: 16 }, { width: 12 }, { width: 13 }, { width: 13 },
-            { width: 14 }, { width: 13 }, { width: 26 }, { width: 18 }, { width: 18 }
+            { width: 10.7 }, { width: 13.3 }, { width: 19.8 }, { width: 20.3 }, { width: 16.3 },
+            { width: 16 }, { width: 16.4 }, { width: 19.8 }, { width: 17.1 }, { width: 20.6 },
+            { width: 14.7 }, { width: 40 }, { width: 21.9 }, { width: 18.6 }
         ];
     },
 
@@ -2604,25 +2757,58 @@ export const WarehouseInventoryService = {
         exportSheetName: string,
         directSheetName: string,
         openingStock: number,
-        rows: WarehouseFinalRow[]
+        rows: WarehouseFinalRow[],
+        initialDate?: string
     ) {
         const thinBorder = {
-            top: { style: 'thin', color: { argb: 'FF808080' } },
-            left: { style: 'thin', color: { argb: 'FF808080' } },
-            bottom: { style: 'thin', color: { argb: 'FF808080' } },
-            right: { style: 'thin', color: { argb: 'FF808080' } }
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const kgFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+        const greenHeaderFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { theme: 9, tint: 0.3999755851924192 },
+            bgColor: { indexed: 64 }
         };
 
+        sheet.mergeCells('A1:F1');
         sheet.getCell('A1').value = 'BÁO CÁO NHẬP- XUẤT KHO';
-        sheet.getCell('A1').font = { name: 'Times New Roman', size: 14, bold: true };
+        sheet.getCell('A1').font = { name: 'Cambria', family: 1, size: 14, bold: true, color: { theme: 1 } };
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(1).height = 20;
+
+        sheet.mergeCells('A2:F2');
         sheet.getCell('A2').value = 'DAILY IMPORTED - EXPORTED  REPORT';
-        sheet.getCell('A2').font = { name: 'Times New Roman', size: 11, bold: true };
+        sheet.getCell('A2').font = { name: 'Cambria', family: 1, size: 14, italic: true, color: { theme: 1 } };
+        sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(2).height = 20;
+
+        sheet.getRow(3).height = 20;
         sheet.getCell('A3').value = 'Warehouse:';
+        sheet.getCell('A3').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('A3').alignment = { vertical: 'middle' };
         sheet.getCell('B3').value = `Nguyên Ngọc ${warehouseId}`;
+        sheet.getCell('B3').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('B3').alignment = { vertical: 'middle' };
+
+        sheet.getRow(4).height = 20;
         sheet.getCell('A4').value = 'Customer:';
+        sheet.getCell('A4').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('A4').alignment = { vertical: 'middle', wrapText: true };
         sheet.getCell('B4').value = customerName || '';
+        sheet.getCell('B4').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('B4').alignment = { vertical: 'middle' };
+
+        sheet.getRow(5).height = 20;
         sheet.getCell('A5').value = 'Cargo:';
+        sheet.getCell('A5').font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
+        sheet.getCell('A5').alignment = { vertical: 'middle', wrapText: true };
         sheet.getCell('B5').value = 'Viên Nén Gỗ';
+        sheet.getCell('B5').font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+        sheet.getCell('B5').alignment = { vertical: 'middle' };
 
         const headers = [
             'Ngày\nDate',
@@ -2636,90 +2822,134 @@ export const WarehouseInventoryService = {
         headers.forEach((h, i) => {
             const cell = hRow.getCell(i + 1);
             cell.value = h;
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
             cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+            cell.fill = greenHeaderFill;
             cell.border = thinBorder;
         });
-        hRow.height = 28;
+        hRow.height = 30;
 
-        // Row 8: Tồn đầu row
-        const initRow = sheet.getRow(8);
-        initRow.getCell(1).value = 'Tồn đầu';
-        initRow.getCell(4).value = round2(openingStock);
-        initRow.getCell(4).numFmt = '#,##0.00';
-        for (let c = 1; c <= 6; c++) {
-            initRow.getCell(c).font = { name: 'Times New Roman', size: 11, bold: true };
-            initRow.getCell(c).border = thinBorder;
+        const hasSeparateOpeningRow = openingStock !== 0 && (!initialDate || initialDate !== rows[0]?.reportDate);
+        let dataStartRow = 8;
+
+        if (hasSeparateOpeningRow) {
+            const initRow = sheet.getRow(8);
+            initRow.height = 22.2;
+            const openKg = Math.round(openingStock * 1000);
+            if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
+                const dtParts = initialDate.split('-').map(Number);
+                initRow.getCell(1).value = new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1));
+                initRow.getCell(1).numFmt = 'dd/mm/yyyy ';
+            } else {
+                initRow.getCell(1).value = 'Tồn đầu';
+            }
+            initRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            initRow.getCell(2).value = openKg;
+            initRow.getCell(2).numFmt = kgFmt;
+            initRow.getCell(2).alignment = { vertical: 'middle' };
+            initRow.getCell(4).value = openKg;
+            initRow.getCell(4).numFmt = '#,##0';
+            initRow.getCell(4).alignment = { vertical: 'middle', wrapText: true };
+            for (let c = 1; c <= 6; c++) {
+                initRow.getCell(c).font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
+                initRow.getCell(c).border = thinBorder;
+            }
+            dataStartRow = 9;
         }
 
         rows.forEach((r, idx) => {
-            const rNum = idx + 9;
+            const rNum = idx + dataStartRow;
             const row = sheet.getRow(rNum);
+            row.height = 22.2;
             const dtParts = (r.reportDate || '').split('-').map(Number);
             const excelDate = dtParts.length === 3
                 ? new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1))
                 : r.reportDate;
 
-            row.getCell(1).value = excelDate;
-            row.getCell(1).numFmt = 'dd/mm/yyyy';
+            const isEmbeddedOpeningRow = idx === 0 && !hasSeparateOpeningRow && openingStock !== 0 && initialDate === r.reportDate;
+            const impKg = Math.round((r.importTons + (isEmbeddedOpeningRow ? openingStock : 0)) * 1000);
+            const expKg = Math.round(r.exportTons * 1000);
+            const remKg = Math.round(r.remainingStockTons * 1000);
+            const dirKg = Math.round(r.directTons * 1000);
 
-            row.getCell(2).value = {
-                formula: `SUMIFS('${importSheetName}'!$G$7:$G$50000,'${importSheetName}'!$B$7:$B$50000,A${rNum})`,
-                result: round2(r.importTons)
-            };
-            row.getCell(2).numFmt = '#,##0.00';
+            row.getCell(1).value = excelDate;
+            row.getCell(1).numFmt = 'dd/mm/yyyy ';
+            row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+            if (isEmbeddedOpeningRow && r.importTons === 0) {
+                row.getCell(2).value = impKg;
+            } else {
+                row.getCell(2).value = {
+                    formula: `SUMIFS('${importSheetName}'!$G$6:$G$50000,'${importSheetName}'!$B$6:$B$50000,A${rNum})`,
+                    result: impKg
+                };
+            }
+            row.getCell(2).numFmt = kgFmt;
+            row.getCell(2).alignment = { vertical: 'middle' };
 
             row.getCell(3).value = {
                 formula: `SUMIFS('${exportSheetName}'!$G$8:$G$50000,'${exportSheetName}'!$B$8:$B$50000,A${rNum})`,
-                result: round2(r.exportTons)
+                result: expKg
             };
-            row.getCell(3).numFmt = '#,##0.00';
+            row.getCell(3).numFmt = kgFmt;
+            row.getCell(3).alignment = { vertical: 'middle' };
 
             row.getCell(4).value = {
-                formula: `D${rNum - 1}+B${rNum}-C${rNum}`,
-                result: round2(r.remainingStockTons)
+                formula: rNum === 8 ? `B8-C8` : `D${rNum - 1}+B${rNum}-C${rNum}`,
+                result: remKg
             };
-            row.getCell(4).numFmt = '#,##0.00';
+            row.getCell(4).numFmt = '#,##0';
+            row.getCell(4).alignment = { vertical: 'middle', wrapText: true };
 
             row.getCell(5).value = {
-                formula: `SUMIF('${directSheetName}'!$B$8:$B$50000,A${rNum},'${directSheetName}'!$G$8:$G$50000)`,
-                result: round2(r.directTons)
+                formula: `SUMIF('${directSheetName}'!B:B,A${rNum},'${directSheetName}'!G:G)`,
+                result: dirKg
             };
-            row.getCell(5).numFmt = '#,##0.00';
+            row.getCell(5).numFmt = '#,##0';
+            row.getCell(5).alignment = { vertical: 'middle', wrapText: true };
 
             row.getCell(6).value = r.remark || '';
+            row.getCell(6).alignment = { vertical: 'middle', wrapText: true };
 
             for (let c = 1; c <= 6; c++) {
-                row.getCell(c).font = { name: 'Times New Roman', size: 11 };
+                row.getCell(c).font = { name: 'Cambria', family: 1, size: 12, color: { theme: 1 } };
                 row.getCell(c).border = thinBorder;
             }
         });
 
-        const totalRowNum = rows.length + 9;
-        const lastDataRow = Math.max(8, rows.length + 8);
+        const totalRowNum = rows.length + dataStartRow;
+        const lastDataRow = Math.max(8, totalRowNum - 1);
         const totalRow = sheet.getRow(totalRowNum);
-        const totalImp = round2(rows.reduce((s, x) => s + x.importTons, 0));
-        const totalExp = round2(rows.reduce((s, x) => s + x.exportTons, 0));
-        const totalDir = round2(rows.reduce((s, x) => s + x.directTons, 0));
-        const closing = rows.length > 0 ? rows[rows.length - 1]!.remainingStockTons : openingStock;
+        totalRow.height = 27;
+
+        const totalImpKg = Math.round((rows.reduce((s, x) => s + x.importTons, 0) + (openingStock > 0 ? openingStock : 0)) * 1000);
+        const totalExpKg = Math.round(rows.reduce((s, x) => s + x.exportTons, 0) * 1000);
+        const totalDirKg = Math.round(rows.reduce((s, x) => s + x.directTons, 0) * 1000);
+        const closingKg = Math.round((rows.length > 0 ? rows[rows.length - 1]!.remainingStockTons : openingStock) * 1000);
 
         totalRow.getCell(1).value = 'Tổng cộng (Total)';
-        totalRow.getCell(2).value = { formula: `SUM(B9:B${lastDataRow})`, result: totalImp };
-        totalRow.getCell(3).value = { formula: `SUM(C9:C${lastDataRow})`, result: totalExp };
-        totalRow.getCell(4).value = { formula: `D${lastDataRow}`, result: round2(closing) };
-        totalRow.getCell(5).value = { formula: `SUM(E9:E${lastDataRow})`, result: totalDir };
+        totalRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        totalRow.getCell(2).value = { formula: `SUM(B8:B${lastDataRow})`, result: totalImpKg };
+        totalRow.getCell(2).alignment = { vertical: 'middle' };
+        totalRow.getCell(2).numFmt = kgFmt;
+        totalRow.getCell(3).value = { formula: `SUM(C8:C${lastDataRow})`, result: totalExpKg };
+        totalRow.getCell(3).alignment = { vertical: 'middle' };
+        totalRow.getCell(3).numFmt = kgFmt;
+        totalRow.getCell(4).value = { formula: `D${lastDataRow}`, result: closingKg };
+        totalRow.getCell(4).alignment = { vertical: 'middle', wrapText: true };
+        totalRow.getCell(4).numFmt = '#,##0';
+        totalRow.getCell(5).value = { formula: `SUM(E8:E${lastDataRow})`, result: totalDirKg };
+        totalRow.getCell(5).alignment = { vertical: 'middle', wrapText: true };
+        totalRow.getCell(5).numFmt = '#,##0';
 
         for (let c = 1; c <= 6; c++) {
             const cell = totalRow.getCell(c);
-            cell.font = { name: 'Times New Roman', size: 11, bold: true };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+            cell.font = { name: 'Cambria', family: 1, size: 12, bold: true, color: { theme: 1 } };
             cell.border = thinBorder;
-            if (c >= 2 && c <= 5) cell.numFmt = '#,##0.00';
         }
 
         sheet.columns = [
-            { width: 14 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 16 }, { width: 32 }
+            { width: 24.4 }, { width: 21.8 }, { width: 22.8 }, { width: 24.7 }, { width: 24.7 }, { width: 27.9 }
         ];
     },
 
@@ -2736,10 +2966,17 @@ export const WarehouseInventoryService = {
         }>
     ) {
         const thinBorder = {
-            top: { style: 'thin', color: { argb: 'FF808080' } },
-            left: { style: 'thin', color: { argb: 'FF808080' } },
-            bottom: { style: 'thin', color: { argb: 'FF808080' } },
-            right: { style: 'thin', color: { argb: 'FF808080' } }
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const kgFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+        const greenHeaderFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { theme: 9, tint: 0.3999755851924192 },
+            bgColor: { indexed: 64 }
         };
 
         const colLetter = (colIdx: number): string => {
@@ -2764,67 +3001,86 @@ export const WarehouseInventoryService = {
             const lImp = colLetter(cImp);
             const lExp = colLetter(cExp);
             const lStock = colLetter(cStock);
+            const lRem = colLetter(cRem);
 
+            sheet.mergeCells(`${lDate}2:${lRem}2`);
             const titleCell = sheet.getRow(2).getCell(cDate);
             titleCell.value = `THEO DÕI NHẬP XUẤT HÀNG VIÊN NÉN GỖ - ${b.whId} (${b.customer || ''})`;
-            titleCell.font = { name: 'Times New Roman', size: 12, bold: true };
+            titleCell.font = { name: 'Cambria', family: 1, size: 12, bold: true };
+            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            sheet.getRow(2).height = 22;
 
             const headers = ['Ngày', 'Nhập', 'Xuất', 'Tồn kho', 'Ghi chú'];
             const hRow = sheet.getRow(4);
+            hRow.height = 28;
             headers.forEach((h, i) => {
                 const cell = hRow.getCell(b.startCol + i);
                 cell.value = h;
-                cell.font = { name: 'Times New Roman', size: 11, bold: true };
+                cell.font = { name: 'Cambria', family: 1, size: 12, bold: true };
                 cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+                cell.fill = greenHeaderFill;
                 cell.border = thinBorder;
             });
 
             // Row 5: Tồn đầu
             const initRow = sheet.getRow(5);
+            initRow.height = 20;
+            const openKg = Math.round((b.openingStock || 0) * 1000);
             initRow.getCell(cDate).value = 'Tồn đầu';
-            initRow.getCell(cStock).value = round2(b.openingStock);
-            initRow.getCell(cStock).numFmt = '#,##0.00';
+            initRow.getCell(cDate).alignment = { horizontal: 'center', vertical: 'middle' };
+            initRow.getCell(cStock).value = openKg;
+            initRow.getCell(cStock).numFmt = '#,##0';
+            initRow.getCell(cStock).alignment = { vertical: 'middle' };
             for (let i = 0; i < 5; i++) {
                 const cell = initRow.getCell(b.startCol + i);
-                cell.font = { name: 'Times New Roman', size: 11, bold: true };
+                cell.font = { name: 'Cambria', family: 1, size: 12, bold: true };
                 cell.border = thinBorder;
             }
 
             b.rows.forEach((r, idx) => {
                 const rNum = idx + 6;
                 const row = sheet.getRow(rNum);
+                row.height = 20;
                 const dtParts = (r.reportDate || '').split('-').map(Number);
                 const excelDate = dtParts.length === 3
                     ? new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1))
                     : r.reportDate;
 
+                const impKg = Math.round(r.importTons * 1000);
+                const expKg = Math.round(r.exportTons * 1000);
+                const remKg = Math.round(r.remainingStockTons * 1000);
+
                 row.getCell(cDate).value = excelDate;
                 row.getCell(cDate).numFmt = 'dd/mm/yyyy';
+                row.getCell(cDate).alignment = { horizontal: 'center', vertical: 'middle' };
 
                 row.getCell(cImp).value = {
                     formula: `SUMIF('${b.importSheet}'!$B$7:$B$50000,${lDate}${rNum},'${b.importSheet}'!$G$7:$G$50000)`,
-                    result: round2(r.importTons)
+                    result: impKg
                 };
-                row.getCell(cImp).numFmt = '#,##0.00';
+                row.getCell(cImp).numFmt = kgFmt;
+                row.getCell(cImp).alignment = { vertical: 'middle' };
 
                 row.getCell(cExp).value = {
                     formula: `SUMIF('${b.exportSheet}'!$B$8:$B$50000,${lDate}${rNum},'${b.exportSheet}'!$G$8:$G$50000)`,
-                    result: round2(r.exportTons)
+                    result: expKg
                 };
-                row.getCell(cExp).numFmt = '#,##0.00';
+                row.getCell(cExp).numFmt = kgFmt;
+                row.getCell(cExp).alignment = { vertical: 'middle' };
 
                 row.getCell(cStock).value = {
                     formula: `${lStock}${rNum - 1}+${lImp}${rNum}-${lExp}${rNum}`,
-                    result: round2(r.remainingStockTons)
+                    result: remKg
                 };
-                row.getCell(cStock).numFmt = '#,##0.00';
+                row.getCell(cStock).numFmt = '#,##0';
+                row.getCell(cStock).alignment = { vertical: 'middle' };
 
                 row.getCell(cRem).value = r.remark || '';
+                row.getCell(cRem).alignment = { vertical: 'middle' };
 
                 for (let i = 0; i < 5; i++) {
                     const cell = row.getCell(b.startCol + i);
-                    cell.font = { name: 'Times New Roman', size: 11 };
+                    cell.font = { name: 'Cambria', family: 1, size: 12 };
                     cell.border = thinBorder;
                 }
             });
@@ -2832,38 +3088,30 @@ export const WarehouseInventoryService = {
             const totalRowNum = b.rows.length + 6;
             const lastDataRow = Math.max(5, b.rows.length + 5);
             const totalRow = sheet.getRow(totalRowNum);
-            const totalImp = round2(b.rows.reduce((s, x) => s + x.importTons, 0));
-            const totalExp = round2(b.rows.reduce((s, x) => s + x.exportTons, 0));
-            const closing = b.rows.length > 0 ? b.rows[b.rows.length - 1]!.remainingStockTons : b.openingStock;
+            totalRow.height = 24;
+            const totalImpKg = Math.round(b.rows.reduce((s, x) => s + x.importTons, 0) * 1000);
+            const totalExpKg = Math.round(b.rows.reduce((s, x) => s + x.exportTons, 0) * 1000);
+            const closingKg = Math.round((b.rows.length > 0 ? b.rows[b.rows.length - 1]!.remainingStockTons : b.openingStock) * 1000);
 
             totalRow.getCell(cDate).value = 'TỔNG CỘNG';
-            totalRow.getCell(cImp).value = { formula: `SUM(${lImp}6:${lImp}${lastDataRow})`, result: totalImp };
-            totalRow.getCell(cExp).value = { formula: `SUM(${lExp}6:${lExp}${lastDataRow})`, result: totalExp };
-            totalRow.getCell(cStock).value = { formula: `${lStock}${lastDataRow}`, result: round2(closing) };
+            totalRow.getCell(cDate).alignment = { horizontal: 'center', vertical: 'middle' };
+            totalRow.getCell(cImp).value = { formula: `SUM(${lImp}6:${lImp}${lastDataRow})`, result: totalImpKg };
+            totalRow.getCell(cImp).numFmt = kgFmt;
+            totalRow.getCell(cImp).alignment = { vertical: 'middle' };
+            totalRow.getCell(cExp).value = { formula: `SUM(${lExp}6:${lExp}${lastDataRow})`, result: totalExpKg };
+            totalRow.getCell(cExp).numFmt = kgFmt;
+            totalRow.getCell(cExp).alignment = { vertical: 'middle' };
+            totalRow.getCell(cStock).value = { formula: `${lStock}${lastDataRow}`, result: closingKg };
+            totalRow.getCell(cStock).numFmt = '#,##0';
+            totalRow.getCell(cStock).alignment = { vertical: 'middle' };
 
             for (let i = 0; i < 5; i++) {
                 const cell = totalRow.getCell(b.startCol + i);
-                cell.font = { name: 'Times New Roman', size: 11, bold: true };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+                cell.font = { name: 'Cambria', family: 1, size: 12, bold: true };
+                cell.fill = greenHeaderFill;
                 cell.border = thinBorder;
-                if (i >= 1 && i <= 3) cell.numFmt = '#,##0.00';
             }
         }
-    },
-
-    populateDataWorksheet(sheet: any, vehicles: WarehouseVehicleMap[]) {
-        sheet.getCell('A1').value = 'SO XE';
-        sheet.getCell('B1').value = 'NHÀ XE';
-        sheet.getCell('A1').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('B1').font = { name: 'Times New Roman', size: 11, bold: true };
-
-        vehicles.forEach((v, idx) => {
-            const r = sheet.getRow(idx + 2);
-            r.getCell(1).value = v.displayPlate || v.vehiclePlate;
-            r.getCell(2).value = v.carrierName;
-        });
-
-        sheet.columns = [{ width: 22 }, { width: 24 }];
     }
 };
 

@@ -321,6 +321,7 @@ describe('WarehouseInventoryService', () => {
             // Day 1 (2026-10-19): 100 + 40 - 0 = 140
             expect(result.rows[0]?.reportDate).toBe('2026-10-19');
             expect(result.rows[0]?.remainingStockTons).toBe(140);
+            expect(result.rows[0]?.remark).toBe('');
             // Day 2 (2026-10-20): 140 + 50 - 30 = 160
             expect(result.rows[1]?.reportDate).toBe('2026-10-20');
             expect(result.rows[1]?.remainingStockTons).toBe(160);
@@ -377,7 +378,7 @@ describe('WarehouseInventoryService', () => {
             ]);
         });
 
-        it('exports Single-Warehouse workbook with IMPORT 4, EXPORT 4, FINAL 4, XÁ THẲNG, Data and live formulas', async () => {
+        it('exports Single-Warehouse workbook with IMPORT 4, EXPORT 4, FINAL 4, XÁ THẲNG (without Data sheet) and live formulas', async () => {
             const { buffer, filename } = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4');
             expect(filename).toContain('KHO 4');
             expect(buffer.byteLength).toBeGreaterThan(1000);
@@ -387,7 +388,7 @@ describe('WarehouseInventoryService', () => {
             await wb.xlsx.load(buffer);
 
             const sheetNames = wb.worksheets.map(s => s.name);
-            expect(sheetNames).toEqual(['IMPORT 4', 'EXPORT 4', 'FINAL 4', 'XÁ THẲNG', 'Data']);
+            expect(sheetNames).toEqual(['IMPORT 4', 'EXPORT 4', 'FINAL 4', 'XÁ THẲNG']);
 
             const importSheet = wb.getWorksheet('IMPORT 4')!;
             const row6Headers = Array.from({ length: 14 }, (_, i) => String(importSheet.getRow(6).getCell(i + 1).value || ''));
@@ -426,6 +427,10 @@ describe('WarehouseInventoryService', () => {
                 'Tàu',
                 'Ghi chú'
             ]);
+            expect(exportSheet.getRow(9).getCell(1).value).toBe('TỔNG CỘNG');
+            const exportTotalG = exportSheet.getRow(9).getCell(7).value as any;
+            expect(exportTotalG.formula).toBe('SUBTOTAL(9,G8:G8)');
+            expect(exportTotalG.result).toBe(30000);
 
             const finalSheet = wb.getWorksheet('FINAL 4')!;
             const finalRow7Headers = Array.from({ length: 6 }, (_, i) => String(finalSheet.getRow(7).getCell(i + 1).value || ''));
@@ -440,13 +445,13 @@ describe('WarehouseInventoryService', () => {
             const row9ImportCell = finalSheet.getRow(9).getCell(2).value as any;
             const row9StockCell = finalSheet.getRow(9).getCell(4).value as any;
             expect(row9ImportCell.formula).toContain("SUMIFS('IMPORT 4'");
-            expect(row9ImportCell.result).toBe(40);
+            expect(row9ImportCell.result).toBe(40000);
             expect(row9StockCell.formula).toBe('D8+B9-C9');
-            // 250 + 40 - 30 = 260
-            expect(row9StockCell.result).toBe(260);
+            // 250,000 + 40,000 - 30,000 = 260,000 kg
+            expect(row9StockCell.result).toBe(260000);
 
             const directSheet = wb.getWorksheet('XÁ THẲNG')!;
-            const directRow7Headers = Array.from({ length: 15 }, (_, i) => String(directSheet.getRow(7).getCell(i + 1).value || ''));
+            const directRow7Headers = Array.from({ length: 14 }, (_, i) => String(directSheet.getRow(7).getCell(i + 1).value || ''));
             expect(directRow7Headers).toEqual([
                 'STT (No)',
                 'Ngày nhập\nDate',
@@ -455,7 +460,6 @@ describe('WarehouseInventoryService', () => {
                 'T.Lượng vào (Weight in)',
                 'T.Lượng ra (Weight out)',
                 'T.Lượng hàng (N.Weight)',
-                'Nhập/ Xuất',
                 'Ngày cân vào',
                 'Ngày cân ra',
                 'Cân Nhà Máy',
@@ -484,8 +488,7 @@ describe('WarehouseInventoryService', () => {
                 'EXPORT 2',
                 'IMPORT KHO 3',
                 'EXPORT KH 3',
-                'XÁ THẲNG',
-                'Data'
+                'XÁ THẲNG'
             ]);
         }, 30000);
 

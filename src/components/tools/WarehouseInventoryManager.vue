@@ -1378,7 +1378,7 @@ async function handleDownloadZaloImage() {
                                 <input
                                     type="text"
                                     :value="row.remark"
-                                    :placeholder="row.autoRemark || ''"
+                                    placeholder=""
                                     @change="handleSaveDailyRemark(activeSingleWarehouseId, row.reportDate, ($event.target as HTMLInputElement).value)"
                                     class="w-full px-2 py-1 rounded-lg bg-transparent hover:bg-slate-100 focus:bg-white focus:border focus:border-primary text-xs font-semibold outline-none transition-all"
                                 />
@@ -1502,7 +1502,7 @@ async function handleDownloadZaloImage() {
                 class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
             >
                 <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
-                    <thead class="sticky top-0 z-10 bg-[#fff2cc] text-[#1e293b] border-b border-slate-300">
+                    <thead class="sticky top-0 z-10 bg-[#c6e0b4] text-[#1e293b] border-b border-slate-300">
                         <tr>
                             <th class="py-2.5 px-2 text-center w-12 border-r border-slate-300">STT<br /><span class="font-semibold text-[10px]">(No)</span></th>
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày nhập<br /><span class="font-semibold text-[10px]">Date</span></th>
@@ -1585,7 +1585,7 @@ async function handleDownloadZaloImage() {
                             </td>
                         </tr>
                     </tbody>
-                    <tfoot class="sticky bottom-0 bg-[#fff2cc] border-t-2 border-slate-300 font-black text-[#1e293b]">
+                    <tfoot class="sticky bottom-0 bg-[#c6e0b4] border-t-2 border-slate-300 font-black text-[#1e293b]">
                         <tr>
                             <td colspan="4" class="py-2.5 px-2 text-center border-r border-slate-300">
                                 Tổng cộng (Total): {{ filteredDetailTickets.length }} chuyến
@@ -1628,7 +1628,7 @@ async function handleDownloadZaloImage() {
 
                 <div class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
                     <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
-                        <thead class="sticky top-0 z-10 bg-[#fff2cc] text-[#1e293b] border-b border-slate-300">
+                        <thead class="sticky top-0 z-10 bg-[#d8e4bc] text-[#1e293b] border-b border-slate-300">
                             <tr>
                                 <th class="py-2.5 px-2 text-center w-12 border-r border-slate-300">STT<br /><span class="font-semibold text-[10px]">(No)</span></th>
                                 <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày xuất<br /><span class="font-semibold text-[10px]">(Date)</span></th>
@@ -1701,10 +1701,10 @@ async function handleDownloadZaloImage() {
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot class="sticky bottom-0 bg-[#fff2cc] border-t-2 border-slate-300 font-black text-[#1e293b]">
+                        <tfoot class="sticky bottom-0 bg-[#d8e4bc] border-t-2 border-slate-300 font-black text-[#1e293b]">
                             <tr>
                                 <td colspan="4" class="py-2.5 px-2 text-center border-r border-slate-300">
-                                    Tổng cộng (Total): {{ filteredDetailTickets.length }} chuyến
+                                    TỔNG CỘNG: {{ filteredDetailTickets.length }} chuyến
                                 </td>
                                 <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalGrossTons) }}</td>
                                 <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalTareTons) }}</td>
@@ -1731,7 +1731,6 @@ async function handleDownloadZaloImage() {
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng vào<br /><span class="font-semibold text-[10px]">(Weight in)</span></th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng ra<br /><span class="font-semibold text-[10px]">(Weight out)</span></th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng hàng<br /><span class="font-semibold text-[10px]">(N.Weight)</span></th>
-                            <th class="py-2.5 px-2 text-center border-r border-slate-300">Nhập/ Xuất</th>
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân vào</th>
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân ra</th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">Cân Nhà Máy</th>
@@ -1755,7 +1754,6 @@ async function handleDownloadZaloImage() {
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-purple-700 font-black">{{ formatKg(t.netWeight) }}</td>
-                            <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || '-' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>
                             <td class="py-2 px-2 text-right">
@@ -1816,7 +1814,7 @@ async function handleDownloadZaloImage() {
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalGrossTons) }}</td>
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalTareTons) }}</td>
                             <td class="py-2.5 px-2 text-right font-mono text-purple-800 border-r border-slate-300">{{ formatKg(detailTotalTons) }}</td>
-                            <td colspan="3" class="py-2.5 px-2 border-r border-slate-300"></td>
+                            <td colspan="2" class="py-2.5 px-2 border-r border-slate-300"></td>
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalFactoryTons) }}</td>
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300" :class="detailTotalDiffTons < 0 ? 'text-rose-600' : 'text-teal-700'">
                                 {{ formatKg(detailTotalDiffTons) }}
