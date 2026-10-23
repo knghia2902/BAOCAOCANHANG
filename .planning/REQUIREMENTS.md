@@ -78,6 +78,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **INV-04**: Hiển thị bảng tổng hợp `FINAL` cộng dồn lịch sử xuyên suốt theo từng Kho (không reset khi đổi khách hàng) kèm tính năng chụp/copy ảnh bảng tổng hợp nhanh để gửi qua Zalo mỗi buổi sáng.
 - [x] **INV-05**: Xuất file Excel Báo cáo Tồn kho chuẩn mẫu khách hàng (gồm các sheet `IMPORT`, `EXPORT`, `FINAL`, `ĐI THẲNG`, `Data`) giữ nguyên công thức `SUMIFS`/`SUMIF` và công thức cộng dồn tồn cuối kỳ.
 
+### Standardized Weighbridge Template & Vessel Master Data (WBTPL)
+
+- [ ] **WBTPL-01**: Chuẩn hóa 1 mẫu phiếu cân toàn cảng duy nhất được cấu hình trực tiếp tại thanh công cụ của màn hình "Báo cáo cân hàng" (Báo cáo tổng quan), loại bỏ việc lưu và chỉnh sửa layout riêng rẽ tại từng sà lan. Mọi điều chỉnh layout áp dụng đồng bộ ngay lập tức cho toàn bộ sà lan.
+- [ ] **WBTPL-02**: Quản lý Master Data (bảng danh mục chuẩn) gồm 3 trường thông tin: Tên khách hàng, Loại hàng, và Mã hàng.
+- [ ] **WBTPL-03**: Form tạo/sửa Nguồn tàu (Vessel) cung cấp bảng chọn 3 thông tin từ Master Data. Tất cả sà lan thuộc nguồn tàu bắt buộc thừa kế 100% dữ liệu này (khóa sửa tại sà lan). Cấp sà lan chỉ nhập liệu các thông tin động thực tế (số phiếu, danh sách xe, kết luận phẩm cấp).
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -127,13 +133,16 @@ Which phases cover which requirements.
 | INV-03 | Phase 20 | Complete |
 | INV-04 | Phase 20 | Complete |
 | INV-05 | Phase 20 | Complete |
+| WBTPL-01 | Phase 21 | Pending |
+| WBTPL-02 | Phase 21 | Pending |
+| WBTPL-03 | Phase 21 | Pending |
 
 **Coverage:**
-- v1.1 / v1.2 requirements: 33 total
-- Mapped to phases: 33
+- v1.1 / v1.2 requirements: 36 total
+- Mapped to phases: 36
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-10-21 after Phase 20 exploration*
+*Last updated: 2026-10-23 after Standardized Weighbridge Template exploration*
