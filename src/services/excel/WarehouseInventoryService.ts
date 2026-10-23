@@ -18,7 +18,40 @@ const LOCAL_CONFIGS_KEY = 'warehouse_configs';
 const LOCAL_VEHICLES_KEY = 'warehouse_vehicles';
 
 function round2(n: number): number {
-    return Math.round((Number(n) || 0) * 100) / 100;
+    return Math.round((Number(n) || 0) * 1000) / 1000;
+}
+
+function extractTrailingRowNum(id: string): number | null {
+    const m = (id || '').match(/_(\d+)$/);
+    if (!m) return null;
+    const n = parseInt(m[1]!, 10);
+    return isNaN(n) ? null : n;
+}
+
+function compareTicketsOrder(a: WarehouseInventoryTicket, b: WarehouseInventoryTicket): number {
+    const rA = extractTrailingRowNum(a.id);
+    const rB = extractTrailingRowNum(b.id);
+    if (rA !== null && rB !== null && a.flowType === b.flowType && a.warehouseId === b.warehouseId && rA !== rB) {
+        return rA - rB;
+    }
+    if (a.reportDate !== b.reportDate) {
+        return (a.reportDate || '').localeCompare(b.reportDate || '');
+    }
+    if (rA !== null && rB !== null && rA !== rB) {
+        return rA - rB;
+    }
+    const shiftTimeKey = (tStr: string | undefined): string => {
+        if (!tStr) return '99:99:99';
+        const hh = parseInt(tStr.split(':')[0] || '0', 10);
+        if (!isNaN(hh) && hh >= 0 && hh < 6) {
+            return `${String(hh + 24).padStart(2, '0')}:${tStr.slice(tStr.indexOf(':') + 1)}`;
+        }
+        return tStr;
+    };
+    const tA = shiftTimeKey(a.weighOutTime);
+    const tB = shiftTimeKey(b.weighOutTime);
+    if (tA !== tB) return tA.localeCompare(tB);
+    return (a.soPhieu || '').localeCompare(b.soPhieu || '');
 }
 
 function stripAccents(str: string): string {
@@ -233,7 +266,7 @@ export function getTicketCustomerGroup(
     const custKho123 = stripAccents(configs?.['KHO 1']?.currentCustomer || 'GO BINH DINH').toUpperCase().trim();
 
     if (custClean) {
-        if (custClean.includes('EASTWOOD') || custClean.includes('EW') || (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean)))) {
+        if (custClean.includes('EASTWOOD') || custClean.includes('EAST WOOD') || custClean.includes('BACH KHOA') || custClean.includes('EW') || (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean)))) {
             return 'KHO_4';
         }
         if (custClean.includes('BINH DINH') || custClean.includes('GBD') || (custKho123 && (custClean.includes(custKho123) || custKho123.includes(custClean)))) {
@@ -514,11 +547,10 @@ export function computeWarehouseFinalTable(
     Object.keys(config.dailyRemarks || {}).forEach(d => {
         if (d) dateSet.add(d);
     });
-    // Include direct ticket dates only if warehouse already has activity or matching customer
-    if (whTickets.length > 0) {
-        const minWhDate = whTickets.map(t => t.reportDate).sort()[0] || '';
+    // Include direct ticket dates whenever warehouse or direct tickets have activity
+    if (whTickets.length > 0 || directTickets.length > 0) {
         directTickets.forEach(t => {
-            if (t.reportDate && (!minWhDate || t.reportDate >= minWhDate)) {
+            if (t.reportDate) {
                 dateSet.add(t.reportDate);
             }
         });
@@ -1089,10 +1121,7 @@ export const WarehouseInventoryService = {
                     const mergedMap = new Map<string, WarehouseInventoryTicket>();
                     for (const t of local) mergedMap.set(t.id, t);
                     for (const t of allRemote) mergedMap.set(t.id, t);
-                    const mergedList = Array.from(mergedMap.values()).sort((a, b) => {
-                        if (a.reportDate !== b.reportDate) return a.reportDate.localeCompare(b.reportDate);
-                        return (a.weighOutTime || '').localeCompare(b.weighOutTime || '');
-                    });
+                    const mergedList = Array.from(mergedMap.values()).sort(compareTicketsOrder);
                     await dbContext.set(LOCAL_TICKETS_KEY, mergedList);
                     return mergedList;
                 }
@@ -1104,15 +1133,13 @@ export const WarehouseInventoryService = {
         if (dedicatedTablesMissing && local.length === 0) {
             const fb = await loadFallbackStateFromContentSettings();
             if (fb?.tickets && Array.isArray(fb.tickets) && fb.tickets.length > 0) {
-                await dbContext.set(LOCAL_TICKETS_KEY, fb.tickets);
-                return fb.tickets;
+                const sortedFb = [...fb.tickets].sort(compareTicketsOrder);
+                await dbContext.set(LOCAL_TICKETS_KEY, sortedFb);
+                return sortedFb;
             }
         }
 
-        return local.sort((a, b) => {
-            if (a.reportDate !== b.reportDate) return a.reportDate.localeCompare(b.reportDate);
-            return (a.weighOutTime || '').localeCompare(b.weighOutTime || '');
-        });
+        return local.sort(compareTicketsOrder);
     },
 
     async saveTicketsBulk(tickets: WarehouseInventoryTicket[]): Promise<number> {
@@ -1122,10 +1149,7 @@ export const WarehouseInventoryService = {
         for (const t of current) map.set(t.id, t);
         for (const t of tickets) map.set(t.id, t);
 
-        const merged = Array.from(map.values()).sort((a, b) => {
-            if (a.reportDate !== b.reportDate) return a.reportDate.localeCompare(b.reportDate);
-            return (a.weighOutTime || '').localeCompare(b.weighOutTime || '');
-        });
+        const merged = Array.from(map.values()).sort(compareTicketsOrder);
 
         await dbContext.set(LOCAL_TICKETS_KEY, merged);
 
@@ -1510,11 +1534,15 @@ export const WarehouseInventoryService = {
                 if (!cell) return '';
                 let val = cell.value;
                 if (val && typeof val === 'object') {
-                    if ('result' in val) val = val.result;
-                    else if ('richText' in val && Array.isArray(val.richText)) {
+                    if ('result' in val) {
+                        val = val.result;
+                        if (val && typeof val === 'object' && 'error' in val) return '';
+                    } else if ('richText' in val && Array.isArray(val.richText)) {
                         val = val.richText.map((rt: any) => rt.text || '').join('');
                     } else if ('text' in val) {
                         val = val.text;
+                    } else if ('formula' in val || 'sharedFormula' in val || 'error' in val) {
+                        return '';
                     }
                 }
                 return val ?? '';
@@ -1533,13 +1561,37 @@ export const WarehouseInventoryService = {
                     : '';
 
             // 1. Parse `Data` sheet (Vehicle -> Carrier lookup)
+            // Template files have Row 3 header: Col 2 = STT, Col 3 = SỐ XE, Col 4 = CÔNG TY
+            // Web-exported files have Row 1 header: Col 1 = SO XE, Col 2 = NHÀ XE
             const dataSheet = workbook.worksheets.find(ws => stripAccents(ws.name).toUpperCase().trim() === 'DATA');
             const learnedVehicles: WarehouseVehicleMap[] = [];
             if (dataSheet) {
-                dataSheet.eachRow((row, rowNumber) => {
-                    if (rowNumber === 1) return;
-                    const plate = String(getCellPrimitive(row.getCell(1)) || '').trim();
-                    const carrier = String(getCellPrimitive(row.getCell(2)) || '').trim();
+                let plateCol = 1;
+                let carrierCol = 2;
+                let dataStartRow = 2;
+                for (let r = 1; r <= Math.min(8, dataSheet.rowCount); r++) {
+                    const row = dataSheet.getRow(r);
+                    for (let c = 1; c <= Math.min(10, row.cellCount); c++) {
+                        const txt = stripAccents(String(getCellPrimitive(row.getCell(c)) || '')).toUpperCase().trim();
+                        if (txt.includes('SO XE') || txt.includes('BIEN SO')) {
+                            plateCol = c;
+                            carrierCol = c + 1;
+                            dataStartRow = r + 1;
+                            for (let c2 = c + 1; c2 <= Math.min(10, row.cellCount); c2++) {
+                                const txt2 = stripAccents(String(getCellPrimitive(row.getCell(c2)) || '')).toUpperCase().trim();
+                                if (txt2.includes('CONG TY') || txt2.includes('NHA XE') || txt2.includes('DON VI')) {
+                                    carrierCol = c2;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                for (let r = dataStartRow; r <= dataSheet.rowCount; r++) {
+                    const row = dataSheet.getRow(r);
+                    const plate = String(getCellPrimitive(row.getCell(plateCol)) || '').trim();
+                    const carrier = String(getCellPrimitive(row.getCell(carrierCol)) || '').trim();
                     if (plate && carrier && !stripAccents(plate).toUpperCase().includes('SO XE')) {
                         learnedVehicles.push({
                             vehiclePlate: normalizePlateKey(plate),
@@ -1547,7 +1599,7 @@ export const WarehouseInventoryService = {
                             carrierName: carrier
                         });
                     }
-                });
+                }
             }
             if (learnedVehicles.length > 0) {
                 summary.vehiclesLearnedCount = await this.saveVehiclesBulk(learnedVehicles);
@@ -1555,6 +1607,7 @@ export const WarehouseInventoryService = {
 
             const vehicleMap = await this.getVehicles();
             const allTickets: WarehouseInventoryTicket[] = [];
+            let sheetLevelCustomer = inferredFileCustomer;
 
             // 2. Parse IMPORT, EXPORT, and XÁ THẲNG sheets
             for (const sheet of workbook.worksheets) {
@@ -1575,15 +1628,35 @@ export const WarehouseInventoryService = {
 
                 if (sheetWh) updatedWhSet.add(sheetWh);
 
-                // Find header row (usually row 4 or 5 containing STT, NGÀY, SỐ PHIẾU, SỐ XE)
-                let headerRowNum = 5;
+                // Extract customer from rows 2..5 if present (e.g. "Khách hàng\n(Customer):" -> "BÁCH KHOA" or "EASTWOOD")
+                for (let r = 1; r <= Math.min(6, sheet.rowCount); r++) {
+                    const row = sheet.getRow(r);
+                    for (let c = 1; c <= Math.min(12, row.cellCount); c++) {
+                        const cellTxt = stripAccents(String(getCellPrimitive(row.getCell(c)) || '')).toUpperCase();
+                        if (cellTxt.includes('KHACH HANG') || cellTxt.includes('CUSTOMER')) {
+                            for (let cNext = c + 1; cNext <= Math.min(c + 4, row.cellCount); cNext++) {
+                                const nextVal = sanitizeCustomerName(getCellPrimitive(row.getCell(cNext)), '');
+                                if (nextVal && !stripAccents(nextVal).toUpperCase().includes(' LOAI HANG')) {
+                                    sheetLevelCustomer = nextVal;
+                                    if (sheetWh && configs[sheetWh]) {
+                                        configs[sheetWh].currentCustomer = nextVal;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Find header row (usually row 5 or 6 containing STT, NGÀY, SỐ PHIẾU, SỐ XE)
+                let headerRowNum = 6;
                 for (let r = 1; r <= Math.min(12, sheet.rowCount); r++) {
                     const row = sheet.getRow(r);
                     let rowText = '';
-                    for (let c = 1; c <= Math.min(15, row.cellCount); c++) {
+                    for (let c = 1; c <= Math.min(16, row.cellCount); c++) {
                         rowText += ' ' + stripAccents(String(getCellPrimitive(row.getCell(c)))).toUpperCase();
                     }
-                    if (rowText.includes('SO PHIEU') && (rowText.includes('SO XE') || rowText.includes('TL HANG'))) {
+                    if (rowText.includes('SO PHIEU') && (rowText.includes('SO XE') || rowText.includes('TL HANG') || rowText.includes('LUONG HANG'))) {
                         headerRowNum = r;
                         break;
                     }
@@ -1603,11 +1676,34 @@ export const WarehouseInventoryService = {
                     return fallback;
                 };
 
-                const colDate = findColIdx(h => h.includes('NGAY'), 2);
+                const colDate = findColIdx(h => h.includes('NGAY') && !h.includes('CAN VAO') && !h.includes('CAN RA'), 2);
                 const colTicketNo = findColIdx(h => h.includes('PHIEU') && !h.includes('KL'), 3);
                 const colPlate = findColIdx(h => h.includes('SO XE') || h.includes('BIEN SO'), 4);
-                const colCarrier = findColIdx(h => h.includes('NHA XE') || h.includes('DON VI'), 5);
-                const colWeight = findColIdx(h => h.includes('TL HANG') || h.includes('KL HANG') || h.includes('TRONG LUONG'), 6);
+                const colCarrier = findColIdx(h => h.includes('NHA XE') || h.includes('DON VI') || h.includes('CONG TY'), -1);
+                // Net weight: "T.Lượng hàng (N.Weight)" (template) or "TL HÀNG" (legacy web export)
+                const colWeight = findColIdx(h =>
+                    h.includes('LUONG HANG') ||
+                    h.includes('N.WEIGHT') ||
+                    h.includes('TL HANG') ||
+                    h.includes('KL HANG') ||
+                    (h.includes('TRONG LUONG') && !h.includes('VAO') && !h.includes('RA')),
+                7);
+                const colGross = findColIdx(h => h.includes('LUONG VAO') || h.includes('WEIGHT IN') || h.includes('TL VAO'), -1);
+                const colTare = findColIdx(h => h.includes('LUONG RA') || h.includes('WEIGHT OUT') || h.includes('TL RA'), -1);
+                const colTimeIn = findColIdx(h => h.includes('CAN VAO') || h.includes('GIO VAO'), -1);
+                const colTimeOut = findColIdx(h => h.includes('CAN RA') || h.includes('GIO RA'), -1);
+                const colTimeGeneric = findColIdx(h => h.includes('GIO'), -1);
+                const colFactory = findColIdx(h => h.includes('NHA MAY') || h.includes('KL PHIEU') || h.includes('PHIEU CAN'), -1);
+                const colRemark1 = findColIdx(h => (h.includes('GHI CHU') && !h.includes('2')) || h.includes('NGUON'), -1);
+                const colRemark2 = findColIdx(h => h.includes('GHI CHU 2'), -1);
+                const colPlace = findColIdx(h => h.includes('NOI NHAN'), -1);
+
+                const cellAt = (row: any, idx: number): any => (idx >= 1 ? getCellPrimitive(row.getCell(idx)) : '');
+                const weightAt = (row: any, idx: number): number => {
+                    const v = cellAt(row, idx);
+                    if (v === '' || v === null || v instanceof Date || typeof v === 'object') return 0;
+                    return normalizeWeightToTons(v);
+                };
 
                 for (let r = headerRowNum + 1; r <= sheet.rowCount; r++) {
                     const row = sheet.getRow(r);
@@ -1620,22 +1716,30 @@ export const WarehouseInventoryService = {
                     if (!reportDate || !rawPlateVal || netWeight <= 0) continue;
 
                     const soPhieu = String(getCellPrimitive(row.getCell(colTicketNo)) || '').trim();
-                    let carrierName = String(getCellPrimitive(row.getCell(colCarrier)) || '').trim();
-                    if (!carrierName || carrierName === '0') {
+                    let carrierName = colCarrier >= 1
+                        ? String(getCellPrimitive(row.getCell(colCarrier)) || '').trim()
+                        : '';
+                    if ((!carrierName || carrierName === '0') && isImportSheet && colHeaders.length <= 14) {
+                        // In standard 14-column IMPORT sheet, Col 14 holds VLOOKUP carrier even if Row 6 header cell 14 is blank
+                        const col14Val = String(getCellPrimitive(row.getCell(14)) || '').trim();
+                        if (col14Val && col14Val !== '0' && !/^\d+(\.\d+)?$/.test(col14Val)) {
+                            carrierName = col14Val;
+                        }
+                    }
+                    if (!carrierName || carrierName === '0' || /^\d+(\.\d+)?$/.test(carrierName)) {
                         carrierName = lookupCarrierName(rawPlateVal, vehicleMap);
                     }
 
-                    if (isImportSheet && sheetWh) {
-                        const colTime = findColIdx(h => h.includes('GIO'), 7);
-                        const colRemark = findColIdx(h => h.includes('GHI CHU') || h.includes('NGUON'), 8);
-                        const colFactoryWeight = findColIdx(h => h.includes('KL PHIEU') || h.includes('PHIEU CAN'), 9);
+                    const grossWeight = weightAt(row, colGross);
+                    const tareWeight = weightAt(row, colTare);
+                    const weighInTime = parseToTimeStr(cellAt(row, colTimeIn));
+                    const weighOutTimeAny = parseToTimeStr(cellAt(row, colTimeOut)) || parseToTimeStr(cellAt(row, colTimeGeneric));
 
-                        const weighOutTime = parseToTimeStr(getCellPrimitive(row.getCell(colTime)));
-                        const sourceOrRemark = String(getCellPrimitive(row.getCell(colRemark)) || '').trim();
-                        const fwRaw = getCellPrimitive(row.getCell(colFactoryWeight));
-                        const factoryWeight = fwRaw !== '' && fwRaw !== null && Number(fwRaw) > 0
-                            ? normalizeWeightToTons(fwRaw)
-                            : null;
+                    if (isImportSheet && sheetWh) {
+                        const sourceOrRemark = String(cellAt(row, colRemark1) || '').trim();
+                        const remark2 = String(cellAt(row, colRemark2) || '').trim();
+                        const fw = weightAt(row, colFactory);
+                        const factoryWeight = fw > 0 ? fw : null;
 
                         // Note: In historical Excel sheets, the NGÀY column is ALREADY the 6:00 AM shift-adjusted reportDate!
                         const id = `IMPORT_${sheetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
@@ -1645,36 +1749,35 @@ export const WarehouseInventoryService = {
                             maLenh: '',
                             reportDate,
                             weighInDate: reportDate,
-                            weighInTime: weighOutTime,
+                            weighInTime: weighInTime || weighOutTimeAny,
                             weighOutDate: reportDate,
-                            weighOutTime,
+                            weighOutTime: weighOutTimeAny,
                             flowType: 'IMPORT',
                             warehouseId: sheetWh,
-                            customerName: inferredFileCustomer || configs[sheetWh]?.currentCustomer || '',
+                            customerName: sheetLevelCustomer || configs[sheetWh]?.currentCustomer || '',
                             cargoType: 'Viên nén gỗ',
                             vehiclePlate: rawPlateVal,
                             carrierName,
-                            grossWeight: 0,
-                            tareWeight: 0,
+                            grossWeight,
+                            tareWeight,
                             netWeight,
                             factoryWeight,
                             bargeInfo: '',
                             vesselName: '',
                             sourceOrRemark,
-                            rawNote: ''
+                            rawNote: remark2
                         });
                         summary.importFlowCount++;
                     } else if (isExportSheet && sheetWh) {
-                        const colBarge = findColIdx(h => h.includes('SA LAN') || h.includes('SALAN'), 7);
-                        const colVessel = findColIdx(h => h === 'TAU' || h.includes('TEN TAU'), 8);
-                        const colTime = findColIdx(h => h.includes('GIO'), 9);
-                        const colCust = findColIdx(h => h.includes('KHACH'), 10);
+                        const colBarge = findColIdx(h => h.includes('SA LAN') || h.includes('SALAN'), -1);
+                        const colVessel = findColIdx(h => h === 'TAU' || h.includes('TEN TAU'), -1);
+                        const colCust = findColIdx(h => h.includes('KHACH'), -1);
 
-                        const bargeInfo = String(getCellPrimitive(row.getCell(colBarge)) || '').trim();
-                        const vesselName = String(getCellPrimitive(row.getCell(colVessel)) || '').trim();
-                        const weighOutTime = parseToTimeStr(getCellPrimitive(row.getCell(colTime)));
-                        const custVal = colCust > 0 ? sanitizeCustomerName(getCellPrimitive(row.getCell(colCust)), '') : '';
-                        const customerName = custVal || inferredFileCustomer || configs[sheetWh]?.currentCustomer || '';
+                        const bargeInfo = String(cellAt(row, colBarge) || cellAt(row, colRemark1) || '').trim();
+                        const vesselName = String(cellAt(row, colVessel) || '').trim();
+                        const weighOutTime = weighOutTimeAny;
+                        const custVal = colCust > 0 ? sanitizeCustomerName(cellAt(row, colCust), '') : '';
+                        const customerName = custVal || sheetLevelCustomer || configs[sheetWh]?.currentCustomer || '';
 
                         if (customerName && configs[sheetWh] && sanitizeCustomerName(customerName, '')) {
                             configs[sheetWh].currentCustomer = sanitizeCustomerName(customerName, configs[sheetWh].currentCustomer);
@@ -1687,7 +1790,7 @@ export const WarehouseInventoryService = {
                             maLenh: '',
                             reportDate,
                             weighInDate: reportDate,
-                            weighInTime: weighOutTime,
+                            weighInTime: weighInTime || weighOutTime,
                             weighOutDate: reportDate,
                             weighOutTime,
                             flowType: 'EXPORT',
@@ -1696,32 +1799,31 @@ export const WarehouseInventoryService = {
                             cargoType: 'Viên nén gỗ',
                             vehiclePlate: rawPlateVal,
                             carrierName,
-                            grossWeight: 0,
-                            tareWeight: 0,
+                            grossWeight,
+                            tareWeight,
                             netWeight,
                             factoryWeight: null,
                             bargeInfo,
                             vesselName,
-                            sourceOrRemark: sheetWh,
+                            sourceOrRemark: String(cellAt(row, colPlace) || sheetWh).trim(),
                             rawNote: ''
                         });
                         summary.exportFlowCount++;
                     } else if (isDirectSheet) {
-                        const colBarge = findColIdx(h => h.includes('SA LAN') || h.includes('SALAN'), 7);
-                        const colVessel = findColIdx(h => h === 'TAU' || h.includes('TEN TAU'), 8);
-                        const colTime = findColIdx(h => h.includes('GIO'), 9);
-                        const colRemark = findColIdx(h => h.includes('GHI CHU') || h.includes('NGUON'), 10);
+                        const colBarge = findColIdx(h => h.includes('SA LAN') || h.includes('SALAN'), -1);
+                        const colVessel = findColIdx(h => h === 'TAU' || h.includes('TEN TAU'), -1);
 
-                        const bargeInfo = String(getCellPrimitive(row.getCell(colBarge)) || '').trim();
-                        const vesselName = String(getCellPrimitive(row.getCell(colVessel)) || '').trim();
-                        const weighOutTime = parseToTimeStr(getCellPrimitive(row.getCell(colTime)));
-                        const sourceOrRemark = String(getCellPrimitive(row.getCell(colRemark)) || '').trim();
+                        // In ĐI THẲNG template, Col 13 is "Ghi chú" (containing barge info) and Col 14 is "Nơi nhận" (source factory)
+                        const bargeInfo = String(cellAt(row, colBarge) || cellAt(row, colRemark1) || '').trim();
+                        const vesselName = String(cellAt(row, colVessel) || '').trim();
+                        const weighOutTime = weighOutTimeAny;
+                        const sourceOrRemark = String(cellAt(row, colPlace) || cellAt(row, colRemark1) || '').trim();
 
-                        const isKho4File = defaultWh === 'KHO 4' || inferredFileCustomer === 'EASTWOOD' || fileNameClean.includes('EW') || fileNameClean.includes('KHO 4');
+                        const isKho4File = updatedWhSet.has('KHO 4') || defaultWh === 'KHO 4' || sheetLevelCustomer === 'EASTWOOD' || fileNameClean.includes('EW') || fileNameClean.includes('KHO 4');
                         const targetWh: WarehouseId = isKho4File ? 'KHO 4' : 'KHO 1';
                         const directCust = isKho4File
-                            ? sanitizeCustomerName(inferredFileCustomer, configs['KHO 4']?.currentCustomer || 'EASTWOOD')
-                            : sanitizeCustomerName(inferredFileCustomer, configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH');
+                            ? sanitizeCustomerName(sheetLevelCustomer, configs['KHO 4']?.currentCustomer || 'EASTWOOD')
+                            : sanitizeCustomerName(sheetLevelCustomer, configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH');
 
                         const id = `DIRECT_${targetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
                         allTickets.push({
@@ -1730,7 +1832,7 @@ export const WarehouseInventoryService = {
                             maLenh: '',
                             reportDate,
                             weighInDate: reportDate,
-                            weighInTime: weighOutTime,
+                            weighInTime: weighInTime || weighOutTime,
                             weighOutDate: reportDate,
                             weighOutTime,
                             flowType: 'DIRECT',
@@ -1739,10 +1841,10 @@ export const WarehouseInventoryService = {
                             cargoType: 'Viên nén gỗ',
                             vehiclePlate: rawPlateVal,
                             carrierName,
-                            grossWeight: 0,
-                            tareWeight: 0,
+                            grossWeight,
+                            tareWeight,
                             netWeight,
-                            factoryWeight: null,
+                            factoryWeight: weightAt(row, colFactory) || null,
                             bargeInfo,
                             vesselName,
                             sourceOrRemark,
@@ -1771,19 +1873,29 @@ export const WarehouseInventoryService = {
                 }
 
                 if (isThreeWhHorizontal) {
-                    const blocks: Array<{ wh: WarehouseId; dateCol: number; remarkCol: number }> = [
-                        { wh: 'KHO 1', dateCol: 1, remarkCol: 5 },
-                        { wh: 'KHO 2', dateCol: 7, remarkCol: 11 },
-                        { wh: 'KHO 3', dateCol: 13, remarkCol: 17 }
+                    const blocks: Array<{ wh: WarehouseId; dateCol: number; impCol: number; stockCol: number; remarkCol: number }> = [
+                        { wh: 'KHO 1', dateCol: 1, impCol: 2, stockCol: 4, remarkCol: 5 },
+                        { wh: 'KHO 2', dateCol: 7, impCol: 8, stockCol: 10, remarkCol: 11 },
+                        { wh: 'KHO 3', dateCol: 13, impCol: 14, stockCol: 16, remarkCol: 17 }
                     ];
                     for (const b of blocks) {
                         updatedWhSet.add(b.wh);
-                        if (inferredFileCustomer) configs[b.wh].currentCustomer = inferredFileCustomer;
+                        configs[b.wh].dailyRemarks = {};
+                        configs[b.wh].initialStock = 0;
+                        configs[b.wh].initialDate = '';
+                        if (sheetLevelCustomer) configs[b.wh].currentCustomer = sheetLevelCustomer;
                         for (let r = 5; r <= finalSheet.rowCount; r++) {
                             const row = finalSheet.getRow(r);
-                            const dIso = parseToIsoDate(getCellPrimitive(row.getCell(b.dateCol)));
+                            const rawDateCell = getCellPrimitive(row.getCell(b.dateCol));
+                            const rawDateStr = stripAccents(String(rawDateCell || '')).toUpperCase().trim();
+                            if (rawDateStr.includes('TON DAU')) {
+                                const openVal = normalizeWeightToTons(getCellPrimitive(row.getCell(b.stockCol)) || getCellPrimitive(row.getCell(b.impCol)));
+                                configs[b.wh].initialStock = openVal;
+                                continue;
+                            }
+                            const dIso = parseToIsoDate(rawDateCell);
                             const rem = String(getCellPrimitive(row.getCell(b.remarkCol)) || '').trim();
-                            if (dIso && rem) {
+                            if (dIso && rem && !/^\d+(\.\d+)?$/.test(rem)) {
                                 configs[b.wh].dailyRemarks[dIso] = rem;
                             }
                         }
@@ -1791,21 +1903,85 @@ export const WarehouseInventoryService = {
                 } else {
                     const fWh = normalizeWarehouseId(finalSheet.name) || defaultWh;
                     updatedWhSet.add(fWh);
-                    if (inferredFileCustomer) configs[fWh].currentCustomer = inferredFileCustomer;
+                    configs[fWh].dailyRemarks = {};
+                    configs[fWh].initialStock = 0;
+                    configs[fWh].initialDate = '';
+                    if (sheetLevelCustomer) configs[fWh].currentCustomer = sheetLevelCustomer;
 
-                    // Single-Warehouse FINAL (e.g. FINAL 4: Col B=Ngày, Col F=Tồn kho, Col G=Ghi chú)
-                    for (let r = 6; r <= finalSheet.rowCount; r++) {
+                    // Detect columns in Single-Warehouse FINAL:
+                    // Native template: Col 1=Ngày, Col 2=Trọng lượng nhập, Col 3=Trọng lượng xuất, Col 4=Tồn kho, Col 5=Đi thẳng, Col 6=Ghi chú
+                    // Web export: Col 1=STT, Col 2=Ngày, Col 3=Nhập, Col 4=Xuất, Col 5=Xá thẳng, Col 6=Tồn kho, Col 7=Ghi chú
+                    let fHeaderRow = 6;
+                    let dateCol = 1;
+                    let impCol = 2;
+                    let stockCol = 4;
+                    let remCol = 6;
+                    for (let r = 1; r <= Math.min(10, finalSheet.rowCount); r++) {
                         const row = finalSheet.getRow(r);
-                        const dIso = parseToIsoDate(getCellPrimitive(row.getCell(2)) || getCellPrimitive(row.getCell(1)));
-                        const rem = String(getCellPrimitive(row.getCell(7)) || getCellPrimitive(row.getCell(6)) || '').trim();
-                        if (dIso && rem && !/^\d+(\.\d+)?$/.test(rem)) {
+                        for (let c = 1; c <= Math.min(8, row.cellCount); c++) {
+                            const txt = stripAccents(String(getCellPrimitive(row.getCell(c)) || '')).toUpperCase().trim();
+                            if (txt === 'NGAY' || txt.startsWith('NGAY ') || txt.includes('(DATE)')) {
+                                fHeaderRow = r;
+                                dateCol = c;
+                            } else if (txt.includes('TON KHO') || txt.includes('REMAINING')) {
+                                stockCol = c;
+                            } else if (txt.includes('GHI CHU') || txt.includes('REMARK')) {
+                                remCol = c;
+                            } else if (txt.includes('NHAP') || txt.includes('IMPORT')) {
+                                impCol = c;
+                            }
+                        }
+                    }
+
+                    let checkedFirstDataRow = false;
+                    for (let r = fHeaderRow + 1; r <= finalSheet.rowCount; r++) {
+                        const row = finalSheet.getRow(r);
+                        const rawDateCell = getCellPrimitive(row.getCell(dateCol));
+                        const rawDateStr = stripAccents(String(rawDateCell || '')).toUpperCase().trim();
+
+                        if (rawDateStr.includes('TON DAU')) {
+                            const openVal = normalizeWeightToTons(getCellPrimitive(row.getCell(stockCol)) || getCellPrimitive(row.getCell(impCol)));
+                            configs[fWh].initialStock = openVal;
+                            continue;
+                        }
+                        if (rawDateStr.includes('TONG CONG') || rawDateStr.includes('TOTAL')) {
+                            break;
+                        }
+
+                        const dIso = parseToIsoDate(rawDateCell);
+                        if (!dIso) continue;
+
+                        const rem = String(getCellPrimitive(row.getCell(remCol)) || '').trim();
+                        if (rem && !/^\d+(\.\d+)?$/.test(rem)) {
                             configs[fWh].dailyRemarks[dIso] = rem;
+                        }
+
+                        // Detect opening stock row on first date row (e.g. 26/12/2025 in EW Kho 4 where Col 2 is a literal number 17,652,550 with remark "Tồn kho đến 26/12/2025")
+                        if (!checkedFirstDataRow) {
+                            checkedFirstDataRow = true;
+                            const impCellRaw = row.getCell(impCol)?.value;
+                            const isLiteralNumber = typeof impCellRaw === 'number' && impCellRaw > 0;
+                            const remClean = stripAccents(rem).toUpperCase();
+                            const hasImportTicketsOnDate = allTickets.some(
+                                t => t.warehouseId === fWh && t.flowType === 'IMPORT' && t.reportDate === dIso
+                            );
+                            if (isLiteralNumber && (!hasImportTicketsOnDate || remClean.includes('TON KHO DEN') || remClean.includes('THEO BAO CAO'))) {
+                                configs[fWh].initialStock = normalizeWeightToTons(impCellRaw);
+                                configs[fWh].initialDate = dIso;
+                            }
                         }
                     }
                 }
             }
 
+            // Clear previous tickets for the imported warehouse group before saving fresh historical workbook tickets
             if (allTickets.length > 0) {
+                if (updatedWhSet.has('KHO 4') && updatedWhSet.size === 1) {
+                    await this.clearWarehouseTickets('KHO 4');
+                    await this.clearWarehouseTickets('DIRECT_KHO4');
+                } else if (updatedWhSet.has('KHO 1') || updatedWhSet.has('KHO 2') || updatedWhSet.has('KHO 3')) {
+                    await this.clearWarehouseTickets('GROUP_KHO123');
+                }
                 await this.saveTicketsBulk(allTickets);
                 summary.importedCount = allTickets.length;
             }
@@ -2000,31 +2176,46 @@ export const WarehouseInventoryService = {
             right: { style: 'thin', color: { argb: 'FFBFBFBF' } }
         };
 
-        sheet.getCell('A2').value = `THEO DÕI NHẬP KHO HÀNG VIÊN NÉN GỖ - ${warehouseId} (${customerName || ''})`;
+        sheet.getCell('A2').value = `BẢNG KÊ TRỌNG LƯỢNG HÀNG NHẬP (WEIGHT LIST OF IMPORT CARGO) - ${warehouseId}`;
         sheet.getCell('A2').font = { name: 'Times New Roman', size: 13, bold: true };
+        sheet.getCell('C4').value = 'Khách hàng\n(Customer):';
+        sheet.getCell('C4').font = { name: 'Times New Roman', size: 11, bold: true };
+        sheet.getCell('E4').value = customerName || '';
+        sheet.getCell('E4').font = { name: 'Times New Roman', size: 11, bold: true };
+        sheet.getCell('I4').value = 'Loại hàng (Cargo):';
+        sheet.getCell('I4').font = { name: 'Times New Roman', size: 11, bold: true };
+        sheet.getCell('J4').value = 'Viên nén gỗ (Wood pellets)';
+        sheet.getCell('J4').font = { name: 'Times New Roman', size: 11, bold: true };
 
-        const lastRow = Math.max(6, tickets.length + 5);
-        const totalTons = round2(tickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
-        sheet.getCell('D4').value = { formula: `SUBTOTAL(3,D6:D${lastRow})`, result: tickets.length };
-        sheet.getCell('F4').value = { formula: `SUBTOTAL(9,F6:F${lastRow})`, result: totalTons };
-        sheet.getCell('D4').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('F4').font = { name: 'Times New Roman', size: 11, bold: true };
-        sheet.getCell('F4').numFmt = '#,##0.00';
-
-        const headers = ['STT', 'NGÀY', 'SỐ PHIẾU', 'SỐ XE', 'NHÀ XE', 'TL HÀNG', 'GIỜ CÂN', 'GHI CHÚ', 'KL PHIẾU', 'CHÊNH LỆCH'];
-        const hRow = sheet.getRow(5);
+        const headers = [
+            'STT (No)',
+            'Ngày nhập\nDate',
+            'Số phiếu (Serial)',
+            'Số xe (Truck no)',
+            'T.Lượng vào (Weight in)',
+            'T.Lượng ra (Weight out)',
+            'T.Lượng hàng (N.Weight)',
+            'Ngày cân vào',
+            'Ngày cân ra',
+            'Cân Nhà Máy',
+            'Chênh lệch',
+            'Ghi chú',
+            'Ghi chú 2',
+            'Nhà xe'
+        ];
+        const hRow = sheet.getRow(6);
         headers.forEach((h, i) => {
             const cell = hRow.getCell(i + 1);
             cell.value = h;
             cell.font = { name: 'Times New Roman', size: 11, bold: true };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
             cell.border = thinBorder;
         });
-        hRow.height = 22;
+        hRow.height = 28;
 
         tickets.forEach((t, idx) => {
-            const rNum = idx + 6;
+            const rNum = idx + 7;
             const row = sheet.getRow(rNum);
             const dtParts = (t.reportDate || '').split('-').map(Number);
             const excelDate = dtParts.length === 3
@@ -2036,33 +2227,67 @@ export const WarehouseInventoryService = {
             row.getCell(2).numFmt = 'dd/mm/yyyy';
             row.getCell(3).value = t.soPhieu;
             row.getCell(4).value = t.vehiclePlate;
-            row.getCell(5).value = {
+            row.getCell(5).value = round2(t.grossWeight || 0);
+            row.getCell(5).numFmt = '#,##0.00';
+            row.getCell(6).value = round2(t.tareWeight || 0);
+            row.getCell(6).numFmt = '#,##0.00';
+            row.getCell(7).value = round2(t.netWeight);
+            row.getCell(7).numFmt = '#,##0.00';
+            row.getCell(8).value = t.weighInTime || '';
+            row.getCell(9).value = t.weighOutTime || '';
+            if (t.factoryWeight != null && t.factoryWeight > 0) {
+                row.getCell(10).value = round2(t.factoryWeight);
+                row.getCell(10).numFmt = '#,##0.00';
+                row.getCell(11).value = {
+                    formula: `G${rNum}-J${rNum}`,
+                    result: round2(t.netWeight - t.factoryWeight)
+                };
+                row.getCell(11).numFmt = '#,##0.00';
+            }
+            row.getCell(12).value = t.sourceOrRemark || '';
+            row.getCell(13).value = t.rawNote || '';
+            row.getCell(14).value = {
                 formula: `IFERROR(VLOOKUP(D${rNum},Data!$A$2:$B$500,2,0),"")`,
                 result: t.carrierName || ''
             };
-            row.getCell(6).value = round2(t.netWeight);
-            row.getCell(6).numFmt = '#,##0.00';
-            row.getCell(7).value = t.weighOutTime || '';
-            row.getCell(8).value = t.sourceOrRemark || '';
-            if (t.factoryWeight != null && t.factoryWeight > 0) {
-                row.getCell(9).value = round2(t.factoryWeight);
-                row.getCell(9).numFmt = '#,##0.00';
-                row.getCell(10).value = {
-                    formula: `F${rNum}-I${rNum}`,
-                    result: round2(t.netWeight - t.factoryWeight)
-                };
-                row.getCell(10).numFmt = '#,##0.00';
-            }
 
-            for (let c = 1; c <= 10; c++) {
+            for (let c = 1; c <= 14; c++) {
                 row.getCell(c).font = { name: 'Times New Roman', size: 11 };
                 row.getCell(c).border = thinBorder;
             }
         });
 
+        const lastDataRow = Math.max(7, tickets.length + 6);
+        const totalRowNum = tickets.length + 7;
+        const totalRow = sheet.getRow(totalRowNum);
+        const totalGross = round2(tickets.reduce((s, t) => s + (Number(t.grossWeight) || 0), 0));
+        const totalTare = round2(tickets.reduce((s, t) => s + (Number(t.tareWeight) || 0), 0));
+        const totalNet = round2(tickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
+        const totalFactory = round2(tickets.reduce((s, t) => s + (Number(t.factoryWeight) || 0), 0));
+        const totalDiff = round2(
+            tickets.reduce((s, t) => s + (t.factoryWeight != null && t.factoryWeight > 0 ? (Number(t.netWeight) || 0) - Number(t.factoryWeight) : 0), 0)
+        );
+
+        totalRow.getCell(1).value = 'Tổng cộng (Total):';
+        totalRow.getCell(5).value = { formula: `SUBTOTAL(9,E7:E${lastDataRow})`, result: totalGross };
+        totalRow.getCell(6).value = { formula: `SUBTOTAL(9,F7:F${lastDataRow})`, result: totalTare };
+        totalRow.getCell(7).value = { formula: `SUBTOTAL(9,G7:G${lastDataRow})`, result: totalNet };
+        totalRow.getCell(10).value = { formula: `SUBTOTAL(9,J7:J${lastDataRow})`, result: totalFactory };
+        totalRow.getCell(11).value = { formula: `SUBTOTAL(9,K7:K${lastDataRow})`, result: totalDiff };
+
+        for (let c = 1; c <= 14; c++) {
+            const cell = totalRow.getCell(c);
+            cell.font = { name: 'Times New Roman', size: 11, bold: true };
+            cell.border = thinBorder;
+            if ((c >= 5 && c <= 7) || c === 10 || c === 11) {
+                cell.numFmt = '#,##0.00';
+            }
+        }
+
         sheet.columns = [
-            { width: 7 }, { width: 13 }, { width: 13 }, { width: 18 }, { width: 16 },
-            { width: 13 }, { width: 12 }, { width: 18 }, { width: 12 }, { width: 13 }
+            { width: 9 }, { width: 13 }, { width: 15 }, { width: 18 }, { width: 16 },
+            { width: 16 }, { width: 16 }, { width: 13 }, { width: 13 }, { width: 14 },
+            { width: 13 }, { width: 18 }, { width: 14 }, { width: 16 }
         ];
     },
 
@@ -2260,7 +2485,7 @@ export const WarehouseInventoryService = {
             row.getCell(2).value = excelDate;
             row.getCell(2).numFmt = 'dd/mm/yyyy';
             row.getCell(3).value = {
-                formula: `SUMIFS('${importSheetName}'!$F$6:$F$50000,'${importSheetName}'!$B$6:$B$50000,B${rNum})`,
+                formula: `SUMIFS('${importSheetName}'!$G$7:$G$50000,'${importSheetName}'!$B$7:$B$50000,B${rNum})`,
                 result: round2(r.importTons)
             };
             row.getCell(3).numFmt = '#,##0.00';
@@ -2398,7 +2623,7 @@ export const WarehouseInventoryService = {
                 row.getCell(cDate).numFmt = 'dd/mm/yyyy';
 
                 row.getCell(cImp).value = {
-                    formula: `SUMIF('${b.importSheet}'!$B$6:$B$50000,${lDate}${rNum},'${b.importSheet}'!$F$6:$F$50000)`,
+                    formula: `SUMIF('${b.importSheet}'!$B$7:$B$50000,${lDate}${rNum},'${b.importSheet}'!$G$7:$G$50000)`,
                     result: round2(r.importTons)
                 };
                 row.getCell(cImp).numFmt = '#,##0.00';

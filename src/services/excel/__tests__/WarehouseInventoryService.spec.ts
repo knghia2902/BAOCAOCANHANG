@@ -370,6 +370,25 @@ describe('WarehouseInventoryService', () => {
             const sheetNames = wb.worksheets.map(s => s.name);
             expect(sheetNames).toEqual(['IMPORT 4', 'EXPORT 4', 'FINAL 4', 'XÁ THẲNG', 'Data']);
 
+            const importSheet = wb.getWorksheet('IMPORT 4')!;
+            const row6Headers = Array.from({ length: 14 }, (_, i) => String(importSheet.getRow(6).getCell(i + 1).value || ''));
+            expect(row6Headers).toEqual([
+                'STT (No)',
+                'Ngày nhập\nDate',
+                'Số phiếu (Serial)',
+                'Số xe (Truck no)',
+                'T.Lượng vào (Weight in)',
+                'T.Lượng ra (Weight out)',
+                'T.Lượng hàng (N.Weight)',
+                'Ngày cân vào',
+                'Ngày cân ra',
+                'Cân Nhà Máy',
+                'Chênh lệch',
+                'Ghi chú',
+                'Ghi chú 2',
+                'Nhà xe'
+            ]);
+
             const finalSheet = wb.getWorksheet('FINAL 4')!;
             const row9ImportCell = finalSheet.getRow(9).getCell(3).value as any;
             const row9StockCell = finalSheet.getRow(9).getCell(6).value as any;
