@@ -23,7 +23,7 @@ const emit = defineEmits<{
 const { addToast } = useToast();
 
 type ViewWarehouseMode = WarehouseId | 'COMBINED_123';
-type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT' | 'DATA';
+type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('FINAL');
@@ -120,12 +120,6 @@ async function saveCustomerNameModal() {
 const activeCustomerGroup = computed<'KHO_4' | 'KHO_123'>(() => {
     return selectedWarehouseMode.value === 'KHO 4' ? 'KHO_4' : 'KHO_123';
 });
-
-// Vehicle Data tab states
-const newVehiclePlate = ref('');
-const newVehicleCarrier = ref('');
-const bulkVehiclePasteText = ref('');
-const showBulkPasteBox = ref(false);
 
 // File inputs
 const csvFileInput = ref<HTMLInputElement | null>(null);
@@ -236,18 +230,6 @@ const detailTotalDiffTons = computed(() => {
     return filteredDetailTickets.value.reduce(
         (s, t) => s + (t.factoryWeight ? (Number(t.netWeight) || 0) - Number(t.factoryWeight) : 0),
         0
-    );
-});
-
-const vehiclesList = computed(() => {
-    const q = detailSearchQuery.value.trim().toLowerCase();
-    const arr = Object.values(vehiclesMap.value).sort((a, b) =>
-        a.displayPlate.localeCompare(b.displayPlate)
-    );
-    if (!q) return arr;
-    return arr.filter(v =>
-        v.displayPlate.toLowerCase().includes(q) ||
-        v.carrierName.toLowerCase().includes(q)
     );
 });
 
@@ -446,64 +428,6 @@ async function handleBatchAssignVessel() {
     }
     await WarehouseInventoryService.saveTicketsBulk(targetTickets);
     addToast(`Đã gán tàu "${vName}" cho ${targetTickets.length} chuyến xuất!`, 'success');
-}
-
-// Vehicle Data management
-async function handleAddSingleVehicle() {
-    if (!newVehiclePlate.value.trim() || !newVehicleCarrier.value.trim()) {
-        addToast('Vui lòng nhập đầy đủ Biển số xe và Tên nhà xe!', 'info');
-        return;
-    }
-    await WarehouseInventoryService.saveVehiclesBulk([
-        {
-            vehiclePlate: newVehiclePlate.value.trim(),
-            displayPlate: newVehiclePlate.value.trim().toUpperCase(),
-            carrierName: newVehicleCarrier.value.trim().toUpperCase()
-        }
-    ]);
-    newVehiclePlate.value = '';
-    newVehicleCarrier.value = '';
-    vehiclesMap.value = await WarehouseInventoryService.getVehicles();
-    const updatedCount = await WarehouseInventoryService.reapplyVehicleCarriers();
-    if (updatedCount > 0) {
-        allTickets.value = await WarehouseInventoryService.getAllTickets();
-    }
-    addToast(`Đã lưu nhà xe và tự động điền cho ${updatedCount} phiếu cân!`, 'success');
-}
-
-async function handleBulkPasteVehicles() {
-    const lines = bulkVehiclePasteText.value.split(/\r?\n/).filter(l => l.trim());
-    const items: WarehouseVehicleMap[] = [];
-    for (const line of lines) {
-        const parts = line.includes('\t') ? line.split('\t') : line.split(',');
-        if (parts.length >= 2) {
-            const plate = (parts[0] || '').trim();
-            const carrier = (parts[1] || '').trim();
-            if (plate && carrier) {
-                items.push({
-                    vehiclePlate: plate,
-                    displayPlate: plate.toUpperCase(),
-                    carrierName: carrier.toUpperCase()
-                });
-            }
-        }
-    }
-    if (items.length === 0) {
-        addToast('Không tìm thấy dòng hợp lệ! Hãy dán 2 cột: Số xe [Tab/Phẩy] Nhà xe', 'error');
-        return;
-    }
-    const count = await WarehouseInventoryService.saveVehiclesBulk(items);
-    vehiclesMap.value = await WarehouseInventoryService.getVehicles();
-    const updatedTickets = await WarehouseInventoryService.reapplyVehicleCarriers();
-    allTickets.value = await WarehouseInventoryService.getAllTickets();
-    bulkVehiclePasteText.value = '';
-    showBulkPasteBox.value = false;
-    addToast(`Đã nạp ${count} xe vào Data và cập nhật nhà xe cho ${updatedTickets} phiếu!`, 'success');
-}
-
-async function handleDeleteVehicle(plateKey: string) {
-    await WarehouseInventoryService.deleteVehicle(plateKey);
-    vehiclesMap.value = await WarehouseInventoryService.getVehicles();
 }
 
 // Export Excel (.xlsx)
@@ -1345,19 +1269,6 @@ async function handleDownloadZaloImage() {
                                 <span class="material-symbols-outlined text-sm">bolt</span>
                                 <span>XÁ THẲNG ({{ selectedWarehouseMode === 'KHO 4' ? (configs['KHO 4']?.currentCustomer || 'Kho 4') : (configs['KHO 1']?.currentCustomer || 'Kho 1-2-3') }})</span>
                             </button>
-
-                            <button
-                                @click="activeSheetTab = 'DATA'"
-                                :class="[
-                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                                    activeSheetTab === 'DATA'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                                ]"
-                            >
-                                <span class="material-symbols-outlined text-sm">local_shipping</span>
-                                <span>Data Nhà Xe ({{ Object.keys(vehiclesMap).length }})</span>
-                            </button>
                         </div>
 
                         <!-- Right contextual controls -->
@@ -1408,28 +1319,33 @@ async function handleDownloadZaloImage() {
                 <table class="w-full text-left border-collapse text-xs font-bold">
                     <thead class="sticky top-0 z-10 bg-[#d9e1f2] text-[#1e293b] border-b border-slate-300">
                         <tr>
-                            <th class="py-2.5 px-3 text-center w-14 border-r border-slate-300">STT</th>
-                            <th class="py-2.5 px-3 text-center w-32 border-r border-slate-300">Ngày (Ca 6h)</th>
-                            <th class="py-2.5 px-3 text-right w-36 border-r border-slate-300">Nhập (Tấn)</th>
-                            <th class="py-2.5 px-3 text-right w-36 border-r border-slate-300">Xuất (Tấn)</th>
-                            <th v-if="showDirectColumnInSingleFinal" class="py-2.5 px-3 text-right w-36 border-r border-slate-300">Xá thẳng (Tấn)</th>
-                            <th class="py-2.5 px-3 text-right w-40 border-r border-slate-300 bg-teal-100/70 text-teal-900">Tồn kho (Tấn)</th>
-                            <th class="py-2.5 px-3 text-left">Ghi chú (Bấm để sửa trực tiếp)</th>
+                            <th class="py-2.5 px-3 text-center w-32 border-r border-slate-300">Ngày<br /><span class="font-semibold text-[10px]">Date</span></th>
+                            <th class="py-2.5 px-3 text-right w-40 border-r border-slate-300">Trọng lượng nhập<br /><span class="font-semibold text-[10px]">Imported weight</span></th>
+                            <th class="py-2.5 px-3 text-right w-40 border-r border-slate-300">Trọng lượng xuất<br /><span class="font-semibold text-[10px]">Exported weight</span></th>
+                            <th class="py-2.5 px-3 text-right w-40 border-r border-slate-300 bg-teal-100/70 text-teal-900">Tồn cuối<br /><span class="font-semibold text-[10px]">Stock</span></th>
+                            <th v-if="showDirectColumnInSingleFinal" class="py-2.5 px-3 text-right w-36 border-r border-slate-300">Xá thẳng</th>
+                            <th class="py-2.5 px-3 text-left">Ghi chú<br /><span class="font-semibold text-[10px]">Remarks</span></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
-                        <!-- Opening Stock Row -->
-                        <tr class="bg-slate-50 font-black">
-                            <td class="py-2 px-3 text-center text-slate-400 border-r border-slate-200">-</td>
-                            <td class="py-2 px-3 text-center text-slate-700 border-r border-slate-200">Tồn đầu</td>
-                            <td class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
-                            <td class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
-                            <td v-if="showDirectColumnInSingleFinal" class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
-                            <td class="py-2 px-3 text-right font-mono text-teal-800 bg-teal-50/50 border-r border-slate-200">
-                                {{ formatTons(activeFinalCalc.openingStockBeforeFilter) }}
+                        <!-- Opening Stock Row (shown only if openingStockBeforeFilter != 0 and not already represented as the first date row) -->
+                        <tr
+                            v-if="activeFinalCalc.openingStockBeforeFilter !== 0 && configs[activeSingleWarehouseId]?.initialDate !== activeFinalCalc.rows[0]?.reportDate"
+                            class="bg-slate-50 font-black"
+                        >
+                            <td class="py-2 px-3 text-center text-slate-700 border-r border-slate-200">
+                                {{ configs[activeSingleWarehouseId]?.initialDate ? formatIsoToDmy(configs[activeSingleWarehouseId].initialDate) : 'Tồn đầu' }}
                             </td>
+                            <td class="py-2 px-3 text-right font-mono text-primary border-r border-slate-200">
+                                {{ formatKg(activeFinalCalc.openingStockBeforeFilter) }}
+                            </td>
+                            <td class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
+                            <td class="py-2 px-3 text-right font-mono text-teal-800 bg-teal-50/50 border-r border-slate-200">
+                                {{ formatKg(activeFinalCalc.openingStockBeforeFilter) }}
+                            </td>
+                            <td v-if="showDirectColumnInSingleFinal" class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
                             <td class="py-2 px-3 text-slate-500 italic">
-                                {{ configs[activeSingleWarehouseId]?.initialDate ? `Mốc tồn đầu: ${configs[activeSingleWarehouseId].initialDate}` : 'Tồn đầu kỳ lũy kế' }}
+                                {{ configs[activeSingleWarehouseId]?.initialDate ? `Tồn kho đến ${formatIsoToDmy(configs[activeSingleWarehouseId].initialDate)} (Theo báo cáo)` : 'Tồn đầu kỳ lũy kế' }}
                             </td>
                         </tr>
 
@@ -1438,29 +1354,31 @@ async function handleDownloadZaloImage() {
                             :key="row.reportDate"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="py-2 px-3 text-center text-slate-500 border-r border-slate-200">{{ idx + 1 }}</td>
                             <td class="py-2 px-3 text-center font-mono text-[#1e293b] border-r border-slate-200">
                                 {{ row.displayDate }}
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-primary border-r border-slate-200">
-                                {{ row.importTons > 0 ? formatTons(row.importTons) : '-' }}
-                                <span v-if="row.importTrips > 0" class="text-[10px] text-slate-400 ml-1">({{ row.importTrips }}x)</span>
+                                <template v-if="idx === 0 && activeFinalCalc.openingStockBeforeFilter > 0 && configs[activeSingleWarehouseId]?.initialDate === row.reportDate">
+                                    {{ formatKg(row.importTons + activeFinalCalc.openingStockBeforeFilter) }}
+                                </template>
+                                <template v-else>
+                                    {{ row.importTons > 0 ? formatKg(row.importTons) : '-' }}
+                                </template>
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-amber-700 border-r border-slate-200">
-                                {{ row.exportTons > 0 ? formatTons(row.exportTons) : '-' }}
-                                <span v-if="row.exportTrips > 0" class="text-[10px] text-slate-400 ml-1">({{ row.exportTrips }}x)</span>
-                            </td>
-                            <td v-if="showDirectColumnInSingleFinal" class="py-2 px-3 text-right font-mono text-purple-700 border-r border-slate-200">
-                                {{ row.directTons > 0 ? formatTons(row.directTons) : '-' }}
+                                {{ row.exportTons > 0 ? formatKg(row.exportTons) : '-' }}
                             </td>
                             <td class="py-2 px-3 text-right font-mono font-black text-teal-800 bg-teal-50/40 border-r border-slate-200">
-                                {{ formatTons(row.remainingStockTons) }}
+                                {{ row.remainingStockTons !== 0 ? formatKg(row.remainingStockTons) : '-' }}
+                            </td>
+                            <td v-if="showDirectColumnInSingleFinal" class="py-2 px-3 text-right font-mono text-purple-700 border-r border-slate-200">
+                                {{ row.directTons > 0 ? formatKg(row.directTons) : '-' }}
                             </td>
                             <td class="py-1.5 px-2">
                                 <input
                                     type="text"
                                     :value="row.remark"
-                                    :placeholder="row.autoRemark || 'Nhập ghi chú tàu xuất / lô hàng...'"
+                                    :placeholder="row.autoRemark || ''"
                                     @change="handleSaveDailyRemark(activeSingleWarehouseId, row.reportDate, ($event.target as HTMLInputElement).value)"
                                     class="w-full px-2 py-1 rounded-lg bg-transparent hover:bg-slate-100 focus:bg-white focus:border focus:border-primary text-xs font-semibold outline-none transition-all"
                                 />
@@ -1468,26 +1386,25 @@ async function handleDownloadZaloImage() {
                         </tr>
 
                         <tr v-if="activeFinalCalc.rows.length === 0">
-                            <td :colspan="showDirectColumnInSingleFinal ? 7 : 6" class="py-12 text-center text-slate-400 font-semibold">
+                            <td :colspan="showDirectColumnInSingleFinal ? 6 : 5" class="py-12 text-center text-slate-400 font-semibold">
                                 Chưa có dữ liệu phát sinh cho {{ activeSingleWarehouseId }}. Hãy bấm <b>"Nạp CSV Trạm Cân"</b> hoặc <b>"Nạp từ Excel Tồn Kho Đang Dùng"</b> ở góc trên!
                             </td>
                         </tr>
                     </tbody>
                     <tfoot class="sticky bottom-0 bg-[#fff2cc] text-[#1e293b] font-black border-t-2 border-slate-400">
                         <tr>
-                            <td class="py-2.5 px-3 text-center border-r border-slate-300"></td>
-                            <td class="py-2.5 px-3 text-center border-r border-slate-300">TỔNG CỘNG</td>
+                            <td class="py-2.5 px-3 text-center border-r border-slate-300">Tổng cộng (Total)</td>
                             <td class="py-2.5 px-3 text-right font-mono border-r border-slate-300">
-                                {{ formatTons(activeFinalCalc.totalImportTons) }}
+                                {{ formatKg(activeFinalCalc.totalImportTons + (activeFinalCalc.openingStockBeforeFilter > 0 ? activeFinalCalc.openingStockBeforeFilter : 0)) }}
                             </td>
                             <td class="py-2.5 px-3 text-right font-mono border-r border-slate-300">
-                                {{ formatTons(activeFinalCalc.totalExportTons) }}
-                            </td>
-                            <td v-if="showDirectColumnInSingleFinal" class="py-2.5 px-3 text-right font-mono border-r border-slate-300">
-                                {{ formatTons(activeFinalCalc.totalDirectTons) }}
+                                {{ formatKg(activeFinalCalc.totalExportTons) }}
                             </td>
                             <td class="py-2.5 px-3 text-right font-mono text-teal-900 border-r border-slate-300">
-                                {{ formatTons(activeFinalCalc.closingStockTons) }}
+                                {{ formatKg(activeFinalCalc.closingStockTons) }}
+                            </td>
+                            <td v-if="showDirectColumnInSingleFinal" class="py-2.5 px-3 text-right font-mono border-r border-slate-300">
+                                {{ formatKg(activeFinalCalc.totalDirectTons) }}
                             </td>
                             <td class="py-2.5 px-3"></td>
                         </tr>
@@ -1720,12 +1637,13 @@ async function handleDownloadZaloImage() {
                                 <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng vào<br /><span class="font-semibold text-[10px]">(Weight in)</span></th>
                                 <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng ra<br /><span class="font-semibold text-[10px]">(Weight out)</span></th>
                                 <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng hàng<br /><span class="font-semibold text-[10px]">(N.Weight)</span></th>
+                                <th class="py-2.5 px-2 text-center border-r border-slate-300">Nhập/Xuất<br /><span class="font-semibold text-[10px]">(In/Out)</span></th>
+                                <th class="py-2.5 px-2 text-center border-r border-slate-300">Kho<br /><span class="font-semibold text-[10px]">(Warehouse)</span></th>
                                 <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân vào</th>
                                 <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân ra</th>
-                                <th class="py-2.5 px-2 border-r border-slate-300">Sà lan / Ghi chú</th>
-                                <th class="py-2.5 px-2 border-r border-slate-300">Tàu (Vessel)</th>
-                                <th class="py-2.5 px-2 border-r border-slate-300">Nơi nhận</th>
-                                <th class="py-2.5 px-2 border-r border-slate-300">Nhà xe</th>
+                                <th class="py-2.5 px-2 border-r border-slate-300">Salan</th>
+                                <th class="py-2.5 px-2 border-r border-slate-300">Tàu</th>
+                                <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
                                 <th class="py-2.5 px-2 text-center w-12">Xóa</th>
                             </tr>
                         </thead>
@@ -1742,9 +1660,19 @@ async function handleDownloadZaloImage() {
                                 <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-amber-700 font-black">{{ formatKg(t.netWeight) }}</td>
+                                <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || 'Xuất' }}</td>
+                                <td class="py-2 px-2 text-center">{{ t.sourceOrRemark || `Kho ${(t.warehouseId || '').replace('KHO ', '')}` }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>
-                                <td class="py-2 px-2 text-teal-700">{{ t.bargeInfo || '-' }}</td>
+                                <td class="py-2 px-2 text-teal-700">
+                                    <input
+                                        v-model="t.bargeInfo"
+                                        type="text"
+                                        placeholder="-"
+                                        @change="handleUpdateTicketField(t)"
+                                        class="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                    />
+                                </td>
                                 <td class="py-2 px-2">
                                     <input
                                         v-model="t.vesselName"
@@ -1754,8 +1682,15 @@ async function handleDownloadZaloImage() {
                                         class="w-36 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
                                     />
                                 </td>
-                                <td class="py-2 px-2">{{ t.sourceOrRemark || t.warehouseId }}</td>
-                                <td class="py-2 px-2">{{ t.carrierName || '-' }}</td>
+                                <td class="py-2 px-2">
+                                    <input
+                                        v-model="t.rawNote"
+                                        type="text"
+                                        placeholder="-"
+                                        @change="handleUpdateTicketField(t)"
+                                        class="w-36 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                    />
+                                </td>
                                 <td class="py-2 px-2 text-center">
                                     <button
                                         @click="handleDeleteTicket(t)"
@@ -1774,7 +1709,7 @@ async function handleDownloadZaloImage() {
                                 <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalGrossTons) }}</td>
                                 <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalTareTons) }}</td>
                                 <td class="py-2.5 px-2 text-right font-mono text-amber-800 border-r border-slate-300">{{ formatKg(detailTotalTons) }}</td>
-                                <td colspan="7" class="py-2.5 px-2"></td>
+                                <td colspan="8" class="py-2.5 px-2"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1790,19 +1725,20 @@ async function handleDownloadZaloImage() {
                     <thead class="sticky top-0 z-10 bg-[#fff2cc] text-[#1e293b] border-b border-slate-300">
                         <tr>
                             <th class="py-2.5 px-2 text-center w-12 border-r border-slate-300">STT<br /><span class="font-semibold text-[10px]">(No)</span></th>
-                            <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày xuất<br /><span class="font-semibold text-[10px]">(Date)</span></th>
+                            <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày nhập<br /><span class="font-semibold text-[10px]">Date</span></th>
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Số phiếu<br /><span class="font-semibold text-[10px]">(Serial)</span></th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Số xe<br /><span class="font-semibold text-[10px]">(Truck no)</span></th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng vào<br /><span class="font-semibold text-[10px]">(Weight in)</span></th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng ra<br /><span class="font-semibold text-[10px]">(Weight out)</span></th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">T.Lượng hàng<br /><span class="font-semibold text-[10px]">(N.Weight)</span></th>
+                            <th class="py-2.5 px-2 text-center border-r border-slate-300">Nhập/ Xuất</th>
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân vào</th>
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân ra</th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">Cân Nhà Máy</th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">Chênh lệch</th>
-                            <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú (Sà lan)</th>
-                            <th class="py-2.5 px-2 border-r border-slate-300">Nơi nhận (Nguồn)</th>
-                            <th class="py-2.5 px-2 border-r border-slate-300">Nhà xe</th>
+                            <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
+                            <th class="py-2.5 px-2 border-r border-slate-300">Nơi nhận</th>
+                            <th class="py-2.5 px-2 border-r border-slate-300">Tàu</th>
                             <th class="py-2.5 px-2 text-center w-12">Xóa</th>
                         </tr>
                     </thead>
@@ -1819,15 +1755,49 @@ async function handleDownloadZaloImage() {
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-purple-700 font-black">{{ formatKg(t.netWeight) }}</td>
+                            <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || '-' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>
-                            <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.factoryWeight) }}</td>
+                            <td class="py-2 px-2 text-right">
+                                <input
+                                    :value="t.factoryWeight ? Math.round(t.factoryWeight * 1000) : ''"
+                                    type="number"
+                                    step="10"
+                                    placeholder="-"
+                                    @change="onFactoryKgChange(t, $event)"
+                                    class="w-20 px-1.5 py-0.5 text-right rounded bg-slate-50 border border-slate-200 font-mono text-xs"
+                                />
+                            </td>
                             <td class="py-2 px-2 text-right font-mono" :class="t.factoryWeight ? (t.netWeight - t.factoryWeight < 0 ? 'text-rose-600' : 'text-teal-600') : 'text-slate-400'">
                                 {{ t.factoryWeight ? formatKg(t.netWeight - t.factoryWeight) : '-' }}
                             </td>
-                            <td class="py-2 px-2 text-teal-700">{{ t.bargeInfo || '-' }}</td>
-                            <td class="py-2 px-2 font-semibold text-amber-800">{{ t.sourceOrRemark }}</td>
-                            <td class="py-2 px-2">{{ t.carrierName || '-' }}</td>
+                            <td class="py-2 px-2 text-teal-700">
+                                <input
+                                    v-model="t.bargeInfo"
+                                    type="text"
+                                    placeholder="-"
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                />
+                            </td>
+                            <td class="py-2 px-2 font-semibold text-amber-800">
+                                <input
+                                    v-model="t.sourceOrRemark"
+                                    type="text"
+                                    placeholder="-"
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-32 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                />
+                            </td>
+                            <td class="py-2 px-2">
+                                <input
+                                    v-model="t.vesselName"
+                                    type="text"
+                                    placeholder="-"
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                />
+                            </td>
                             <td class="py-2 px-2 text-center">
                                 <button
                                     @click="handleDeleteTicket(t)"
@@ -1846,7 +1816,7 @@ async function handleDownloadZaloImage() {
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalGrossTons) }}</td>
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalTareTons) }}</td>
                             <td class="py-2.5 px-2 text-right font-mono text-purple-800 border-r border-slate-300">{{ formatKg(detailTotalTons) }}</td>
-                            <td colspan="2" class="py-2.5 px-2 border-r border-slate-300"></td>
+                            <td colspan="3" class="py-2.5 px-2 border-r border-slate-300"></td>
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300">{{ formatKg(detailTotalFactoryTons) }}</td>
                             <td class="py-2.5 px-2 text-right font-mono border-r border-slate-300" :class="detailTotalDiffTons < 0 ? 'text-rose-600' : 'text-teal-700'">
                                 {{ formatKg(detailTotalDiffTons) }}
@@ -1855,108 +1825,6 @@ async function handleDownloadZaloImage() {
                         </tr>
                     </tfoot>
                 </table>
-            </div>
-
-            <!-- TAB 5: DATA (VEHICLE -> CARRIER MAPPING) -->
-            <div
-                v-else-if="activeSheetTab === 'DATA'"
-                class="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden"
-            >
-                <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200 shrink-0">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <input
-                            v-model="newVehiclePlate"
-                            type="text"
-                            placeholder="Biển số xe (VD: 50H-235.64)"
-                            class="h-8 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold w-44"
-                        />
-                        <input
-                            v-model="newVehicleCarrier"
-                            type="text"
-                            placeholder="Nhà xe (VD: NGUYÊN NGỌC)"
-                            class="h-8 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold w-48"
-                        />
-                        <button
-                            @click="handleAddSingleVehicle"
-                            class="h-8 px-3.5 bg-primary text-white font-bold rounded-xl text-xs cursor-pointer"
-                        >
-                            + Thêm Xe
-                        </button>
-                        <button
-                            @click="showBulkPasteBox = !showBulkPasteBox"
-                            class="h-8 px-3.5 bg-white border border-primary/20 text-primary font-bold rounded-xl text-xs cursor-pointer"
-                        >
-                            Dán nhanh từ Excel (2 cột)
-                        </button>
-                    </div>
-
-                    <input
-                        v-model="detailSearchQuery"
-                        type="text"
-                        placeholder="Tìm biển số hoặc nhà xe..."
-                        class="h-8 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold w-52"
-                    />
-                </div>
-
-                <div v-if="showBulkPasteBox" class="bg-slate-50 p-3 rounded-2xl border border-primary/20 flex flex-col gap-2 shrink-0">
-                    <div class="text-xs font-bold text-slate-600">
-                        Copy 2 cột <b>SỐ XE</b> và <b>NHÀ XE</b> từ sheet Data trong Excel và dán vào ô bên dưới:
-                    </div>
-                    <textarea
-                        v-model="bulkVehiclePasteText"
-                        rows="4"
-                        placeholder="50H-235.64&#9;NGUYÊN NGỌC&#10;77H-046.90&#9;TẤN PHÁT"
-                        class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono"
-                    ></textarea>
-                    <div class="flex justify-end gap-2">
-                        <button
-                            @click="showBulkPasteBox = false"
-                            class="px-3 py-1.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
-                        >
-                            Đóng
-                        </button>
-                        <button
-                            @click="handleBulkPasteVehicles"
-                            class="px-4 py-1.5 bg-primary text-white font-bold rounded-xl text-xs cursor-pointer"
-                        >
-                            Lưu danh sách xe
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
-                    <table class="w-full text-left border-collapse text-xs font-bold">
-                        <thead class="sticky top-0 z-10 bg-gray-50 text-slate-600 border-b border-slate-200">
-                            <tr>
-                                <th class="py-2.5 px-3 text-center w-16">STT</th>
-                                <th class="py-2.5 px-3">SỐ XE (Biển số hiển thị)</th>
-                                <th class="py-2.5 px-3">Mã tra cứu chuẩn hóa</th>
-                                <th class="py-2.5 px-3">NHÀ XE</th>
-                                <th class="py-2.5 px-3 text-center w-20">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr
-                                v-for="(v, idx) in vehiclesList"
-                                :key="v.vehiclePlate"
-                                class="hover:bg-gray-50"
-                            >
-                                <td class="py-2 px-3 text-center text-slate-400">{{ idx + 1 }}</td>
-                                <td class="py-2 px-3 font-mono font-black">{{ v.displayPlate }}</td>
-                                <td class="py-2 px-3 font-mono text-slate-500">{{ v.vehiclePlate }}</td>
-                                <td class="py-2 px-3 text-primary font-black">{{ v.carrierName }}</td>
-                                <td class="py-2 px-3 text-center">
-                                    <button
-                                        @click="handleDeleteVehicle(v.vehiclePlate)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                    >
-                                        <span class="material-symbols-outlined text-sm">delete</span>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
             <!-- /Card 3: Sheet Tabs + Main Table Content -->
             </div>

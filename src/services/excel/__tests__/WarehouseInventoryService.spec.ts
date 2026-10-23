@@ -389,14 +389,62 @@ describe('WarehouseInventoryService', () => {
                 'Nhà xe'
             ]);
 
+            const exportSheet = wb.getWorksheet('EXPORT 4')!;
+            const exportRow7Headers = Array.from({ length: 14 }, (_, i) => String(exportSheet.getRow(7).getCell(i + 1).value || ''));
+            expect(exportRow7Headers).toEqual([
+                'STT (No)',
+                'Ngày xuất\n(Date)',
+                'Số phiếu (Serial)',
+                'Số xe (Truck no)',
+                'T.Lượng vào (Weight in)',
+                'T.Lượng ra (Weight out)',
+                'T.Lượng hàng (N.Weight)',
+                'Nhập/Xuất (In/Out)',
+                'Kho (Warehouse)',
+                'Ngày cân vào',
+                'Ngày cân ra',
+                'Salan',
+                'Tàu',
+                'Ghi chú'
+            ]);
+
             const finalSheet = wb.getWorksheet('FINAL 4')!;
-            const row9ImportCell = finalSheet.getRow(9).getCell(3).value as any;
-            const row9StockCell = finalSheet.getRow(9).getCell(6).value as any;
+            const finalRow7Headers = Array.from({ length: 6 }, (_, i) => String(finalSheet.getRow(7).getCell(i + 1).value || ''));
+            expect(finalRow7Headers).toEqual([
+                'Ngày\nDate',
+                'Trọng lượng nhập \nImported weight',
+                'Trọng lượng xuất \nExported weight',
+                'Tồn cuối \nStock',
+                'Xá thẳng',
+                'Ghi chú\nRemarks '
+            ]);
+            const row9ImportCell = finalSheet.getRow(9).getCell(2).value as any;
+            const row9StockCell = finalSheet.getRow(9).getCell(4).value as any;
             expect(row9ImportCell.formula).toContain("SUMIFS('IMPORT 4'");
             expect(row9ImportCell.result).toBe(40);
-            expect(row9StockCell.formula).toBe('F8+C9-D9');
+            expect(row9StockCell.formula).toBe('D8+B9-C9');
             // 250 + 40 - 30 = 260
             expect(row9StockCell.result).toBe(260);
+
+            const directSheet = wb.getWorksheet('XÁ THẲNG')!;
+            const directRow7Headers = Array.from({ length: 15 }, (_, i) => String(directSheet.getRow(7).getCell(i + 1).value || ''));
+            expect(directRow7Headers).toEqual([
+                'STT (No)',
+                'Ngày nhập\nDate',
+                'Số phiếu (Serial)',
+                'Số xe (Truck no)',
+                'T.Lượng vào (Weight in)',
+                'T.Lượng ra (Weight out)',
+                'T.Lượng hàng (N.Weight)',
+                'Nhập/ Xuất',
+                'Ngày cân vào',
+                'Ngày cân ra',
+                'Cân Nhà Máy',
+                'Chênh lệch',
+                'Ghi chú',
+                'Nơi nhận',
+                'Tàu'
+            ]);
         }, 30000);
 
         it('exports Combined 1-2-3 Warehouse workbook with horizontal FINAL layout', async () => {
