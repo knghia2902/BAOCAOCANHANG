@@ -26,7 +26,7 @@ type ViewWarehouseMode = WarehouseId | 'COMBINED_123';
 type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
-const activeSheetTab = ref<SheetTabMode>('FINAL');
+const activeSheetTab = ref<SheetTabMode>('IMPORT');
 const loading = ref(false);
 const importingCsv = ref(false);
 const importingHistoryExcel = ref(false);
@@ -1214,21 +1214,6 @@ async function handleDownloadZaloImage() {
                     <!-- Sheet Tabs Navigation -->
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 shrink-0">
                         <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                            <button
-                                @click="activeSheetTab = 'FINAL'"
-                                :class="[
-                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                                    activeSheetTab === 'FINAL'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                                ]"
-                            >
-                                <span class="material-symbols-outlined text-sm">table_chart</span>
-                                <span>
-                                    {{ selectedWarehouseMode === 'COMBINED_123' ? 'FINAL (Gộp Kho 1-2-3)' : `FINAL (${activeSingleWarehouseId})` }}
-                                </span>
-                            </button>
-
                             <template v-if="selectedWarehouseMode !== 'COMBINED_123'">
                                 <button
                                     @click="activeSheetTab = 'IMPORT'"
@@ -1256,6 +1241,21 @@ async function handleDownloadZaloImage() {
                                     <span>EXPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Xuất kho)</span>
                                 </button>
                             </template>
+
+                            <button
+                                @click="activeSheetTab = 'FINAL'"
+                                :class="[
+                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                    activeSheetTab === 'FINAL'
+                                        ? 'bg-primary text-white shadow-sm'
+                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                ]"
+                            >
+                                <span class="material-symbols-outlined text-sm">table_chart</span>
+                                <span>
+                                    {{ selectedWarehouseMode === 'COMBINED_123' ? 'FINAL (Gộp Kho 1-2-3)' : `FINAL (${activeSingleWarehouseId})` }}
+                                </span>
+                            </button>
 
                             <button
                                 @click="activeSheetTab = 'DIRECT'"

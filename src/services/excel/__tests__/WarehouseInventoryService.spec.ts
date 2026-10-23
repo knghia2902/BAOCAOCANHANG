@@ -38,12 +38,14 @@ import {
     classifyWeighbridgeRow,
     computeWarehouseFinalTable,
     sanitizeCustomerName,
+    sanitizeDailyRemarks,
+    parseToIsoDate,
     getTicketCustomerGroup
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
 describe('WarehouseInventoryService', () => {
-    describe('sanitizeCustomerName', () => {
+    describe('sanitizeCustomerName & sanitizeDailyRemarks', () => {
         it('cleans date strings, 1899/1900 artifacts and restores fallback', () => {
             expect(sanitizeCustomerName('Sat Dec 30 1899 00:00:00 GMT+0706', 'EASTWOOD')).toBe('EASTWOOD');
             expect(sanitizeCustomerName(new Date(0), 'EASTWOOD')).toBe('EASTWOOD');
@@ -51,6 +53,23 @@ describe('WarehouseInventoryService', () => {
             expect(sanitizeCustomerName('', 'EASTWOOD')).toBe('EASTWOOD');
             expect(sanitizeCustomerName('EASTWOOD', 'DEFAULT')).toBe('EASTWOOD');
             expect(sanitizeCustomerName('GỖ BÌNH ĐỊNH', 'DEFAULT')).toBe('GỖ BÌNH ĐỊNH');
+        });
+
+        it('rejects weight numbers like 100080 in parseToIsoDate and purges corrupted dailyRemarks', () => {
+            expect(parseToIsoDate(100080)).toBe('');
+            expect(parseToIsoDate('100080')).toBe('');
+            expect(parseToIsoDate('2026-05-28')).toBe('2026-05-28');
+
+            const { cleaned, hadInvalid } = sanitizeDailyRemarks({
+                '100080-01-01': 'Thu May 28 2026 07:00:00 GMT+0700 (Indochina Time)',
+                '102140-01-01': 'Tue May 26 2026 07:00:00 GMT+0700 (Indochina Time)',
+                '2026-05-28': 'Thu May 28 2026 07:00:00 GMT+0700 (Indochina Time)',
+                '2026-01-05': 'Xuất hết hàng kho 1,2'
+            });
+            expect(hadInvalid).toBe(true);
+            expect(cleaned).toEqual({
+                '2026-01-05': 'Xuất hết hàng kho 1,2'
+            });
         });
     });
 

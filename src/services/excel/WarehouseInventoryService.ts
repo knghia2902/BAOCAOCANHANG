@@ -90,21 +90,26 @@ export function parseToIsoDate(rawDate: any): string {
         const d = String(rawDate.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
     }
-    if (typeof rawDate === 'number' && rawDate > 20000 && rawDate < 90000) {
-        const utcDays = Math.floor(rawDate - 25569);
-        const dt = new Date(utcDays * 86400 * 1000);
-        const y = dt.getUTCFullYear();
-        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
-        const d = String(dt.getUTCDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
+    if (typeof rawDate === 'number') {
+        if (rawDate > 20000 && rawDate < 75000) {
+            const utcDays = Math.floor(rawDate - 25569);
+            const dt = new Date(utcDays * 86400 * 1000);
+            const y = dt.getUTCFullYear();
+            const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(dt.getUTCDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        return '';
     }
 
     const str = String(rawDate).trim().split(' ')[0] || '';
-    if (!str) return '';
+    if (!str || /^\d+(\.\d+)?$/.test(str)) return '';
 
     // Check YYYY-MM-DD or YYYY/MM/DD
     const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
     if (isoMatch) {
+        const yNum = parseInt(isoMatch[1]!, 10);
+        if (yNum < 2000 || yNum > 2100) return '';
         const y = isoMatch[1]!;
         const m = isoMatch[2]!.padStart(2, '0');
         const d = isoMatch[3]!.padStart(2, '0');
@@ -118,12 +123,15 @@ export function parseToIsoDate(rawDate: any): string {
         const m = dmyMatch[2]!.padStart(2, '0');
         let y = dmyMatch[3]!;
         if (y.length === 2) y = '20' + y;
+        const yNum = parseInt(y, 10);
+        if (yNum < 2000 || yNum > 2100) return '';
         return `${y}-${m}-${d}`;
     }
 
     const parsed = new Date(str);
     if (!isNaN(parsed.getTime())) {
         const y = parsed.getFullYear();
+        if (y < 2000 || y > 2100) return '';
         const m = String(parsed.getMonth() + 1).padStart(2, '0');
         const d = String(parsed.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
@@ -247,6 +255,48 @@ export function sanitizeCustomerName(val: any, fallback = ''): string {
     if (/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s[A-Z][a-z]{2}\s\d{1,2}\s\d{4}/i.test(s)) return fallback;
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return fallback;
     return s;
+}
+
+/**
+ * Sanitize dailyRemarks map to purge corrupted date keys (e.g. "100080-01-01")
+ * or raw JS Date.toString() values (e.g. "Thu May 28 2026 07:00:00 GMT+0700 (Indochina Time)").
+ */
+export function sanitizeDailyRemarks(remarks: Record<string, string> | undefined | null): {
+    cleaned: Record<string, string>;
+    hadInvalid: boolean;
+} {
+    const cleaned: Record<string, string> = {};
+    let hadInvalid = false;
+    if (!remarks || typeof remarks !== 'object') return { cleaned, hadInvalid };
+
+    for (const [k, v] of Object.entries(remarks)) {
+        const m = k.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) {
+            hadInvalid = true;
+            continue;
+        }
+        const y = parseInt(m[1]!, 10);
+        const mo = parseInt(m[2]!, 10);
+        const d = parseInt(m[3]!, 10);
+        if (y < 2020 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) {
+            hadInvalid = true;
+            continue;
+        }
+
+        const valStr = String(v ?? '').trim();
+        if (
+            /GMT[+-]\d{4}/i.test(valStr) ||
+            /Indochina Time/i.test(valStr) ||
+            /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s[A-Z][a-z]{2}\s\d{1,2}\s\d{4}/i.test(valStr)
+        ) {
+            hadInvalid = true;
+            continue;
+        }
+
+        cleaned[k] = valStr;
+    }
+
+    return { cleaned, hadInvalid };
 }
 
 /**
@@ -540,17 +590,25 @@ export function computeWarehouseFinalTable(
         return getTicketCustomerGroup(t, { [warehouseId]: config } as any) === targetGroup;
     });
 
+    const { cleaned: validRemarks } = sanitizeDailyRemarks(config.dailyRemarks);
     const dateSet = new Set<string>();
     whTickets.forEach(t => {
-        if (t.reportDate) dateSet.add(t.reportDate);
+        if (t.reportDate && /^\d{4}-\d{2}-\d{2}$/.test(t.reportDate)) dateSet.add(t.reportDate);
     });
-    Object.keys(config.dailyRemarks || {}).forEach(d => {
-        if (d) dateSet.add(d);
-    });
-    // Include direct ticket dates whenever warehouse or direct tickets have activity
-    if (whTickets.length > 0 || directTickets.length > 0) {
+    if (whTickets.length > 0 || (config.initialStock || 0) !== 0) {
+        Object.keys(validRemarks).forEach(d => {
+            if (d) dateSet.add(d);
+        });
+    } else {
+        // If warehouse has 0 tickets and 0 initial stock, only include dates that have non-empty human remarks
+        Object.entries(validRemarks).forEach(([d, rem]) => {
+            if (d && rem) dateSet.add(d);
+        });
+    }
+    // Include direct ticket dates only when this warehouse actually has tickets (or for Kho 4 if it has direct tickets)
+    if (whTickets.length > 0 || (warehouseId === 'KHO 4' && directTickets.length > 0)) {
         directTickets.forEach(t => {
-            if (t.reportDate) {
+            if (t.reportDate && /^\d{4}-\d{2}-\d{2}$/.test(t.reportDate)) {
                 dateSet.add(t.reportDate);
             }
         });
@@ -601,7 +659,7 @@ export function computeWarehouseFinalTable(
             autoRemark = `Xuất SL ${bargesOnDay.join(', ')}`;
         }
 
-        const manualRemark = (config.dailyRemarks && config.dailyRemarks[d]) ? config.dailyRemarks[d]! : '';
+        const manualRemark = validRemarks[d] ? validRemarks[d]! : '';
         const customers = Array.from(
             new Set(
                 [...dayImports, ...dayExports]
@@ -915,7 +973,6 @@ export const WarehouseInventoryService = {
                         }
                     }
                     await dbContext.set(LOCAL_CONFIGS_KEY, merged);
-                    return merged;
                 }
             } catch (err) {
                 console.warn('Fallback to local warehouse_configs:', err);
@@ -934,11 +991,24 @@ export const WarehouseInventoryService = {
             }
         }
 
-        // Sanitize customer names to eliminate date strings or Excel date serial artifacts
+        // Sanitize customer names and dailyRemarks to eliminate date strings or Excel date serial artifacts
         merged['KHO 4'].currentCustomer = sanitizeCustomerName(merged['KHO 4'].currentCustomer, 'EASTWOOD');
         merged['KHO 1'].currentCustomer = sanitizeCustomerName(merged['KHO 1'].currentCustomer, 'GỖ BÌNH ĐỊNH');
         merged['KHO 2'].currentCustomer = sanitizeCustomerName(merged['KHO 2'].currentCustomer, 'GỖ BÌNH ĐỊNH');
         merged['KHO 3'].currentCustomer = sanitizeCustomerName(merged['KHO 3'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+
+        let anyCleaned = false;
+        for (const whId of ALL_WAREHOUSES) {
+            const { cleaned, hadInvalid } = sanitizeDailyRemarks(merged[whId].dailyRemarks);
+            if (hadInvalid) {
+                merged[whId].dailyRemarks = cleaned;
+                anyCleaned = true;
+                await this.saveConfig(merged[whId]);
+            }
+        }
+        if (anyCleaned) {
+            await dbContext.set(LOCAL_CONFIGS_KEY, merged);
+        }
 
         return merged;
     },
@@ -1209,6 +1279,12 @@ export const WarehouseInventoryService = {
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().neq('id', '');
             } catch (_) {}
+            for (const whId of ALL_WAREHOUSES) {
+                configs[whId].dailyRemarks = {};
+                configs[whId].initialStock = 0;
+                configs[whId].initialDate = '';
+                await this.saveConfig(configs[whId]);
+            }
             return true;
         }
 
@@ -1245,6 +1321,12 @@ export const WarehouseInventoryService = {
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().in('warehouse_id', ['KHO 1', 'KHO 2', 'KHO 3']);
             } catch (_) {}
+            for (const whId of ['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[]) {
+                configs[whId].dailyRemarks = {};
+                configs[whId].initialStock = 0;
+                configs[whId].initialDate = '';
+                await this.saveConfig(configs[whId]);
+            }
             return true;
         }
 
@@ -1253,6 +1335,12 @@ export const WarehouseInventoryService = {
         try {
             await supabase.from('warehouse_inventory_tickets').delete().eq('warehouse_id', target);
         } catch (_) {}
+        if (configs[target]) {
+            configs[target].dailyRemarks = {};
+            configs[target].initialStock = 0;
+            configs[target].initialDate = '';
+            await this.saveConfig(configs[target]);
+        }
         return true;
     },
 
@@ -1579,7 +1667,7 @@ export const WarehouseInventoryService = {
                             dataStartRow = r + 1;
                             for (let c2 = c + 1; c2 <= Math.min(10, row.cellCount); c2++) {
                                 const txt2 = stripAccents(String(getCellPrimitive(row.getCell(c2)) || '')).toUpperCase().trim();
-                                if (txt2.includes('CONG TY') || txt2.includes('NHA XE') || txt2.includes('DON VI')) {
+                                if (txt2.includes('CONG TY') || txt2.includes('NHA XE') || txt2.includes('DON VI') || txt2.includes('DVVC')) {
                                     carrierCol = c2;
                                     break;
                                 }
@@ -1628,8 +1716,8 @@ export const WarehouseInventoryService = {
 
                 if (sheetWh) updatedWhSet.add(sheetWh);
 
-                // Extract customer from rows 2..5 if present (e.g. "Khách hàng\n(Customer):" -> "BÁCH KHOA" or "EASTWOOD")
-                for (let r = 1; r <= Math.min(6, sheet.rowCount); r++) {
+                // Extract customer from rows 1..14 if present (e.g. "Khách hàng\n(Customer):" -> "BÁCH KHOA" or "EASTWOOD")
+                for (let r = 1; r <= Math.min(14, sheet.rowCount); r++) {
                     const row = sheet.getRow(r);
                     for (let c = 1; c <= Math.min(12, row.cellCount); c++) {
                         const cellTxt = stripAccents(String(getCellPrimitive(row.getCell(c)) || '')).toUpperCase();
@@ -1648,9 +1736,9 @@ export const WarehouseInventoryService = {
                     }
                 }
 
-                // Find header row (usually row 5 or 6 containing STT, NGÀY, SỐ PHIẾU, SỐ XE)
+                // Find header row (containing STT, NGÀY, SỐ PHIẾU, SỐ XE; can be row 6, 7, 12, 13, or 15)
                 let headerRowNum = 6;
-                for (let r = 1; r <= Math.min(12, sheet.rowCount); r++) {
+                for (let r = 1; r <= Math.min(25, sheet.rowCount); r++) {
                     const row = sheet.getRow(r);
                     let rowText = '';
                     for (let c = 1; c <= Math.min(16, row.cellCount); c++) {
@@ -1871,11 +1959,13 @@ export const WarehouseInventoryService = {
             if (finalSheet) {
                 // Check if this is GBD 3-Warehouse horizontal layout (KHO 1 at col A..E, KHO 2 at col G..K, KHO 3 at col M..Q)
                 let isThreeWhHorizontal = false;
-                for (let r = 1; r <= Math.min(8, finalSheet.rowCount); r++) {
+                for (let r = 1; r <= Math.min(12, finalSheet.rowCount); r++) {
                     const row = finalSheet.getRow(r);
                     const c7 = stripAccents(String(getCellPrimitive(row.getCell(7)))).toUpperCase();
+                    const c8 = stripAccents(String(getCellPrimitive(row.getCell(8)))).toUpperCase();
                     const c13 = stripAccents(String(getCellPrimitive(row.getCell(13)))).toUpperCase();
-                    if (c7.includes('KHO 2') || c13.includes('KHO 3') || c7.includes('NGAY')) {
+                    const c14 = stripAccents(String(getCellPrimitive(row.getCell(14)))).toUpperCase();
+                    if (c7.includes('KHO 2') || c8.includes('KHO 2') || c13.includes('KHO 3') || c14.includes('KHO 3') || c7.startsWith('NGAY')) {
                         isThreeWhHorizontal = true;
                         break;
                     }
@@ -1902,9 +1992,14 @@ export const WarehouseInventoryService = {
                                 configs[b.wh].initialStock = openVal;
                                 continue;
                             }
+                            if (rawDateStr.includes('TONG CONG') || rawDateStr.includes('TOTAL')) {
+                                break;
+                            }
                             const dIso = parseToIsoDate(rawDateCell);
-                            const rem = String(getCellPrimitive(row.getCell(b.remarkCol)) || '').trim();
-                            if (dIso && rem && !/^\d+(\.\d+)?$/.test(rem)) {
+                            if (!dIso) continue;
+                            const rawRemCell = getCellPrimitive(row.getCell(b.remarkCol));
+                            const rem = rawRemCell instanceof Date ? '' : String(rawRemCell || '').trim();
+                            if (rem && !/^\d+(\.\d+)?$/.test(rem)) {
                                 configs[b.wh].dailyRemarks[dIso] = rem;
                             }
                         }
@@ -1918,21 +2013,20 @@ export const WarehouseInventoryService = {
                     if (sheetLevelCustomer) configs[fWh].currentCustomer = sheetLevelCustomer;
 
                     // Detect columns in Single-Warehouse FINAL:
-                    // Native template: Col 1=Ngày, Col 2=Trọng lượng nhập, Col 3=Trọng lượng xuất, Col 4=Tồn kho, Col 5=Đi thẳng, Col 6=Ghi chú
-                    // Web export: Col 1=STT, Col 2=Ngày, Col 3=Nhập, Col 4=Xuất, Col 5=Xá thẳng, Col 6=Tồn kho, Col 7=Ghi chú
-                    let fHeaderRow = 6;
+                    // Native template: Col 1=Ngày, Col 2=Trọng lượng nhập, Col 3=Trọng lượng xuất, Col 4=Tồn cuối, Col 5=Xá thẳng/Ghi chú, Col 6=Ghi chú
+                    let fHeaderRow = 7;
                     let dateCol = 1;
                     let impCol = 2;
                     let stockCol = 4;
                     let remCol = 6;
-                    for (let r = 1; r <= Math.min(10, finalSheet.rowCount); r++) {
+                    for (let r = 1; r <= Math.min(15, finalSheet.rowCount); r++) {
                         const row = finalSheet.getRow(r);
                         for (let c = 1; c <= Math.min(8, row.cellCount); c++) {
                             const txt = stripAccents(String(getCellPrimitive(row.getCell(c)) || '')).toUpperCase().trim();
-                            if (txt === 'NGAY' || txt.startsWith('NGAY ') || txt.includes('(DATE)')) {
+                            if (txt === 'NGAY' || txt.startsWith('NGAY') || txt.includes('DATE')) {
                                 fHeaderRow = r;
                                 dateCol = c;
-                            } else if (txt.includes('TON KHO') || txt.includes('REMAINING')) {
+                            } else if (txt.includes('TON CUOI') || txt.includes('TON KHO') || txt.includes('STOCK') || txt.includes('REMAINING')) {
                                 stockCol = c;
                             } else if (txt.includes('GHI CHU') || txt.includes('REMARK')) {
                                 remCol = c;
@@ -1960,7 +2054,8 @@ export const WarehouseInventoryService = {
                         const dIso = parseToIsoDate(rawDateCell);
                         if (!dIso) continue;
 
-                        const rem = String(getCellPrimitive(row.getCell(remCol)) || '').trim();
+                        const rawRemCell = getCellPrimitive(row.getCell(remCol));
+                        const rem = rawRemCell instanceof Date ? '' : String(rawRemCell || '').trim();
                         configs[fWh].dailyRemarks[dIso] = (!rem || /^\d+(\.\d+)?$/.test(rem)) ? '' : rem;
 
                         // Detect opening stock row on first date row (e.g. 26/12/2025 in EW Kho 4 where Col 2 is a literal number 17,652,550 with remark "Tồn kho đến 26/12/2025")
