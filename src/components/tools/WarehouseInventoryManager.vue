@@ -854,90 +854,6 @@ async function handleDownloadZaloImage() {
             @change="handleHistoryExcelSelected"
         />
 
-        <!-- Card 1: Top Header & Action Bar -->
-        <div class="bg-white rounded-[24px] p-4 border border-primary/5 soft-shadow shrink-0 flex flex-col gap-3">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <div class="text-xs uppercase font-black tracking-widest text-primary mb-0.5">
-                        Chốt số liệu 06:00 sáng hàng ngày • Cộng dồn liên tục
-                    </div>
-                    <h1 class="text-base md:text-xl font-black text-[#1e293b] flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-xl">warehouse</span>
-                        Báo Cáo Tồn Kho & Xuất Thẳng Sà Lan
-                    </h1>
-                </div>
-
-                <!-- Primary Import & Export Actions -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <button
-                        @click="triggerCsvImport"
-                        :disabled="importingCsv"
-                        class="px-3.5 py-2 bg-primary text-white font-bold rounded-2xl text-xs shadow-[0_3px_0_0_#6495ed] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#6495ed] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        title="Chọn 1 hoặc 2 file CSV/Excel từ trạm cân (Nhập + Xuất). Tự động vào Tồn kho 4 kho và đẩy chuyến Xuất sang Sà lan Báo cáo cân hàng!"
-                    >
-                        <span class="material-symbols-outlined text-sm">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
-                        <span>{{ importingCsv ? 'Đang nạp CSV...' : 'Nạp CSV Trạm Cân (1 Lần)' }}</span>
-                    </button>
-
-                    <button
-                        @click="triggerHistoryExcelImport"
-                        :disabled="importingHistoryExcel"
-                        class="px-3.5 py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                        title="Hút toàn bộ lịch sử IMPORT, EXPORT, XÁ THẲNG, Data (Nhà xe) và Ghi chú từ file Excel Báo cáo Tồn kho đang dùng"
-                    >
-                        <span class="material-symbols-outlined text-sm">{{ importingHistoryExcel ? 'sync' : 'folder_open' }}</span>
-                        <span>{{ importingHistoryExcel ? 'Đang hút lịch sử...' : 'Nạp từ Excel Tồn Kho Đang Dùng' }}</span>
-                    </button>
-
-                    <button
-                        @click="handleCopyZaloImage"
-                        :disabled="capturingZaloImage"
-                        class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                        title="Chụp bảng FINAL độ nét cao vào bộ nhớ tạm để nhấn Ctrl+V dán thẳng vào Zalo"
-                    >
-                        <span class="material-symbols-outlined text-sm">content_copy</span>
-                        <span>Copy Ảnh gửi Zalo</span>
-                    </button>
-
-                    <button
-                        @click="handleDownloadZaloImage"
-                        :disabled="capturingZaloImage"
-                        class="px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-bold rounded-2xl text-xs transition-all flex items-center gap-1 cursor-pointer"
-                        title="Tải file ảnh PNG bảng FINAL về máy"
-                    >
-                        <span class="material-symbols-outlined text-sm">image</span>
-                        <span>Tải PNG</span>
-                    </button>
-
-                    <button
-                        @click="handleExportExcel()"
-                        :disabled="exportingExcel"
-                        class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                    >
-                        <span class="material-symbols-outlined text-sm">download</span>
-                        <span>
-                            {{
-                                exportingExcel
-                                    ? 'Đang tạo Excel...'
-                                    : activeCustomerGroup === 'KHO_4'
-                                        ? 'Xuất Excel Kho 4 (EASTWOOD)'
-                                        : 'Xuất Excel GBD (8 Sheet)'
-                            }}
-                        </span>
-                    </button>
-
-                    <button
-                        @click="handleClearWarehouseData"
-                        class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-                        title="Xóa dữ liệu phiếu cân của kho này hoặc toàn bộ kho để import lại từ đầu"
-                    >
-                        <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
-                        <span>Xóa Dữ Liệu</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Main Master-Detail Work Area: Sidebar Tree + Content -->
         <div class="flex-1 flex flex-col md:flex-row gap-3.5 min-h-0 overflow-hidden">
             <!-- Sidebar: Tree Structure by Customer & Warehouses -->
@@ -1149,110 +1065,90 @@ async function handleDownloadZaloImage() {
                 </div>
             </aside>
 
-            <!-- Main Content Area: KPI Banner + Sheet Tabs + Tables -->
+            <!-- Main Content Area: Action Bar + Sheet Tabs + Tables -->
             <div class="flex-1 flex flex-col gap-3.5 min-h-0 overflow-hidden">
-                <!-- Card 2: KPI Summary & Config Bar for Active View -->
+                <!-- Action & View Header Bar -->
                 <div
                     class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow shrink-0 flex flex-wrap items-center justify-between gap-3"
                 >
-                    <div class="flex flex-wrap items-center gap-4 md:gap-6">
-                        <div>
-                            <div class="text-[11px] font-bold text-slate-400 uppercase">Đang xem</div>
-                            <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
-                                <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : activeSingleWarehouseId }}</span>
-                                <span class="text-primary">
-                                    ({{
-                                        selectedWarehouseMode === 'COMBINED_123'
-                                            ? (configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH')
-                                            : (configs[activeSingleWarehouseId]?.currentCustomer || 'Chưa gán')
-                                    }})
-                                </span>
-                                <button
-                                    v-if="selectedWarehouseMode !== 'COMBINED_123'"
-                                    @click="openEditConfigModal(activeSingleWarehouseId)"
-                                    class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer"
-                                    title="Sửa Tồn đầu kỳ & Tên khách hàng"
-                                >
-                                    <span class="material-symbols-outlined text-xs">edit</span>
-                                </button>
-                            </div>
+                    <div class="flex items-center gap-2">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase">Đang xem</div>
+                        <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
+                            <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : activeSingleWarehouseId }}</span>
+                            <span class="text-primary">
+                                ({{
+                                    selectedWarehouseMode === 'COMBINED_123'
+                                        ? (configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH')
+                                        : (configs[activeSingleWarehouseId]?.currentCustomer || 'Chưa gán')
+                                }})
+                            </span>
+                            <button
+                                v-if="selectedWarehouseMode !== 'COMBINED_123'"
+                                @click="openEditConfigModal(activeSingleWarehouseId)"
+                                class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer"
+                                title="Sửa Tồn đầu kỳ & Tên khách hàng"
+                            >
+                                <span class="material-symbols-outlined text-xs">edit</span>
+                            </button>
                         </div>
-
-                        <div class="h-7 w-px bg-slate-100 hidden sm:block"></div>
-
-                        <template v-if="selectedWarehouseMode !== 'COMBINED_123'">
-                            <div>
-                                <div class="text-[11px] font-bold text-slate-400 uppercase">Tồn đầu kỳ</div>
-                                <div class="text-sm font-black text-slate-700 font-mono">
-                                    {{ formatTons(activeFinalCalc.openingStockBeforeFilter) }} Tấn
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng Nhập ({{ activeFinalCalc.totalImportTrips }} xe)</div>
-                                <div class="text-sm font-black text-primary font-mono">
-                                    +{{ formatTons(activeFinalCalc.totalImportTons) }} Tấn
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="text-[11px] font-bold text-slate-400 uppercase">Tổng Xuất Kho ({{ activeFinalCalc.totalExportTrips }} xe)</div>
-                                <div class="text-sm font-black text-amber-600 font-mono">
-                                    -{{ formatTons(activeFinalCalc.totalExportTons) }} Tấn
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="text-[11px] font-bold text-slate-400 uppercase">Xá Thẳng ({{ activeFinalCalc.totalDirectTrips }} xe)</div>
-                                <div class="text-sm font-black text-purple-600 font-mono">
-                                    {{ formatTons(activeFinalCalc.totalDirectTons) }} Tấn
-                                </div>
-                            </div>
-
-                            <div class="px-3.5 py-1.5 rounded-2xl bg-teal-50 border border-teal-200">
-                                <div class="text-[10px] font-black text-teal-700 uppercase">Tồn Kho Chốt 06:00 Sáng</div>
-                                <div class="text-base font-black text-teal-700 font-mono">
-                                    {{ formatTons(activeFinalCalc.closingStockTons) }} Tấn
-                                </div>
-                            </div>
-                        </template>
-
-                        <template v-else>
-                            <div class="px-3.5 py-1.5 rounded-2xl bg-teal-50 border border-teal-200">
-                                <div class="text-[10px] font-black text-teal-700 uppercase">Tổng Tồn 3 Kho Chốt 06:00 Sáng</div>
-                                <div class="text-base font-black text-teal-700 font-mono">
-                                    {{
-                                        formatTons(
-                                            finalTablesByWarehouse['KHO 1'].closingStockTons +
-                                            finalTablesByWarehouse['KHO 2'].closingStockTons +
-                                            finalTablesByWarehouse['KHO 3'].closingStockTons
-                                        )
-                                    }} Tấn
-                                </div>
-                            </div>
-                        </template>
                     </div>
 
-                    <!-- Date range filter for FINAL -->
-                    <div class="flex flex-wrap items-center gap-2 text-xs">
-                        <span class="font-bold text-slate-500">Lọc ngày:</span>
-                        <input
-                            v-model="filterFromDate"
-                            type="date"
-                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold"
-                        />
-                        <span class="text-slate-400">→</span>
-                        <input
-                            v-model="filterToDate"
-                            type="date"
-                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold"
-                        />
+                    <!-- Primary Actions on the right -->
+                    <div class="flex flex-wrap items-center gap-2">
                         <button
-                            v-if="filterFromDate || filterToDate"
-                            @click="filterFromDate = ''; filterToDate = ''"
-                            class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
+                            @click="triggerCsvImport"
+                            :disabled="importingCsv"
+                            class="px-3.5 py-2 bg-primary text-white font-bold rounded-2xl text-xs shadow-[0_3px_0_0_#6495ed] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#6495ed] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            title="Chọn 1 hoặc 2 file CSV/Excel từ trạm cân (Nhập + Xuất)"
                         >
-                            Xóa lọc
+                            <span class="material-symbols-outlined text-sm">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
+                            <span>{{ importingCsv ? 'Đang nạp CSV...' : 'Nạp CSV Trạm Cân (1 Lần)' }}</span>
+                        </button>
+
+                        <button
+                            @click="triggerHistoryExcelImport"
+                            :disabled="importingHistoryExcel"
+                            class="px-3.5 py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                            title="Nạp từ file Excel Tồn kho đang dùng"
+                        >
+                            <span class="material-symbols-outlined text-sm">{{ importingHistoryExcel ? 'sync' : 'folder_open' }}</span>
+                            <span>{{ importingHistoryExcel ? 'Đang hút lịch sử...' : 'Nạp từ Excel Tồn Kho Đang Dùng' }}</span>
+                        </button>
+
+                        <button
+                            @click="handleCopyZaloImage"
+                            :disabled="capturingZaloImage"
+                            class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                            title="Chụp bảng FINAL độ nét cao vào bộ nhớ tạm để dán vào Zalo"
+                        >
+                            <span class="material-symbols-outlined text-sm">content_copy</span>
+                            <span>Copy Ảnh gửi Zalo</span>
+                        </button>
+
+                        <button
+                            @click="handleExportExcel()"
+                            :disabled="exportingExcel"
+                            class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                        >
+                            <span class="material-symbols-outlined text-sm">download</span>
+                            <span>
+                                {{
+                                    exportingExcel
+                                        ? 'Đang tạo Excel...'
+                                        : activeCustomerGroup === 'KHO_4'
+                                            ? 'Xuất Excel Kho 4 (EASTWOOD)'
+                                            : 'Xuất Excel GBD (8 Sheet)'
+                                }}
+                            </span>
+                        </button>
+
+                        <button
+                            @click="handleClearWarehouseData"
+                            class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                            title="Xóa dữ liệu phiếu cân"
+                        >
+                            <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
+                            <span>Xóa Dữ Liệu</span>
                         </button>
                     </div>
                 </div>
@@ -1274,7 +1170,7 @@ async function handleDownloadZaloImage() {
                                     ]"
                                 >
                                     <span class="material-symbols-outlined text-sm">south_west</span>
-                                    <span>IMPORT (Nhập kho)</span>
+                                    <span>IMPORT</span>
                                 </button>
 
                                 <button
@@ -1287,7 +1183,7 @@ async function handleDownloadZaloImage() {
                                     ]"
                                 >
                                     <span class="material-symbols-outlined text-sm">north_east</span>
-                                    <span>EXPORT (Xuất kho)</span>
+                                    <span>EXPORT</span>
                                 </button>
 
                                 <button
@@ -1300,7 +1196,7 @@ async function handleDownloadZaloImage() {
                                     ]"
                                 >
                                     <span class="material-symbols-outlined text-sm">table_chart</span>
-                                    <span>FINAL (Kho 4)</span>
+                                    <span>FINAL</span>
                                 </button>
 
                                 <button
@@ -1313,7 +1209,7 @@ async function handleDownloadZaloImage() {
                                     ]"
                                 >
                                     <span class="material-symbols-outlined text-sm">bolt</span>
-                                    <span>XÁ THẲNG (EASTWOOD)</span>
+                                    <span>XÁ THẲNG</span>
                                 </button>
                             </template>
 
@@ -1427,15 +1323,6 @@ async function handleDownloadZaloImage() {
 
                         <!-- Right contextual controls -->
                         <div class="flex items-center gap-2">
-                            <button
-                                @click="handleClearWarehouseData"
-                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer"
-                                title="Xóa dữ liệu để nạp lại"
-                            >
-                                <span class="material-symbols-outlined text-sm text-rose-600">delete</span>
-                                <span>Xóa Dữ Liệu</span>
-                            </button>
-
                             <label v-if="activeSheetTab === 'FINAL' && selectedWarehouseMode !== 'COMBINED_123'" class="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer select-none ml-2">
                                 <input
                                     v-model="showDirectColumnInSingleFinal"
