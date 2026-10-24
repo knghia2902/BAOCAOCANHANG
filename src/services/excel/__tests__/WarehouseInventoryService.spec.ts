@@ -505,6 +505,24 @@ describe('WarehouseInventoryService', () => {
             expect(directSheet.getRow(12).getCell(19).value).toContain('Nhà xe');
         }, 30000);
 
+        it('exports full 8-sheet workbook when calling exportSingleWarehouseWorkbook for Kho 1, 2, or 3', async () => {
+            const { buffer } = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 1');
+            const ExcelJS = await import('exceljs');
+            const wb = new ExcelJS.Workbook();
+            await wb.xlsx.load(buffer);
+            expect(wb.worksheets.map(s => s.name)).toEqual([
+                'FINAL',
+                'IMPORT 1',
+                'EXPORT 1',
+                'IMPORT 2',
+                'EXPORT 2',
+                'IMPORT KHO 3',
+                'EXPORT KH 3',
+                'XÁ THẲNG'
+            ]);
+            expect(wb.getWorksheet('Data')).toBeUndefined();
+        }, 30000);
+
         it('clears only Kho 4 direct tickets when target is DIRECT_KHO4', async () => {
             await WarehouseInventoryService.clearWarehouseTickets('ALL');
             await WarehouseInventoryService.saveTicketsBulk([

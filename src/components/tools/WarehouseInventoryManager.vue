@@ -252,6 +252,47 @@ function formatKg(tons: number | undefined | null): string {
     return Math.round(num * 1000).toLocaleString('en-US');
 }
 
+type GbdSheetTab = 'FINAL' | 'IMPORT_1' | 'EXPORT_1' | 'IMPORT_2' | 'EXPORT_2' | 'IMPORT_3' | 'EXPORT_3' | 'DIRECT';
+
+function isGbdTabActive(tab: GbdSheetTab): boolean {
+    if (tab === 'FINAL') return activeSheetTab.value === 'FINAL';
+    if (tab === 'IMPORT_1') return activeSheetTab.value === 'IMPORT' && activeSingleWarehouseId.value === 'KHO 1';
+    if (tab === 'EXPORT_1') return activeSheetTab.value === 'EXPORT' && activeSingleWarehouseId.value === 'KHO 1';
+    if (tab === 'IMPORT_2') return activeSheetTab.value === 'IMPORT' && activeSingleWarehouseId.value === 'KHO 2';
+    if (tab === 'EXPORT_2') return activeSheetTab.value === 'EXPORT' && activeSingleWarehouseId.value === 'KHO 2';
+    if (tab === 'IMPORT_3') return activeSheetTab.value === 'IMPORT' && activeSingleWarehouseId.value === 'KHO 3';
+    if (tab === 'EXPORT_3') return activeSheetTab.value === 'EXPORT' && activeSingleWarehouseId.value === 'KHO 3';
+    if (tab === 'DIRECT') return activeSheetTab.value === 'DIRECT';
+    return false;
+}
+
+function selectGbdTab(tab: GbdSheetTab) {
+    if (tab === 'FINAL') {
+        selectedWarehouseMode.value = 'COMBINED_123';
+        activeSheetTab.value = 'FINAL';
+    } else if (tab === 'IMPORT_1') {
+        selectedWarehouseMode.value = 'KHO 1';
+        activeSheetTab.value = 'IMPORT';
+    } else if (tab === 'EXPORT_1') {
+        selectedWarehouseMode.value = 'KHO 1';
+        activeSheetTab.value = 'EXPORT';
+    } else if (tab === 'IMPORT_2') {
+        selectedWarehouseMode.value = 'KHO 2';
+        activeSheetTab.value = 'IMPORT';
+    } else if (tab === 'EXPORT_2') {
+        selectedWarehouseMode.value = 'KHO 2';
+        activeSheetTab.value = 'EXPORT';
+    } else if (tab === 'IMPORT_3') {
+        selectedWarehouseMode.value = 'KHO 3';
+        activeSheetTab.value = 'IMPORT';
+    } else if (tab === 'EXPORT_3') {
+        selectedWarehouseMode.value = 'KHO 3';
+        activeSheetTab.value = 'EXPORT';
+    } else if (tab === 'DIRECT') {
+        activeSheetTab.value = 'DIRECT';
+    }
+}
+
 async function onFactoryKgChange(t: WarehouseInventoryTicket, e: Event) {
     const raw = (e.target as HTMLInputElement).value;
     const kg = Number(raw);
@@ -438,16 +479,16 @@ async function handleBatchAssignVessel() {
 }
 
 // Export Excel (.xlsx)
-async function handleExportExcel(mode: 'SINGLE' | 'COMBINED_123') {
+async function handleExportExcel() {
     exportingExcel.value = true;
     try {
         const opts = {
             fromDate: filterFromDate.value || undefined,
             toDate: filterToDate.value || undefined
         };
-        const { buffer, filename } = mode === 'COMBINED_123'
-            ? await WarehouseInventoryService.exportCombined123WarehouseWorkbook(opts)
-            : await WarehouseInventoryService.exportSingleWarehouseWorkbook(activeSingleWarehouseId.value, opts);
+        const { buffer, filename } = activeCustomerGroup.value === 'KHO_4'
+            ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', opts)
+            : await WarehouseInventoryService.exportCombined123WarehouseWorkbook(opts);
 
         const blob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -869,7 +910,7 @@ async function handleDownloadZaloImage() {
                     </button>
 
                     <button
-                        @click="handleExportExcel(selectedWarehouseMode === 'COMBINED_123' ? 'COMBINED_123' : 'SINGLE')"
+                        @click="handleExportExcel()"
                         :disabled="exportingExcel"
                         class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
                     >
@@ -878,9 +919,9 @@ async function handleDownloadZaloImage() {
                             {{
                                 exportingExcel
                                     ? 'Đang tạo Excel...'
-                                    : selectedWarehouseMode === 'COMBINED_123'
-                                        ? 'Xuất Excel Gộp Kho 1-2-3'
-                                        : `Xuất Excel ${selectedWarehouseMode}`
+                                    : activeCustomerGroup === 'KHO_4'
+                                        ? 'Xuất Excel Kho 4 (EASTWOOD)'
+                                        : 'Xuất Excel GBD (8 Sheet)'
                             }}
                         </span>
                     </button>
@@ -1221,61 +1262,167 @@ async function handleDownloadZaloImage() {
                     <!-- Sheet Tabs Navigation -->
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 shrink-0">
                         <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                            <template v-if="selectedWarehouseMode !== 'COMBINED_123'">
+                            <!-- KHO 4 (EASTWOOD): 4 Tabs (Import, Export, Final, Xá Thẳng) -->
+                            <template v-if="activeCustomerGroup === 'KHO_4'">
                                 <button
                                     @click="activeSheetTab = 'IMPORT'"
                                     :class="[
-                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0',
                                         activeSheetTab === 'IMPORT'
                                             ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
                                     <span class="material-symbols-outlined text-sm">south_west</span>
-                                    <span>IMPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Nhập kho)</span>
+                                    <span>IMPORT (Nhập kho)</span>
                                 </button>
 
                                 <button
                                     @click="activeSheetTab = 'EXPORT'"
                                     :class="[
-                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
+                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0',
                                         activeSheetTab === 'EXPORT'
                                             ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
                                     <span class="material-symbols-outlined text-sm">north_east</span>
-                                    <span>EXPORT {{ activeSingleWarehouseId.replace('KHO ', '') }} (Xuất kho)</span>
+                                    <span>EXPORT (Xuất kho)</span>
+                                </button>
+
+                                <button
+                                    @click="activeSheetTab = 'FINAL'"
+                                    :class="[
+                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0',
+                                        activeSheetTab === 'FINAL'
+                                            ? 'bg-primary text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">table_chart</span>
+                                    <span>FINAL (Kho 4)</span>
+                                </button>
+
+                                <button
+                                    @click="activeSheetTab = 'DIRECT'"
+                                    :class="[
+                                        'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0',
+                                        activeSheetTab === 'DIRECT'
+                                            ? 'bg-primary text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">bolt</span>
+                                    <span>XÁ THẲNG (EASTWOOD)</span>
                                 </button>
                             </template>
 
-                            <button
-                                @click="activeSheetTab = 'FINAL'"
-                                :class="[
-                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                                    activeSheetTab === 'FINAL'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                                ]"
-                            >
-                                <span class="material-symbols-outlined text-sm">table_chart</span>
-                                <span>
-                                    {{ selectedWarehouseMode === 'COMBINED_123' ? 'FINAL (Gộp Kho 1-2-3)' : `FINAL (${activeSingleWarehouseId})` }}
-                                </span>
-                            </button>
+                            <!-- GỖ BÌNH ĐỊNH (KHO 1, 2, 3): 8 Tabs matching the 8 Sheets in Excel 100% -->
+                            <template v-else>
+                                <button
+                                    @click="selectGbdTab('FINAL')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('FINAL')
+                                            ? 'bg-teal-700 text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">table_chart</span>
+                                    <span>FINAL</span>
+                                </button>
 
-                            <button
-                                @click="activeSheetTab = 'DIRECT'"
-                                :class="[
-                                    'px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                                    activeSheetTab === 'DIRECT'
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
-                                ]"
-                            >
-                                <span class="material-symbols-outlined text-sm">bolt</span>
-                                <span>XÁ THẲNG ({{ selectedWarehouseMode === 'KHO 4' ? (configs['KHO 4']?.currentCustomer || 'Kho 4') : (configs['KHO 1']?.currentCustomer || 'Kho 1-2-3') }})</span>
-                            </button>
+                                <button
+                                    @click="selectGbdTab('IMPORT_1')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('IMPORT_1')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">south_west</span>
+                                    <span>IMPORT 1</span>
+                                </button>
+
+                                <button
+                                    @click="selectGbdTab('EXPORT_1')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('EXPORT_1')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">north_east</span>
+                                    <span>EXPORT 1</span>
+                                </button>
+
+                                <button
+                                    @click="selectGbdTab('IMPORT_2')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('IMPORT_2')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">south_west</span>
+                                    <span>IMPORT 2</span>
+                                </button>
+
+                                <button
+                                    @click="selectGbdTab('EXPORT_2')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('EXPORT_2')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">north_east</span>
+                                    <span>EXPORT 2</span>
+                                </button>
+
+                                <button
+                                    @click="selectGbdTab('IMPORT_3')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('IMPORT_3')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">south_west</span>
+                                    <span>IMPORT KHO 3</span>
+                                </button>
+
+                                <button
+                                    @click="selectGbdTab('EXPORT_3')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('EXPORT_3')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">north_east</span>
+                                    <span>EXPORT KH 3</span>
+                                </button>
+
+                                <button
+                                    @click="selectGbdTab('DIRECT')"
+                                    :class="[
+                                        'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
+                                        isGbdTabActive('DIRECT')
+                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined text-sm">bolt</span>
+                                    <span>XÁ THẲNG</span>
+                                </button>
+                            </template>
                         </div>
 
                         <!-- Right contextual controls -->

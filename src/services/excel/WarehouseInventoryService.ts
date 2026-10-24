@@ -2296,28 +2296,9 @@ export const WarehouseInventoryService = {
             const wsDirect = workbook.addWorksheet(directSheetName);
             this.populateDirectWorksheet(wsDirect, directTickets, config.currentCustomer);
         } else {
-            // Kho 1, 2, 3 (Gỗ Bình Định single export matching template)
-            const wsFinal = workbook.addWorksheet(finalSheetName);
-            this.populateCombined123FinalWorksheet(wsFinal, [
-                {
-                    whId: warehouseId,
-                    customer: config.currentCustomer,
-                    importSheet: importSheetName,
-                    exportSheet: exportSheetName,
-                    startCol: 1,
-                    openingStock: finalCalc.openingStockBeforeFilter,
-                    rows: finalCalc.rows
-                }
-            ]);
-
-            const wsImport = workbook.addWorksheet(importSheetName);
-            this.populateGbdImportWorksheet(wsImport, warehouseId, config.currentCustomer, whImports);
-
-            const wsExport = workbook.addWorksheet(exportSheetName);
-            this.populateGbdExportWorksheet(wsExport, warehouseId, config.currentCustomer, whExports);
-
-            const wsDirect = workbook.addWorksheet(directSheetName);
-            this.populateGbdDirectWorksheet(wsDirect, directTickets, config.currentCustomer);
+            // Kho 1, 2, 3 (Gỗ Bình Định): The Excel report for GBD is a single workbook containing all 8 sheets:
+            // 1. FINAL, 2. IMPORT 1, 3. EXPORT 1, 4. IMPORT 2, 5. EXPORT 2, 6. IMPORT KHO 3, 7. EXPORT KH 3, 8. XÁ THẲNG
+            return this.exportCombined123WarehouseWorkbook(options);
         }
 
         const now = new Date();
