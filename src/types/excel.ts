@@ -150,6 +150,8 @@ export interface WarehouseInventoryTicket {
     bargeInfo?: string; // Loai Salan for EXPORT / DIRECT
     vesselName?: string; // Tàu mẹ / Đích đến for EXPORT / DIRECT
     sourceOrRemark?: string; // Tai Xe (Factory name for IMPORT, Direct source for DIRECT)
+    originWarehouseName?: string; // TÊN KHO / Tên Kho (Kho 1-2-3 IMPORT / XÁ THẲNG)
+    originArea?: string; // KHU VỰC / Khu Vực (Kho 1-2-3 IMPORT / XÁ THẲNG)
     rawNote?: string;
     createdAt?: string;
 }

@@ -490,6 +490,19 @@ describe('WarehouseInventoryService', () => {
                 'EXPORT KH 3',
                 'XÁ THẲNG'
             ]);
+            expect(wb.getWorksheet('Data')).toBeUndefined();
+
+            const import1Sheet = wb.getWorksheet('IMPORT 1')!;
+            expect(import1Sheet.getRow(13).getCell(1).value).toContain('STT');
+            expect(import1Sheet.getRow(13).getCell(18).value).toContain('Ghi chú');
+
+            const export1Sheet = wb.getWorksheet('EXPORT 1')!;
+            expect(export1Sheet.getRow(7).getCell(1).value).toContain('STT');
+            expect(export1Sheet.getRow(7).getCell(14).value).toContain('Nhà xe');
+
+            const directSheet = wb.getWorksheet('XÁ THẲNG')!;
+            expect(directSheet.getRow(12).getCell(1).value).toContain('STT');
+            expect(directSheet.getRow(12).getCell(19).value).toContain('Nhà xe');
         }, 30000);
 
         it('clears only Kho 4 direct tickets when target is DIRECT_KHO4', async () => {
