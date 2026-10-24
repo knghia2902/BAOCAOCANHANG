@@ -1102,7 +1102,7 @@ async function handleDownloadZaloImage() {
                             title="Chọn 1 hoặc 2 file CSV/Excel từ trạm cân (Nhập + Xuất)"
                         >
                             <span class="material-symbols-outlined text-sm">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
-                            <span>{{ importingCsv ? 'Đang nạp CSV...' : 'Nạp CSV Trạm Cân (1 Lần)' }}</span>
+                            <span>{{ importingCsv ? 'Đang import...' : 'Import' }}</span>
                         </button>
 
                         <button
@@ -1122,24 +1122,17 @@ async function handleDownloadZaloImage() {
                             title="Chụp bảng FINAL độ nét cao vào bộ nhớ tạm để dán vào Zalo"
                         >
                             <span class="material-symbols-outlined text-sm">content_copy</span>
-                            <span>Copy Ảnh gửi Zalo</span>
+                            <span>{{ capturingZaloImage ? 'Đang tạo ảnh...' : 'Final' }}</span>
                         </button>
 
                         <button
                             @click="handleExportExcel()"
                             :disabled="exportingExcel"
                             class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                            title="Xuất file báo cáo Excel"
                         >
                             <span class="material-symbols-outlined text-sm">download</span>
-                            <span>
-                                {{
-                                    exportingExcel
-                                        ? 'Đang tạo Excel...'
-                                        : activeCustomerGroup === 'KHO_4'
-                                            ? 'Xuất Excel Kho 4 (EASTWOOD)'
-                                            : 'Xuất Excel GBD (8 Sheet)'
-                                }}
-                            </span>
+                            <span>{{ exportingExcel ? 'Đang export...' : 'Export' }}</span>
                         </button>
 
                         <button
@@ -1148,7 +1141,7 @@ async function handleDownloadZaloImage() {
                             title="Xóa dữ liệu phiếu cân"
                         >
                             <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
-                            <span>Xóa Dữ Liệu</span>
+                            <span>Delete all</span>
                         </button>
                     </div>
                 </div>
