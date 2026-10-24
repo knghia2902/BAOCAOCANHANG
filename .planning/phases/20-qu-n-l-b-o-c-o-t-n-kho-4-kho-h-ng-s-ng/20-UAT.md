@@ -11,7 +11,7 @@ updated: "2026-10-21T21:21:00.000Z"
 
 ## Current Test
 
-4. Nạp từ Excel Báo Cáo Tồn Kho đang dùng (Bootstrap Lịch Sử)
+5. Xem Bảng FINAL Cộng Dồn Lũy Kế & Chỉnh Sửa Ghi Chú Ngày
 
 ## Tests
 
@@ -29,7 +29,7 @@ result: pass
 
 ### 4. Nạp từ Excel Báo Cáo Tồn Kho đang dùng (Bootstrap Lịch Sử)
 expected: Bấm nút "Nạp từ Excel Tồn Kho Đang Dùng", chọn file Excel tồn kho hiện tại (mẫu Eastwood hoặc GBD). Hệ thống nạp đầy đủ lịch sử Nhập, Xuất, Đi thẳng, Data danh mục nhà máy - xe và Tồn đầu kỳ lên Web.
-result: pending
+result: pass
 
 ### 5. Xem Bảng FINAL Cộng Dồn Lũy Kế & Chỉnh Sửa Ghi Chú Ngày
 expected: Bảng FINAL hiển thị lũy kế liên tục qua các ngày (`Tồn cuối = Tồn đầu + Nhập - Xuất`). Cho phép sửa Ghi chú trực tiếp trên từng dòng ngày và sửa Tên khách hàng / Tồn đầu kỳ ở phần cấu hình.
@@ -42,9 +42,9 @@ result: pending
 ## Summary
 
 total: 6
-passed: 3
+passed: 4
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
 blocked: 0
 

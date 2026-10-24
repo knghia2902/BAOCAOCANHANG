@@ -378,32 +378,13 @@ async function handleHistoryExcelSelected(e: Event) {
 }
 
 async function handleClearWarehouseData() {
-    let targetKey: WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123';
-    let targetLabel = '';
-
-    if (activeSheetTab.value === 'DIRECT') {
-        if (selectedWarehouseMode.value === 'KHO 4') {
-            targetKey = 'DIRECT_KHO4';
-            targetLabel = `toàn bộ phiếu XÁ THẲNG của ${configs.value['KHO 4']?.currentCustomer || 'Kho 4'}`;
-        } else {
-            targetKey = 'DIRECT_KHO123';
-            targetLabel = `toàn bộ phiếu XÁ THẲNG của ${configs.value['KHO 1']?.currentCustomer || 'Kho 1-2-3'}`;
-        }
-    } else if (selectedWarehouseMode.value === 'COMBINED_123') {
-        targetKey = 'GROUP_KHO123';
-        targetLabel = `toàn bộ dữ liệu của Kho 1, 2, 3 và Xá thẳng của ${configs.value['KHO 1']?.currentCustomer || 'Gỗ Bình Định'}`;
-    } else {
-        targetKey = activeSingleWarehouseId.value;
-        targetLabel = `toàn bộ phiếu của ${selectedWarehouseMode.value}`;
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn XÓA SẠCH ${targetLabel} để import lại từ đầu không?`)) {
+    if (!confirm('Bạn có chắc chắn muốn XÓA TẤT CẢ dữ liệu ở TẤT CẢ các kho (Kho 1, Kho 2, Kho 3, Kho 4 và Xá Thẳng) để làm lại từ đầu không?')) {
         return;
     }
     try {
-        await WarehouseInventoryService.clearWarehouseTickets(targetKey);
+        await WarehouseInventoryService.clearWarehouseTickets('ALL');
         await loadAllData();
-        addToast(`Đã xóa sạch dữ liệu phiếu cân ${targetLabel}!`, 'success');
+        addToast('Đã xóa sạch toàn bộ dữ liệu ở tất cả các kho (Kho 1, 2, 3, 4 và Xá thẳng)!', 'success');
     } catch (err: any) {
         addToast('Lỗi khi xóa dữ liệu: ' + (err?.message || err), 'error');
     }

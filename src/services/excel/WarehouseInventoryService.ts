@@ -1352,13 +1352,16 @@ export const WarehouseInventoryService = {
         if (!target || target === 'ALL') {
             await dbContext.set(LOCAL_TICKETS_KEY, []);
             try {
-                await supabase.from('warehouse_inventory_tickets').delete().neq('id', '');
+                await supabase.from('warehouse_inventory_tickets').delete().neq('id', '___NON_EXISTENT___');
             } catch (_) {}
             for (const whId of ALL_WAREHOUSES) {
                 configs[whId].dailyRemarks = {};
                 configs[whId].initialStock = 0;
                 configs[whId].initialDate = '';
                 await this.saveConfig(configs[whId]);
+            }
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
             }
             return true;
         }
