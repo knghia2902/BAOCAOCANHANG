@@ -223,10 +223,7 @@ export function normalizeWeightToTons(rawVal: any): number {
     const num = typeof rawVal === 'number'
         ? rawVal
         : parseFloat(String(rawVal).replace(/,/g, '').trim()) || 0;
-    if (Math.abs(num) > 500) {
-        return round2(num / 1000);
-    }
-    return round2(num);
+    return round2(num / 1000);
 }
 
 export function normalizeWeightToKg(rawVal: any): number {
@@ -234,9 +231,6 @@ export function normalizeWeightToKg(rawVal: any): number {
     const num = typeof rawVal === 'number'
         ? rawVal
         : parseFloat(String(rawVal).replace(/,/g, '').trim()) || 0;
-    if (Math.abs(num) > 0 && Math.abs(num) <= 500) {
-        return Math.round(num * 1000);
-    }
     return Math.round(num);
 }
 
@@ -609,6 +603,7 @@ export function computeWarehouseFinalTable(
         fromDate?: string;
         toDate?: string;
         includeDirectForCustomer?: boolean;
+        allConfigs?: Partial<Record<WarehouseId, WarehouseConfig>>;
     }
 ): {
     openingStockBeforeFilter: number;
@@ -629,7 +624,7 @@ export function computeWarehouseFinalTable(
     const directTickets = allTickets.filter(t => {
         if (t.flowType !== 'DIRECT') return false;
         if (options?.includeDirectForCustomer === false) return false;
-        return getTicketCustomerGroup(t, { [warehouseId]: config } as any) === targetGroup;
+        return getTicketCustomerGroup(t, (options?.allConfigs || { [warehouseId]: config }) as any) === targetGroup;
     });
 
     const { cleaned: validRemarks } = sanitizeDailyRemarks(config.dailyRemarks);
@@ -672,6 +667,17 @@ export function computeWarehouseFinalTable(
             const candidateDates = new Set<string>(dateSet);
             if (activeWhSetInGroup.size >= 2) {
                 groupWhTickets.forEach(t => candidateDates.add(t.reportDate));
+                if (options?.allConfigs) {
+                    (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[]).forEach(gWh => {
+                        const gCfg = options.allConfigs?.[gWh];
+                        if (gCfg?.dailyRemarks) {
+                            const { cleaned: gRemarks } = sanitizeDailyRemarks(gCfg.dailyRemarks);
+                            Object.keys(gRemarks).forEach(d => {
+                                if (d) candidateDates.add(d);
+                            });
+                        }
+                    });
+                }
             }
             const sortedCandidates = Array.from(candidateDates).filter(Boolean).sort();
             if (sortedCandidates.length >= 2) {
@@ -893,12 +899,6 @@ function sanitizeLoadedTicketWeights(t: WarehouseInventoryTicket): WarehouseInve
     if (t.factoryWeight != null && Math.abs(t.factoryWeight) > 100) {
         t.factoryWeight = round2(t.factoryWeight / 1000);
     }
-    if (t.id === 'EXPORT_KHO 1_XECLEAR_2026-03-14_86' && t.netWeight === 1) {
-        t.netWeight = 0.001;
-    }
-    if (t.id === 'IMPORT_KHO 2_001309/26A_2026-03-03_257' && t.factoryWeight === 374.72) {
-        t.factoryWeight = 34.72;
-    }
     return t;
 }
 
@@ -943,10 +943,10 @@ function mapModelTicketToDb(t: WarehouseInventoryTicket): any {
         id: t.id,
         so_phieu: t.soPhieu || '',
         ma_lenh: t.maLenh || '',
-        report_date: t.reportDate,
+        report_date: t.reportDate || '',
         weigh_in_date: t.weighInDate || '',
         weigh_in_time: t.weighInTime || '',
-        weigh_out_date: t.weighOutDate,
+        weigh_out_date: t.weighOutDate || t.reportDate || '',
         weigh_out_time: t.weighOutTime || '',
         flow_type: t.flowType,
         warehouse_id: t.warehouseId || null,
@@ -1282,7 +1282,14 @@ export const WarehouseInventoryService = {
                 if (!hasError && allRemote.length > 0) {
                     const mergedMap = new Map<string, WarehouseInventoryTicket>();
                     for (const t of local) mergedMap.set(t.id, t);
-                    for (const t of allRemote) mergedMap.set(t.id, t);
+                    for (const t of allRemote) {
+                        const existingLocal = mergedMap.get(t.id);
+                        if (existingLocal) {
+                            if (existingLocal.originWarehouseName) t.originWarehouseName = existingLocal.originWarehouseName;
+                            if (existingLocal.originArea) t.originArea = existingLocal.originArea;
+                        }
+                        mergedMap.set(t.id, t);
+                    }
                     const mergedList = Array.from(mergedMap.values()).sort(compareTicketsOrder);
                     await dbContext.set(LOCAL_TICKETS_KEY, mergedList);
                     return mergedList;
@@ -2180,6 +2187,8 @@ export const WarehouseInventoryService = {
                         configs[b.wh].initialStock = 0;
                         configs[b.wh].initialDate = '';
                         if (sheetLevelCustomer) configs[b.wh].currentCustomer = sheetLevelCustomer;
+                        let firstDateIso = '';
+                        let lastDateIso = '';
                         for (let r = 5; r <= finalSheet.rowCount; r++) {
                             const row = finalSheet.getRow(r);
                             const rawDateCell = getCellPrimitive(row.getCell(b.dateCol));
@@ -2194,11 +2203,19 @@ export const WarehouseInventoryService = {
                             }
                             const dIso = parseToIsoDate(rawDateCell);
                             if (!dIso) continue;
+                            if (!firstDateIso) firstDateIso = dIso;
+                            lastDateIso = dIso;
                             const rawRemCell = getCellPrimitive(row.getCell(b.remarkCol));
                             const rem = rawRemCell instanceof Date ? '' : String(rawRemCell || '').trim();
                             if (rem && !/^\d+(\.\d+)?$/.test(rem)) {
                                 configs[b.wh].dailyRemarks[dIso] = rem;
                             }
+                        }
+                        if (firstDateIso && configs[b.wh].dailyRemarks[firstDateIso] === undefined) {
+                            configs[b.wh].dailyRemarks[firstDateIso] = '';
+                        }
+                        if (lastDateIso && configs[b.wh].dailyRemarks[lastDateIso] === undefined) {
+                            configs[b.wh].dailyRemarks[lastDateIso] = '';
                         }
                     }
                 } else {
@@ -2326,7 +2343,7 @@ export const WarehouseInventoryService = {
         const targetGroup = warehouseId === 'KHO 4' ? 'KHO_4' : 'KHO_123';
         const directTickets = allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === targetGroup);
 
-        const finalCalc = computeWarehouseFinalTable(warehouseId, allTickets, config, options);
+        const finalCalc = computeWarehouseFinalTable(warehouseId, allTickets, config, { ...options, allConfigs: configs });
 
         if (warehouseId === 'KHO 4') {
             // Keep Kho 4 100% untouched
@@ -2384,9 +2401,10 @@ export const WarehouseInventoryService = {
         const allTickets = await this.getAllTickets();
         const configs = await this.getConfigs();
 
-        const calc1 = computeWarehouseFinalTable('KHO 1', allTickets, configs['KHO 1'], options);
-        const calc2 = computeWarehouseFinalTable('KHO 2', allTickets, configs['KHO 2'], options);
-        const calc3 = computeWarehouseFinalTable('KHO 3', allTickets, configs['KHO 3'], options);
+        const calcOpts = { ...options, allConfigs: configs };
+        const calc1 = computeWarehouseFinalTable('KHO 1', allTickets, configs['KHO 1'], calcOpts);
+        const calc2 = computeWarehouseFinalTable('KHO 2', allTickets, configs['KHO 2'], calcOpts);
+        const calc3 = computeWarehouseFinalTable('KHO 3', allTickets, configs['KHO 3'], calcOpts);
 
         // 1. Sheet FINAL (3 horizontal tables side-by-side: A..E, G..K, M..Q)
         const wsFinal = workbook.addWorksheet('FINAL');

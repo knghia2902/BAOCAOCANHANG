@@ -157,7 +157,7 @@ describe('WarehouseInventoryService', () => {
                 loaiHang: 'Viên nén gỗ',
                 loaiSalan: 'KHO 4',
                 taiXe: 'VỮNG BỀN',
-                ghiChu: '42.10'
+                ghiChu: '42100'
             }, vehicleMap);
 
             expect(ticket).not.toBeNull();
@@ -563,6 +563,47 @@ describe('WarehouseInventoryService', () => {
             const clearTicket = tickets.find(t => t.soPhieu === 'Clear chênh lệch');
             expect(clearTicket).toBeDefined();
             expect(clearTicket?.netWeight).toBe(-0.04);
+        });
+
+        it('preserves 1000 kg (1 Ton) on EXPORT_KHO 1_XECLEAR_2026-03-14_86 and saves ticket edits across reload', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'EXPORT_KHO 1_XECLEAR_2026-03-14_86',
+                    soPhieu: '',
+                    maLenh: 'Xuất',
+                    reportDate: '2026-03-14',
+                    weighInDate: '2026-03-14',
+                    weighInTime: '',
+                    weighOutDate: '2026-03-14',
+                    weighOutTime: '',
+                    flowType: 'EXPORT',
+                    warehouseId: 'KHO 1',
+                    customerName: 'GỖ BÌNH ĐỊNH',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: 'XE_CLEAR',
+                    carrierName: '',
+                    grossWeight: 0,
+                    tareWeight: 0,
+                    netWeight: 1,
+                    factoryWeight: null,
+                    bargeInfo: '',
+                    vesselName: '',
+                    sourceOrRemark: 'Kho 1',
+                    rawNote: 'Clear chênh lệch'
+                }
+            ]);
+
+            let loaded = await WarehouseInventoryService.getAllTickets();
+            expect(loaded).toHaveLength(1);
+            expect(loaded[0]?.netWeight).toBe(1);
+
+            const edited = { ...loaded[0]!, netWeight: 1.5, rawNote: 'Đã sửa 1500kg' };
+            await WarehouseInventoryService.updateTicket(edited);
+
+            loaded = await WarehouseInventoryService.getAllTickets();
+            expect(loaded[0]?.netWeight).toBe(1.5);
+            expect(loaded[0]?.rawNote).toBe('Đã sửa 1500kg');
         });
     });
 });

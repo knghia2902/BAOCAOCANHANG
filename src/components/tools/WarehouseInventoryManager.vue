@@ -186,7 +186,8 @@ const finalTablesByWarehouse = computed(() => {
     const opts = {
         fromDate: filterFromDate.value || undefined,
         toDate: filterToDate.value || undefined,
-        includeDirectForCustomer: showDirectColumnInSingleFinal.value
+        includeDirectForCustomer: showDirectColumnInSingleFinal.value,
+        allConfigs: configs.value
     };
     return {
         'KHO 1': computeWarehouseFinalTable('KHO 1', allTickets.value, configs.value['KHO 1'], opts),
@@ -610,280 +611,268 @@ async function handleExportExcel() {
 
 /**
  * Render crisp, high-DPI PNG image of the FINAL table directly using HTML5 2D Canvas
- * so that Copy to Clipboard / Download PNG for Zalo is 100% reliable and sharp.
+ * matching the Excel FINAL report style (last 3 days up to the report date, black separator bar, and Total row).
  */
-async function renderFinalTableToPngBlob(): Promise<Blob> {
+async function renderFinalTableToPngBlob(overrideWarehouseId?: WarehouseId): Promise<Blob> {
     const scale = 2; // Retina 2x resolution for Zalo
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
 
-    const now = new Date();
-    const todayStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    const isCombined = !overrideWarehouseId && selectedWarehouseMode.value === 'COMBINED_123';
+    const targetWarehouses: WarehouseId[] = isCombined
+        ? ['KHO 1', 'KHO 2', 'KHO 3']
+        : [overrideWarehouseId || activeSingleWarehouseId.value];
 
-    if (selectedWarehouseMode.value !== 'COMBINED_123') {
-        const whId = activeSingleWarehouseId.value;
+    const getBlockColWidths = (whId: WarehouseId): number[] => {
+        const hasDirect = !isCombined && whId === 'KHO 4' && showDirectColumnInSingleFinal.value;
+        return hasDirect
+            ? [135, 130, 130, 135, 125, 125]
+            : [135, 130, 130, 135, 125];
+    };
+
+    const getRecentRows = (whId: WarehouseId): WarehouseFinalRow[] => {
+        const allRows = finalTablesByWarehouse.value[whId].rows;
+        return allRows.slice(-3);
+    };
+
+    const maxDataRows = Math.max(
+        ...targetWarehouses.map(whId => getRecentRows(whId).length),
+        1
+    );
+
+    const padX = 12;
+    const padY = 12;
+    const gapW = 28; // Empty separator column between blocks when rendering 3 warehouses side-by-side
+
+    const rowTitleH = 30;
+    const rowSubTitleH = 24;
+    const rowBlankH = 18;
+    const rowInfoH = 22;
+    const headerH = 42;
+    const dataRowH = 28;
+    const blackBarH = 13;
+    const totalRowH = 30;
+
+    const topSectionH = rowTitleH + rowSubTitleH + rowBlankH + rowInfoH * 3 + rowBlankH;
+    const blockH = topSectionH + headerH + maxDataRows * dataRowH + blackBarH + totalRowH;
+
+    const blockWidths = targetWarehouses.map(whId => getBlockColWidths(whId).reduce((a, b) => a + b, 0));
+    const totalBlocksW = blockWidths.reduce((a, b) => a + b, 0) + (targetWarehouses.length - 1) * gapW;
+
+    const logicalW = padX * 2 + totalBlocksW;
+    const logicalH = padY * 2 + blockH;
+
+    canvas.width = logicalW * scale;
+    canvas.height = logicalH * scale;
+    ctx.scale(scale, scale);
+
+    // Pure white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, logicalW, logicalH);
+
+    const drawGridCell = (x: number, y: number, w: number, h: number, stroke = '#e2e8f0', lineWidth = 0.7) => {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.strokeRect(x, y, w, h);
+    };
+
+    let currentBlockStartX = padX;
+
+    targetWarehouses.forEach((whId, bIdx) => {
+        const colWidths = getBlockColWidths(whId);
+        const blockW = blockWidths[bIdx]!;
+        const startX = currentBlockStartX;
         const cfg = configs.value[whId];
-        const calc = activeFinalCalc.value;
-        const rows = calc.rows;
-        const hasDirect = showDirectColumnInSingleFinal.value;
+        const calc = finalTablesByWarehouse.value[whId];
+        const recentRows = getRecentRows(whId);
+        const hasDirect = !isCombined && whId === 'KHO 4' && showDirectColumnInSingleFinal.value;
 
-        const colWidths = hasDirect
-            ? [50, 105, 110, 110, 110, 120, 260]
-            : [50, 105, 115, 115, 125, 280];
-        const headers = hasDirect
-            ? ['STT', 'Ngày', 'Nhập (Tấn)', 'Xuất (Tấn)', 'Xá thẳng', 'Tồn kho (Tấn)', 'Ghi chú']
-            : ['STT', 'Ngày', 'Nhập (Tấn)', 'Xuất (Tấn)', 'Tồn kho (Tấn)', 'Ghi chú'];
+        let curY = padY;
 
-        const padX = 28;
-        const padY = 24;
-        const rowH = 30;
-        const headerH = 34;
-        const titleAreaH = 62;
-        const hasOpeningRow = calc.openingStockBeforeFilter > 0 ? 1 : 0;
-        const totalRowsCount = rows.length + hasOpeningRow + 1; // +1 for TỔNG CỘNG
-
-        const tableW = colWidths.reduce((a, b) => a + b, 0);
-        const logicalW = tableW + padX * 2;
-        const logicalH = padY * 2 + titleAreaH + headerH + totalRowsCount * rowH;
-
-        canvas.width = logicalW * scale;
-        canvas.height = logicalH * scale;
-        ctx.scale(scale, scale);
-
-        // White background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, logicalW, logicalH);
-
-        // Title Banner
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 17px "Times New Roman", Arial, sans-serif';
+        // 1. Row: BÁO CÁO NHẬP- XUẤT KHO (Merged across block)
+        drawGridCell(startX, curY, blockW, rowTitleH);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 20px "Cambria", "Times New Roman", serif';
         ctx.textAlign = 'center';
-        ctx.fillText(
-            `THEO DÕI NHẬP XUẤT TỒN KHO HÀNG VIÊN NÉN GỖ - ${whId} (${cfg.currentCustomer || 'KHÁCH HÀNG'})`,
-            logicalW / 2,
-            padY + 20
-        );
+        ctx.textBaseline = 'middle';
+        ctx.fillText('BÁO CÁO NHẬP- XUẤT KHO', startX + blockW / 2, curY + rowTitleH / 2 + 1);
+        curY += rowTitleH;
 
-        ctx.fillStyle = '#475569';
-        ctx.font = 'italic 13px "Times New Roman", Arial, sans-serif';
-        ctx.fillText(
-            `Chốt số liệu 06:00 sáng ngày ${todayStr} — Đơn vị tính: Tấn`,
-            logicalW / 2,
-            padY + 42
-        );
+        // 2. Row: DAILY IMPORTED -EXPORTED  REPORT (Merged across block)
+        drawGridCell(startX, curY, blockW, rowSubTitleH);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'italic 15px "Cambria", "Times New Roman", serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DAILY IMPORTED -EXPORTED  REPORT', startX + blockW / 2, curY + rowSubTitleH / 2);
+        curY += rowSubTitleH;
 
-        let curY = padY + titleAreaH;
+        // 3. Blank row with faint Excel cell gridlines
+        let gx = startX;
+        colWidths.forEach(w => {
+            drawGridCell(gx, curY, w, rowBlankH);
+            gx += w;
+        });
+        curY += rowBlankH;
 
-        // Draw Table Header
-        let curX = padX;
-        for (let i = 0; i < headers.length; i++) {
-            const w = colWidths[i]!;
-            ctx.fillStyle = '#d9e1f2';
-            ctx.fillRect(curX, curY, w, headerH);
-            ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(curX, curY, w, headerH);
+        // 4-6. Info Rows: Nguồn gốc, Khách hàng, Loại hàng
+        const infoRows: Array<[string, string]> = [
+            ['Nguồn gốc (Origin):', `${whId} NGUYÊN NGỌC`],
+            ['Khách hàng', cfg.currentCustomer || (whId === 'KHO 4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH')],
+            ['Loại hàng:', 'VIÊN NÉN GỖ']
+        ];
 
-            ctx.fillStyle = '#0f172a';
-            ctx.font = 'bold 13px "Times New Roman", Arial, sans-serif';
-            ctx.textAlign = 'center';
+        infoRows.forEach(([label, val]) => {
+            let cx = startX;
+            colWidths.forEach(w => {
+                drawGridCell(cx, curY, w, rowInfoH);
+                cx += w;
+            });
+            ctx.fillStyle = '#000000';
+            ctx.font = 'normal 13.5px "Cambria", "Times New Roman", serif';
+            ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(headers[i]!, curX + w / 2, curY + headerH / 2);
-            curX += w;
-        }
-        curY += headerH;
-
-        const drawRowCells = (
-            cells: string[],
-            aligns: Array<'center' | 'right' | 'left'>,
-            opts?: { bg?: string; bold?: boolean; highlightColIdx?: number }
-        ) => {
-            let x = padX;
-            for (let i = 0; i < cells.length; i++) {
-                const w = colWidths[i]!;
-                ctx.fillStyle = opts?.bg || '#ffffff';
-                ctx.fillRect(x, curY, w, rowH);
-                ctx.strokeStyle = '#94a3b8';
-                ctx.lineWidth = 0.8;
-                ctx.strokeRect(x, curY, w, rowH);
-
-                ctx.fillStyle = opts?.highlightColIdx === i ? '#0f5132' : '#1e293b';
-                ctx.font = `${opts?.bold || opts?.highlightColIdx === i ? 'bold' : 'normal'} 13px "Times New Roman", Arial, sans-serif`;
-                const align = aligns[i] || 'center';
-                ctx.textAlign = align;
-                ctx.textBaseline = 'middle';
-                const textX = align === 'right' ? x + w - 8 : align === 'left' ? x + 8 : x + w / 2;
-                ctx.fillText(cells[i] || '', textX, curY + rowH / 2, w - 12);
-                x += w;
-            }
-            curY += rowH;
-        };
-
-        const aligns: Array<'center' | 'right' | 'left'> = hasDirect
-            ? ['center', 'center', 'right', 'right', 'right', 'right', 'left']
-            : ['center', 'center', 'right', 'right', 'right', 'left'];
-
-        if (hasOpeningRow) {
-            const openCells = hasDirect
-                ? ['', 'Tồn đầu', '-', '-', '-', formatTons(calc.openingStockBeforeFilter), cfg.initialDate ? `Tồn đầu ${cfg.initialDate}` : '']
-                : ['', 'Tồn đầu', '-', '-', formatTons(calc.openingStockBeforeFilter), cfg.initialDate ? `Tồn đầu ${cfg.initialDate}` : ''];
-            drawRowCells(openCells, aligns, { bg: '#f8fafc', bold: true });
-        }
-
-        rows.forEach((r: WarehouseFinalRow, idx: number) => {
-            const rowCells = hasDirect
-                ? [
-                    String(idx + 1),
-                    r.displayDate,
-                    r.importTons > 0 ? formatTons(r.importTons) : '-',
-                    r.exportTons > 0 ? formatTons(r.exportTons) : '-',
-                    r.directTons > 0 ? formatTons(r.directTons) : '-',
-                    formatTons(r.remainingStockTons),
-                    r.remark || ''
-                ]
-                : [
-                    String(idx + 1),
-                    r.displayDate,
-                    r.importTons > 0 ? formatTons(r.importTons) : '-',
-                    r.exportTons > 0 ? formatTons(r.exportTons) : '-',
-                    formatTons(r.remainingStockTons),
-                    r.remark || ''
-                ];
-            drawRowCells(rowCells, aligns, { highlightColIdx: hasDirect ? 5 : 4 });
+            ctx.fillText(label, startX + 4, curY + rowInfoH / 2);
+            ctx.fillText(val, startX + colWidths[0]! + 4, curY + rowInfoH / 2);
+            curY += rowInfoH;
         });
 
-        // Total Row
+        // 7. Blank row before table header
+        gx = startX;
+        colWidths.forEach(w => {
+            drawGridCell(gx, curY, w, rowBlankH);
+            gx += w;
+        });
+        curY += rowBlankH;
+
+        // 8. Table Header Row (Sky-blue #84d0f0 with black borders)
+        const headers: Array<string[]> = hasDirect
+            ? [
+                ['Ngày', 'Date'],
+                [`NHẬP ${whId}`],
+                [`XUẤT ${whId}`],
+                ['Tồn cuối', 'Stock'],
+                ['Xá thẳng', 'Direct'],
+                ['Ghi chú', 'Remarks']
+            ]
+            : [
+                ['Ngày', 'Date'],
+                [`NHẬP ${whId}`],
+                [`XUẤT ${whId}`],
+                ['Tồn cuối', 'Stock'],
+                ['Ghi chú', 'Remarks']
+            ];
+
+        let hx = startX;
+        headers.forEach((lines, i) => {
+            const w = colWidths[i]!;
+            ctx.fillStyle = '#84d0f0';
+            ctx.fillRect(hx, curY, w, headerH);
+            drawGridCell(hx, curY, w, headerH, '#000000', 1);
+
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 13px "Cambria", "Times New Roman", serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (lines.length === 1) {
+                ctx.fillText(lines[0]!, hx + w / 2, curY + headerH / 2);
+            } else {
+                ctx.fillText(lines[0]!, hx + w / 2, curY + headerH / 2 - 8);
+                ctx.fillText(lines[1]!, hx + w / 2, curY + headerH / 2 + 9);
+            }
+            hx += w;
+        });
+        curY += headerH;
+
+        // 9. Data Rows (last 3 days up to report date)
+        const aligns: Array<'center' | 'right' | 'left'> = hasDirect
+            ? ['center', 'right', 'right', 'center', 'right', 'left']
+            : ['center', 'right', 'right', 'center', 'left'];
+
+        for (let rIdx = 0; rIdx < maxDataRows; rIdx++) {
+            const r = recentRows[rIdx];
+            const cells = r
+                ? hasDirect
+                    ? [
+                        r.displayDate,
+                        r.importTons !== 0 ? formatKg(r.importTons) : '-',
+                        r.exportTons !== 0 ? formatKg(r.exportTons) : '-',
+                        r.remainingStockTons !== 0 ? formatKg(r.remainingStockTons) : '0',
+                        r.directTons !== 0 ? formatKg(r.directTons) : '-',
+                        r.remark || ''
+                    ]
+                    : [
+                        r.displayDate,
+                        r.importTons !== 0 ? formatKg(r.importTons) : '-',
+                        r.exportTons !== 0 ? formatKg(r.exportTons) : '-',
+                        r.remainingStockTons !== 0 ? formatKg(r.remainingStockTons) : '0',
+                        r.remark || ''
+                    ]
+                : colWidths.map(() => '');
+
+            let dx = startX;
+            cells.forEach((txt, i) => {
+                const w = colWidths[i]!;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(dx, curY, w, dataRowH);
+                drawGridCell(dx, curY, w, dataRowH, '#000000', 1);
+
+                ctx.fillStyle = '#000000';
+                ctx.font = 'normal 13.5px "Cambria", "Times New Roman", serif';
+                const al = aligns[i]!;
+                ctx.textAlign = al;
+                ctx.textBaseline = 'middle';
+                const tx = al === 'right' ? dx + w - 12 : al === 'left' ? dx + 8 : dx + w / 2;
+                ctx.fillText(txt || '', tx, curY + dataRowH / 2, w - 14);
+                dx += w;
+            });
+            curY += dataRowH;
+        }
+
+        // 10. Solid Black Separator Bar above Total Row
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(startX, curY, blockW, blackBarH);
+        drawGridCell(startX, curY, blockW, blackBarH, '#000000', 1);
+        curY += blackBarH;
+
+        // 11. Total Row: Tổng cộng (Total)
+        const totalImpTons = calc.totalImportTons + (calc.openingStockBeforeFilter > 0 ? calc.openingStockBeforeFilter : 0);
         const totalCells = hasDirect
             ? [
+                'Tổng cộng (Total)',
+                totalImpTons !== 0 ? formatKg(totalImpTons) : '-',
+                calc.totalExportTons !== 0 ? formatKg(calc.totalExportTons) : '-',
                 '',
-                'TỔNG CỘNG',
-                formatTons(calc.totalImportTons),
-                formatTons(calc.totalExportTons),
-                formatTons(calc.totalDirectTons),
-                formatTons(calc.closingStockTons),
+                calc.totalDirectTons !== 0 ? formatKg(calc.totalDirectTons) : '',
                 ''
             ]
             : [
+                'Tổng cộng (Total)',
+                totalImpTons !== 0 ? formatKg(totalImpTons) : '-',
+                calc.totalExportTons !== 0 ? formatKg(calc.totalExportTons) : '-',
                 '',
-                'TỔNG CỘNG',
-                formatTons(calc.totalImportTons),
-                formatTons(calc.totalExportTons),
-                formatTons(calc.closingStockTons),
                 ''
             ];
-        drawRowCells(totalCells, aligns, { bg: '#fff2cc', bold: true });
-    } else {
-        // COMBINED_123: 3 side-by-side tables (KHO 1, KHO 2, KHO 3)
-        const whs: WarehouseId[] = ['KHO 1', 'KHO 2', 'KHO 3'];
-        const blockCols = [86, 86, 86, 94, 150]; // Ngày, Nhập, Xuất, Tồn kho, Ghi chú
-        const blockW = blockCols.reduce((a, b) => a + b, 0);
-        const gapW = 22;
-        const padX = 24;
-        const padY = 24;
-        const titleH = 54;
-        const headerH = 32;
-        const rowH = 28;
 
-        const maxRows = Math.max(
-            finalTablesByWarehouse.value['KHO 1'].rows.length,
-            finalTablesByWarehouse.value['KHO 2'].rows.length,
-            finalTablesByWarehouse.value['KHO 3'].rows.length,
-            1
-        );
+        let tx = startX;
+        totalCells.forEach((txt, i) => {
+            const w = colWidths[i]!;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(tx, curY, w, totalRowH);
+            drawGridCell(tx, curY, w, totalRowH, '#000000', 1);
 
-        const logicalW = padX * 2 + blockW * 3 + gapW * 2;
-        const logicalH = padY * 2 + titleH + headerH + (maxRows + 2) * rowH;
-
-        canvas.width = logicalW * scale;
-        canvas.height = logicalH * scale;
-        ctx.scale(scale, scale);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, logicalW, logicalH);
-
-        whs.forEach((whId, bIdx) => {
-            const startX = padX + bIdx * (blockW + gapW);
-            const cfg = configs.value[whId];
-            const calc = finalTablesByWarehouse.value[whId];
-
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 14px "Times New Roman", Arial, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(
-                `THEO DÕI NHẬP XUẤT - ${whId} (${cfg.currentCustomer || ''})`,
-                startX + blockW / 2,
-                padY + 24
-            );
-
-            let curY = padY + titleH;
-            const headers = ['Ngày', 'Nhập', 'Xuất', 'Tồn kho', 'Ghi chú'];
-            let x = startX;
-            headers.forEach((h, i) => {
-                const w = blockCols[i]!;
-                ctx.fillStyle = '#d9e1f2';
-                ctx.fillRect(x, curY, w, headerH);
-                ctx.strokeStyle = '#64748b';
-                ctx.strokeRect(x, curY, w, headerH);
-                ctx.fillStyle = '#0f172a';
-                ctx.font = 'bold 12px "Times New Roman", Arial, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(h, x + w / 2, curY + headerH / 2);
-                x += w;
-            });
-            curY += headerH;
-
-            const drawBlockRow = (cells: string[], bg = '#ffffff', bold = false) => {
-                let cx = startX;
-                const aligns: Array<'center' | 'right' | 'left'> = ['center', 'right', 'right', 'right', 'left'];
-                cells.forEach((txt, i) => {
-                    const w = blockCols[i]!;
-                    ctx.fillStyle = bg;
-                    ctx.fillRect(cx, curY, w, rowH);
-                    ctx.strokeStyle = '#94a3b8';
-                    ctx.strokeRect(cx, curY, w, rowH);
-                    ctx.fillStyle = '#1e293b';
-                    ctx.font = `${bold || i === 3 ? 'bold' : 'normal'} 12px "Times New Roman", Arial, sans-serif`;
-                    const al = aligns[i]!;
-                    ctx.textAlign = al;
-                    ctx.textBaseline = 'middle';
-                    const tx = al === 'right' ? cx + w - 6 : al === 'left' ? cx + 6 : cx + w / 2;
-                    ctx.fillText(txt || '', tx, curY + rowH / 2, w - 10);
-                    cx += w;
-                });
-                curY += rowH;
-            };
-
-            drawBlockRow(['Tồn đầu', '-', '-', formatTons(calc.openingStockBeforeFilter), ''], '#f8fafc', true);
-
-            for (let rIdx = 0; rIdx < maxRows; rIdx++) {
-                const r = calc.rows[rIdx];
-                if (r) {
-                    drawBlockRow([
-                        r.displayDate,
-                        r.importTons > 0 ? formatTons(r.importTons) : '-',
-                        r.exportTons > 0 ? formatTons(r.exportTons) : '-',
-                        formatTons(r.remainingStockTons),
-                        r.remark || ''
-                    ]);
-                } else {
-                    drawBlockRow(['', '', '', '', '']);
-                }
-            }
-
-            drawBlockRow(
-                [
-                    'TỔNG CỘNG',
-                    formatTons(calc.totalImportTons),
-                    formatTons(calc.totalExportTons),
-                    formatTons(calc.closingStockTons),
-                    ''
-                ],
-                '#fff2cc',
-                true
-            );
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 13.5px "Cambria", "Times New Roman", serif';
+            const al = aligns[i]!;
+            ctx.textAlign = al;
+            ctx.textBaseline = 'middle';
+            const textX = al === 'right' ? tx + w - 8 : al === 'left' ? tx + 8 : tx + w / 2;
+            ctx.fillText(txt || '', textX, curY + totalRowH / 2, w - 12);
+            tx += w;
         });
-    }
+
+        currentBlockStartX += blockW + gapW;
+    });
 
     return new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(blob => {
@@ -893,31 +882,37 @@ async function renderFinalTableToPngBlob(): Promise<Blob> {
     });
 }
 
-async function handleCopyZaloImage() {
+async function handleCopyZaloImage(overrideWarehouseId?: WarehouseId | Event) {
+    const whId = typeof overrideWarehouseId === 'string' ? overrideWarehouseId : undefined;
     capturingZaloImage.value = true;
     try {
-        const blob = await renderFinalTableToPngBlob();
+        const blob = await renderFinalTableToPngBlob(whId);
         if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            addToast('Đã copy ảnh bảng tổng hợp Tồn kho vào Clipboard! Bạn có thể nhấn Ctrl+V vào Zalo ngay.', 'success');
+            const targetLabel = whId || (selectedWarehouseMode.value === 'COMBINED_123' ? 'Gộp Kho 1-2-3' : activeSingleWarehouseId.value);
+            addToast(`Đã copy ảnh Báo cáo Nhập-Xuất Kho (${targetLabel}) 3 ngày gần nhất vào Clipboard! Nhấn Ctrl+V vào Zalo ngay.`, 'success');
         } else {
-            await handleDownloadZaloImage();
+            await handleDownloadZaloImage(whId);
         }
     } catch (err: any) {
         console.warn('Clipboard write fallback to download:', err);
-        await handleDownloadZaloImage();
+        await handleDownloadZaloImage(whId);
     } finally {
         capturingZaloImage.value = false;
     }
 }
 
-async function handleDownloadZaloImage() {
+async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
     capturingZaloImage.value = true;
     try {
-        const blob = await renderFinalTableToPngBlob();
+        const blob = await renderFinalTableToPngBlob(overrideWarehouseId);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const label = selectedWarehouseMode.value === 'COMBINED_123' ? 'GOP_KHO_1_2_3' : selectedWarehouseMode.value.replace(/\s+/g, '_');
+        const label = overrideWarehouseId
+            ? overrideWarehouseId.replace(/\s+/g, '_')
+            : selectedWarehouseMode.value === 'COMBINED_123'
+                ? 'GOP_KHO_1_2_3'
+                : selectedWarehouseMode.value.replace(/\s+/g, '_');
         a.href = url;
         a.download = `BAO_CAO_TON_KHO_${label}_ZALO.png`;
         document.body.appendChild(a);
@@ -1617,17 +1612,28 @@ async function handleDownloadZaloImage() {
                         class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col shadow-sm"
                     >
                         <div
-                            class="px-3 py-2 border-b border-slate-300 flex items-center justify-between"
+                            class="px-3 py-2 border-b border-slate-300 flex items-center justify-between gap-2"
                             :class="getWarehouseThemeBg(whId)"
                         >
                             <span class="text-xs font-black text-[#1e293b]">
                                 {{ whId }} ({{ configs[whId]?.currentCustomer || 'GỖ BÌNH ĐỊNH' }})
                             </span>
-                            <span class="text-xs font-black text-teal-900 font-mono">
-                                Tồn: {{ formatKg(finalTablesByWarehouse[whId].closingStockTons) }} kg
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-black text-teal-900 font-mono">
+                                    Tồn: {{ formatKg(finalTablesByWarehouse[whId].closingStockTons) }} kg
+                                </span>
+                                <button
+                                    @click="handleCopyZaloImage(whId)"
+                                    :disabled="capturingZaloImage"
+                                    class="px-2 py-0.5 rounded-lg bg-white/80 hover:bg-white text-teal-800 border border-slate-300 text-[10px] font-black flex items-center gap-1 cursor-pointer shadow-xs transition-all"
+                                    :title="`Copy ảnh báo cáo ${whId} (3 ngày gần nhất) để gửi Zalo`"
+                                >
+                                    <span class="material-symbols-outlined text-xs">content_copy</span>
+                                    <span>Ảnh Zalo</span>
+                                </button>
+                            </div>
                         </div>
-                        <table class="w-full text-left border-collapse text-[11px] font-bold">
+                        <table class="w-full text-left border-collapse text-[11px] font-bold whitespace-nowrap">
                             <thead class="bg-slate-100 text-slate-700 border-b border-slate-300">
                                 <tr>
                                     <th class="py-2 px-2 text-center border-r border-slate-200">Ngày</th>
