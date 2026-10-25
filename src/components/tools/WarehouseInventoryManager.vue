@@ -77,6 +77,10 @@ const showEditCustomerModal = ref(false);
 const editingCustomerGroup = ref<'KHO_4' | 'KHO_123'>('KHO_4');
 const editingCustomerName = ref('');
 
+// Ticket detail editing modal
+const showEditTicketModal = ref(false);
+const editingTicketForm = ref<WarehouseInventoryTicket | null>(null);
+
 function openEditCustomerModal(group: 'KHO_4' | 'KHO_123') {
     editingCustomerGroup.value = group;
     if (group === 'KHO_4') {
@@ -476,6 +480,56 @@ async function handleDeleteTicket(ticket: WarehouseInventoryTicket) {
     await WarehouseInventoryService.deleteTicket(ticket.id);
     allTickets.value = allTickets.value.filter(t => t.id !== ticket.id);
     addToast('Đã xóa phiếu cân khỏi tồn kho!', 'info');
+}
+
+function openEditTicketModal(ticket: WarehouseInventoryTicket) {
+    editingTicketForm.value = JSON.parse(JSON.stringify(ticket));
+    showEditTicketModal.value = true;
+}
+
+function onModalGrossOrTareChange() {
+    if (!editingTicketForm.value) return;
+    const g = Number(editingTicketForm.value.grossWeight) || 0;
+    const t = Number(editingTicketForm.value.tareWeight) || 0;
+    editingTicketForm.value.netWeight = Math.round((g - t) * 1000) / 1000;
+}
+
+async function handleDeleteFromEditModal() {
+    if (!editingTicketForm.value) return;
+    const t = editingTicketForm.value;
+    showEditTicketModal.value = false;
+    await handleDeleteTicket(t);
+}
+
+async function saveEditTicketModal() {
+    if (!editingTicketForm.value) return;
+    try {
+        const t = editingTicketForm.value;
+        t.grossWeight = Number(t.grossWeight) || 0;
+        t.tareWeight = Number(t.tareWeight) || 0;
+        t.netWeight = Number(t.netWeight) || Math.round((t.grossWeight - t.tareWeight) * 1000) / 1000;
+        if (t.factoryWeight !== null && t.factoryWeight !== undefined && (t.factoryWeight as any) !== '') {
+            t.factoryWeight = Number(t.factoryWeight);
+        } else {
+            t.factoryWeight = null;
+        }
+
+        await WarehouseInventoryService.updateTicket(t);
+
+        const idx = allTickets.value.findIndex(item => item.id === t.id);
+        if (idx !== -1) {
+            allTickets.value[idx] = { ...t };
+        } else {
+            allTickets.value.push({ ...t });
+        }
+
+        showEditTicketModal.value = false;
+        editingTicketForm.value = null;
+        addToast(`Đã lưu thay đổi phiếu ${t.soPhieu || t.vehiclePlate}!`, 'success');
+    } catch (err: any) {
+        console.error('Lỗi lưu phiếu cân:', err);
+        addToast('Lỗi lưu phiếu cân: ' + (err?.message || err), 'error');
+    }
 }
 
 async function handleBatchAssignVessel() {
@@ -1639,7 +1693,7 @@ async function handleDownloadZaloImage() {
                             <th class="py-2.5 px-2 border-r border-slate-300">KHU VỰC</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Nhà xe</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
-                            <th class="py-2.5 px-2 text-center w-12">Xóa</th>
+                            <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -1718,12 +1772,22 @@ async function handleDownloadZaloImage() {
                                 />
                             </td>
                             <td class="py-2 px-2 text-center">
-                                <button
-                                    @click="handleDeleteTicket(t)"
-                                    class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                >
-                                    <span class="material-symbols-outlined text-sm">delete</span>
-                                </button>
+                                <div class="inline-flex items-center gap-1 justify-center">
+                                    <button
+                                        @click="openEditTicketModal(t)"
+                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Sửa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    <button
+                                        @click="handleDeleteTicket(t)"
+                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Xóa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -1763,7 +1827,7 @@ async function handleDownloadZaloImage() {
                             <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú 2</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Nhà xe</th>
-                            <th class="py-2.5 px-2 text-center w-12">Xóa</th>
+                            <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -1821,12 +1885,22 @@ async function handleDownloadZaloImage() {
                                 />
                             </td>
                             <td class="py-2 px-2 text-center">
-                                <button
-                                    @click="handleDeleteTicket(t)"
-                                    class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                >
-                                    <span class="material-symbols-outlined text-sm">delete</span>
-                                </button>
+                                <div class="inline-flex items-center gap-1 justify-center">
+                                    <button
+                                        @click="openEditTicketModal(t)"
+                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Sửa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    <button
+                                        @click="handleDeleteTicket(t)"
+                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Xóa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -1890,7 +1964,7 @@ async function handleDownloadZaloImage() {
                                 <th class="py-2.5 px-2 border-r border-slate-300">Salan</th>
                                 <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
                                 <th class="py-2.5 px-2 border-r border-slate-300">Nhà xe</th>
-                                <th class="py-2.5 px-2 text-center w-12">Xóa</th>
+                                <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -1938,12 +2012,22 @@ async function handleDownloadZaloImage() {
                                     />
                                 </td>
                                 <td class="py-2 px-2 text-center">
-                                    <button
-                                        @click="handleDeleteTicket(t)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                    >
-                                        <span class="material-symbols-outlined text-sm">delete</span>
-                                    </button>
+                                    <div class="inline-flex items-center gap-1 justify-center">
+                                        <button
+                                            @click="openEditTicketModal(t)"
+                                            class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                            title="Sửa phiếu cân"
+                                        >
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                        <button
+                                            @click="handleDeleteTicket(t)"
+                                            class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                            title="Xóa phiếu cân"
+                                        >
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -1978,7 +2062,7 @@ async function handleDownloadZaloImage() {
                                 <th class="py-2.5 px-2 border-r border-slate-300">Salan</th>
                                 <th class="py-2.5 px-2 border-r border-slate-300">Tàu</th>
                                 <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
-                                <th class="py-2.5 px-2 text-center w-12">Xóa</th>
+                                <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -2026,12 +2110,22 @@ async function handleDownloadZaloImage() {
                                     />
                                 </td>
                                 <td class="py-2 px-2 text-center">
-                                    <button
-                                        @click="handleDeleteTicket(t)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                    >
-                                        <span class="material-symbols-outlined text-sm">delete</span>
-                                    </button>
+                                    <div class="inline-flex items-center gap-1 justify-center">
+                                        <button
+                                            @click="openEditTicketModal(t)"
+                                            class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                            title="Sửa phiếu cân"
+                                        >
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                        <button
+                                            @click="handleDeleteTicket(t)"
+                                            class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                            title="Xóa phiếu cân"
+                                        >
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -2078,7 +2172,7 @@ async function handleDownloadZaloImage() {
                             <th class="py-2.5 px-2 border-r border-slate-300">Khu Vực</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Nhà xe</th>
-                            <th class="py-2.5 px-2 text-center w-12">Xóa</th>
+                            <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -2166,12 +2260,22 @@ async function handleDownloadZaloImage() {
                                 />
                             </td>
                             <td class="py-2 px-2 text-center">
-                                <button
-                                    @click="handleDeleteTicket(t)"
-                                    class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                >
-                                    <span class="material-symbols-outlined text-sm">delete</span>
-                                </button>
+                                <div class="inline-flex items-center gap-1 justify-center">
+                                    <button
+                                        @click="openEditTicketModal(t)"
+                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Sửa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    <button
+                                        @click="handleDeleteTicket(t)"
+                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Xóa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -2211,7 +2315,7 @@ async function handleDownloadZaloImage() {
                             <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Nơi nhận</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Tàu</th>
-                            <th class="py-2.5 px-2 text-center w-12">Xóa</th>
+                            <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -2270,12 +2374,22 @@ async function handleDownloadZaloImage() {
                                 />
                             </td>
                             <td class="py-2 px-2 text-center">
-                                <button
-                                    @click="handleDeleteTicket(t)"
-                                    class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer"
-                                >
-                                    <span class="material-symbols-outlined text-sm">delete</span>
-                                </button>
+                                <div class="inline-flex items-center gap-1 justify-center">
+                                    <button
+                                        @click="openEditTicketModal(t)"
+                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Sửa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    <button
+                                        @click="handleDeleteTicket(t)"
+                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        title="Xóa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -2424,6 +2538,266 @@ async function handleDownloadZaloImage() {
                     >
                         Lưu Tên Khách Hàng
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Edit Ticket Details -->
+        <div
+            v-if="showEditTicketModal && editingTicketForm"
+            class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+        >
+            <div class="bg-white rounded-[2rem] p-6 w-full max-w-2xl border border-primary/10 shadow-2xl flex flex-col gap-4 my-auto max-h-[90vh]">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <div class="size-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-lg">edit_note</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black text-[#1e293b]">
+                                Sửa Phiếu Cân: {{ editingTicketForm.soPhieu || editingTicketForm.vehiclePlate }}
+                            </h3>
+                            <p class="text-[11px] text-slate-500 font-semibold">
+                                Luồng: <span class="font-bold text-primary">{{ editingTicketForm.flowType }}</span> • Kho: <span class="font-bold">{{ editingTicketForm.warehouseId || 'Xá thẳng' }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        @click="showEditTicketModal = false"
+                        class="size-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-500 hover:text-rose-600 cursor-pointer transition-colors"
+                    >
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+
+                <!-- Scrollable Form Body -->
+                <div class="overflow-y-auto flex-1 pr-1 flex flex-col gap-4 text-xs font-bold">
+                    <!-- Group 1: Mã phiếu & Xe -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Số phiếu</label>
+                            <input
+                                v-model="editingTicketForm.soPhieu"
+                                type="text"
+                                placeholder="VD: 00123"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Biển số xe</label>
+                            <input
+                                v-model="editingTicketForm.vehiclePlate"
+                                type="text"
+                                placeholder="VD: 77C-12345"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-mono font-black uppercase outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Mã lệnh / Loại cân</label>
+                            <input
+                                v-model="editingTicketForm.maLenh"
+                                type="text"
+                                placeholder="Nhập / Xuất"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Group 2: Thời gian & Ngày báo cáo -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Ngày báo cáo (Ca 6h)</label>
+                            <input
+                                v-model="editingTicketForm.reportDate"
+                                type="date"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Giờ vào (Weigh In)</label>
+                            <input
+                                v-model="editingTicketForm.weighInTime"
+                                type="text"
+                                placeholder="HH:mm:ss"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Giờ ra (Weigh Out)</label>
+                            <input
+                                v-model="editingTicketForm.weighOutTime"
+                                type="text"
+                                placeholder="HH:mm:ss"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Group 3: Trọng lượng (Kg & Tấn) -->
+                    <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col gap-2.5">
+                        <span class="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                            Số liệu cân (Đơn vị: Tấn)
+                        </span>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-slate-600">Tổng trọng (Gross)</label>
+                                <input
+                                    v-model.number="editingTicketForm.grossWeight"
+                                    type="number"
+                                    step="0.001"
+                                    @input="onModalGrossOrTareChange"
+                                    class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary text-right"
+                                />
+                                <span class="text-[10px] text-slate-400 text-right">{{ formatKg(editingTicketForm.grossWeight) }} kg</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-slate-600">Tự trọng xe (Tare)</label>
+                                <input
+                                    v-model.number="editingTicketForm.tareWeight"
+                                    type="number"
+                                    step="0.001"
+                                    @input="onModalGrossOrTareChange"
+                                    class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary text-right"
+                                />
+                                <span class="text-[10px] text-slate-400 text-right">{{ formatKg(editingTicketForm.tareWeight) }} kg</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-slate-600 font-black text-primary">TL Hàng (Net)</label>
+                                <input
+                                    v-model.number="editingTicketForm.netWeight"
+                                    type="number"
+                                    step="0.001"
+                                    class="px-3 py-2 bg-primary/5 border border-primary/30 rounded-xl text-xs font-mono font-black text-primary outline-none focus:border-primary text-right"
+                                />
+                                <span class="text-[10px] text-primary/70 font-black text-right">{{ formatKg(editingTicketForm.netWeight) }} kg</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-slate-600">Cân nhà máy (Tấn)</label>
+                                <input
+                                    v-model.number="editingTicketForm.factoryWeight"
+                                    type="number"
+                                    step="0.001"
+                                    placeholder="-"
+                                    class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary text-right"
+                                />
+                                <span class="text-[10px] text-slate-400 text-right">{{ editingTicketForm.factoryWeight ? formatKg(editingTicketForm.factoryWeight) + ' kg' : '-' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Group 4: Vận chuyển, kho bãi & Ghi chú -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Kho lưu trữ</label>
+                            <select
+                                v-model="editingTicketForm.warehouseId"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary cursor-pointer"
+                            >
+                                <option :value="null">Không phân kho (Xá thẳng)</option>
+                                <option value="KHO 1">Kho 1</option>
+                                <option value="KHO 2">Kho 2</option>
+                                <option value="KHO 3">Kho 3</option>
+                                <option value="KHO 4">Kho 4</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Nhà xe</label>
+                            <input
+                                v-model="editingTicketForm.carrierName"
+                                type="text"
+                                placeholder="Tên nhà xe"
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Nơi nhận / Xuất phát</label>
+                            <input
+                                v-model="editingTicketForm.sourceOrRemark"
+                                type="text"
+                                placeholder="Nơi nhận..."
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Tên kho (Origin)</label>
+                            <input
+                                v-model="editingTicketForm.originWarehouseName"
+                                type="text"
+                                placeholder="VD: GBD..."
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Khu vực (Area)</label>
+                            <input
+                                v-model="editingTicketForm.originArea"
+                                type="text"
+                                placeholder="VD: Bình Định..."
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Sà lan</label>
+                            <input
+                                v-model="editingTicketForm.bargeInfo"
+                                type="text"
+                                placeholder="Tên sà lan..."
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-slate-600">Tàu</label>
+                            <input
+                                v-model="editingTicketForm.vesselName"
+                                type="text"
+                                placeholder="Tên tàu..."
+                                class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-slate-600">Ghi chú</label>
+                        <input
+                            v-model="editingTicketForm.rawNote"
+                            type="text"
+                            placeholder="Ghi chú thêm về phiếu cân..."
+                            class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-primary"
+                        />
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+                    <button
+                        type="button"
+                        @click="handleDeleteFromEditModal"
+                        class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-2xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                        <span>Xóa phiếu này</span>
+                    </button>
+                    <div class="flex gap-2">
+                        <button
+                            type="button"
+                            @click="showEditTicketModal = false"
+                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs cursor-pointer"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="button"
+                            @click="saveEditTicketModal"
+                            class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                            <span class="material-symbols-outlined text-sm">save</span>
+                            <span>Lưu Phiếu Cân</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
