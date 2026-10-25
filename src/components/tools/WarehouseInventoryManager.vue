@@ -80,6 +80,17 @@ const editingCustomerName = ref('');
 // Ticket detail editing modal
 const showEditTicketModal = ref(false);
 const editingTicketForm = ref<WarehouseInventoryTicket | null>(null);
+const editingTicketWeightsKg = ref<{
+    grossKg: number;
+    tareKg: number;
+    netKg: number;
+    factoryKg: number | '';
+}>({
+    grossKg: 0,
+    tareKg: 0,
+    netKg: 0,
+    factoryKg: ''
+});
 
 function openEditCustomerModal(group: 'KHO_4' | 'KHO_123') {
     editingCustomerGroup.value = group;
@@ -484,14 +495,22 @@ async function handleDeleteTicket(ticket: WarehouseInventoryTicket) {
 
 function openEditTicketModal(ticket: WarehouseInventoryTicket) {
     editingTicketForm.value = JSON.parse(JSON.stringify(ticket));
+    editingTicketWeightsKg.value = {
+        grossKg: Math.round((Number(ticket.grossWeight) || 0) * 1000),
+        tareKg: Math.round((Number(ticket.tareWeight) || 0) * 1000),
+        netKg: Math.round((Number(ticket.netWeight) || 0) * 1000),
+        factoryKg: ticket.factoryWeight !== null && ticket.factoryWeight !== undefined
+            ? Math.round(Number(ticket.factoryWeight) * 1000)
+            : ''
+    };
     showEditTicketModal.value = true;
 }
 
 function onModalGrossOrTareChange() {
     if (!editingTicketForm.value) return;
-    const g = Number(editingTicketForm.value.grossWeight) || 0;
-    const t = Number(editingTicketForm.value.tareWeight) || 0;
-    editingTicketForm.value.netWeight = Math.round((g - t) * 1000) / 1000;
+    const g = Number(editingTicketWeightsKg.value.grossKg) || 0;
+    const t = Number(editingTicketWeightsKg.value.tareKg) || 0;
+    editingTicketWeightsKg.value.netKg = Math.round(g - t);
 }
 
 async function handleDeleteFromEditModal() {
@@ -505,11 +524,18 @@ async function saveEditTicketModal() {
     if (!editingTicketForm.value) return;
     try {
         const t = editingTicketForm.value;
-        t.grossWeight = Number(t.grossWeight) || 0;
-        t.tareWeight = Number(t.tareWeight) || 0;
-        t.netWeight = Number(t.netWeight) || Math.round((t.grossWeight - t.tareWeight) * 1000) / 1000;
-        if (t.factoryWeight !== null && t.factoryWeight !== undefined && (t.factoryWeight as any) !== '') {
-            t.factoryWeight = Number(t.factoryWeight);
+        const gKg = Number(editingTicketWeightsKg.value.grossKg) || 0;
+        const tKg = Number(editingTicketWeightsKg.value.tareKg) || 0;
+        const nKg = editingTicketWeightsKg.value.netKg !== null && editingTicketWeightsKg.value.netKg !== undefined && (editingTicketWeightsKg.value.netKg as any) !== ''
+            ? Number(editingTicketWeightsKg.value.netKg)
+            : (gKg - tKg);
+
+        t.grossWeight = Math.round(gKg) / 1000;
+        t.tareWeight = Math.round(tKg) / 1000;
+        t.netWeight = Math.round(nKg) / 1000;
+
+        if (editingTicketWeightsKg.value.factoryKg !== null && editingTicketWeightsKg.value.factoryKg !== undefined && editingTicketWeightsKg.value.factoryKg !== '') {
+            t.factoryWeight = Math.round(Number(editingTicketWeightsKg.value.factoryKg)) / 1000;
         } else {
             t.factoryWeight = null;
         }
@@ -2634,54 +2660,54 @@ async function handleDownloadZaloImage() {
                         </div>
                     </div>
 
-                    <!-- Group 3: Trọng lượng (Kg & Tấn) -->
+                    <!-- Group 3: Trọng lượng (Kg) -->
                     <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col gap-2.5">
                         <span class="text-[11px] font-black uppercase text-slate-500 tracking-wider">
-                            Số liệu cân (Đơn vị: Tấn)
+                            Số liệu cân (Đơn vị: Kg)
                         </span>
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                             <div class="flex flex-col gap-1">
-                                <label class="text-slate-600">Tổng trọng (Gross)</label>
+                                <label class="text-slate-600">Tổng trọng (Gross Kg)</label>
                                 <input
-                                    v-model.number="editingTicketForm.grossWeight"
+                                    v-model.number="editingTicketWeightsKg.grossKg"
                                     type="number"
-                                    step="0.001"
+                                    step="1"
                                     @input="onModalGrossOrTareChange"
                                     class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary text-right"
                                 />
-                                <span class="text-[10px] text-slate-400 text-right">{{ formatKg(editingTicketForm.grossWeight) }} kg</span>
+                                <span class="text-[10px] text-slate-400 text-right">{{ formatTons(editingTicketWeightsKg.grossKg / 1000) }} tấn</span>
                             </div>
                             <div class="flex flex-col gap-1">
-                                <label class="text-slate-600">Tự trọng xe (Tare)</label>
+                                <label class="text-slate-600">Tự trọng xe (Tare Kg)</label>
                                 <input
-                                    v-model.number="editingTicketForm.tareWeight"
+                                    v-model.number="editingTicketWeightsKg.tareKg"
                                     type="number"
-                                    step="0.001"
+                                    step="1"
                                     @input="onModalGrossOrTareChange"
                                     class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary text-right"
                                 />
-                                <span class="text-[10px] text-slate-400 text-right">{{ formatKg(editingTicketForm.tareWeight) }} kg</span>
+                                <span class="text-[10px] text-slate-400 text-right">{{ formatTons(editingTicketWeightsKg.tareKg / 1000) }} tấn</span>
                             </div>
                             <div class="flex flex-col gap-1">
-                                <label class="text-slate-600 font-black text-primary">TL Hàng (Net)</label>
+                                <label class="text-slate-600 font-black text-primary">TL Hàng (Net Kg)</label>
                                 <input
-                                    v-model.number="editingTicketForm.netWeight"
+                                    v-model.number="editingTicketWeightsKg.netKg"
                                     type="number"
-                                    step="0.001"
+                                    step="1"
                                     class="px-3 py-2 bg-primary/5 border border-primary/30 rounded-xl text-xs font-mono font-black text-primary outline-none focus:border-primary text-right"
                                 />
-                                <span class="text-[10px] text-primary/70 font-black text-right">{{ formatKg(editingTicketForm.netWeight) }} kg</span>
+                                <span class="text-[10px] text-primary/70 font-black text-right">{{ formatTons(editingTicketWeightsKg.netKg / 1000) }} tấn</span>
                             </div>
                             <div class="flex flex-col gap-1">
-                                <label class="text-slate-600">Cân nhà máy (Tấn)</label>
+                                <label class="text-slate-600">Cân nhà máy (Kg)</label>
                                 <input
-                                    v-model.number="editingTicketForm.factoryWeight"
+                                    v-model.number="editingTicketWeightsKg.factoryKg"
                                     type="number"
-                                    step="0.001"
+                                    step="1"
                                     placeholder="-"
                                     class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold outline-none focus:border-primary text-right"
                                 />
-                                <span class="text-[10px] text-slate-400 text-right">{{ editingTicketForm.factoryWeight ? formatKg(editingTicketForm.factoryWeight) + ' kg' : '-' }}</span>
+                                <span class="text-[10px] text-slate-400 text-right">{{ editingTicketWeightsKg.factoryKg !== '' ? formatTons(Number(editingTicketWeightsKg.factoryKg) / 1000) + ' tấn' : '-' }}</span>
                             </div>
                         </div>
                     </div>

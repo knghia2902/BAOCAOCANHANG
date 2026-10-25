@@ -543,5 +543,26 @@ describe('WarehouseInventoryService', () => {
             expect(remaining).toHaveLength(1);
             expect(remaining[0]?.id).toBe('DIR_GBD');
         });
+
+        it('imports small Kg adjustment rows (e.g. -40 kg Clear chênh lệch) as -0.04 Tons instead of -40 Tons when sheet uses Kg', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+            const ExcelJS = await import('exceljs');
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet('EXPORT KHO 4');
+            ws.getRow(6).values = ['STT', 'Số phiếu', 'Ngày', 'Giờ ra', 'Biển số', 'KL Tổng', 'KL Bì', 'KL Hàng', 'Sà lan', 'Tàu', 'Kho', 'Nhập/Xuất', 'Khách hàng', 'Nhà xe', 'Ghi chú'];
+            ws.getRow(7).values = [1, '101', '2026-03-14', '10:00:00', '50H29839', 41140, 18300, 22840, 'VL 15711', '', 'Kho 4', 'Xuất', 'Eastwood', 'NGUYÊN NGỌC', ''];
+            ws.getRow(8).values = [321, 'Clear chênh lệch', '2026-03-14', '', '', 0, 0, -40, '', '', 'Kho 4', 'Xuất', 'Eastwood', '', ''];
+
+            const buf = await wb.xlsx.writeBuffer();
+            const file = new File([buf], 'test_clear_40kg.xlsx', {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            await WarehouseInventoryService.importHistoricalExcelWorkbook(file);
+
+            const tickets = await WarehouseInventoryService.getAllTickets();
+            const clearTicket = tickets.find(t => t.soPhieu === 'Clear chênh lệch');
+            expect(clearTicket).toBeDefined();
+            expect(clearTicket?.netWeight).toBe(-0.04);
+        });
     });
 });

@@ -1913,10 +1913,33 @@ export const WarehouseInventoryService = {
                 const colInOut = findColIdx(h => h.includes('NHAP/XUAT') || h.includes('NHAP/ XUAT') || h.includes('IN/OUT'), -1);
 
                 const cellAt = (row: any, idx: number): any => (idx >= 1 ? getCellPrimitive(row.getCell(idx)) : '');
+
+                // Detect if this sheet records weights in Kg (standard: most rows > 500 kg)
+                // so that small adjustment rows (e.g. -40 kg Clear chênh lệch) are also divided by 1000 instead of treated as -40 Tons!
+                let sheetUsesKg = false;
+                for (let rCheck = headerRowNum + 1; rCheck <= Math.min(headerRowNum + 50, sheet.rowCount); rCheck++) {
+                    const wRaw = getCellPrimitive(sheet.getRow(rCheck).getCell(colWeight));
+                    const wNum = typeof wRaw === 'number' ? wRaw : parseFloat(String(wRaw || '').replace(/,/g, '').trim()) || 0;
+                    if (Math.abs(wNum) > 500) {
+                        sheetUsesKg = true;
+                        break;
+                    }
+                }
+
+                const parseSheetWeightToTons = (rawVal: any): number => {
+                    if (rawVal === null || rawVal === undefined || rawVal === '' || rawVal instanceof Date || typeof rawVal === 'object') return 0;
+                    const num = typeof rawVal === 'number'
+                        ? rawVal
+                        : parseFloat(String(rawVal).replace(/,/g, '').trim()) || 0;
+                    if (sheetUsesKg) {
+                        return round2(num / 1000);
+                    }
+                    return normalizeWeightToTons(num);
+                };
+
                 const weightAt = (row: any, idx: number): number => {
                     const v = cellAt(row, idx);
-                    if (v === '' || v === null || v instanceof Date || typeof v === 'object') return 0;
-                    return normalizeWeightToTons(v);
+                    return parseSheetWeightToTons(v);
                 };
 
                 for (let r = headerRowNum + 1; r <= sheet.rowCount; r++) {
@@ -1929,7 +1952,7 @@ export const WarehouseInventoryService = {
                     const rawWeightVal = getCellPrimitive(row.getCell(colWeight));
 
                     const reportDate = parseToIsoDate(rawDateVal);
-                    const netWeight = normalizeWeightToTons(rawWeightVal);
+                    const netWeight = parseSheetWeightToTons(rawWeightVal);
                     if (!reportDate || netWeight === 0) continue;
 
                     const soPhieu = String(getCellPrimitive(row.getCell(colTicketNo)) || '').trim();
