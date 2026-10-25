@@ -4,7 +4,7 @@ import { authStore, canCreate, canUpdate, canDelete, hasDetailPermission } from 
 import { supabase } from '@/supabase';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
-import { WeighbridgeService, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement } from '@/services/excel/WeighbridgeService';
+import { WeighbridgeService, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
 import { LogService } from '@/services/storage/LogService';
 const props = withDefaults(defineProps<{
     hideCard?: boolean;
@@ -135,10 +135,6 @@ const getDefaultPrintElements = (): PrintElement[] => [
     { id: 'sig5', type: 'text', x: 141, y: 118, width: 20, height: 4, text: 'TÀI XẾ', align: 'center', fontSize: 10, fontWeight: 'bold' }
 ];
 
-defineExpose({
-    isOpen
-});
-
 // Core state
 const vessels = ref<Vessel[]>([]);
 const activeVesselId = ref<number | null>(null);
@@ -176,6 +172,38 @@ const expandedVesselIds = ref<Record<number, boolean>>({});
 const showMappingModal = ref(false);
 const showTruckDialog = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+
+// Master Data & Global Standard Weigh Ticket Template
+const masterData = ref<WeighbridgeMasterData>(DEFAULT_MASTER_DATA);
+const globalTemplate = ref<WeighbridgeStandardTemplate>({
+    printFields: getDefaultPrintFields(),
+    printElements: getDefaultPrintElements(),
+    companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC',
+    companyAddress: 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam',
+    companyPhone: 'ĐT: 0964 258 671 / Fax:',
+    ticketTitle: 'PHIẾU CÂN XE',
+    signatures: ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'],
+    updatedAt: Date.now()
+});
+const showMasterDataModal = ref(false);
+const showGlobalTemplateModal = ref(false);
+const masterDataTab = ref<'customers' | 'goods'>('customers');
+const newCustomerInput = ref('');
+const newGoodsName = ref('');
+const newGoodsCode = ref('');
+
+// Vessel Modal state (Form tạo / sửa Nguồn tàu kèm Master Data)
+const showVesselModal = ref(false);
+const vesselForm = reactive({
+    id: 0,
+    isEdit: false,
+    name: '',
+    customer: '',
+    cargo_type: '',
+    cargo_code: '',
+    customCustomer: false,
+    customGoods: false
+});
 
 // Toast state
 const toastMessage = ref<string | null>(null);
@@ -1030,7 +1058,13 @@ const refreshGlobalBargesSummary = async () => {
 const loadVessels = async () => {
     loading.value = true;
     try {
-        const data = await WeighbridgeService.getVessels();
+        const [data, md, gt] = await Promise.all([
+            WeighbridgeService.getVessels(),
+            WeighbridgeService.getMasterData(),
+            WeighbridgeService.getGlobalTicketTemplate()
+        ]);
+        masterData.value = md;
+        globalTemplate.value = gt;
         vessels.value = (data || [])
             .filter(v => v.name !== 'KHU VỰC PHÚ MỸ')
             .map(v => ({
@@ -1081,29 +1115,13 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
     selectedElementId.value = null;
     selectedElementIds.value = [];
     
-    // Load config of active barge
+    // Load config of active barge (with 100% inheritance from vessel and global template)
     if (activeBarge.value) {
         const cfg = activeBarge.value.config || {};
 
-        // Load default layout or company details if not set in config
-        let savedDefaultElements: PrintElement[] | null = null;
-        let savedCompanyDetails: any = null;
-        try {
-            const savedStr = localStorage.getItem('weighbridge_default_layout');
-            if (savedStr) {
-                savedDefaultElements = JSON.parse(savedStr);
-            }
-            const savedDetailsStr = localStorage.getItem('weighbridge_default_company_details');
-            if (savedDetailsStr) {
-                savedCompanyDetails = JSON.parse(savedDetailsStr);
-            }
-        } catch (e) {
-            console.error('Error reading default print layout from localStorage:', e);
-        }
-
-        cfgForm.goods = cfg.goods || '';
-        cfgForm.goodsCode = cfg.goodsCode || '';
-        cfgForm.owner = cfg.owner || '';
+        cfgForm.goods = currentV?.cargo_type || cfg.goods || '';
+        cfgForm.goodsCode = currentV?.cargo_code || cfg.goodsCode || '';
+        cfgForm.owner = currentV?.customer || cfg.owner || '';
         cfgForm.operator = cfg.operator || '';
         cfgForm.xn = cfg.xn || 'XUẤT KHẨU';
         cfgForm.ticketPrefix = cfg.ticketPrefix || 'PC-';
@@ -1113,17 +1131,17 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
         cfgForm.ketluan = cfg.ketluan || 'Chính phẩm đạt tiêu chuẩn';
         cfgForm.locked = cfg.locked || false;
         cfgForm.orderNo = cfg.orderNo || '';
-        cfgForm.printFields = cfg.printFields || getDefaultPrintFields();
-        let elements = cfg.printElements || savedDefaultElements || getDefaultPrintElements();
+        cfgForm.printFields = globalTemplate.value.printFields || getDefaultPrintFields();
+        let elements = globalTemplate.value.printElements || getDefaultPrintElements();
         if (elements.length > 0 && !elements.some((el: any) => el.id === 'sig1_name')) {
             elements = [...elements, { id: 'sig1_name', type: 'field', x: 18.5, y: 133, width: 30, height: 4, label: '', fieldId: 'operator', align: 'center', fontSize: 10, fontWeight: 'bold' }];
         }
         cfgForm.printElements = elements.filter(el => !['lineHeader', 'lineTitle', 'lineFooter'].includes(el.id));
-        cfgForm.companyName = cfg.companyName || savedCompanyDetails?.companyName || 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC';
-        cfgForm.companyAddress = cfg.companyAddress || savedCompanyDetails?.companyAddress || 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam';
-        cfgForm.companyPhone = cfg.companyPhone || savedCompanyDetails?.companyPhone || 'ĐT: 0964 258 671 / Fax:';
-        cfgForm.ticketTitle = cfg.ticketTitle || savedCompanyDetails?.ticketTitle || 'PHIẾU CÂN XE';
-        cfgForm.signatures = cfg.signatures || savedCompanyDetails?.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'];
+        cfgForm.companyName = globalTemplate.value.companyName || 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC';
+        cfgForm.companyAddress = globalTemplate.value.companyAddress || 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam';
+        cfgForm.companyPhone = globalTemplate.value.companyPhone || 'ĐT: 0964 258 671 / Fax:';
+        cfgForm.ticketTitle = globalTemplate.value.ticketTitle || 'PHIẾU CÂN XE';
+        cfgForm.signatures = globalTemplate.value.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'];
 
         // Fetch trucks
         loading.value = true;
@@ -1667,6 +1685,7 @@ const exportVesselSummaryExcel = () => {
 // Auto save configurations when modified (debounced)
 let saveDebounceTimer: any = null;
 const saveBargeConfig = () => {
+    if (showGlobalTemplateModal.value) return; // In global template modal, changes are saved via saveGlobalTemplateFromModal
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
     if (cfgForm.locked || (authStore.role !== 'admin' && !canUpdate())) return; // Prevent auto-saving when locked or not admin
@@ -2246,11 +2265,20 @@ const handleDragEnd = () => {
         const el = (cfgForm.printElements || []).find(e => e.id === id);
         if (el) clampElement(el);
     });
-    saveBargeConfig();
+    if (!showGlobalTemplateModal.value) {
+        saveBargeConfig();
+    }
+};
+
+const canEditLayout = () => {
+    if (showGlobalTemplateModal.value) {
+        return authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'update');
+    }
+    return !cfgForm.locked && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'update'));
 };
 
 const startDrag = (event: MouseEvent, el: PrintElement) => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     
     // Check if shift or ctrl is held to toggle selection
     if (event.shiftKey || event.ctrlKey) {
@@ -2294,7 +2322,7 @@ const startDrag = (event: MouseEvent, el: PrintElement) => {
 };
 
 const handleKeyDown = async (event: KeyboardEvent) => {
-    if (!isOpen.value || activeTab.value !== 'config' || cfgForm.locked || authStore.role !== 'admin' || selectedElementIds.value.length === 0) return;
+    if (!isOpen.value || (!showGlobalTemplateModal.value && activeTab.value !== 'config') || !canEditLayout() || selectedElementIds.value.length === 0) return;
     
     // Ignore Arrow and Delete key movements when user is typing in inputs/textareas/selects
     const activeEl = document.activeElement;
@@ -2368,7 +2396,7 @@ const handleKeyDown = async (event: KeyboardEvent) => {
 };
 
 const deleteElement = (id: string) => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const toDeleteIds = selectedElementIds.value.includes(id) 
         ? [...selectedElementIds.value] 
         : [id];
@@ -2382,7 +2410,7 @@ const deleteElement = (id: string) => {
 };
 
 const duplicateElement = (el: PrintElement) => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const id = el.type + '_' + Date.now();
     const newEl: PrintElement = {
         ...el,
@@ -2396,7 +2424,7 @@ const duplicateElement = (el: PrintElement) => {
 };
 
 const resetToDefaultLayout = async () => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const confirm = await showConfirm({
         title: 'Khôi phục mẫu chuẩn',
         message: 'Bạn có chắc chắn muốn khôi phục thiết kế mẫu phiếu cân về ban đầu không?',
@@ -2412,7 +2440,7 @@ const resetToDefaultLayout = async () => {
 };
 
 const addStaticText = () => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const id = 'text_' + Date.now();
     const newEl: PrintElement = {
         id,
@@ -2432,7 +2460,7 @@ const addStaticText = () => {
 };
 
 const addFieldElement = (fieldId: string, label: string) => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const id = 'field_' + fieldId + '_' + Date.now();
     const newEl: PrintElement = {
         id,
@@ -2452,7 +2480,7 @@ const addFieldElement = (fieldId: string, label: string) => {
 };
 
 const addLineElement = (direction: 'horizontal' | 'vertical') => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const id = 'line_' + direction + '_' + Date.now();
     const newEl: PrintElement = {
         id,
@@ -2468,7 +2496,7 @@ const addLineElement = (direction: 'horizontal' | 'vertical') => {
 };
 
 const addRectElement = () => {
-    if (cfgForm.locked || authStore.role !== 'admin') return;
+    if (!canEditLayout()) return;
     const id = 'rect_' + Date.now();
     const newEl: PrintElement = {
         id,
@@ -2504,8 +2532,8 @@ const getFieldValue = (fieldId: string, truck?: Truck) => {
     switch (fieldId) {
         case 'ticketNo': return t.ticketNo || '';
         case 'plateNumber': return t.plateNumber;
-        case 'goods': return cfgForm.goods || '';
-        case 'owner': return cfgForm.owner || '';
+        case 'goods': return activeVessel.value?.cargo_type || cfgForm.goods || '';
+        case 'owner': return activeVessel.value?.customer || cfgForm.owner || '';
         case 'weight1': return `${formatNumber(t.weight1)} kg`;
         case 'weight2': return `${formatNumber(t.weight2)} kg`;
         case 'weightNet': return `${formatNumber(t.weightNet)} kg`;
@@ -2513,7 +2541,7 @@ const getFieldValue = (fieldId: string, truck?: Truck) => {
         case 'barge': return activeBarge.value?.name || 'Sà lan SG-9921';
         case 'note': return t.note || '-';
         case 'driver': return t.driver || '-';
-        case 'goodsCode': return cfgForm.goodsCode || '';
+        case 'goodsCode': return activeVessel.value?.cargo_code || cfgForm.goodsCode || '';
         case 'operator': return cfgForm.operator || '';
         case 'xn': {
             const val = cfgForm.xn || '';
@@ -2688,57 +2716,227 @@ const handleTicketConfigChange = async () => {
     }
 };
 
-// Vessel CRUD
-const addVessel = async () => {
+// Vessel Modal Controller
+const openAddVesselModal = () => {
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
-    const name = await showPrompt('Nhập tên tàu mới:');
-    if (!name || !name.trim()) return;
+    vesselForm.isEdit = false;
+    vesselForm.id = 0;
+    vesselForm.name = '';
+    vesselForm.customer = masterData.value.customers[0] || '';
+    vesselForm.cargo_type = masterData.value.goods[0]?.name || '';
+    vesselForm.cargo_code = masterData.value.goods[0]?.code || '';
+    vesselForm.customCustomer = false;
+    vesselForm.customGoods = false;
+    showVesselModal.value = true;
+};
+
+const openEditVesselModal = (vessel: Vessel) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
+    vesselForm.isEdit = true;
+    vesselForm.id = vessel.id;
+    vesselForm.name = vessel.name;
+    vesselForm.customer = vessel.customer || '';
+    vesselForm.cargo_type = vessel.cargo_type || '';
+    vesselForm.cargo_code = vessel.cargo_code || '';
+    vesselForm.customCustomer = !masterData.value.customers.includes(vesselForm.customer) && !!vesselForm.customer;
+    vesselForm.customGoods = !masterData.value.goods.some(g => g.name === vesselForm.cargo_type) && !!vesselForm.cargo_type;
+    showVesselModal.value = true;
+};
+
+const onVesselCargoTypeChange = () => {
+    if (vesselForm.customGoods) return;
+    const found = masterData.value.goods.find(g => g.name === vesselForm.cargo_type);
+    if (found) {
+        vesselForm.cargo_code = found.code;
+    }
+};
+
+const submitVesselModal = async () => {
+    if (!vesselForm.name || !vesselForm.name.trim()) {
+        showToast('Vui lòng nhập tên tàu!', 'warning');
+        return;
+    }
+    const cleanName = vesselForm.name.trim().toUpperCase();
+    const customer = vesselForm.customer.trim().toUpperCase();
+    const cargo_type = vesselForm.cargo_type.trim().toUpperCase();
+    const cargo_code = vesselForm.cargo_code.trim().toUpperCase();
+
+    // Auto save to master data if new
+    let masterDataChanged = false;
+    if (customer && !masterData.value.customers.includes(customer)) {
+        masterData.value.customers.push(customer);
+        masterDataChanged = true;
+    }
+    if (cargo_type && !masterData.value.goods.some(g => g.name === cargo_type)) {
+        masterData.value.goods.push({ name: cargo_type, code: cargo_code });
+        masterDataChanged = true;
+    }
+    if (masterDataChanged) {
+        await WeighbridgeService.saveMasterData(masterData.value);
+    }
 
     loading.value = true;
     try {
-        const data = await WeighbridgeService.createVessel(name);
-        if (data) {
-            await loadVessels();
-            expandedVesselIds.value[data.id] = true;
-            showToast(`Đã thêm tàu: ${data.name}`);
-            await LogService.logAction('Thêm tàu', 'Thêm tàu: ' + data.name);
+        if (vesselForm.isEdit) {
+            const success = await WeighbridgeService.updateVessel(vesselForm.id, {
+                name: cleanName,
+                customer,
+                cargo_type,
+                cargo_code
+            });
+            if (success) {
+                await loadVessels();
+                showToast(`Đã cập nhật thông tin tàu: ${cleanName}`);
+                await LogService.logAction('Sửa tàu', `Cập nhật tàu: ${cleanName} - Khách: ${customer} - Hàng: ${cargo_type}`);
+                showVesselModal.value = false;
+            } else {
+                showToast('Không thể cập nhật thông tin tàu!', 'error');
+            }
         } else {
-            showToast('Không thể thêm tàu mới!', 'error');
+            const data = await WeighbridgeService.createVessel(cleanName, customer, cargo_type, cargo_code);
+            if (data) {
+                await loadVessels();
+                expandedVesselIds.value[data.id] = true;
+                showToast(`Đã thêm tàu: ${data.name}`);
+                await LogService.logAction('Thêm tàu', `Thêm tàu: ${data.name} - Khách: ${customer} - Hàng: ${cargo_type}`);
+                showVesselModal.value = false;
+            } else {
+                showToast('Không thể thêm tàu mới!', 'error');
+            }
         }
     } catch (e) {
-        showToast('Lỗi khi thêm tàu!', 'error');
+        showToast('Lỗi khi lưu thông tin tàu!', 'error');
     } finally {
         loading.value = false;
     }
 };
 
-const renameVessel = async (id: number, currentName: string) => {
-    const name = await showPrompt('Đổi tên tàu:', currentName);
-    if (!name || !name.trim() || name.trim() === currentName) return;
+// Aliases for backwards compatibility
+const addVessel = () => openAddVesselModal();
+const renameVessel = (id: number, _currentName: string) => {
+    const v = vessels.value.find(item => item.id === id);
+    if (v) openEditVesselModal(v);
+};
 
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
-        showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+// Master Data Modal Controller
+const openMasterDataModal = () => {
+    showMasterDataModal.value = true;
+};
+
+const addMasterCustomer = async () => {
+    if (!newCustomerInput.value.trim()) return;
+    const name = newCustomerInput.value.trim().toUpperCase();
+    if (!masterData.value.customers.includes(name)) {
+        masterData.value.customers.push(name);
+        await WeighbridgeService.saveMasterData(masterData.value);
+        showToast(`Đã thêm khách hàng: ${name}`);
+        newCustomerInput.value = '';
+    } else {
+        showToast('Khách hàng này đã tồn tại trong danh mục!', 'warning');
+    }
+};
+
+const removeMasterCustomer = async (index: number) => {
+    const removed = masterData.value.customers.splice(index, 1);
+    await WeighbridgeService.saveMasterData(masterData.value);
+    showToast(`Đã xóa khách hàng: ${removed[0]}`);
+};
+
+const addMasterGoods = async () => {
+    if (!newGoodsName.value.trim()) return;
+    const name = newGoodsName.value.trim().toUpperCase();
+    const code = newGoodsCode.value.trim().toUpperCase();
+    if (!masterData.value.goods.some(g => g.name === name)) {
+        masterData.value.goods.push({ name, code });
+        await WeighbridgeService.saveMasterData(masterData.value);
+        showToast(`Đã thêm loại hàng: ${name}`);
+        newGoodsName.value = '';
+        newGoodsCode.value = '';
+    } else {
+        showToast('Loại hàng này đã tồn tại trong danh mục!', 'warning');
+    }
+};
+
+const removeMasterGoods = async (index: number) => {
+    const removed = masterData.value.goods.splice(index, 1);
+    await WeighbridgeService.saveMasterData(masterData.value);
+    showToast(`Đã xóa loại hàng: ${removed[0]?.name}`);
+};
+
+// Global Standard Weigh Ticket Template Controller
+const openGlobalTemplateModal = () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'read')) {
+        showToast('Bạn không có quyền xem cấu hình mẫu phiếu!', 'error');
         return;
     }
+    if (globalTemplate.value.printElements) {
+        cfgForm.printElements = JSON.parse(JSON.stringify(globalTemplate.value.printElements));
+        cfgForm.printFields = JSON.parse(JSON.stringify(globalTemplate.value.printFields || getDefaultPrintFields()));
+        cfgForm.companyName = globalTemplate.value.companyName;
+        cfgForm.companyAddress = globalTemplate.value.companyAddress;
+        cfgForm.companyPhone = globalTemplate.value.companyPhone;
+        cfgForm.ticketTitle = globalTemplate.value.ticketTitle;
+        cfgForm.signatures = globalTemplate.value.signatures;
+    }
+    showGlobalTemplateModal.value = true;
+};
 
-    loading.value = true;
+const saveGlobalTemplateFromModal = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
+        showToast('Bạn không có quyền thay đổi mẫu phiếu chuẩn!', 'error');
+        return;
+    }
+    saving.value = true;
     try {
-        const success = await WeighbridgeService.updateVessel(id, name);
-        if (success) {
-            await loadVessels();
-            showToast(`Đã đổi tên tàu thành: ${name}`);
-            await LogService.logAction('Sửa tàu', 'Đổi tên tàu thành: ' + name);
+        const tpl: WeighbridgeStandardTemplate = {
+            printFields: cfgForm.printFields || getDefaultPrintFields(),
+            printElements: JSON.parse(JSON.stringify(cfgForm.printElements || getDefaultPrintElements())),
+            companyName: cfgForm.companyName || 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC',
+            companyAddress: cfgForm.companyAddress || 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam',
+            companyPhone: cfgForm.companyPhone || 'ĐT: 0964 258 671 / Fax:',
+            ticketTitle: cfgForm.ticketTitle || 'PHIẾU CÂN XE',
+            signatures: cfgForm.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'],
+            updatedAt: Date.now()
+        };
+        const ok = await WeighbridgeService.saveGlobalTicketTemplate(tpl);
+        if (ok) {
+            globalTemplate.value = tpl;
+            showToast('Đã lưu mẫu phiếu cân chuẩn toàn cảng thành công! Toàn bộ sà lan đã được cập nhật.');
+            await LogService.logAction('Cấu hình mẫu phiếu', 'Cập nhật mẫu phiếu cân chuẩn toàn cảng');
+            showGlobalTemplateModal.value = false;
         } else {
-            showToast('Không thể đổi tên tàu!', 'error');
+            showToast('Không thể lưu mẫu phiếu chuẩn!', 'error');
         }
     } catch (e) {
-        showToast('Lỗi khi đổi tên tàu!', 'error');
+        showToast('Lỗi khi lưu mẫu phiếu chuẩn!', 'error');
     } finally {
-        loading.value = false;
+        saving.value = false;
     }
+};
+
+const resetGlobalTemplateToDefault = async () => {
+    const confirmed = await showConfirm({
+        title: 'Khôi phục mẫu phiếu mặc định',
+        message: 'Bạn có chắc chắn muốn đặt lại toàn bộ tọa độ và mẫu in về trạng thái chuẩn ban đầu của Cảng Nguyên Ngọc?',
+        type: 'warning',
+        okText: 'Khôi phục',
+        cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+    cfgForm.printElements = getDefaultPrintElements();
+    cfgForm.printFields = getDefaultPrintFields();
+    cfgForm.companyName = 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC';
+    cfgForm.companyAddress = 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam';
+    cfgForm.companyPhone = 'ĐT: 0964 258 671 / Fax:';
+    cfgForm.ticketTitle = 'PHIẾU CÂN XE';
+    cfgForm.signatures = ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'];
+    showToast('Đã khôi phục mẫu mặc định trong bộ soạn thảo. Hãy bấm "Lưu mẫu chuẩn" để áp dụng.');
 };
 
 const deleteVessel = async (id: number, name: string) => {
@@ -4482,9 +4680,9 @@ onMounted(async () => {
     window.addEventListener('barge-config-updated', loadVessels);
 });
 
-// Watch activeTab to dynamically register/deregister ResizeObserver when entering/leaving config tab
-watch(activeTab, async (newTab) => {
-    if (newTab === 'config') {
+// Watch activeTab and showGlobalTemplateModal to dynamically register/deregister ResizeObserver
+watch([activeTab, showGlobalTemplateModal], async ([newTab, showModal]) => {
+    if (newTab === 'config' || showModal) {
         await nextTick();
         if (canvasContainerRef.value && !resizeObserver) {
             resizeObserver = new ResizeObserver((entries) => {
@@ -4519,6 +4717,18 @@ onUnmounted(() => {
     if (resizeObserver) {
         resizeObserver.disconnect();
     }
+});
+
+defineExpose({
+    isOpen,
+    showPrompt,
+    renameVessel,
+    otherBargesWithConfig,
+    applyLayoutToAllBarges,
+    copyLayoutFromBarge,
+    clampSelectedElement,
+    applyToAllSelected,
+    resetToDefaultLayout
 });
 </script>
 
@@ -4674,7 +4884,7 @@ onUnmounted(() => {
                                 <!-- Vessel Actions -->
                                 <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')" class="flex items-center gap-0.5" @click.stopPropagation>
                                     <div class="hidden group-hover:flex items-center gap-0.5">
-                                        <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done'" @click="renameVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Đổi tên tàu">
+                                        <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) && vessel.status !== 'done'" @click="openEditVesselModal(vessel)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-primary transition-colors" title="Sửa thông tin tàu">
                                             <span class="material-symbols-outlined text-xs">edit</span>
                                         </button>
                                         <button v-if="authStore.role === 'admin' || (hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete') && vessel.status !== 'done')" @click="deleteVessel(vessel.id, vessel.name)" class="size-6 rounded-full hover:bg-white flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors" title="Xóa tàu">
@@ -4767,6 +4977,35 @@ onUnmounted(() => {
                                 <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
                                     Báo cáo tổng quan hệ thống 🚢
                                 </h1>
+                            </div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button 
+                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'read')"
+                                    @click="openGlobalTemplateModal"
+                                    class="px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-[14px] flex items-center gap-1.5 transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                                    title="Cấu hình mẫu in phiếu cân chuẩn toàn cảng Nguyên Ngọc"
+                                >
+                                    <span class="material-symbols-outlined text-base">design_services</span>
+                                    Mẫu phiếu cân toàn cảng
+                                </button>
+                                <button 
+                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')"
+                                    @click="openMasterDataModal"
+                                    class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-[14px] flex items-center gap-1.5 transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                                    title="Quản lý danh mục Khách hàng & Hàng hóa chuẩn"
+                                >
+                                    <span class="material-symbols-outlined text-base">category</span>
+                                    Danh mục chuẩn
+                                </button>
+                                <button 
+                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')"
+                                    @click="openAddVesselModal"
+                                    class="px-3.5 py-2 bg-primary text-white hover:bg-primary-dark font-bold text-xs rounded-[14px] flex items-center gap-1.5 transition-all shadow-soft hover:scale-[1.02] active:scale-[0.98]"
+                                    title="Thêm Nguồn tàu mới"
+                                >
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Thêm tàu mới
+                                </button>
                             </div>
                         </div>
 
@@ -4996,10 +5235,29 @@ onUnmounted(() => {
                                             Đang làm hàng
                                         </span>
                                     </h1>
+                                    <div class="flex items-center gap-2 mt-1.5 flex-wrap text-xs">
+                                        <span v-if="activeVessel?.customer" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold border border-blue-200">
+                                            <span class="material-symbols-outlined text-xs">business</span>
+                                            Khách hàng: {{ activeVessel.customer }}
+                                        </span>
+                                        <span v-if="activeVessel?.cargo_type" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded-full font-bold border border-amber-200">
+                                            <span class="material-symbols-outlined text-xs">inventory_2</span>
+                                            Hàng hóa: {{ activeVessel.cargo_type }} {{ activeVessel.cargo_code ? `(${activeVessel.cargo_code})` : '' }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="flex items-center gap-2 flex-wrap">
+                                <button 
+                                    v-if="activeVessel && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update'))"
+                                    @click="openEditVesselModal(activeVessel)"
+                                    class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-[12px] shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
+                                    title="Chỉnh sửa thông tin Tàu, Khách hàng, Loại hàng hóa"
+                                >
+                                    <span class="material-symbols-outlined text-sm">edit</span>
+                                    Sửa thông tin tàu
+                                </button>
                                 <!-- Close vessel button: available when vessel is in_progress (hidden for De Heus continuous vessel) -->
                                 <button 
                                     v-if="activeVessel?.status !== 'done' && !isDeHeusVessel(activeVessel)"
@@ -5523,40 +5781,64 @@ onUnmounted(() => {
                                 <!-- Print Configuration (7 cols) -->
                                 <div class="bg-white rounded-[16px] p-5 soft-shadow border border-primary/5 lg:col-span-7 flex flex-col justify-between">
                                     <div>
-                                        <h3 class="text-sm font-black text-primary mb-4 flex items-center gap-1.5">
-                                            <span class="material-symbols-outlined text-base">settings_applications</span>
-                                            Cấu hình thông tin in chung
+                                        <h3 class="text-sm font-black text-primary mb-4 flex items-center justify-between">
+                                            <span class="flex items-center gap-1.5">
+                                                <span class="material-symbols-outlined text-base">settings_applications</span>
+                                                Cấu hình thông tin in chung
+                                            </span>
+                                            <span class="text-[11px] font-bold text-gray-400">Sà lan: {{ activeBarge?.name }}</span>
                                         </h3>
                                         
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <!-- Readonly Vessel Inherited Goods -->
                                             <div class="flex flex-col gap-1">
-                                                <label class="text-xs font-bold text-gray-500">Tên hàng hóa (mặc định)</label>
-                                                <select 
-                                                    v-if="globalGoodsList && globalGoodsList.length > 0"
-                                                    v-model="cfgForm.goods" 
-                                                    :disabled="cfgForm.locked" 
-                                                    class="px-3 py-2 rounded-[8px] border border-gray-200 focus:border-primary focus:outline-none text-xs font-semibold bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <option value="">-- Chọn hàng hóa --</option>
-                                                    <option v-for="g in globalGoodsList" :key="g" :value="g">{{ g }}</option>
-                                                </select>
+                                                <div class="flex items-center justify-between">
+                                                    <label class="text-xs font-bold text-gray-500">Tên hàng hóa</label>
+                                                    <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200 flex items-center gap-0.5">
+                                                        <span class="material-symbols-outlined text-[10px]">lock</span> Nguồn tàu
+                                                    </span>
+                                                </div>
                                                 <input 
-                                                    v-else
-                                                    v-model="cfgForm.goods" 
-                                                    :disabled="cfgForm.locked" 
+                                                    :value="activeVessel?.cargo_type || cfgForm.goods || 'Chưa thiết lập'" 
+                                                    disabled 
                                                     type="text" 
-                                                    placeholder="Thêm danh mục ở Báo cáo cân hàng..." 
-                                                    class="px-3 py-2 rounded-[8px] border border-gray-200 focus:border-primary focus:outline-none text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    class="px-3 py-2 rounded-[8px] border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-not-allowed opacity-90"
                                                 >
                                             </div>
+                                            <!-- Readonly Vessel Inherited Goods Code -->
                                             <div class="flex flex-col gap-1">
-                                                <label class="text-xs font-bold text-gray-500">Mã hàng hóa</label>
-                                                <input v-model="cfgForm.goodsCode" :disabled="cfgForm.locked" type="text" placeholder="Mã hàng..." class="px-3 py-2 rounded-[8px] border border-gray-200 focus:border-primary focus:outline-none text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <div class="flex items-center justify-between">
+                                                    <label class="text-xs font-bold text-gray-500">Mã hàng hóa</label>
+                                                    <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200 flex items-center gap-0.5">
+                                                        <span class="material-symbols-outlined text-[10px]">lock</span> Nguồn tàu
+                                                    </span>
+                                                </div>
+                                                <input 
+                                                    :value="activeVessel?.cargo_code || cfgForm.goodsCode || '-'" 
+                                                    disabled 
+                                                    type="text" 
+                                                    class="px-3 py-2 rounded-[8px] border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-not-allowed opacity-90"
+                                                >
                                             </div>
+                                            <!-- Readonly Vessel Inherited Customer/Owner -->
                                             <div class="flex flex-col gap-1 md:col-span-2">
-                                                <label class="text-xs font-bold text-gray-500">Tên chủ hàng (mặc định)</label>
-                                                <input v-model="cfgForm.owner" :disabled="cfgForm.locked" type="text" placeholder="Công ty xuất nhập khẩu..." class="px-3 py-2 rounded-[8px] border border-gray-200 focus:border-primary focus:outline-none text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <div class="flex items-center justify-between">
+                                                    <label class="text-xs font-bold text-gray-500">Tên khách hàng / Chủ hàng</label>
+                                                    <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200 flex items-center gap-0.5">
+                                                        <span class="material-symbols-outlined text-[10px]">lock</span> Kế thừa 100% Nguồn tàu
+                                                    </span>
+                                                </div>
+                                                <input 
+                                                    :value="activeVessel?.customer || cfgForm.owner || 'Chưa thiết lập'" 
+                                                    disabled 
+                                                    type="text" 
+                                                    class="px-3 py-2 rounded-[8px] border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-not-allowed opacity-90"
+                                                >
+                                                <p class="text-[10px] text-gray-400 italic">
+                                                    * Khách hàng, Loại hàng & Mã hàng được đồng bộ tuyệt đối từ Nguồn tàu: <strong>{{ activeVessel?.name }}</strong>.
+                                                </p>
                                             </div>
+
                                             <div class="flex flex-col gap-1">
                                                 <label class="text-xs font-bold text-gray-500">Người cân (NV trạm cân)</label>
                                                 <input v-model="cfgForm.operator" :disabled="cfgForm.locked" type="text" placeholder="Tên nhân viên..." class="px-3 py-2 rounded-[8px] border border-gray-200 focus:border-primary focus:outline-none text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
@@ -5608,451 +5890,46 @@ onUnmounted(() => {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- Visual Template Designer Section (Full width) -->
-                            <div class="bg-white rounded-[16px] p-5 soft-shadow border border-primary/5">
-                                <h3 class="text-sm font-black text-primary mb-4 flex items-center justify-between border-b border-gray-100 pb-2 flex-wrap gap-2">
-                                    <div class="flex items-center gap-1.5 select-none">
-                                        <span class="material-symbols-outlined text-base">design_services</span>
-                                        Thiết kế tự do &amp; Kéo thả mẫu phiếu cân A5
-                                    </div>
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <button 
-                                            @click="saveAsGlobalDefaultLayout"
-                                            title="Lưu mẫu thiết kế hiện tại làm mẫu mặc định cho các sà lan khác"
-                                            class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-xs rounded-lg transition-all flex items-center gap-1 select-none"
-                                        >
-                                            <span class="material-symbols-outlined text-xs">star</span>
-                                            Đặt làm mẫu mặc định
-                                        </button>
-                                        <button 
-                                            @click="applyLayoutToAllBarges"
-                                            :disabled="cfgForm.locked"
-                                            title="Áp dụng thiết kế hiện tại cho tất cả sà lan trên toàn hệ thống"
-                                            class="px-3 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-bold text-xs rounded-lg transition-all flex items-center gap-1 select-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <span class="material-symbols-outlined text-xs">done_all</span>
-                                            Áp dụng cho TẤT CẢ sà lan
-                                        </button>
-                                        <button 
-                                            @click="resetToDefaultLayout" 
-                                            :disabled="cfgForm.locked"
-                                            class="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold rounded-lg border border-red-100 transition-all select-none"
-                                        >
-                                            Khôi phục mẫu chuẩn
-                                        </button>
+                                    <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-end">
                                         <button 
                                             @click="saveBargeConfigImmediately" 
                                             :disabled="cfgForm.locked"
-                                            class="px-3 py-1 bg-primary text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1 select-none hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                                            class="px-4 py-2 bg-primary text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-soft hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <span class="material-symbols-outlined text-xs">save</span>
-                                            Lưu cấu hình mẫu phiếu
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                            Lưu cấu hình sà lan
                                         </button>
-                                    </div>
-                                </h3>
-                                
-                                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                                    <!-- Left Panel (Sidebar): Elements & Configuration (lg:col-span-4) -->
-                                    <div class="lg:col-span-4 flex flex-col gap-4">
-                                        <!-- Add elements toolbar -->
-                                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-3">
-                                            <h4 class="text-xs font-black text-[#1e293b] uppercase tracking-wider select-none">Thanh công cụ thiết kế</h4>
-                                            
-                                            <div class="grid grid-cols-2 gap-2">
-                                                <button 
-                                                    @click="addStaticText" 
-                                                    :disabled="cfgForm.locked"
-                                                    class="px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-primary hover:text-primary transition-all flex items-center gap-1"
-                                                >
-                                                    <span class="material-symbols-outlined text-xs">title</span> Chữ tĩnh
-                                                </button>
-                                                <button 
-                                                    @click="addLineElement('horizontal')" 
-                                                    :disabled="cfgForm.locked"
-                                                    class="px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-primary hover:text-primary transition-all flex items-center gap-1"
-                                                >
-                                                    <span class="material-symbols-outlined text-xs">horizontal_rule</span> Kẻ ngang
-                                                </button>
-                                                <button 
-                                                    @click="addLineElement('vertical')" 
-                                                    :disabled="cfgForm.locked"
-                                                    class="px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-primary hover:text-primary transition-all flex items-center gap-1"
-                                                >
-                                                    <span class="material-symbols-outlined text-xs">vertical_align_center</span> Kẻ dọc
-                                                </button>
-                                                <button 
-                                                    @click="addRectElement" 
-                                                    :disabled="cfgForm.locked"
-                                                    class="px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:border-primary hover:text-primary transition-all flex items-center gap-1"
-                                                >
-                                                    <span class="material-symbols-outlined text-xs">check_box_outline_blank</span> Khung viền
-                                                </button>
-                                            </div>
-
-                                            <div class="flex flex-col gap-1 mt-1">
-                                                <label class="text-xs font-bold text-gray-500 select-none">Thêm trường dữ liệu xe cân:</label>
-                                                <select 
-                                                    @change="(e) => {
-                                                        const target = e.target as HTMLSelectElement;
-                                                        if (target.value) {
-                                                            const opt = availableFields.find(o => o.id === target.value);
-                                                            if (opt) addFieldElement(opt.id, opt.label);
-                                                            target.value = '';
-                                                        }
-                                                    }"
-                                                    :disabled="cfgForm.locked"
-                                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary cursor-pointer w-full"
-                                                >
-                                                    <option value="">-- Chọn trường để thêm --</option>
-                                                    <option v-for="item in availableFields" :key="item.id" :value="item.id">
-                                                        {{ item.label }}
-                                                    </option>
-                                                </select>
-                                            </div>
-
-                                            <div v-if="otherBargesWithConfig.length > 0" class="flex flex-col gap-1 mt-2.5">
-                                                <label class="text-xs font-bold text-gray-500 select-none">Sao chép thiết kế từ sà lan khác:</label>
-                                                <select 
-                                                    @change="(e) => {
-                                                        const target = e.target as HTMLSelectElement;
-                                                        if (target.value) {
-                                                            copyLayoutFromBarge(Number(target.value));
-                                                            target.value = '';
-                                                        }
-                                                    }"
-                                                    :disabled="cfgForm.locked"
-                                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary cursor-pointer w-full"
-                                                >
-                                                    <option value="">-- Chọn sà lan để sao chép --</option>
-                                                    <option v-for="b in otherBargesWithConfig" :key="b.id" :value="b.id">
-                                                        {{ b.vesselName }} - {{ b.name }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <!-- Selected Element Config Panel -->
-                                        <div v-if="selectedElement" class="bg-gray-50 p-4 rounded-xl border border-primary/10 flex flex-col gap-3.5">
-                                            <div class="flex items-center justify-between border-b border-primary/5 pb-2">
-                                                <h4 class="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1 select-none">
-                                                    <span class="material-symbols-outlined text-sm">edit_attributes</span>
-                                                    Cấu hình phần tử
-                                                    <span v-if="selectedElementIds.length > 1" class="text-xs bg-teal-500 text-white px-1.5 py-0.5 rounded-full font-black ml-1">{{ selectedElementIds.length }} đã chọn</span>
-                                                </h4>
-                                                <div class="flex items-center gap-1">
-                                                    <button 
-                                                        @click="duplicateElement(selectedElement!)" 
-                                                        title="Nhân bản phần tử"
-                                                        class="p-1 text-gray-500 hover:text-primary hover:bg-white rounded transition-colors"
-                                                    >
-                                                        <span class="material-symbols-outlined text-sm">content_copy</span>
-                                                    </button>
-                                                    <button 
-                                                        @click="deleteElement(selectedElement!.id)" 
-                                                        title="Xóa phần tử"
-                                                        class="p-1 text-red-500 hover:text-red-700 hover:bg-white rounded transition-colors"
-                                                    >
-                                                        <span class="material-symbols-outlined text-sm">delete</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div class="grid grid-cols-2 gap-3 text-xs font-bold text-gray-500">
-                                                <div class="flex flex-col gap-1">
-                                                    <label class="flex justify-between select-none">
-                                                        <span>Vị trí X (mm)</span>
-                                                        <span class="text-gray-400">max 210</span>
-                                                    </label>
-                                                    <input 
-                                                        v-model.number="selectedElement.x" 
-                                                        type="number" 
-                                                        step="0.5" 
-                                                        min="0" 
-                                                        max="210" 
-                                                        @input="clampSelectedElement(selectedElement)"
-                                                        class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-mono"
-                                                    />
-                                                </div>
-                                                <div class="flex flex-col gap-1">
-                                                    <label class="flex justify-between select-none">
-                                                        <span>Vị trí Y (mm)</span>
-                                                        <span class="text-gray-400">max 148</span>
-                                                    </label>
-                                                    <input 
-                                                        v-model.number="selectedElement.y" 
-                                                        type="number" 
-                                                        step="0.5" 
-                                                        min="0" 
-                                                        max="148" 
-                                                        @input="clampSelectedElement(selectedElement)"
-                                                        class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-mono"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div class="grid grid-cols-2 gap-3 text-xs font-bold text-gray-500">
-                                                <div class="flex flex-col gap-1">
-                                                    <label class="select-none">Rộng W (mm)</label>
-                                                    <input 
-                                                        v-model.number="selectedElement.width" 
-                                                        type="number" 
-                                                        step="0.5" 
-                                                        min="0.5" 
-                                                        @input="clampSelectedElement(selectedElement); applyToAllSelected('width')"
-                                                        class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-mono"
-                                                    />
-                                                </div>
-                                                <div class="flex flex-col gap-1">
-                                                    <label class="select-none">Cao H (mm)</label>
-                                                    <input 
-                                                        v-model.number="selectedElement.height" 
-                                                        type="number" 
-                                                        step="0.5" 
-                                                        min="0.5" 
-                                                        @input="clampSelectedElement(selectedElement); applyToAllSelected('height')"
-                                                        class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-mono"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div v-if="selectedElement.type === 'text'" class="flex flex-col gap-1 text-xs font-bold text-gray-500">
-                                                <label class="select-none">Nội dung chữ tĩnh</label>
-                                                <textarea 
-                                                    v-model="selectedElement.text" 
-                                                    rows="2" 
-                                                    class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary resize-none font-sans font-bold"
-                                                ></textarea>
-                                            </div>
-
-                                            <div v-if="selectedElement.type === 'field'" class="flex flex-col gap-2.5">
-                                                <div class="flex flex-col gap-1 text-xs font-bold text-gray-500">
-                                                    <label class="select-none">Tiêu đề nhãn (Label)</label>
-                                                    <input 
-                                                        v-model="selectedElement.label" 
-                                                        type="text" 
-                                                        class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-sans font-bold"
-                                                    />
-                                                </div>
-                                                <div class="grid grid-cols-2 gap-3 text-xs font-bold text-gray-500">
-                                                    <div class="flex flex-col gap-1">
-                                                        <label class="select-none">Độ rộng nhãn (mm)</label>
-                                                        <input 
-                                                            v-model.number="selectedElement.labelWidth" 
-                                                            type="number" 
-                                                            step="0.5" 
-                                                            min="1" 
-                                                            @input="clampSelectedElement(selectedElement); applyToAllSelected('labelWidth')"
-                                                            class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-mono"
-                                                        />
-                                                    </div>
-                                                    <div class="flex flex-col gap-1">
-                                                        <label class="select-none">Trường liên kết</label>
-                                                        <select 
-                                                            v-model="selectedElement.fieldId" 
-                                                            class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-bold cursor-pointer"
-                                                        >
-                                                            <option v-for="item in availableFields" :key="item.id" :value="item.id">
-                                                                {{ item.label }}
-                                                            </option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div v-if="selectedElement.type === 'rect'" class="flex flex-col gap-1 text-xs font-bold text-gray-500">
-                                                <label class="select-none">Kiểu viền (Border style)</label>
-                                                <select 
-                                                    v-model="selectedElement.borderStyle" 
-                                                    @change="applyToAllSelected('borderStyle')"
-                                                    class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-primary font-bold cursor-pointer"
-                                                >
-                                                    <option value="solid">Viền đơn (Solid)</option>
-                                                    <option value="dashed">Đường đứt nét (Dashed)</option>
-                                                    <option value="double">Viền kép (Double)</option>
-                                                </select>
-                                            </div>
-
-                                            <!-- Typography (Not for lines and rects) -->
-                                            <div v-if="selectedElement.type === 'text' || selectedElement.type === 'field'" class="flex flex-col gap-2 bg-white p-3 rounded-lg border border-gray-150">
-                                                <span class="text-xs font-black text-gray-400 uppercase tracking-widest select-none">Định dạng chữ</span>
-                                                
-                                                <div class="grid grid-cols-2 gap-3 text-xs font-bold text-gray-500 items-center">
-                                                    <div class="flex flex-col gap-1">
-                                                        <label class="select-none">Cỡ chữ (pt)</label>
-                                                        <input 
-                                                            v-model.number="selectedElement.fontSize" 
-                                                            type="number" 
-                                                            step="0.5" 
-                                                            min="4" 
-                                                            @input="applyToAllSelected('fontSize')"
-                                                            class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary font-mono"
-                                                        />
-                                                    </div>
-                                                    <div class="flex flex-col gap-1">
-                                                        <label class="select-none">Độ đậm</label>
-                                                        <select 
-                                                            v-model="selectedElement.fontWeight" 
-                                                            @change="applyToAllSelected('fontWeight')"
-                                                            class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary cursor-pointer"
-                                                        >
-                                                            <option value="normal">Bình thường</option>
-                                                            <option value="bold">In đậm</option>
-                                                            <option value="black">Siêu đậm</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <div class="flex items-center justify-between text-xs font-bold text-gray-500 pt-1">
-                                                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                                        <input 
-                                                            v-model="selectedElement.fontStyle" 
-                                                            type="checkbox" 
-                                                            true-value="italic"
-                                                            false-value="normal"
-                                                            @change="applyToAllSelected('fontStyle')"
-                                                            class="rounded text-primary focus:ring-primary/20"
-                                                        />
-                                                        <span>In nghiêng (Italic)</span>
-                                                    </label>
-                                                    
-                                                    <div class="flex items-center gap-1">
-                                                        <label class="select-none">Căn lề:</label>
-                                                        <select 
-                                                             v-model="selectedElement.align" 
-                                                             @change="applyToAllSelected('align')"
-                                                             class="px-1.5 py-0.5 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary cursor-pointer font-bold"
-                                                         > 
-<option value="left">Trái</option>
-                                                            <option value="center">Giữa</option>
-                                                            <option value="right">Phải</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Signatures -->
-                                            <div class="flex justify-between text-[7px] font-black text-gray-800 mt-4 text-center gap-1">
-                                                <div v-for="(_, sIdx) in (cfgForm.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'])" :key="sIdx" class="flex-1 min-w-0">
-                                                    <input 
-                                                        v-model="cfgForm.signatures![sIdx]" 
-                                                        :disabled="cfgForm.locked"
-                                                        class="bg-transparent border-none text-[6.5px] font-black text-gray-800 focus:outline-none hover:bg-gray-100 focus:bg-white rounded px-0.5 w-full text-center focus:ring-1 focus:ring-primary py-0 font-sans"
-                                                        placeholder="Ký tên..."
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div> <!-- End of Left Panel lg:col-span-4 -->
-
-                                    <!-- Right Panel: A5 Blueprint Canvas -->
-                                    <div class="lg:col-span-8 flex flex-col gap-3">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-bold text-[#1e293b] flex items-center gap-1 select-none">
-                                                <span class="material-symbols-outlined text-sm">square_foot</span>
-                                                Khổ giấy in A5 (210mm x 148mm) - Kéo thả để bố trí layout
-                                            </span>
-                                            <span class="text-xs font-bold text-gray-400 select-none">Tỉ lệ 1mm = 4px | Dùng phím mũi tên để căn chỉnh mịn</span>
-                                        </div>
-                                        
-                                        <!-- Canvas Container -->
-                                        <div ref="canvasContainerRef" class="w-full overflow-hidden bg-gray-50 border border-gray-200 rounded-2xl p-4 flex justify-center items-center shadow-inner relative group">
-                                            <div 
-                                                class="relative bg-white border border-dashed border-gray-300 shadow-lg select-none overflow-hidden shrink-0"
-                                                :style="{
-                                                    width: canvasWidthPx + 'px',
-                                                    height: canvasHeightPx + 'px',
-                                                    boxSizing: 'content-box',
-                                                    backgroundImage: 'linear-gradient(to right, rgba(226, 239, 252, 0.8) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 239, 252, 0.8) 1px, transparent 1px)',
-                                                    backgroundSize: (5 * currentMmToPx) + 'px ' + (5 * currentMmToPx) + 'px'
-                                                }"
-                                                @mousedown="selectedElementId = null; selectedElementIds = []"
-                                            >
-                                                <!-- Alignment Snap Guides -->
-                                                <div 
-                                                    v-for="(guide, gIdx) in alignmentGuides" 
-                                                    :key="'guide_' + gIdx"
-                                                    class="absolute pointer-events-none z-50"
-                                                    :class="guide.type === 'h' ? 'left-0 right-0 border-t border-dashed border-red-500' : 'top-0 bottom-0 border-l border-dashed border-red-500'"
-                                                    :style="guide.type === 'h' ? { top: guide.pos + 'px', height: '0px' } : { left: guide.pos + 'px', width: '0px' }"
-                                                ></div>
-
-                                                <!-- Dynamic Print Elements -->
-                                                <div 
-                                                    v-for="el in (cfgForm.printElements || [])" 
-                                                    :key="el.id"
-                                                    class="absolute cursor-move select-none flex flex-col"
-                                                    :class="[
-                                                        selectedElementIds.includes(el.id) 
-                                                            ? (selectedElementId === el.id ? 'ring-2 ring-inset ring-primary z-30 bg-primary/[0.03]' : 'ring-2 ring-inset ring-teal-500 z-25 bg-teal-500/[0.03]') 
-                                                            : 'hover:ring-1 hover:ring-inset hover:ring-primary/50 z-20'
-                                                    ]"
-                                                    :style="{
-                                                        left: (el.x * currentMmToPx) + 'px',
-                                                        top: (el.y * currentMmToPx) + 'px',
-                                                        width: (el.width * currentMmToPx) + 'px',
-                                                        height: (el.height * currentMmToPx) + 'px',
-                                                        fontSize: (el.fontSize || 8.5) * 1.35 * (currentMmToPx / 4) + 'px',
-                                                        fontWeight: el.fontWeight || 'bold',
-                                                        fontStyle: el.fontStyle || 'normal',
-                                                        textAlign: el.align || 'left',
-                                                        color: 'black',
-                                                        fontFamily: 'Arial, Helvetica, sans-serif',
-                                                        lineHeight: '1.2'
-                                                    }"
-                                                    @mousedown.stop="startDrag($event, el)"
-                                                >
-                                                    <!-- Field Type element -->
-                                                    <div v-if="el.type === 'field'" class="w-full h-full flex items-baseline overflow-hidden select-none pointer-events-none">
-                                                        <span 
-                                                            v-if="el.label"
-                                                            class="text-gray-500 shrink-0 font-sans" 
-                                                            style="font-weight: inherit;"
-                                                            :style="{ width: ((el.labelWidth || 20) * currentMmToPx) + 'px' }"
-                                                        >
-                                                            {{ el.label }}
-                                                        </span>
-                                                        <span v-if="el.label" class="mr-1 shrink-0 font-sans">:</span>
-                                                        <span 
-                                                            class="grow font-sans"
-                                                            :class="(el.fieldId === 'ketluan' || el.fieldId === 'note') ? 'whitespace-pre-wrap break-words' : 'truncate'"
-                                                            style="font-weight: inherit;"
-                                                        >
-                                                            [{{ el.fieldId }}]
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <!-- Static text element -->
-                                                    <div v-else-if="el.type === 'text'" class="w-full h-full overflow-hidden whitespace-pre-wrap select-none pointer-events-none font-sans">
-                                                        {{ el.text }}
-                                                    </div>
-                                                    
-                                                    <!-- Line element -->
-                                                    <div 
-                                                        v-else-if="el.type === 'line'" 
-                                                        class="w-full h-full bg-black select-none pointer-events-none"
-                                                    ></div>
-                                                    
-                                                    <!-- Rect element -->
-                                                    <div 
-                                                        v-else-if="el.type === 'rect'" 
-                                                        class="w-full h-full border border-black select-none pointer-events-none"
-                                                        :style="{ borderStyle: el.borderStyle || 'solid', borderWidth: '1px' }"
-                                                    ></div>
-
-                                                    <!-- Selected Indicator Badge -->
-                                                    <div v-if="selectedElementIds.includes(el.id)" class="absolute -top-4 left-0 text-white text-xs px-1 py-0.5 rounded font-mono uppercase font-bold tracking-wider pointer-events-none shadow-sm z-40" :class="selectedElementId === el.id ? 'bg-primary' : 'bg-teal-500'">
-                                                        {{ el.type === 'field' ? el.fieldId : el.type }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Unified Port-wide Standard Ticket Banner -->
+                            <div class="bg-gradient-to-r from-teal-50 to-primary/5 rounded-[20px] p-6 border border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-xs">
+                                <div class="flex items-start gap-4">
+                                    <div class="size-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shrink-0 mt-0.5">
+                                        <span class="material-symbols-outlined text-2xl">verified</span>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <h4 class="text-sm font-black text-[#1e293b]">Mẫu in phiếu cân chuẩn toàn cảng Nguyên Ngọc</h4>
+                                            <span class="text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 bg-teal-100 text-teal-800 rounded-full border border-teal-200">Đang áp dụng đồng nhất 100%</span>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mt-1.5 leading-relaxed max-w-2xl">
+                                            Tất cả sà lan trên toàn cảng đều tự động áp dụng thống nhất mẫu in phiếu cân chuẩn A5 (210mm x 148mm) cấp Hệ thống. Bấm nút bên cạnh để mở bộ thiết kế mẫu phiếu cân toàn cảng.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button 
+                                        v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'read')"
+                                        @click="openGlobalTemplateModal"
+                                        class="px-4 py-2.5 bg-primary text-white hover:bg-primary-dark font-bold text-xs rounded-xl shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                                    >
+                                        <span class="material-symbols-outlined text-base">design_services</span>
+                                        Chỉnh sửa mẫu phiếu toàn cảng
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                     </div>
@@ -6562,6 +6439,703 @@ onUnmounted(() => {
     </Transition>
     </Teleport>
 </div>
+
+    <!-- MODAL 1: VESSEL MODAL (Tạo / Sửa Nguồn tàu kèm Khách hàng & Hàng hóa) -->
+    <Teleport to="body">
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div 
+            v-if="showVesselModal" 
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4 no-print font-display"
+            @click.self="showVesselModal = false"
+        >
+            <div class="w-full max-w-[500px] bg-white rounded-[24px] border border-gray-100 shadow-2xl p-6 flex flex-col gap-4 transform transition-all scale-100">
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="size-11 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl">directions_boat</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black text-gray-900 leading-tight">
+                                {{ vesselForm.isEdit ? 'Chỉnh sửa thông tin Nguồn tàu' : 'Thêm Nguồn tàu mới' }}
+                            </h3>
+                            <p class="text-xs text-gray-400 font-semibold mt-0.5">
+                                {{ vesselForm.isEdit ? 'Cập nhật tên tàu và thông tin chuẩn cho các sà lan con' : 'Thiết lập Nguồn tàu và thông tin khách hàng, hàng hóa' }}
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="showVesselModal = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-50 transition-colors">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="flex flex-col gap-3.5">
+                    <!-- Tên tàu -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Tên tàu *</label>
+                        <input 
+                            v-model="vesselForm.name"
+                            type="text" 
+                            placeholder="Ví dụ: TÀU PHÚ MỸ 01..."
+                            class="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[14px] text-xs font-bold focus:outline-none focus:bg-white transition-all uppercase"
+                        />
+                    </div>
+
+                    <!-- Khách hàng -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Tên khách hàng / Chủ hàng</label>
+                            <button 
+                                type="button" 
+                                @click="vesselForm.customCustomer = !vesselForm.customCustomer"
+                                class="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                            >
+                                <span class="material-symbols-outlined text-xs">{{ vesselForm.customCustomer ? 'list' : 'add_circle' }}</span>
+                                {{ vesselForm.customCustomer ? 'Chọn từ danh mục' : '+ Nhập mới' }}
+                            </button>
+                        </div>
+                        <input 
+                            v-if="vesselForm.customCustomer"
+                            v-model="vesselForm.customer"
+                            type="text" 
+                            placeholder="Nhập tên khách hàng mới (tự động lưu vào danh mục)..."
+                            class="w-full px-4 py-2.5 bg-white border border-primary/50 rounded-[14px] text-xs font-bold focus:outline-none transition-all uppercase"
+                        />
+                        <select 
+                            v-else
+                            v-model="vesselForm.customer"
+                            class="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[14px] text-xs font-bold focus:outline-none focus:bg-white transition-all"
+                        >
+                            <option value="">-- Chọn khách hàng chuẩn --</option>
+                            <option v-for="c in masterData.customers" :key="c" :value="c">{{ c }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Loại hàng hóa -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Loại hàng hóa</label>
+                            <button 
+                                type="button" 
+                                @click="vesselForm.customGoods = !vesselForm.customGoods"
+                                class="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                            >
+                                <span class="material-symbols-outlined text-xs">{{ vesselForm.customGoods ? 'list' : 'add_circle' }}</span>
+                                {{ vesselForm.customGoods ? 'Chọn từ danh mục' : '+ Nhập mới' }}
+                            </button>
+                        </div>
+                        <input 
+                            v-if="vesselForm.customGoods"
+                            v-model="vesselForm.cargo_type"
+                            type="text" 
+                            placeholder="Nhập tên loại hàng mới (tự động lưu vào danh mục)..."
+                            class="w-full px-4 py-2.5 bg-white border border-primary/50 rounded-[14px] text-xs font-bold focus:outline-none transition-all uppercase"
+                        />
+                        <select 
+                            v-else
+                            v-model="vesselForm.cargo_type"
+                            @change="onVesselCargoTypeChange"
+                            class="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[14px] text-xs font-bold focus:outline-none focus:bg-white transition-all"
+                        >
+                            <option value="">-- Chọn loại hàng chuẩn --</option>
+                            <option v-for="g in masterData.goods" :key="g.name" :value="g.name">{{ g.name }} ({{ g.code }})</option>
+                        </select>
+                    </div>
+
+                    <!-- Mã hàng hóa -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Mã hàng hóa</label>
+                        <input 
+                            v-model="vesselForm.cargo_code"
+                            type="text" 
+                            placeholder="Ví dụ: V-CLINKER, V-CEMENT..."
+                            class="w-full px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[14px] text-xs font-bold focus:outline-none focus:bg-white transition-all uppercase"
+                        />
+                    </div>
+
+                    <!-- Informative Banner -->
+                    <div class="bg-blue-50/70 border border-blue-200/60 rounded-[14px] p-3 text-[11px] font-semibold text-blue-800 flex items-start gap-2">
+                        <span class="material-symbols-outlined text-base text-blue-600 shrink-0 mt-0.5">info</span>
+                        <div>
+                            <strong>Quy định Cảng:</strong> Tất cả các sà lan con thuộc Nguồn tàu này bắt buộc kế thừa 100% Khách hàng, Loại hàng và Mã hàng đã chọn. Không được phép chỉnh sửa riêng lẻ ở cấp sà lan.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                    <button 
+                        @click="showVesselModal = false"
+                        class="h-10 px-4 rounded-[12px] text-xs font-bold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
+                    >
+                        Hủy
+                    </button>
+                    <button 
+                        @click="submitVesselModal"
+                        :disabled="loading"
+                        class="h-10 px-5 rounded-[12px] text-xs font-bold text-white bg-primary hover:bg-primary/95 active:scale-95 transition-all flex items-center gap-1.5 shadow-soft disabled:opacity-50"
+                    >
+                        <span v-if="loading" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                        <span>{{ vesselForm.isEdit ? 'Lưu thay đổi' : 'Tạo Nguồn tàu' }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
+    </Teleport>
+
+    <!-- MODAL 2: MASTER DATA MODAL (Quản lý Danh mục chuẩn toàn cảng) -->
+    <Teleport to="body">
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div 
+            v-if="showMasterDataModal" 
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4 no-print font-display"
+            @click.self="showMasterDataModal = false"
+        >
+            <div class="w-full max-w-[620px] bg-white rounded-[24px] border border-gray-100 shadow-2xl p-6 flex flex-col gap-4 transform transition-all scale-100 max-h-[85vh]">
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="size-11 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl">category</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black text-gray-900 leading-tight">
+                                Danh mục chuẩn toàn cảng
+                            </h3>
+                            <p class="text-xs text-gray-400 font-semibold mt-0.5">
+                                Quản lý danh sách Khách hàng và Loại hàng hóa dùng chung cho toàn bộ Nguồn tàu &amp; Sà lan
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="showMasterDataModal = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-50 transition-colors">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+
+                <!-- Tabs switcher -->
+                <div class="flex items-center gap-2 p-1 bg-gray-100/70 rounded-[14px]">
+                    <button 
+                        @click="masterDataTab = 'customers'"
+                        class="flex-1 py-2 rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                        :class="masterDataTab === 'customers' ? 'bg-white text-primary shadow-xs font-black' : 'text-gray-500 hover:text-gray-900'"
+                    >
+                        <span class="material-symbols-outlined text-sm">business</span>
+                        Khách hàng ({{ masterData.customers.length }})
+                    </button>
+                    <button 
+                        @click="masterDataTab = 'goods'"
+                        class="flex-1 py-2 rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                        :class="masterDataTab === 'goods' ? 'bg-white text-primary shadow-xs font-black' : 'text-gray-500 hover:text-gray-900'"
+                    >
+                        <span class="material-symbols-outlined text-sm">inventory_2</span>
+                        Hàng hóa &amp; Mã hàng ({{ masterData.goods.length }})
+                    </button>
+                </div>
+
+                <!-- Tab 1: Customers -->
+                <div v-if="masterDataTab === 'customers'" class="flex-1 flex flex-col gap-3 min-h-0">
+                    <!-- Add form -->
+                    <div class="flex items-center gap-2">
+                        <input 
+                            v-model="newCustomerInput"
+                            @keyup.enter="addMasterCustomer"
+                            type="text"
+                            placeholder="Nhập tên khách hàng mới..."
+                            class="flex-1 px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[12px] text-xs font-bold focus:outline-none focus:bg-white transition-all uppercase"
+                        />
+                        <button 
+                            @click="addMasterCustomer"
+                            class="px-4 py-2.5 bg-primary text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1 shrink-0"
+                        >
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            Thêm
+                        </button>
+                    </div>
+
+                    <!-- Customers List -->
+                    <div class="flex-1 overflow-y-auto max-h-[360px] border border-gray-100 rounded-[16px] divide-y divide-gray-100 custom-scrollbar">
+                        <div 
+                            v-for="(c, idx) in masterData.customers" 
+                            :key="c"
+                            class="flex items-center justify-between p-3 hover:bg-gray-50/80 transition-colors"
+                        >
+                            <div class="flex items-center gap-2.5">
+                                <span class="size-6 bg-primary/10 text-primary rounded-full text-[10px] font-black flex items-center justify-center">{{ idx + 1 }}</span>
+                                <span class="text-xs font-bold text-gray-800">{{ c }}</span>
+                            </div>
+                            <button 
+                                @click="removeMasterCustomer(idx)"
+                                class="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                title="Xóa khỏi danh mục"
+                            >
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                        <div v-if="masterData.customers.length === 0" class="p-8 text-center text-xs text-gray-400 italic">
+                            Chưa có khách hàng nào trong danh mục.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Goods & Codes -->
+                <div v-else-if="masterDataTab === 'goods'" class="flex-1 flex flex-col gap-3 min-h-0">
+                    <!-- Add form -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+                        <input 
+                            v-model="newGoodsName"
+                            type="text"
+                            placeholder="Tên loại hàng..."
+                            class="md:col-span-6 px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[12px] text-xs font-bold focus:outline-none focus:bg-white transition-all uppercase"
+                        />
+                        <input 
+                            v-model="newGoodsCode"
+                            type="text"
+                            placeholder="Mã hàng..."
+                            class="md:col-span-4 px-4 py-2.5 bg-gray-50/50 border border-gray-200 focus:border-primary rounded-[12px] text-xs font-bold focus:outline-none focus:bg-white transition-all uppercase"
+                        />
+                        <button 
+                            @click="addMasterGoods"
+                            class="md:col-span-2 px-3 py-2.5 bg-primary text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-1 shrink-0"
+                        >
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            Thêm
+                        </button>
+                    </div>
+
+                    <!-- Goods Table -->
+                    <div class="flex-1 overflow-y-auto max-h-[360px] border border-gray-100 rounded-[16px] custom-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 border-b border-gray-100">
+                                <tr>
+                                    <th class="p-3 w-12 text-center">STT</th>
+                                    <th class="p-3">Tên loại hàng</th>
+                                    <th class="p-3">Mã hàng</th>
+                                    <th class="p-3 w-16 text-center">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="(g, idx) in masterData.goods" :key="g.name" class="hover:bg-gray-50/80 transition-colors">
+                                    <td class="p-3 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
+                                    <td class="p-3 font-bold text-gray-800">{{ g.name }}</td>
+                                    <td class="p-3 font-mono font-bold text-primary">{{ g.code || '-' }}</td>
+                                    <td class="p-3 text-center">
+                                        <button 
+                                            @click="removeMasterGoods(idx)"
+                                            class="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                            title="Xóa"
+                                        >
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="masterData.goods.length === 0">
+                                    <td colspan="4" class="p-8 text-center text-gray-400 italic">Chưa có loại hàng nào trong danh mục.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="flex items-center justify-end pt-3 border-t border-gray-100">
+                    <button 
+                        @click="showMasterDataModal = false"
+                        class="h-10 px-5 rounded-[12px] text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+                    >
+                        Đóng danh mục
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
+    </Teleport>
+
+    <!-- MODAL 3: GLOBAL STANDARD WEIGH TICKET TEMPLATE DESIGNER -->
+    <Teleport to="body">
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div 
+            v-if="showGlobalTemplateModal" 
+            class="fixed inset-0 z-[999] flex items-center justify-center bg-[#0f172a]/70 backdrop-blur-md p-2 md:p-5 no-print font-display"
+        >
+            <div class="w-full max-w-7xl bg-[#f8fafc] rounded-[24px] border border-gray-200 shadow-2xl flex flex-col h-[94vh] overflow-hidden">
+                <!-- Top Header -->
+                <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                        <div class="size-11 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl">design_services</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-base font-black text-gray-900 leading-tight">
+                                    Mẫu phiếu cân chuẩn toàn cảng Nguyên Ngọc
+                                </h3>
+                                <span class="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">Hệ thống / Admin</span>
+                            </div>
+                            <p class="text-xs text-gray-500 font-semibold mt-0.5">
+                                Bố cục chuẩn khổ A5 (210mm x 148mm) - Cấu hình 1 lần áp dụng ngay cho 100% sà lan
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button 
+                            @click="resetGlobalTemplateToDefault"
+                            class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold rounded-[12px] border border-red-200 transition-all flex items-center gap-1"
+                            title="Khôi phục mẫu in mặc định gốc"
+                        >
+                            <span class="material-symbols-outlined text-sm">restart_alt</span>
+                            Khôi phục mặc định
+                        </button>
+                        <button 
+                            @click="showGlobalTemplateModal = false"
+                            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-[12px] transition-all"
+                        >
+                            Hủy bỏ
+                        </button>
+                        <button 
+                            @click="saveGlobalTemplateFromModal"
+                            :disabled="saving"
+                            class="px-5 py-2 bg-primary text-white hover:bg-primary-dark font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                            <span v-if="saving" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                            <span v-else class="material-symbols-outlined text-sm">save</span>
+                            <span>Lưu mẫu chuẩn toàn cảng</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Designer Body: 2 Columns -->
+                <div class="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-y-auto custom-scrollbar min-h-0">
+                    <!-- Left Sidebar (Tools & Configuration) -->
+                    <div class="w-full lg:w-[400px] shrink-0 flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar">
+                        <!-- 1. Company Info & Title -->
+                        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-3">
+                            <h4 class="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1.5 border-b border-gray-100 pb-2">
+                                <span class="material-symbols-outlined text-base">apartment</span>
+                                Thông tin công ty &amp; Tiêu đề
+                            </h4>
+                            <div class="flex flex-col gap-2.5 text-xs font-bold text-gray-600">
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[11px] text-gray-500">Tên đơn vị cảng</label>
+                                    <input v-model="cfgForm.companyName" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary">
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[11px] text-gray-500">Địa chỉ</label>
+                                    <input v-model="cfgForm.companyAddress" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="flex flex-col gap-1">
+                                        <label class="text-[11px] text-gray-500">Điện thoại / Fax</label>
+                                        <input v-model="cfgForm.companyPhone" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary">
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <label class="text-[11px] text-gray-500">Tiêu đề phiếu</label>
+                                        <input v-model="cfgForm.ticketTitle" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary uppercase">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Designer Toolbar -->
+                        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-3">
+                            <h4 class="text-xs font-black text-[#1e293b] uppercase tracking-wider border-b border-gray-100 pb-2 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base">construction</span>
+                                Thêm phần tử vào mẫu
+                            </h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button 
+                                    @click="addStaticText" 
+                                    class="px-2.5 py-2 bg-gray-50 border border-gray-200 hover:border-primary hover:text-primary rounded-xl text-xs font-bold text-gray-700 transition-all flex items-center gap-1.5"
+                                >
+                                    <span class="material-symbols-outlined text-sm">title</span> Chữ tĩnh
+                                </button>
+                                <button 
+                                    @click="addLineElement('horizontal')" 
+                                    class="px-2.5 py-2 bg-gray-50 border border-gray-200 hover:border-primary hover:text-primary rounded-xl text-xs font-bold text-gray-700 transition-all flex items-center gap-1.5"
+                                >
+                                    <span class="material-symbols-outlined text-sm">horizontal_rule</span> Kẻ ngang
+                                </button>
+                                <button 
+                                    @click="addLineElement('vertical')" 
+                                    class="px-2.5 py-2 bg-gray-50 border border-gray-200 hover:border-primary hover:text-primary rounded-xl text-xs font-bold text-gray-700 transition-all flex items-center gap-1.5"
+                                >
+                                    <span class="material-symbols-outlined text-sm">vertical_align_center</span> Kẻ dọc
+                                </button>
+                                <button 
+                                    @click="addRectElement" 
+                                    class="px-2.5 py-2 bg-gray-50 border border-gray-200 hover:border-primary hover:text-primary rounded-xl text-xs font-bold text-gray-700 transition-all flex items-center gap-1.5"
+                                >
+                                    <span class="material-symbols-outlined text-sm">check_box_outline_blank</span> Khung viền
+                                </button>
+                            </div>
+
+                            <div class="flex flex-col gap-1 mt-1">
+                                <label class="text-[11px] font-bold text-gray-500">Thêm trường dữ liệu xe cân:</label>
+                                <select 
+                                    @change="(e) => {
+                                        const target = e.target as HTMLSelectElement;
+                                        if (target.value) {
+                                            const opt = availableFields.find(o => o.id === target.value);
+                                            if (opt) addFieldElement(opt.id, opt.label);
+                                            target.value = '';
+                                        }
+                                    }"
+                                    class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:outline-none focus:border-primary cursor-pointer w-full"
+                                >
+                                    <option value="">-- Chọn trường để thêm vào mẫu --</option>
+                                    <option v-for="item in availableFields" :key="item.id" :value="item.id">
+                                        {{ item.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 3. Selected Element Properties Panel -->
+                        <div v-if="selectedElement" class="bg-white p-4 rounded-2xl border border-primary/20 shadow-xs flex flex-col gap-3">
+                            <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                                <h4 class="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">edit_attributes</span>
+                                    Thuộc tính phần tử
+                                </h4>
+                                <div class="flex items-center gap-1">
+                                    <button 
+                                        @click="duplicateElement(selectedElement!)" 
+                                        title="Nhân bản"
+                                        class="p-1 text-gray-500 hover:text-primary hover:bg-gray-50 rounded transition-colors"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                    </button>
+                                    <button 
+                                        @click="deleteElement(selectedElement!.id)" 
+                                        title="Xóa phần tử"
+                                        class="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs font-bold text-gray-600">
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Vị trí X (mm)</label>
+                                    <input v-model.number="selectedElement.x" type="number" min="0" max="210" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Vị trí Y (mm)</label>
+                                    <input v-model.number="selectedElement.y" type="number" min="0" max="148" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Rộng (mm)</label>
+                                    <input v-model.number="selectedElement.width" type="number" min="1" max="210" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Cao (mm)</label>
+                                    <input v-model.number="selectedElement.height" type="number" min="1" max="148" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
+                                </div>
+
+                                <!-- Field Label -->
+                                <div v-if="selectedElement.type === 'field'" class="col-span-2 flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Tiêu đề (Label)</label>
+                                    <input v-model="selectedElement.label" type="text" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary">
+                                </div>
+                                <div v-if="selectedElement.type === 'field'" class="col-span-2 flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Độ rộng tiêu đề (mm)</label>
+                                    <input v-model.number="selectedElement.labelWidth" type="number" min="0" max="100" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
+                                </div>
+
+                                <!-- Text content -->
+                                <div v-if="selectedElement.type === 'text'" class="col-span-2 flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Nội dung chữ</label>
+                                    <textarea v-model="selectedElement.text" rows="2" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary resize-none"></textarea>
+                                </div>
+
+                                <!-- Rect Border style -->
+                                <div v-if="selectedElement.type === 'rect'" class="col-span-2 flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Kiểu viền</label>
+                                    <select v-model="selectedElement.borderStyle" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary">
+                                        <option value="solid">Nét liền (Solid)</option>
+                                        <option value="dashed">Nét đứt (Dashed)</option>
+                                        <option value="dotted">Chấm chấm (Dotted)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Font size & styles -->
+                                <div v-if="['text', 'field'].includes(selectedElement.type)" class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Cỡ chữ (pt)</label>
+                                    <input v-model.number="selectedElement.fontSize" type="number" min="6" max="24" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
+                                </div>
+                                <div v-if="['text', 'field'].includes(selectedElement.type)" class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-400">Căn lề</label>
+                                    <select v-model="selectedElement.align" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary">
+                                        <option value="left">Trái</option>
+                                        <option value="center">Giữa</option>
+                                        <option value="right">Phải</option>
+                                    </select>
+                                </div>
+
+                                <div v-if="['text', 'field'].includes(selectedElement.type)" class="col-span-2 flex items-center gap-4 pt-1">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="checkbox" :checked="selectedElement.fontWeight === 'bold'" @change="(e) => selectedElement!.fontWeight = (e.target as HTMLInputElement).checked ? 'bold' : 'normal'" class="rounded text-primary focus:ring-0">
+                                        <span>In đậm</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="checkbox" :checked="selectedElement.fontStyle === 'italic'" @change="(e) => selectedElement!.fontStyle = (e.target as HTMLInputElement).checked ? 'italic' : 'normal'" class="rounded text-primary focus:ring-0">
+                                        <span>In nghiêng</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Signatures -->
+                        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-3">
+                            <h4 class="text-xs font-black text-gray-700 uppercase tracking-wider border-b border-gray-100 pb-2 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base">draw</span>
+                                Vị trí các chữ ký (5 chữ ký)
+                            </h4>
+                            <div class="space-y-1.5">
+                                <div v-for="(_, sIdx) in (cfgForm.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'])" :key="sIdx" class="flex items-center gap-2">
+                                    <span class="text-[10px] font-black text-gray-400 w-4">{{ sIdx + 1 }}.</span>
+                                    <input 
+                                        v-model="cfgForm.signatures![sIdx]"
+                                        class="flex-1 px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary"
+                                        placeholder="Ký tên..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Blueprint Canvas -->
+                    <div class="flex-1 flex flex-col gap-2 min-w-0 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <span class="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base text-primary">square_foot</span>
+                                Bản vẽ in chuẩn A5 (210mm x 148mm)
+                            </span>
+                            <span class="text-[11px] font-bold text-gray-400">Kéo thả phần tử | Phím mũi tên để căn chỉnh mịn</span>
+                        </div>
+
+                        <!-- Canvas Container -->
+                        <div ref="canvasContainerRef" class="flex-1 overflow-hidden bg-gray-100/70 border border-gray-200 rounded-xl p-4 flex justify-center items-center relative group min-h-[500px]">
+                            <div 
+                                class="relative bg-white border border-dashed border-gray-400 shadow-xl select-none overflow-hidden shrink-0"
+                                :style="{
+                                    width: canvasWidthPx + 'px',
+                                    height: canvasHeightPx + 'px',
+                                    boxSizing: 'content-box',
+                                    backgroundImage: 'linear-gradient(to right, rgba(226, 239, 252, 0.8) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 239, 252, 0.8) 1px, transparent 1px)',
+                                    backgroundSize: (5 * currentMmToPx) + 'px ' + (5 * currentMmToPx) + 'px'
+                                }"
+                                @mousedown="selectedElementId = null; selectedElementIds = []"
+                            >
+                                <!-- Alignment Snap Guides -->
+                                <div 
+                                    v-for="(guide, gIdx) in alignmentGuides" 
+                                    :key="'guide_' + gIdx"
+                                    class="absolute pointer-events-none z-50"
+                                    :class="guide.type === 'h' ? 'left-0 right-0 border-t border-dashed border-red-500' : 'top-0 bottom-0 border-l border-dashed border-red-500'"
+                                    :style="guide.type === 'h' ? { top: guide.pos + 'px', height: '0px' } : { left: guide.pos + 'px', width: '0px' }"
+                                ></div>
+
+                                <!-- Dynamic Print Elements -->
+                                <div 
+                                    v-for="el in (cfgForm.printElements || [])" 
+                                    :key="el.id"
+                                    class="absolute cursor-move select-none flex flex-col"
+                                    :class="[
+                                        selectedElementIds.includes(el.id) 
+                                            ? (selectedElementId === el.id ? 'ring-2 ring-inset ring-primary z-30 bg-primary/[0.04]' : 'ring-2 ring-inset ring-teal-500 z-25 bg-teal-500/[0.04]') 
+                                            : 'hover:ring-1 hover:ring-inset hover:ring-primary/50 z-20'
+                                    ]"
+                                    :style="{
+                                        left: (el.x * currentMmToPx) + 'px',
+                                        top: (el.y * currentMmToPx) + 'px',
+                                        width: (el.width * currentMmToPx) + 'px',
+                                        height: (el.height * currentMmToPx) + 'px',
+                                        fontSize: (el.fontSize || 8.5) * 1.35 * (currentMmToPx / 4) + 'px',
+                                        fontWeight: el.fontWeight || 'bold',
+                                        fontStyle: el.fontStyle || 'normal',
+                                        textAlign: el.align || 'left',
+                                        color: 'black',
+                                        fontFamily: 'Arial, Helvetica, sans-serif',
+                                        lineHeight: '1.2'
+                                    }"
+                                    @mousedown.stop="startDrag($event, el)"
+                                >
+                                    <!-- Field Type element -->
+                                    <div v-if="el.type === 'field'" class="w-full h-full flex items-baseline overflow-hidden select-none pointer-events-none">
+                                        <span 
+                                            v-if="el.label"
+                                            class="text-gray-500 shrink-0 font-sans" 
+                                            style="font-weight: inherit;"
+                                            :style="{ width: ((el.labelWidth || 20) * currentMmToPx) + 'px' }"
+                                        >
+                                            {{ el.label }}
+                                        </span>
+                                        <span v-if="el.label" class="mr-1 shrink-0 font-sans">:</span>
+                                        <span 
+                                            class="grow font-sans"
+                                            :class="(el.fieldId === 'ketluan' || el.fieldId === 'note') ? 'whitespace-pre-wrap break-words' : 'truncate'"
+                                            style="font-weight: inherit;"
+                                        >
+                                            [{{ el.fieldId }}]
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Static text element -->
+                                    <div v-else-if="el.type === 'text'" class="w-full h-full overflow-hidden whitespace-pre-wrap select-none pointer-events-none font-sans">
+                                        {{ el.text }}
+                                    </div>
+                                    
+                                    <!-- Line element -->
+                                    <div 
+                                        v-else-if="el.type === 'line'" 
+                                        class="w-full h-full bg-black select-none pointer-events-none"
+                                    ></div>
+                                    
+                                    <!-- Rect element -->
+                                    <div 
+                                        v-else-if="el.type === 'rect'" 
+                                        class="w-full h-full border border-black select-none pointer-events-none"
+                                        :style="{ borderStyle: el.borderStyle || 'solid', borderWidth: '1px' }"
+                                    ></div>
+
+                                    <!-- Selected Indicator Badge -->
+                                    <div v-if="selectedElementIds.includes(el.id)" class="absolute -top-4 left-0 text-white text-[10px] px-1 py-0.5 rounded font-mono uppercase font-bold tracking-wider pointer-events-none shadow-sm z-40" :class="selectedElementId === el.id ? 'bg-primary' : 'bg-teal-500'">
+                                        {{ el.type === 'field' ? el.fieldId : el.type }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Transition>
+    </Teleport>
 </template>
 
 <style scoped>

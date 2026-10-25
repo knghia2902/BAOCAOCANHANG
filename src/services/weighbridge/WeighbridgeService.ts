@@ -7,7 +7,114 @@ export interface Vessel {
     created_at?: string;
     barges?: Barge[];
     status?: 'in_progress' | 'done';
+    customer?: string; // Tên khách hàng / Chủ hàng
+    cargo_type?: string; // Loại hàng hóa
+    cargo_code?: string; // Mã hàng hóa
 }
+
+export interface MasterCargoItem {
+    name: string;
+    code: string;
+}
+
+export interface WeighbridgeMasterData {
+    customers: string[];
+    goods: MasterCargoItem[];
+}
+
+export const DEFAULT_MASTER_DATA: WeighbridgeMasterData = {
+    customers: [
+        'CÔNG TY TNHH DE HEUS',
+        'CÔNG TY CỔ PHẦN CHĂN NUÔI C.P. VIỆT NAM',
+        'CÔNG TY TNHH CARGILL VIỆT NAM',
+        'CÔNG TY TNHH CJ VINA AGRI',
+        'CÔNG TY CỔ PHẦN JAPFA COMFEED VIỆT NAM',
+        'CÔNG TY TNHH SUNJIN VINA',
+        'CÔNG TY CỔ PHẦN GREENFEED VIỆT NAM',
+        'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC'
+    ],
+    goods: [
+        { name: 'BẮP HẠT', code: 'BH' },
+        { name: 'BÃ ĐẬU NÀNH', code: 'BDN' },
+        { name: 'LÚA MÌ', code: 'LM' },
+        { name: 'CÁM MÌ', code: 'CM' },
+        { name: 'BÃ HẠT CẢI', code: 'BHC' },
+        { name: 'BỘT MÌ', code: 'BM' },
+        { name: 'CÁM GẠO', code: 'CG' },
+        { name: 'BÃ RƯỢU DDGS', code: 'DDGS' },
+        { name: 'KHÔ ĐẬU TƯƠNG', code: 'KDT' }
+    ]
+};
+
+export interface WeighbridgeStandardTemplate {
+    printFields: CustomFieldConfig[];
+    printElements: PrintElement[];
+    companyName: string;
+    companyAddress: string;
+    companyPhone: string;
+    ticketTitle: string;
+    signatures: string[];
+    updatedAt: number;
+}
+
+export const getDefaultPrintFields = (): CustomFieldConfig[] => [
+    { id: 'plateNumber', label: 'Số xe', visible: true, column: 'left', order: 1 },
+    { id: 'goods', label: 'Hàng hóa', visible: true, column: 'left', order: 2 },
+    { id: 'owner', label: 'Tên chủ hàng', visible: true, column: 'left', order: 3 },
+    { id: 'weight1', label: 'Trọng lượng lần 1', visible: true, column: 'left', order: 4 },
+    { id: 'weight2', label: 'Trọng lượng lần 2', visible: true, column: 'left', order: 5 },
+    { id: 'weightNet', label: 'Trọng lượng hàng', visible: true, column: 'left', order: 6 },
+    { id: 'words', label: 'Bằng chữ', visible: true, column: 'left', order: 7 },
+    { id: 'barge', label: 'Sà lan', visible: true, column: 'left', order: 8 },
+    { id: 'note', label: 'Ghi chú', visible: true, column: 'left', order: 9 },
+    
+    { id: 'driver', label: 'Tài xế', visible: true, column: 'right', order: 1 },
+    { id: 'goodsCode', label: 'Mã hàng', visible: true, column: 'right', order: 2 },
+    { id: 'xn', label: 'X/N', visible: true, column: 'right', order: 3 },
+    { id: 'chinhpham', label: '*Chính phẩm', visible: true, column: 'right', order: 4 },
+    { id: 'phupham', label: '*Phụ phẩm', visible: true, column: 'right', order: 5 },
+    { id: 'ketluan', label: 'Kết luận', visible: true, column: 'right', order: 6 }
+];
+
+export const getDefaultPrintElements = (): PrintElement[] => [
+    { id: 'companyName', type: 'text', x: 9, y: 18, width: 140, height: 5, text: 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC', fontSize: 13, fontWeight: 'bold' },
+    { id: 'companyAddress', type: 'text', x: 9, y: 25, width: 150, height: 4, text: 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam', fontSize: 10, fontWeight: 'normal' },
+    { id: 'companyPhone', type: 'text', x: 9, y: 30.5, width: 140, height: 4, text: 'ĐT: 0964 258 671 / Fax:', fontSize: 10, fontWeight: 'normal' },
+    { id: 'ticketNo', type: 'field', x: 145.5, y: 34.5, width: 45, height: 5, label: 'Phiếu số', fieldId: 'ticketNo', labelWidth: 15, fontSize: 10, fontWeight: 'normal' },
+    { id: 'title', type: 'text', x: 0, y: 38, width: 198.5, height: 9.5, text: 'PHIẾU CÂN XE', fontSize: 24, fontWeight: 'bold', align: 'center' },
+    { id: 'dateIn', type: 'field', x: 60, y: 49, width: 75, height: 4, label: 'Ngày, giờ vào', fieldId: 'dateIn', labelWidth: 24, fontSize: 10, fontWeight: 'normal' },
+    { id: 'dateOut', type: 'field', x: 60, y: 54.5, width: 75, height: 4, label: 'Ngày, giờ ra', fieldId: 'dateOut', labelWidth: 24, fontSize: 10, fontWeight: 'normal' },
+    
+    // Left Column Fields
+    { id: 'plateNumber', type: 'field', x: 9, y: 61.5, width: 85, height: 5, label: 'Số xe', fieldId: 'plateNumber', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'goods', type: 'field', x: 9, y: 66.5, width: 85, height: 5, label: 'Hàng hóa', fieldId: 'goods', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'owner', type: 'field', x: 9, y: 73, width: 100.5, height: 5, label: 'Tên chủ hàng', fieldId: 'owner', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'weight1', type: 'field', x: 9, y: 79, width: 85, height: 5, label: 'Trọng lượng lần 1', fieldId: 'weight1', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'weight2', type: 'field', x: 9, y: 85.5, width: 85, height: 5, label: 'Trọng lượng lần 2', fieldId: 'weight2', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'weightNet', type: 'field', x: 9, y: 92.5, width: 85, height: 5, label: 'Trọng lượng hàng', fieldId: 'weightNet', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'words', type: 'field', x: 9, y: 97.5, width: 100, height: 8.5, label: 'Bằng chữ', fieldId: 'words', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'barge', type: 'field', x: 9, y: 106, width: 85, height: 5, label: 'Sà lan', fieldId: 'barge', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+    
+    // Right Column Fields
+    { id: 'driver', type: 'field', x: 80.5, y: 61.5, width: 85, height: 5, label: 'Tài xế', fieldId: 'driver', labelWidth: 11, fontSize: 10, fontWeight: 'normal' },
+    { id: 'goodsCode', type: 'field', x: 114.5, y: 66.5, width: 85, height: 5, label: 'Mã hàng', fieldId: 'goodsCode', labelWidth: 15.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'xn', type: 'field', x: 114.5, y: 73, width: 85, height: 5, label: 'X/N', fieldId: 'xn', labelWidth: 15.5, fontSize: 10, fontWeight: 'normal' },
+    { id: 'qualityHeader', type: 'text', x: 114.5, y: 79, width: 85, height: 4, text: 'ĐÁNH GIÁ CHẤT LƯỢNG HÀNG HÓA', fontSize: 10, fontWeight: 'normal' },
+    { id: 'chinhpham', type: 'field', x: 114.5, y: 85.5, width: 85, height: 5, label: '*Chính phẩm', fieldId: 'chinhpham', labelWidth: 24, fontSize: 10, fontWeight: 'normal' },
+    { id: 'phupham', type: 'field', x: 114.5, y: 91.5, width: 85, height: 5, label: '*Phụ phẩm', fieldId: 'phupham', labelWidth: 24, fontSize: 10, fontWeight: 'normal' },
+    { id: 'ketluan', type: 'field', x: 116, y: 97.5, width: 85, height: 11.5, label: 'Kết luận', fieldId: 'ketluan', labelWidth: 22.5, fontSize: 10, fontWeight: 'normal' },
+    
+    // Note Field
+    { id: 'field_note_1782290495031', type: 'field', x: 9, y: 111, width: 80, height: 5, label: 'Ghi chú', fieldId: 'note', labelWidth: 33.5, fontSize: 10, fontWeight: 'normal' },
+
+    // Footer
+    { id: 'sig1', type: 'text', x: 18.5, y: 118, width: 30, height: 4, text: 'NV TRẠM CÂN', align: 'center', fontSize: 10, fontWeight: 'bold' },
+    { id: 'sig1_name', type: 'field', x: 18.5, y: 133, width: 30, height: 4, label: '', fieldId: 'operator', align: 'center', fontSize: 10, fontWeight: 'bold' },
+    { id: 'sig2', type: 'text', x: 60, y: 118, width: 25, height: 4, text: 'BẢO VỆ', align: 'center', fontSize: 10, fontWeight: 'bold' },
+    { id: 'sig3', type: 'text', x: 86, y: 118, width: 25, height: 4, text: 'CHỦ HÀNG', align: 'center', fontSize: 10, fontWeight: 'bold' },
+    { id: 'sig4', type: 'text', x: 116, y: 118, width: 25, height: 4, text: 'THỦ KHO', align: 'center', fontSize: 10, fontWeight: 'bold' },
+    { id: 'sig5', type: 'text', x: 141, y: 118, width: 20, height: 4, text: 'TÀI XẾ', align: 'center', fontSize: 10, fontWeight: 'bold' }
+];
 
 export interface CustomFieldConfig {
     id: string;
@@ -131,7 +238,10 @@ async function getLocalVessels(): Promise<Vessel[]> {
     const list = (await dbContext.get<Vessel[]>('wb_vessels')) || [];
     return list.map(v => ({
         ...v,
-        status: v.status || 'in_progress'
+        status: v.status || 'in_progress',
+        customer: v.customer || '',
+        cargo_type: v.cargo_type || '',
+        cargo_code: v.cargo_code || ''
     }));
 }
 
@@ -140,6 +250,168 @@ async function saveLocalVessels(vessels: Vessel[]) {
 }
 
 export const WeighbridgeService = {
+    /**
+     * Get Master Data (customers and cargo goods)
+     */
+    async getMasterData(): Promise<WeighbridgeMasterData> {
+        try {
+            const cached = await dbContext.get<WeighbridgeMasterData>('weighbridge_master_data');
+            
+            const { data, error } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+                
+            if (!error && data?.settings?.weighbridge_master_data) {
+                const remote = data.settings.weighbridge_master_data as WeighbridgeMasterData;
+                await dbContext.set('weighbridge_master_data', remote);
+                return remote;
+            }
+
+            if (cached && (cached.customers?.length || cached.goods?.length)) {
+                return cached;
+            }
+
+            return DEFAULT_MASTER_DATA;
+        } catch (e) {
+            console.warn('Error fetching master data:', e);
+            const cached = await dbContext.get<WeighbridgeMasterData>('weighbridge_master_data');
+            return cached || DEFAULT_MASTER_DATA;
+        }
+    },
+
+    /**
+     * Save Master Data (customers and cargo goods)
+     */
+    async saveMasterData(masterData: WeighbridgeMasterData): Promise<boolean> {
+        try {
+            await dbContext.set('weighbridge_master_data', masterData);
+            try {
+                localStorage.setItem('weighbridge_master_data', JSON.stringify(masterData));
+            } catch (_) {}
+
+            const { data: current, error: fetchError } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+
+            if (!fetchError && current?.settings) {
+                const newSettings = {
+                    ...current.settings,
+                    weighbridge_master_data: masterData
+                };
+                await supabase
+                    .from('content')
+                    .update({ settings: newSettings })
+                    .eq('id', 'main');
+            }
+            return true;
+        } catch (e) {
+            console.error('Error saving master data:', e);
+            return false;
+        }
+    },
+
+    /**
+     * Get Global Standard Weigh Ticket Template
+     */
+    async getGlobalTicketTemplate(): Promise<WeighbridgeStandardTemplate> {
+        try {
+            const cached = await dbContext.get<WeighbridgeStandardTemplate>('weighbridge_standard_template');
+            
+            const { data, error } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+
+            if (!error && data?.settings?.weighbridge_standard_template) {
+                const remote = data.settings.weighbridge_standard_template as WeighbridgeStandardTemplate;
+                await dbContext.set('weighbridge_standard_template', remote);
+                return remote;
+            }
+
+            if (cached && cached.printElements?.length) {
+                return cached;
+            }
+
+            let savedElements: any = null;
+            let savedDetails: any = null;
+            try {
+                const strEl = localStorage.getItem('weighbridge_default_layout');
+                if (strEl) savedElements = JSON.parse(strEl);
+                const strDet = localStorage.getItem('weighbridge_default_company_details');
+                if (strDet) savedDetails = JSON.parse(strDet);
+            } catch (_) {}
+
+            return {
+                printFields: getDefaultPrintFields(),
+                printElements: savedElements || getDefaultPrintElements(),
+                companyName: savedDetails?.companyName || 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC',
+                companyAddress: savedDetails?.companyAddress || 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam',
+                companyPhone: savedDetails?.companyPhone || 'ĐT: 0964 258 671 / Fax:',
+                ticketTitle: savedDetails?.ticketTitle || 'PHIẾU CÂN XE',
+                signatures: savedDetails?.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'],
+                updatedAt: Date.now()
+            };
+        } catch (e) {
+            console.warn('Error fetching global ticket template:', e);
+            return {
+                printFields: getDefaultPrintFields(),
+                printElements: getDefaultPrintElements(),
+                companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG NGUYÊN NGỌC',
+                companyAddress: 'Địa chỉ: Số 167, tổ 78, Đường Đê Bao, Khu phố 9, Phường Phú An, TP. Hồ Chí Minh, Việt Nam',
+                companyPhone: 'ĐT: 0964 258 671 / Fax:',
+                ticketTitle: 'PHIẾU CÂN XE',
+                signatures: ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'],
+                updatedAt: Date.now()
+            };
+        }
+    },
+
+    /**
+     * Save Global Standard Weigh Ticket Template
+     */
+    async saveGlobalTicketTemplate(template: WeighbridgeStandardTemplate): Promise<boolean> {
+        try {
+            template.updatedAt = Date.now();
+            await dbContext.set('weighbridge_standard_template', template);
+            try {
+                localStorage.setItem('weighbridge_default_layout', JSON.stringify(template.printElements));
+                localStorage.setItem('weighbridge_default_company_details', JSON.stringify({
+                    companyName: template.companyName,
+                    companyAddress: template.companyAddress,
+                    companyPhone: template.companyPhone,
+                    ticketTitle: template.ticketTitle,
+                    signatures: template.signatures
+                }));
+            } catch (_) {}
+
+            const { data: current, error: fetchError } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+
+            if (!fetchError && current?.settings) {
+                const newSettings = {
+                    ...current.settings,
+                    weighbridge_standard_template: template
+                };
+                await supabase
+                    .from('content')
+                    .update({ settings: newSettings })
+                    .eq('id', 'main');
+            }
+            return true;
+        } catch (e) {
+            console.error('Error saving global ticket template:', e);
+            return false;
+        }
+    },
+
     /**
      * Fetch all vessels along with their barges
      */
@@ -163,6 +435,10 @@ export const WeighbridgeService = {
 
             const formatted = (data || []).map((vessel: any) => {
                 const localVessel = local.find(v => String(v.id) === String(vessel.id));
+                const resolvedCustomer = vessel.customer || localVessel?.customer || '';
+                const resolvedCargoType = vessel.cargo_type || localVessel?.cargo_type || '';
+                const resolvedCargoCode = vessel.cargo_code || localVessel?.cargo_code || '';
+
                 const barges = (vessel.barges || []).map((remoteBarge: any) => {
                     // Search if local has a newer config
                     const localBarge = localVessel?.barges?.find(b => String(b.id) === String(remoteBarge.id));
@@ -175,9 +451,13 @@ export const WeighbridgeService = {
                             WeighbridgeService.updateBargeConfig(remoteBarge.id, localBarge.config).catch(err => {
                                 console.warn('Background sync config failed:', err);
                             });
+                            const bargeConfig = { ...localBarge.config };
+                            if (resolvedCustomer) bargeConfig.owner = resolvedCustomer;
+                            if (resolvedCargoType) bargeConfig.goods = resolvedCargoType;
+                            if (resolvedCargoCode) bargeConfig.goodsCode = resolvedCargoCode;
                             return {
                                 ...remoteBarge,
-                                config: localBarge.config
+                                config: bargeConfig
                             };
                         }
                     }
@@ -202,6 +482,11 @@ export const WeighbridgeService = {
                         ...(remoteBarge.departure_time ? { departureTime: remoteBarge.departure_time } : {})
                     };
 
+                    // Enforce 100% inheritance from vessel
+                    if (resolvedCustomer) mergedConfig.owner = resolvedCustomer;
+                    if (resolvedCargoType) mergedConfig.goods = resolvedCargoType;
+                    if (resolvedCargoCode) mergedConfig.goodsCode = resolvedCargoCode;
+
                     return {
                         ...remoteBarge,
                         config: mergedConfig
@@ -225,6 +510,9 @@ export const WeighbridgeService = {
                 return {
                     ...vessel,
                     status: resolvedStatus,
+                    customer: resolvedCustomer,
+                    cargo_type: resolvedCargoType,
+                    cargo_code: resolvedCargoCode,
                     barges
                 };
             });
@@ -239,24 +527,34 @@ export const WeighbridgeService = {
     },
 
     /**
-     * Create a new vessel
+     * Create a new vessel with optional master data fields
      */
-    async createVessel(name: string): Promise<Vessel | null> {
+    async createVessel(name: string, customer?: string, cargo_type?: string, cargo_code?: string): Promise<Vessel | null> {
         const newVessel: Vessel = {
             id: Date.now(),
             name: name.trim().toUpperCase(),
             status: 'in_progress',
+            customer: customer?.trim() || '',
+            cargo_type: cargo_type?.trim() || '',
+            cargo_code: cargo_code?.trim() || '',
             barges: []
         };
         try {
             let { data, error } = await supabase
                 .from('weighbridge_vessels')
-                .insert([{ id: newVessel.id, name: newVessel.name, status: 'in_progress' }])
+                .insert([{ 
+                    id: newVessel.id, 
+                    name: newVessel.name, 
+                    status: 'in_progress',
+                    customer: newVessel.customer,
+                    cargo_type: newVessel.cargo_type,
+                    cargo_code: newVessel.cargo_code
+                }])
                 .select()
                 .single();
 
-            // If table does not have 'status' column, retry without status
-            if (error && (error.code === 'PGRST204' || error.message?.includes('status'))) {
+            // If table does not have some columns, retry with minimal fields
+            if (error) {
                 const retry = await supabase
                     .from('weighbridge_vessels')
                     .insert([{ id: newVessel.id, name: newVessel.name }])
@@ -273,7 +571,14 @@ export const WeighbridgeService = {
                 await saveLocalVessels(local);
                 return newVessel;
             }
-            const syncedVessel = { ...data, status: data?.status || 'in_progress', barges: [] };
+            const syncedVessel = { 
+                ...data, 
+                status: data?.status || 'in_progress',
+                customer: data?.customer || newVessel.customer,
+                cargo_type: data?.cargo_type || newVessel.cargo_type,
+                cargo_code: data?.cargo_code || newVessel.cargo_code,
+                barges: [] 
+            };
             const local = await getLocalVessels();
             local.push(syncedVessel);
             await saveLocalVessels(local);
@@ -323,23 +628,51 @@ export const WeighbridgeService = {
     },
 
     /**
-     * Update vessel name
+     * Update vessel name and fixed cargo info
      */
-    async updateVessel(id: number, name: string): Promise<boolean> {
-        const cleanName = name.trim().toUpperCase();
-        
+    async updateVessel(id: number, updatesOrName: string | { name?: string; customer?: string; cargo_type?: string; cargo_code?: string }): Promise<boolean> {
+        const payload: { name?: string; customer?: string; cargo_type?: string; cargo_code?: string } = 
+            typeof updatesOrName === 'string' ? { name: updatesOrName.trim().toUpperCase() } : { ...updatesOrName };
+            
+        if (payload.name) payload.name = payload.name.trim().toUpperCase();
+
         const local = await getLocalVessels();
         const vessel = local.find(v => v.id === id);
         if (vessel) {
-            vessel.name = cleanName;
+            if (payload.name !== undefined) vessel.name = payload.name;
+            if (payload.customer !== undefined) vessel.customer = payload.customer;
+            if (payload.cargo_type !== undefined) vessel.cargo_type = payload.cargo_type;
+            if (payload.cargo_code !== undefined) vessel.cargo_code = payload.cargo_code;
+
+            // Enforce on child barges locally
+            if (vessel.barges) {
+                for (const b of vessel.barges) {
+                    if (b.config) {
+                        if (vessel.customer) b.config.owner = vessel.customer;
+                        if (vessel.cargo_type) b.config.goods = vessel.cargo_type;
+                        if (vessel.cargo_code) b.config.goodsCode = vessel.cargo_code;
+                    }
+                }
+            }
             await saveLocalVessels(local);
         }
 
         try {
-            const { error } = await supabase
+            let { error } = await supabase
                 .from('weighbridge_vessels')
-                .update({ name: cleanName })
+                .update(payload)
                 .eq('id', id);
+
+            if (error) {
+                // Retry with name only if columns don't exist yet
+                const retryPayload: { name?: string } = {};
+                if (payload.name) retryPayload.name = payload.name;
+                const retry = await supabase
+                    .from('weighbridge_vessels')
+                    .update(retryPayload)
+                    .eq('id', id);
+                error = retry.error;
+            }
 
             if (error) {
                 console.warn('Supabase update vessel failed, kept local change:', error);

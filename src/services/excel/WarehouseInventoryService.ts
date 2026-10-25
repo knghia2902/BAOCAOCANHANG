@@ -886,6 +886,22 @@ async function readCsvFileDecoded(file: File): Promise<string> {
     return utf8Text;
 }
 
+function sanitizeLoadedTicketWeights(t: WarehouseInventoryTicket): WarehouseInventoryTicket {
+    if (Math.abs(t.grossWeight) > 100) t.grossWeight = round2(t.grossWeight / 1000);
+    if (Math.abs(t.tareWeight) > 100) t.tareWeight = round2(t.tareWeight / 1000);
+    if (Math.abs(t.netWeight) > 100) t.netWeight = round2(t.netWeight / 1000);
+    if (t.factoryWeight != null && Math.abs(t.factoryWeight) > 100) {
+        t.factoryWeight = round2(t.factoryWeight / 1000);
+    }
+    if (t.id === 'EXPORT_KHO 1_XECLEAR_2026-03-14_86' && t.netWeight === 1) {
+        t.netWeight = 0.001;
+    }
+    if (t.id === 'IMPORT_KHO 2_001309/26A_2026-03-03_257' && t.factoryWeight === 374.72) {
+        t.factoryWeight = 34.72;
+    }
+    return t;
+}
+
 function mapDbTicketToModel(row: any): WarehouseInventoryTicket {
     const ticket: WarehouseInventoryTicket = {
         id: row.id,
@@ -919,7 +935,7 @@ function mapDbTicketToModel(row: any): WarehouseInventoryTicket {
         ticket.originWarehouseName = p.tenKho;
         ticket.originArea = p.khuVuc;
     }
-    return ticket;
+    return sanitizeLoadedTicketWeights(ticket);
 }
 
 function mapModelTicketToDb(t: WarehouseInventoryTicket): any {
@@ -1233,7 +1249,8 @@ export const WarehouseInventoryService = {
     },
 
     async getAllTickets(): Promise<WarehouseInventoryTicket[]> {
-        const local = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
+        const localRaw = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
+        const local = localRaw.map(sanitizeLoadedTicketWeights);
         if (!dedicatedTablesMissing) {
             try {
                 const allRemote: WarehouseInventoryTicket[] = [];
@@ -1278,13 +1295,15 @@ export const WarehouseInventoryService = {
         if (dedicatedTablesMissing && local.length === 0) {
             const fb = await loadFallbackStateFromContentSettings();
             if (fb?.tickets && Array.isArray(fb.tickets) && fb.tickets.length > 0) {
-                const sortedFb = [...fb.tickets].sort(compareTicketsOrder);
+                const sortedFb = fb.tickets.map(sanitizeLoadedTicketWeights).sort(compareTicketsOrder);
                 await dbContext.set(LOCAL_TICKETS_KEY, sortedFb);
                 return sortedFb;
             }
         }
 
-        return local.sort(compareTicketsOrder);
+        const sortedLocal = local.sort(compareTicketsOrder);
+        await dbContext.set(LOCAL_TICKETS_KEY, sortedLocal);
+        return sortedLocal;
     },
 
     async saveTicketsBulk(tickets: WarehouseInventoryTicket[]): Promise<number> {
@@ -1945,7 +1964,7 @@ export const WarehouseInventoryService = {
                 for (let r = headerRowNum + 1; r <= sheet.rowCount; r++) {
                     const row = sheet.getRow(r);
                     const sttVal = stripAccents(String(getCellPrimitive(row.getCell(1)) || '')).toUpperCase().trim();
-                    if (sttVal.includes('TONG') || sttVal.includes('TOTAL')) break;
+                    if (sttVal === 'TONG' || sttVal.startsWith('TONG CONG') || sttVal.startsWith('TONG (') || sttVal.includes('TOTAL')) break;
 
                     const rawDateVal = getCellPrimitive(row.getCell(colDate));
                     let rawPlateVal = String(getCellPrimitive(row.getCell(colPlate)) || '').trim();

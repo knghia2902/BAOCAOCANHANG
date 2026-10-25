@@ -110,6 +110,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 261021-h9k | Tối ưu tốc độ tải phiếu cân tức thì khi click chọn tàu / sà lan | 2026-10-21 | [261021-h9k-toi-uu-toc-do-tai-phieu-can-khi-click-ch](./quick/261021-h9k-toi-uu-toc-do-tai-phieu-can-khi-click-ch/) |
 | 261021-imy | Mặc định thu gọn các tàu ở sidebar trái trong Báo Cáo Tổng Quan | 2026-10-21 | [261021-imy-mac-dinh-thu-gon-cac-tau-o-sidebar-trai-](./quick/261021-imy-mac-dinh-thu-gon-cac-tau-o-sidebar-trai-/) |
 | 261025-edt | Thêm nút Edit ở mỗi phiếu cân và Modal chỉnh sửa chi tiết trong Tồn Kho 4 Kho | 2026-10-25 | [261025-edt-them-nut-edit-o-moi-phieu-can](./quick/261025-edt-them-nut-edit-o-moi-phieu-can/) |
+| 261025-tu5 | Chuẩn hóa mẫu phiếu cân toàn cảng và đồng bộ thông tin Nguồn tàu | 2026-10-25 | [261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b](./quick/261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b/) |
 
 ## Session Continuity
 
