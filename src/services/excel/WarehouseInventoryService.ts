@@ -1372,6 +1372,9 @@ export const WarehouseInventoryService = {
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT');
             } catch (_) {}
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
             return true;
         }
 
@@ -1381,6 +1384,9 @@ export const WarehouseInventoryService = {
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT').eq('warehouse_id', 'KHO 4');
             } catch (_) {}
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
             return true;
         }
 
@@ -1390,6 +1396,9 @@ export const WarehouseInventoryService = {
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT').neq('warehouse_id', 'KHO 4');
             } catch (_) {}
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
             return true;
         }
 
@@ -1405,6 +1414,9 @@ export const WarehouseInventoryService = {
                 configs[whId].initialDate = '';
                 await this.saveConfig(configs[whId]);
             }
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
             return true;
         }
 
@@ -1418,6 +1430,9 @@ export const WarehouseInventoryService = {
             configs[target].initialStock = 0;
             configs[target].initialDate = '';
             await this.saveConfig(configs[target]);
+        }
+        if (dedicatedTablesMissing) {
+            await syncFallbackStateToContentSettings();
         }
         return true;
     },

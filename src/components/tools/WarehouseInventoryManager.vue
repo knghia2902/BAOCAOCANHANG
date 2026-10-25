@@ -130,6 +130,19 @@ const activeSingleWarehouseId = computed<WarehouseId>(() => {
     return selectedWarehouseMode.value;
 });
 
+// Dropdown menu state for Delete options
+const showDeleteMenu = ref(false);
+
+const currentOperatingWarehouseName = computed(() => {
+    if (selectedWarehouseMode.value === 'COMBINED_123') {
+        const custName = configs.value['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH';
+        return `${custName} (Kho 1, 2, 3)`;
+    }
+    const whId = activeSingleWarehouseId.value;
+    const custName = configs.value[whId]?.currentCustomer;
+    return `${whId}${custName ? ` (${custName})` : ''}`;
+});
+
 async function loadAllData() {
     loading.value = true;
     try {
@@ -377,8 +390,32 @@ async function handleHistoryExcelSelected(e: Event) {
     }
 }
 
-async function handleClearWarehouseData() {
-    if (!confirm('Bạn có chắc chắn muốn XÓA TẤT CẢ dữ liệu ở TẤT CẢ các kho (Kho 1, Kho 2, Kho 3, Kho 4 và Xá Thẳng) để làm lại từ đầu không?')) {
+async function handleClearCurrentWarehouse() {
+    showDeleteMenu.value = false;
+    const whName = currentOperatingWarehouseName.value;
+    if (!confirm(`Bạn có chắc chắn muốn XÓA DỮ LIỆU của ${whName} không?\n(Dữ liệu của các kho khác sẽ được giữ nguyên)`)) {
+        return;
+    }
+    try {
+        if (selectedWarehouseMode.value === 'COMBINED_123') {
+            await WarehouseInventoryService.clearWarehouseTickets('GROUP_KHO123');
+            await WarehouseInventoryService.clearWarehouseTickets('DIRECT_KHO123');
+        } else if (activeSingleWarehouseId.value === 'KHO 4') {
+            await WarehouseInventoryService.clearWarehouseTickets('KHO 4');
+            await WarehouseInventoryService.clearWarehouseTickets('DIRECT_KHO4');
+        } else {
+            await WarehouseInventoryService.clearWarehouseTickets(activeSingleWarehouseId.value);
+        }
+        await loadAllData();
+        addToast(`Đã xóa sạch dữ liệu của ${whName}!`, 'success');
+    } catch (err: any) {
+        addToast('Lỗi khi xóa dữ liệu: ' + (err?.message || err), 'error');
+    }
+}
+
+async function handleClearAllWarehouses() {
+    showDeleteMenu.value = false;
+    if (!confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA TẤT CẢ dữ liệu ở TẤT CẢ các kho (Kho 1, Kho 2, Kho 3, Kho 4 và Xá Thẳng) để làm lại từ đầu không?')) {
         return;
     }
     try {
@@ -1116,14 +1153,65 @@ async function handleDownloadZaloImage() {
                             <span>{{ exportingExcel ? 'Đang export...' : 'Export' }}</span>
                         </button>
 
-                        <button
-                            @click="handleClearWarehouseData"
-                            class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-                            title="Xóa dữ liệu phiếu cân"
-                        >
-                            <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
-                            <span>Delete all</span>
-                        </button>
+                        <!-- Delete Options Dropdown -->
+                        <div class="relative inline-block">
+                            <button
+                                @click="showDeleteMenu = !showDeleteMenu"
+                                class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                                title="Tùy chọn xóa dữ liệu"
+                            >
+                                <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
+                                <span>Delete all</span>
+                                <span class="material-symbols-outlined text-xs transition-transform" :class="{ 'rotate-180': showDeleteMenu }">expand_more</span>
+                            </button>
+
+                            <!-- Backdrop for closing dropdown on outside click -->
+                            <div
+                                v-if="showDeleteMenu"
+                                class="fixed inset-0 z-30"
+                                @click="showDeleteMenu = false"
+                            ></div>
+
+                            <!-- Dropdown Menu -->
+                            <div
+                                v-if="showDeleteMenu"
+                                class="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-40 flex flex-col overflow-hidden text-left"
+                            >
+                                <div class="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                                    Chọn phạm vi xóa dữ liệu
+                                </div>
+
+                                <!-- Option 1: Xóa kho đang thao tác -->
+                                <button
+                                    type="button"
+                                    @click="handleClearCurrentWarehouse"
+                                    class="px-3.5 py-2.5 text-left hover:bg-amber-50/70 transition-colors flex items-start gap-2.5 cursor-pointer text-[#1e293b]"
+                                >
+                                    <span class="material-symbols-outlined text-amber-600 text-lg mt-0.5 shrink-0">delete_sweep</span>
+                                    <div class="flex flex-col min-w-0">
+                                        <span class="text-xs font-black text-slate-800">1. Xóa kho đang thao tác</span>
+                                        <span class="text-[11px] font-bold text-amber-700 truncate">{{ currentOperatingWarehouseName }}</span>
+                                        <span class="text-[10px] text-slate-400 mt-0.5">Chỉ xóa phiếu và tồn đầu kho này, kho khác giữ nguyên</span>
+                                    </div>
+                                </button>
+
+                                <div class="h-px bg-slate-100 my-1"></div>
+
+                                <!-- Option 2: Xóa tất cả các kho -->
+                                <button
+                                    type="button"
+                                    @click="handleClearAllWarehouses"
+                                    class="px-3.5 py-2.5 text-left hover:bg-rose-50 transition-colors flex items-start gap-2.5 cursor-pointer text-[#1e293b]"
+                                >
+                                    <span class="material-symbols-outlined text-rose-600 text-lg mt-0.5 shrink-0">delete_forever</span>
+                                    <div class="flex flex-col min-w-0">
+                                        <span class="text-xs font-black text-rose-600">2. Xóa tất cả các kho</span>
+                                        <span class="text-[11px] font-bold text-rose-500">Kho 1, 2, 3, 4 & Xá thẳng</span>
+                                        <span class="text-[10px] text-rose-400 mt-0.5">Xóa trắng toàn bộ dữ liệu làm lại từ đầu</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
