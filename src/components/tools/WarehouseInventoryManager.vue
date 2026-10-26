@@ -1056,14 +1056,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         :class="[
                             'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
                             !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123'
-                                ? 'bg-teal-600 text-white shadow-sm font-black'
+                                ? 'bg-primary text-white shadow-sm font-black'
                                 : 'hover:bg-slate-100/70 text-[#1e293b]'
                         ]"
                     >
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span
                                 class="material-symbols-outlined text-base shrink-0"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-600'"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-primary'"
                             >
                                 apartment
                             </span>
@@ -1078,7 +1078,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                         'size-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-colors',
                                         !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123'
                                             ? 'bg-white/20 hover:bg-white/30 text-white'
-                                            : 'bg-teal-600/10 hover:bg-teal-600/20 text-teal-700'
+                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
                                     ]"
                                     title="Đổi tên khách hàng"
                                 >
@@ -1089,7 +1089,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <div class="flex items-center gap-1 shrink-0">
                             <span
                                 class="text-xs font-mono font-black"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-700'"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-primary'"
                             >
                                 {{
                                     formatTons(
@@ -1205,7 +1205,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <button
                             @click="triggerCsvImport"
                             :disabled="importingCsv"
-                            class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            class="px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold rounded-2xl text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
                             title="Chọn 1 hoặc 2 file CSV/Excel từ trạm cân (Nhập + Xuất)"
                         >
                             <span class="material-symbols-outlined text-sm">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
@@ -1225,7 +1225,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <button
                             @click="handleCopyZaloImage"
                             :disabled="capturingZaloImage"
-                            class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                            class="px-3.5 py-2 bg-teal-50 hover:bg-teal-100 text-teal-600 border border-teal-200 font-bold rounded-2xl text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
                             title="Chụp bảng FINAL độ nét cao vào bộ nhớ tạm để dán vào Zalo"
                         >
                             <span class="material-symbols-outlined text-sm">content_copy</span>
@@ -1235,7 +1235,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <button
                             @click="handleExportExcel()"
                             :disabled="exportingExcel"
-                            class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                            class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             title="Xuất file báo cáo Excel"
                         >
                             <span class="material-symbols-outlined text-sm">download</span>
@@ -1246,7 +1246,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <div class="relative inline-block">
                             <button
                                 @click="showDeleteMenu = !showDeleteMenu"
-                                class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                                class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold rounded-2xl text-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                                 title="Tùy chọn xóa dữ liệu"
                             >
                                 <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
@@ -1371,7 +1371,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('FINAL')
-                                            ? 'bg-teal-700 text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1384,7 +1384,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('IMPORT_1')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1397,7 +1397,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('EXPORT_1')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1410,7 +1410,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('IMPORT_2')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1423,7 +1423,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('EXPORT_2')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1436,7 +1436,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('IMPORT_3')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1449,7 +1449,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('EXPORT_3')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1462,7 +1462,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     :class="[
                                         'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0',
                                         isGbdTabActive('DIRECT')
-                                            ? 'bg-[#15803d] text-white shadow-sm'
+                                            ? 'bg-primary text-white shadow-sm'
                                             : 'bg-[#f1f5f9] text-slate-600 hover:bg-slate-200'
                                     ]"
                                 >
@@ -1639,7 +1639,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <button
                                     @click="handleCopyZaloImage(whId)"
                                     :disabled="capturingZaloImage"
-                                    class="px-2 py-0.5 rounded-lg bg-white/80 hover:bg-white text-teal-800 border border-slate-300 text-[10px] font-black flex items-center gap-1 cursor-pointer shadow-xs transition-all"
+                                    class="px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm flex items-center gap-1 cursor-pointer"
                                     :title="`Copy ảnh báo cáo ${whId} (3 ngày gần nhất) để gửi Zalo`"
                                 >
                                     <span class="material-symbols-outlined text-xs">content_copy</span>
@@ -1985,7 +1985,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     />
                     <button
                         @click="handleBatchAssignVessel"
-                        class="h-7 px-3 bg-primary text-white font-bold rounded-lg text-xs hover:bg-[#3b5e9c] cursor-pointer"
+                        class="px-3.5 py-1.5 bg-primary text-white font-bold rounded-full text-xs shadow-[0_3px_0_0_#6495ed] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#6495ed] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer"
                     >
                         Gán cho {{ filteredDetailTickets.length }} chuyến
                     </button>
