@@ -1765,7 +1765,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-primary font-black">{{ formatKg(t.netWeight) }}</td>
-                            <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || 'Nhập' }}</td>
+                            <td class="py-2 px-2 text-center text-slate-600">Nhập</td>
                             <td class="py-2 px-2 text-center">Kho {{ activeSingleWarehouseId.replace('KHO ', '') }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>
@@ -2037,7 +2037,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-amber-700 font-black">{{ formatKg(t.netWeight) }}</td>
-                                <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || 'Xuất' }}</td>
+                                <td class="py-2 px-2 text-center text-slate-600">Xuất</td>
                                 <td class="py-2 px-2 text-center">{{ t.sourceOrRemark || `Kho ${activeSingleWarehouseId.replace('KHO ', '')}` }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>
@@ -2135,7 +2135,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-amber-700 font-black">{{ formatKg(t.netWeight) }}</td>
-                                <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || 'Xuất' }}</td>
+                                <td class="py-2 px-2 text-center text-slate-600">Xuất</td>
                                 <td class="py-2 px-2 text-center">{{ t.sourceOrRemark || `Kho ${(t.warehouseId || '').replace('KHO ', '')}` }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>
@@ -2245,7 +2245,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.grossWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-slate-600">{{ formatKg(t.tareWeight) }}</td>
                             <td class="py-2 px-2 text-right font-mono text-purple-700 font-black">{{ formatKg(t.netWeight) }}</td>
-                            <td class="py-2 px-2 text-center text-slate-600">{{ t.maLenh || 'Xuất' }}</td>
+                            <td class="py-2 px-2 text-center text-slate-600">Xuất</td>
                             <td class="py-2 px-2 text-center">{{ t.warehouseId || '' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighInTime || '-' }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-500">{{ t.weighOutTime || '-' }}</td>

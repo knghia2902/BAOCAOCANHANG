@@ -677,5 +677,46 @@ describe('WarehouseInventoryService', () => {
             expect(loaded[0]?.netWeight).toBe(1.5);
             expect(loaded[0]?.rawNote).toBe('Đã sửa 1500kg');
         });
+
+        it('preserves Excel time Date cells (1899-12-30) and classifies Xuat rows where Loai Salan holds KHO 4', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+            const ExcelJS = await import('exceljs');
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet('Sheet1');
+            ws.getRow(1).values = [
+                'So phieu', 'Ma lenh', 'So xe', 'Khach hang', 'KL can lan 1', 'KL can lan 2', 'KL hang',
+                'Ngay can lan 1', 'Gio can lan 1', 'Ngay can lan 2', 'Gio can lan 2', 'Xuat/Nhap',
+                'Loai hang', 'Loai Salan', 'Tai Xe', 'Ghi chu'
+            ];
+            ws.getRow(2).values = [
+                '016918/26B', '175', '50H 35185', 'CÔNG TY EASTWOOD ENERGY', 20980, 49500, 28520,
+                new Date(Date.UTC(2026, 9, 25)),
+                new Date(Date.UTC(1899, 11, 30, 7, 36, 6)),
+                new Date(Date.UTC(2026, 9, 25)),
+                new Date(Date.UTC(1899, 11, 30, 8, 21, 56)),
+                'Xuat', 'Viên Nén Gỗ (FSC Mix 1%)', 'KHO 4', 'HÀNG BỤI', 'HÀNG BỤI SÀN TRẢ NHÀ MÁY'
+            ];
+
+            const buf = await wb.xlsx.writeBuffer();
+            const file = new File([buf], 'Book2.xlsx', {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            await WarehouseInventoryService.importWeighbridgeCsvFiles([file]);
+
+            const tickets = await WarehouseInventoryService.getAllTickets();
+            const t = tickets.find(x => x.soPhieu === '016918/26B');
+            expect(t).toBeDefined();
+            expect(t?.flowType).toBe('EXPORT');
+            expect(t?.warehouseId).toBe('KHO 4');
+            expect(t?.bargeInfo).toBe('HÀNG BỤI');
+            expect(t?.weighInTime).toBe('07:36:06');
+            expect(t?.weighOutTime).toBe('08:21:56');
+
+            // Verify exported worksheet writes 'Xuất' in column 8 instead of maLenh ('175')
+            const outWb = new ExcelJS.Workbook();
+            const outWs = outWb.addWorksheet('EXPORT');
+            WarehouseInventoryService.populateExportWorksheet(outWs, 'KHO 4', 'EASTWOOD', [t!]);
+            expect(outWs.getRow(8).getCell(8).value).toBe('Xuất');
+        });
     });
 });

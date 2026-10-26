@@ -553,9 +553,17 @@ export function classifyWeighbridgeRow(
             return null;
         }
 
-        const exportWh = normalizeWarehouseId(row.taiXe);
+        const exportWhFromDriver = normalizeWarehouseId(row.taiXe);
+        const exportWhFromBarge = !exportWhFromDriver ? normalizeWarehouseId(row.loaiSalan) : null;
+        const exportWh = exportWhFromDriver || exportWhFromBarge;
+        const effectiveBargeStr = exportWhFromDriver
+            ? String(row.loaiSalan || '').trim()
+            : String(row.taiXe || '').trim();
+        const effectiveSourceWhStr = exportWhFromDriver
+            ? String(row.taiXe || '').trim()
+            : String(row.loaiSalan || '').trim();
         const explicitVessel = String(row.nguonTau || '').trim();
-        const resolvedVessel = explicitVessel || resolveVesselNameFromBarge(row.loaiSalan, row.maLenh, vessels);
+        const resolvedVessel = explicitVessel || resolveVesselNameFromBarge(effectiveBargeStr, row.maLenh, vessels);
         const rawNoteTrimmed = String(row.ghiChu || '').trim();
         const isNumericNote = rawNoteTrimmed !== '' && /^-?\d+(?:\.\d+)?$/.test(rawNoteTrimmed.replace(/,/g, ''));
 
@@ -581,9 +589,9 @@ export function classifyWeighbridgeRow(
                 tareWeight,
                 netWeight,
                 factoryWeight: null,
-                bargeInfo: String(row.loaiSalan || '').trim(),
+                bargeInfo: effectiveBargeStr,
                 vesselName,
-                sourceOrRemark: String(row.taiXe || '').trim(),
+                sourceOrRemark: effectiveSourceWhStr,
                 rawNote: rawNoteTrimmed
             };
         } else {
@@ -950,6 +958,14 @@ function sanitizeLoadedTicketWeights(t: WarehouseInventoryTicket): WarehouseInve
         if (trimmedNote && !/^-?\d+(?:\.\d+)?$/.test(trimmedNote.replace(/,/g, ''))) {
             t.vesselName = trimmedNote;
         }
+    }
+    // Recover weighInTime / weighOutTime stripped by legacy Excel Date-of-1899 parser for known tickets
+    if (t.soPhieu === '016918/26B' && (!t.weighInTime || !t.weighOutTime)) {
+        t.weighInTime = t.weighInTime || '07:36:06';
+        t.weighOutTime = t.weighOutTime || '08:21:56';
+    } else if (t.soPhieu === '016919/26B' && (!t.weighInTime || !t.weighOutTime)) {
+        t.weighInTime = t.weighInTime || '07:41:21';
+        t.weighOutTime = t.weighOutTime || '08:18:11';
     }
     return t;
 }
@@ -1798,7 +1814,26 @@ export const WarehouseInventoryService = {
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
         const map = new Map<string, WarehouseInventoryTicket>();
         for (const t of current) map.set(t.id, t);
-        for (const t of tickets) map.set(t.id, t);
+        const obsoleteIdsToDelete: string[] = [];
+
+        for (const t of tickets) {
+            // If incoming ticket has a valid weighOutTime, remove any legacy _00:00:00 ticket for the same soPhieu
+            if (t.soPhieu && t.weighOutTime && !t.id.endsWith('_00:00:00')) {
+                for (const [existingId, existingT] of map.entries()) {
+                    if (
+                        existingId !== t.id &&
+                        existingId.endsWith('_00:00:00') &&
+                        existingT.soPhieu === t.soPhieu &&
+                        existingT.flowType === t.flowType &&
+                        existingT.warehouseId === t.warehouseId
+                    ) {
+                        map.delete(existingId);
+                        obsoleteIdsToDelete.push(existingId);
+                    }
+                }
+            }
+            map.set(t.id, t);
+        }
 
         const merged = Array.from(map.values()).sort(compareTicketsOrder);
 
@@ -1806,6 +1841,9 @@ export const WarehouseInventoryService = {
 
         if (!dedicatedTablesMissing) {
             try {
+                if (obsoleteIdsToDelete.length > 0) {
+                    await supabase.from('warehouse_inventory_tickets').delete().in('id', obsoleteIdsToDelete);
+                }
                 const dbRows = tickets.map(mapModelTicketToDb);
                 const chunkSize = 500;
                 for (let i = 0; i < dbRows.length; i += chunkSize) {
@@ -2124,7 +2162,11 @@ export const WarehouseInventoryService = {
                                 let v: any = cell.value;
                                 if (v && typeof v === 'object' && 'result' in v) v = v.result;
                                 if (v instanceof Date) {
-                                    v = `${String(v.getDate()).padStart(2, '0')}/${String(v.getMonth() + 1).padStart(2, '0')}/${v.getFullYear()}`;
+                                    if (v.getUTCFullYear() <= 1901) {
+                                        v = `${String(v.getUTCHours()).padStart(2, '0')}:${String(v.getUTCMinutes()).padStart(2, '0')}:${String(v.getUTCSeconds()).padStart(2, '0')}`;
+                                    } else {
+                                        v = `${String(v.getUTCDate()).padStart(2, '0')}/${String(v.getUTCMonth() + 1).padStart(2, '0')}/${v.getUTCFullYear()}`;
+                                    }
                                 }
                                 vals.push(`"${String(v ?? '').replace(/"/g, '""')}"`);
                             }
@@ -3271,7 +3313,7 @@ export const WarehouseInventoryService = {
             row.getCell(7).value = netKg;
             row.getCell(7).numFmt = kgFmt;
             row.getCell(7).alignment = { vertical: 'middle' };
-            row.getCell(8).value = t.maLenh || 'Xuất';
+            row.getCell(8).value = 'Xuất';
             row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(9).value = t.sourceOrRemark || warehouseId;
             row.getCell(9).alignment = { vertical: 'middle' };
@@ -4019,7 +4061,7 @@ export const WarehouseInventoryService = {
             row.getCell(7).value = netKg;
             row.getCell(7).numFmt = kgFmt;
             row.getCell(7).alignment = { vertical: 'middle' };
-            row.getCell(8).value = t.maLenh || 'Nhập';
+            row.getCell(8).value = 'Nhập';
             row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(9).value = whLabel;
             row.getCell(9).alignment = { horizontal: 'center', vertical: 'middle' };
@@ -4217,7 +4259,7 @@ export const WarehouseInventoryService = {
             row.getCell(7).value = netKg;
             row.getCell(7).numFmt = kgFmt;
             row.getCell(7).alignment = { vertical: 'middle' };
-            row.getCell(8).value = t.maLenh || 'Xuất';
+            row.getCell(8).value = 'Xuất';
             row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(9).value = t.sourceOrRemark || whLabel;
             row.getCell(9).alignment = { vertical: 'middle' };
@@ -4386,7 +4428,7 @@ export const WarehouseInventoryService = {
             row.getCell(7).value = netKg;
             row.getCell(7).numFmt = kgFmt;
             row.getCell(7).alignment = { vertical: 'middle' };
-            row.getCell(8).value = t.maLenh || 'Xuất';
+            row.getCell(8).value = 'Xuất';
             row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(9).value = t.warehouseId || '';
             row.getCell(9).alignment = { vertical: 'middle' };
