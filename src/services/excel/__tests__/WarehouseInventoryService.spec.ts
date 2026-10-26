@@ -248,6 +248,78 @@ describe('WarehouseInventoryService', () => {
 
             expect(ticket).toBeNull();
         });
+
+        it('resolves vesselName from Ma lenh via vessels list and handles KOH 3 typo + DIRECT factoryWeight', () => {
+            const vessels = [
+                {
+                    id: 'v1',
+                    name: 'EPOCH WIND',
+                    barges: [
+                        { id: 'b1', name: 'TN-LA 06789', order_no: '172', trips: [] },
+                        { id: 'b2', name: 'ĐT-TG 15767', order_no: '173', trips: [] }
+                    ]
+                },
+                {
+                    id: 'v2',
+                    name: 'BL IVY',
+                    barges: [
+                        { id: 'b3', name: 'TG 13939', order_no: '174', trips: [] },
+                        { id: 'b4', name: 'AG 26126', order_no: '175', trips: [] }
+                    ]
+                }
+            ] as any[];
+
+            // 1. EXPORT ticket with typo "KOH 3 " in Tai Xe and Ma lenh = 173
+            const exportTicket = classifyWeighbridgeRow({
+                soPhieu: '016884/26B',
+                maLenh: '173',
+                soXe: '77H03966',
+                khachHang: 'GỖ BÌNH ĐỊNH',
+                kl1: 43260,
+                kl2: 11220,
+                klHang: 32040,
+                ngay1: '24/10/2026',
+                gio1: '17:58:02',
+                ngay2: '24/10/2026',
+                gio2: '18:04:40',
+                xuatNhap: 'Xuat',
+                loaiHang: 'Viên nén gỗ',
+                loaiSalan: 'ĐT TG 15767',
+                taiXe: 'KOH 3 ',
+                ghiChu: ''
+            }, vehicleMap, vessels);
+
+            expect(exportTicket).not.toBeNull();
+            expect(exportTicket?.flowType).toBe('EXPORT');
+            expect(exportTicket?.warehouseId).toBe('KHO 3');
+            expect(exportTicket?.vesselName).toBe('EPOCH WIND');
+
+            // 2. DIRECT ticket with numeric Ghi Chu = 44760 (factoryWeight) and Ma lenh = 172
+            const directTicket = classifyWeighbridgeRow({
+                soPhieu: '016833/26B',
+                maLenh: '172',
+                soXe: '50H20256/51R12485',
+                khachHang: 'GỖ BÌNH ĐỊNH',
+                kl1: 59200,
+                kl2: 15920,
+                klHang: 43280,
+                ngay1: '24/10/2026',
+                gio1: '06:51:52',
+                ngay2: '24/10/2026',
+                gio2: '07:03:00',
+                xuatNhap: 'Xuat',
+                loaiHang: 'Viên nén gỗ',
+                loaiSalan: 'LA 06789',
+                taiXe: 'GREEN WOOD',
+                ghiChu: '44760'
+            }, vehicleMap, vessels);
+
+            expect(directTicket).not.toBeNull();
+            expect(directTicket?.flowType).toBe('DIRECT');
+            expect(directTicket?.vesselName).toBe('EPOCH WIND');
+            expect(directTicket?.factoryWeight).toBe(44.76);
+            expect(directTicket?.rawNote).toBe('');
+        });
     });
 
     describe('computeWarehouseFinalTable (Continuous cumulative stock)', () => {

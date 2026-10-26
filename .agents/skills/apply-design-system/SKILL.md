@@ -27,11 +27,19 @@ When writing Tailwind CSS classes or CSS variables:
 - **Colors**: Use `primary` (`#4a78c2`), `background-light` (`#f0f4f8`), `bg-[#f1f5f9]` for inputs/secondary controls, and `text-[#1e293b]` (main slate text).
 - **Typography**: Display titles must use `font-display` (`Space Grotesk`) and size `text-3xl`/`text-xl` with weight `font-black`. Body text uses `Quicksand`. Minimum UI font size is `12px` (`text-xs`).
 - **Border Radii**: Large containers use `rounded-[2.5rem]` (40px) or `rounded-[2rem]` / `rounded-[24px]`. Inputs and secondary buttons use `rounded-2xl` (16px). Primary Puffy buttons and icon buttons use `rounded-full` (9999px).
-- **Buttons**:
+- **Buttons (Section 4 & Section 6 of DESIGN.md)**:
   - **Primary (Puffy)**: `bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all`
   - **Secondary (Outline)**: `bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm`
   - **Icon Button (Circle)**: `size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all`
   - **Table Action Icons**: `size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95` (Edit) and `size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95` (Delete).
+  - **Compact Toolbar Buttons (Section 6)**:
+    - Import / Secondary Toolbar Action: `h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5`
+    - Save / Final (Teal): `h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm`
+    - Export Excel (Primary): `h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5`
+    - Delete All (Danger): `h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5`
+  - **Compact Tab Switcher (Section 6)**:
+    - Container: `flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center`
+    - Tab Button: `px-3 py-1 rounded-lg text-xs font-display font-bold transition-all flex items-center gap-1.5 h-6.5` (`bg-primary text-white shadow-soft` active, `text-slate-600 hover:text-slate-800 hover:bg-white/50` inactive)
 
 ### 3. Layout Grid Alignment
 - Floating headers must use sticky styling (`sticky top-6 z-50`) with backdrop blur (`backdrop-blur bg-white/80`) and width `w-[95%] max-w-[1200px]`.

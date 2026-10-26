@@ -349,10 +349,10 @@ onMounted(() => {
                 <button
                     type="button"
                     @click="emit('close')"
-                    class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                    class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                     title="Quay lại bảng dữ liệu tồn kho"
                 >
-                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    <span class="material-symbols-outlined text-[14px]">arrow_back</span>
                     <span>Quay lại</span>
                 </button>
 
@@ -383,17 +383,17 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap items-center gap-2">
+            <!-- Action Buttons (DESIGN.md Section 6 Toolbar Spec) -->
+            <div class="flex flex-wrap items-center gap-1.5">
                 <!-- Role-gated Edit & Save Controls -->
                 <template v-if="canEditMap">
                     <button
                         v-if="!isEditing"
                         type="button"
                         @click="isEditing = true"
-                        class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+                        class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                        <span class="material-symbols-outlined text-sm">edit_square</span>
+                        <span class="material-symbols-outlined text-[14px]">edit_square</span>
                         <span>Chỉnh sửa sơ đồ</span>
                     </button>
 
@@ -401,9 +401,9 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="loadMapState(); isEditing = false"
-                            class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                            <span class="material-symbols-outlined text-sm">close</span>
+                            <span class="material-symbols-outlined text-[14px]">close</span>
                             <span>Hủy</span>
                         </button>
 
@@ -411,9 +411,9 @@ onMounted(() => {
                             type="button"
                             @click="handleSaveMapState"
                             :disabled="saving"
-                            class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                         >
-                            <span class="material-symbols-outlined text-sm">{{ saving ? 'sync' : 'save' }}</span>
+                            <span class="material-symbols-outlined text-[14px]">{{ saving ? 'sync' : 'save' }}</span>
                             <span>{{ saving ? 'Đang lưu...' : 'Lưu sơ đồ' }}</span>
                         </button>
                     </template>
@@ -490,27 +490,29 @@ onMounted(() => {
 
             <!-- Row 2: Per-Warehouse Polygon & Stock Controls -->
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <!-- Warehouse Selector Tabs -->
-                <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-bold text-slate-500 mr-1">Đang chỉnh:</span>
-                    <button
-                        v-for="whId in ALL_WAREHOUSES"
-                        :key="whId"
-                        type="button"
-                        @click="selectWarehouseForEdit(whId, 0)"
-                        :class="[
-                            'px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5',
-                            selectedWarehouseId === whId
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'bg-[#f1f5f9] text-slate-700 hover:bg-slate-200'
-                        ]"
-                    >
-                        <span
-                            class="size-3 rounded-sm border border-black/30 inline-block"
-                            :style="{ backgroundColor: mapState.warehouses[whId].fillColor }"
-                        ></span>
-                        <span>{{ whId }}</span>
-                    </button>
+                <!-- Warehouse Selector Tabs (DESIGN.md Section 6 Compact Tab Switcher) -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500">Đang chỉnh:</span>
+                    <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center gap-1">
+                        <button
+                            v-for="whId in ALL_WAREHOUSES"
+                            :key="whId"
+                            type="button"
+                            @click="selectWarehouseForEdit(whId, 0)"
+                            :class="[
+                                'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all cursor-pointer flex items-center gap-1.5 h-6.5 shrink-0',
+                                selectedWarehouseId === whId
+                                    ? 'bg-primary text-white shadow-soft'
+                                    : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                            ]"
+                        >
+                            <span
+                                class="size-3 rounded-sm border border-black/30 inline-block"
+                                :style="{ backgroundColor: mapState.warehouses[whId].fillColor }"
+                            ></span>
+                            <span>{{ whId }}</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Selected Warehouse Quick Config -->
@@ -520,7 +522,7 @@ onMounted(() => {
                         <input
                             v-model="activeZoneConfig.cargoName"
                             type="text"
-                            class="h-7 px-2.5 w-36 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-bold text-[#1e293b]"
+                            class="h-7 px-2.5 w-36 bg-white border border-slate-200 rounded-[8px] text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary"
                         />
                     </div>
 
@@ -535,7 +537,7 @@ onMounted(() => {
                             type="number"
                             step="0.01"
                             :placeholder="`Tự động: ${formatTons(closingStocks[selectedWarehouseId])} T`"
-                            class="h-7 px-2.5 w-40 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-bold text-[#1e293b]"
+                            class="h-7 px-2.5 w-40 bg-white border border-slate-200 rounded-[8px] text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary"
                             title="Để trống để tự động lấy số Tồn cuối từ bảng FINAL"
                         />
                         <button
@@ -554,15 +556,15 @@ onMounted(() => {
                         <input
                             v-model="activeZoneConfig.fillColor"
                             type="color"
-                            class="size-7 rounded cursor-pointer border border-slate-300 bg-white p-0.5"
+                            class="size-7 rounded-[8px] cursor-pointer border border-slate-300 bg-white p-0.5"
                         />
                     </div>
 
                     <!-- Polygon Cluster Selector & Add/Remove -->
-                    <div class="flex items-center gap-1 pl-2 border-l border-slate-200">
+                    <div class="flex items-center gap-1.5 pl-2 border-l border-slate-200">
                         <select
                             v-model.number="selectedPolygonIdx"
-                            class="h-7 px-2 bg-[#f1f5f9] border border-slate-200 rounded-lg text-xs font-bold text-[#1e293b]"
+                            class="h-7 px-2 bg-white border border-slate-200 rounded-[8px] text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary"
                         >
                             <option
                                 v-for="(poly, pIdx) in activeZoneConfig.polygons"
@@ -576,10 +578,10 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="addNewPolygonCluster(selectedWarehouseId)"
-                            class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-lg text-xs font-black cursor-pointer flex items-center gap-1"
+                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1"
                             title="Thêm 1 đống hàng / cụm đa giác lẻ mới trong kho này"
                         >
-                            <span class="material-symbols-outlined text-xs">add</span>
+                            <span class="material-symbols-outlined text-[14px]">add</span>
                             <span>Thêm cụm</span>
                         </button>
 
@@ -587,41 +589,42 @@ onMounted(() => {
                             v-if="activeZoneConfig.polygons.length > 1"
                             type="button"
                             @click="deleteSelectedPolygonCluster(selectedWarehouseId)"
-                            class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-black cursor-pointer"
+                            class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1"
                             title="Xóa cụm hàng đang chọn"
                         >
-                            Xóa cụm
+                            <span class="material-symbols-outlined text-[14px]">delete</span>
+                            <span>Xóa cụm</span>
                         </button>
                     </div>
 
                     <!-- Quick Shape Presets -->
-                    <div class="flex items-center gap-1 pl-2 border-l border-slate-200">
+                    <div class="flex items-center gap-1.5 pl-2 border-l border-slate-200">
                         <span class="text-xs font-bold text-slate-500">Mẫu nhanh:</span>
                         <button
                             type="button"
                             @click="applyPresetToWarehouse(selectedWarehouseId, 'DEFAULT')"
-                            class="px-2 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                            class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] cursor-pointer transition-all"
                         >
                             Mẫu chuẩn
                         </button>
                         <button
                             type="button"
                             @click="applyPresetToWarehouse(selectedWarehouseId, 'FULL')"
-                            class="px-2 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                            class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] cursor-pointer transition-all"
                         >
                             Đầy kho
                         </button>
                         <button
                             type="button"
                             @click="applyPresetToWarehouse(selectedWarehouseId, 'ANGLED_AISLE')"
-                            class="px-2 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                            class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] cursor-pointer transition-all"
                         >
                             Vát chéo
                         </button>
                         <button
                             type="button"
                             @click="applyPresetToWarehouse(selectedWarehouseId, 'STEPPED_AISLE')"
-                            class="px-2 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                            class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] cursor-pointer transition-all"
                         >
                             Bậc thang
                         </button>

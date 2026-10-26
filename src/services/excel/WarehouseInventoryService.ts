@@ -75,10 +75,10 @@ export function normalizePlateKey(plate: string): string {
 export function normalizeWarehouseId(raw: string | undefined | null): WarehouseId | null {
     if (!raw) return null;
     const clean = stripAccents(String(raw)).toUpperCase().trim();
-    if (/\b(KHO\s*1|KHO1|IMPORT\s*(KHO\s*)?1|EXPORT\s*(KH(O)?\s*)?1|FINAL\s*1)\b/.test(clean)) return 'KHO 1';
-    if (/\b(KHO\s*2|KHO2|IMPORT\s*(KHO\s*)?2|EXPORT\s*(KH(O)?\s*)?2|FINAL\s*2)\b/.test(clean)) return 'KHO 2';
-    if (/\b(KHO\s*3|KHO3|IMPORT\s*(KHO\s*)?3|EXPORT\s*(KH(O)?\s*)?3|FINAL\s*3)\b/.test(clean)) return 'KHO 3';
-    if (/\b(KHO\s*4|KHO4|IMPORT\s*(KHO\s*)?4|EXPORT\s*(KH(O)?\s*)?4|FINAL\s*4)\b/.test(clean)) return 'KHO 4';
+    if (/\b(KHO\s*1|KHO1|KOH\s*1|KOH1|IMPORT\s*(KHO\s*)?1|EXPORT\s*(KH(O)?\s*)?1|FINAL\s*1)\b/.test(clean)) return 'KHO 1';
+    if (/\b(KHO\s*2|KHO2|KOH\s*2|KOH2|IMPORT\s*(KHO\s*)?2|EXPORT\s*(KH(O)?\s*)?2|FINAL\s*2)\b/.test(clean)) return 'KHO 2';
+    if (/\b(KHO\s*3|KHO3|KOH\s*3|KOH3|IMPORT\s*(KHO\s*)?3|EXPORT\s*(KH(O)?\s*)?3|FINAL\s*3)\b/.test(clean)) return 'KHO 3';
+    if (/\b(KHO\s*4|KHO4|KOH\s*4|KOH4|IMPORT\s*(KHO\s*)?4|EXPORT\s*(KH(O)?\s*)?4|FINAL\s*4)\b/.test(clean)) return 'KHO 4';
     return null;
 }
 
@@ -419,16 +419,37 @@ export function resolveVesselNameFromBarge(bargeInfo: string, maLenh: string, ve
     const cleanBargeInfo = stripAccents(bargeInfo || '').toUpperCase().trim();
     const cleanOrder = stripAccents(maLenh || '').toUpperCase().trim();
 
+    // Pass 1: Match strictly by order number (Mã lệnh) across all vessels first
+    if (cleanOrder && cleanOrder !== 'XUAT' && cleanOrder !== 'NHAP') {
+        for (const v of vessels) {
+            if (!v.barges) continue;
+            for (const b of v.barges) {
+                const bOrder = stripAccents(b.config?.orderNo || b.order_no || '').toUpperCase().trim();
+                if (bOrder && bOrder === cleanOrder) {
+                    return v.name || '';
+                }
+            }
+        }
+    }
+
+    // Pass 2: Match by order number embedded in bargeInfo or by barge name
     for (const v of vessels) {
         if (!v.barges) continue;
         for (const b of v.barges) {
             const bOrder = stripAccents(b.config?.orderNo || b.order_no || '').toUpperCase().trim();
             const bName = stripAccents(b.name || '').toUpperCase().trim();
-            if (bOrder && (bOrder === cleanOrder || (cleanBargeInfo && cleanBargeInfo.includes(bOrder)))) {
+            if (bOrder && cleanBargeInfo && new RegExp(`\\b${bOrder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(cleanBargeInfo)) {
                 return v.name || '';
             }
-            if (bName && cleanBargeInfo && (cleanBargeInfo === bName || cleanBargeInfo.startsWith(bName))) {
-                return v.name || '';
+            if (bName && cleanBargeInfo) {
+                if (cleanBargeInfo === bName || cleanBargeInfo.startsWith(bName) || cleanBargeInfo.includes(bName)) {
+                    return v.name || '';
+                }
+                const normBargeInfo = cleanBargeInfo.replace(/[^A-Z0-9]/g, '');
+                const normBName = bName.replace(/[^A-Z0-9]/g, '');
+                if (normBName.length >= 5 && normBargeInfo.includes(normBName)) {
+                    return v.name || '';
+                }
             }
         }
     }
@@ -452,6 +473,7 @@ export interface RawWeighbridgeRow {
     loaiSalan: string;
     taiXe: string;
     ghiChu: string;
+    nguonTau?: string;
 }
 
 /**
@@ -532,9 +554,13 @@ export function classifyWeighbridgeRow(
         }
 
         const exportWh = normalizeWarehouseId(row.taiXe);
-        const vesselName = resolveVesselNameFromBarge(row.loaiSalan, row.maLenh, vessels);
+        const explicitVessel = String(row.nguonTau || '').trim();
+        const resolvedVessel = explicitVessel || resolveVesselNameFromBarge(row.loaiSalan, row.maLenh, vessels);
+        const rawNoteTrimmed = String(row.ghiChu || '').trim();
+        const isNumericNote = rawNoteTrimmed !== '' && /^-?\d+(?:\.\d+)?$/.test(rawNoteTrimmed.replace(/,/g, ''));
 
         if (exportWh) {
+            const vesselName = resolvedVessel || (!isNumericNote ? rawNoteTrimmed : '');
             const id = `EXPORT_${exportWh}_${row.soPhieu || normalizePlateKey(row.soXe)}_${weighOutDate}_${weighOutTime || '00:00:00'}`;
             return {
                 id,
@@ -558,9 +584,17 @@ export function classifyWeighbridgeRow(
                 bargeInfo: String(row.loaiSalan || '').trim(),
                 vesselName,
                 sourceOrRemark: String(row.taiXe || '').trim(),
-                rawNote: String(row.ghiChu || '').trim()
+                rawNote: rawNoteTrimmed
             };
         } else {
+            let directFactoryWeight: number | null = null;
+            if (isNumericNote) {
+                const parsedNoteNum = parseFloat(rawNoteTrimmed.replace(/,/g, ''));
+                if (!isNaN(parsedNoteNum) && parsedNoteNum > 0) {
+                    directFactoryWeight = normalizeWeightToTons(parsedNoteNum);
+                }
+            }
+            const vesselName = resolvedVessel || (!isNumericNote ? rawNoteTrimmed : '');
             const sourcePlace = String(row.taiXe || '').trim();
             const placeInfo = lookupPlaceInfo(sourcePlace);
             const id = `DIRECT_${row.soPhieu || normalizePlateKey(row.soXe)}_${weighOutDate}_${weighOutTime || '00:00:00'}`;
@@ -582,13 +616,13 @@ export function classifyWeighbridgeRow(
                 grossWeight,
                 tareWeight,
                 netWeight,
-                factoryWeight: null,
+                factoryWeight: directFactoryWeight,
                 bargeInfo: String(row.loaiSalan || '').trim(),
                 vesselName,
                 sourceOrRemark: sourcePlace,
                 originWarehouseName: placeInfo.tenKho,
                 originArea: placeInfo.khuVuc,
-                rawNote: String(row.ghiChu || '').trim()
+                rawNote: isNumericNote ? '' : rawNoteTrimmed
             };
         }
     }
@@ -845,6 +879,7 @@ export function parseWeighbridgeCsvText(text: string): RawWeighbridgeRow[] {
     const idxLoaiSalan = findCol(h => h.includes('salan') || h.includes('sa lan'));
     const idxTaiXe = findCol(h => h.includes('tai xe') || h.includes('lai xe'));
     const idxGhiChu = findCol(h => h.includes('ghi chu'));
+    const idxNguonTau = findCol(h => h.includes('nguon tau') || h.includes('ten tau') || h === 'tau');
 
     const rows: RawWeighbridgeRow[] = [];
     for (let i = headerIdx + 1; i < lines.length; i++) {
@@ -874,7 +909,8 @@ export function parseWeighbridgeCsvText(text: string): RawWeighbridgeRow[] {
             loaiHang: get(idxLoaiHang),
             loaiSalan: get(idxLoaiSalan),
             taiXe: get(idxTaiXe),
-            ghiChu: get(idxGhiChu)
+            ghiChu: get(idxGhiChu),
+            nguonTau: get(idxNguonTau)
         });
     }
 
@@ -902,6 +938,18 @@ function sanitizeLoadedTicketWeights(t: WarehouseInventoryTicket): WarehouseInve
     if (Math.abs(t.netWeight) > 100) t.netWeight = round2(t.netWeight / 1000);
     if (t.factoryWeight != null && Math.abs(t.factoryWeight) > 100) {
         t.factoryWeight = round2(t.factoryWeight / 1000);
+    }
+    // Migrate legacy Kho 1, 2, 3 EXPORT/DIRECT tickets where vessel name was stored in rawNote ("Ghi chú")
+    if (
+        (t.flowType === 'EXPORT' || t.flowType === 'DIRECT') &&
+        t.warehouseId !== 'KHO 4' &&
+        !t.vesselName &&
+        t.rawNote
+    ) {
+        const trimmedNote = t.rawNote.trim();
+        if (trimmedNote && !/^-?\d+(?:\.\d+)?$/.test(trimmedNote.replace(/,/g, ''))) {
+            t.vesselName = trimmedNote;
+        }
     }
     return t;
 }
@@ -1654,6 +1702,9 @@ export const WarehouseInventoryService = {
     async getAllTickets(): Promise<WarehouseInventoryTicket[]> {
         const localRaw = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
         const local = localRaw.map(sanitizeLoadedTicketWeights);
+        let finalTickets: WarehouseInventoryTicket[] = [];
+        let resolvedFromRemoteOrFb = false;
+
         if (!dedicatedTablesMissing) {
             try {
                 const allRemote: WarehouseInventoryTicket[] = [];
@@ -1693,27 +1744,53 @@ export const WarehouseInventoryService = {
                         }
                         mergedMap.set(t.id, t);
                     }
-                    const mergedList = Array.from(mergedMap.values()).sort(compareTicketsOrder);
-                    await dbContext.set(LOCAL_TICKETS_KEY, mergedList);
-                    return mergedList;
+                    finalTickets = Array.from(mergedMap.values()).sort(compareTicketsOrder);
+                    resolvedFromRemoteOrFb = true;
                 }
             } catch (err) {
                 console.warn('Fallback to local warehouse_inventory_tickets:', err);
             }
         }
 
-        if (dedicatedTablesMissing && local.length === 0) {
+        if (!resolvedFromRemoteOrFb && dedicatedTablesMissing && local.length === 0) {
             const fb = await loadFallbackStateFromContentSettings();
             if (fb?.tickets && Array.isArray(fb.tickets) && fb.tickets.length > 0) {
-                const sortedFb = fb.tickets.map(sanitizeLoadedTicketWeights).sort(compareTicketsOrder);
-                await dbContext.set(LOCAL_TICKETS_KEY, sortedFb);
-                return sortedFb;
+                finalTickets = fb.tickets.map(sanitizeLoadedTicketWeights).sort(compareTicketsOrder);
+                resolvedFromRemoteOrFb = true;
             }
         }
 
-        const sortedLocal = local.sort(compareTicketsOrder);
-        await dbContext.set(LOCAL_TICKETS_KEY, sortedLocal);
-        return sortedLocal;
+        if (!resolvedFromRemoteOrFb) {
+            finalTickets = local.sort(compareTicketsOrder);
+        }
+
+        // Auto-resolve missing vesselName for EXPORT and DIRECT tickets using Mã lệnh / Sà lan from Báo Cáo Tổng Quan
+        const needsVesselLookup = finalTickets.some(
+            t => (t.flowType === 'EXPORT' || t.flowType === 'DIRECT') && !t.vesselName && (t.maLenh || t.bargeInfo)
+        );
+        if (needsVesselLookup) {
+            try {
+                const vessels = await WeighbridgeService.getVessels();
+                if (vessels && vessels.length > 0) {
+                    const newlyResolved: WarehouseInventoryTicket[] = [];
+                    for (const t of finalTickets) {
+                        if ((t.flowType === 'EXPORT' || t.flowType === 'DIRECT') && !t.vesselName && (t.maLenh || t.bargeInfo)) {
+                            const vName = resolveVesselNameFromBarge(t.bargeInfo || '', t.maLenh || '', vessels);
+                            if (vName) {
+                                t.vesselName = vName;
+                                newlyResolved.push(t);
+                            }
+                        }
+                    }
+                    if (newlyResolved.length > 0) {
+                        await this.saveTicketsBulk(newlyResolved);
+                    }
+                }
+            } catch (_) {}
+        }
+
+        await dbContext.set(LOCAL_TICKETS_KEY, finalTickets);
+        return finalTickets;
     },
 
     async saveTicketsBulk(tickets: WarehouseInventoryTicket[]): Promise<number> {
@@ -2459,13 +2536,13 @@ export const WarehouseInventoryService = {
                         const colCust = findColIdx(h => h.includes('KHACH'), -1);
 
                         const bargeInfo = String(cellAt(row, colBarge) || '').trim();
-                        const vesselName = String(cellAt(row, colVessel) || '').trim();
+                        const exportRemark = String(cellAt(row, colRemark1) || '').trim();
+                        const vesselName = String(cellAt(row, colVessel) || '').trim() || (sheetWh !== 'KHO 4' ? exportRemark : '');
                         const weighOutTime = weighOutTimeAny;
                         const custVal = colCust > 0 ? sanitizeCustomerName(cellAt(row, colCust), '') : '';
                         const customerName = custVal || sheetLevelCustomer || configs[sheetWh]?.currentCustomer || '';
                         const inOutVal = String(cellAt(row, colInOut) || 'Xuất').trim();
                         const whLabel = String(cellAt(row, colWarehouse) || cellAt(row, colPlace) || sheetWh).trim();
-                        const exportRemark = String(cellAt(row, colRemark1) || '').trim();
 
                         if (customerName && configs[sheetWh] && sanitizeCustomerName(customerName, '')) {
                             configs[sheetWh].currentCustomer = sanitizeCustomerName(customerName, configs[sheetWh].currentCustomer);
@@ -2507,7 +2584,11 @@ export const WarehouseInventoryService = {
                             ? parseToTimeStr(rawInOut)
                             : String(rawInOut || '').trim();
                         const bargeInfo = String(cellAt(row, colBarge) || (colRemark1 >= 1 && colPlace !== colRemark1 ? cellAt(row, colRemark1) : '') || '').trim();
-                        const vesselName = String(cellAt(row, colVessel) || '').trim();
+                        const directRemark = colRemark2 >= 1
+                            ? String(cellAt(row, colRemark2) || '').trim()
+                            : (colRemark1 >= 1 && colPlace !== colRemark1 && colBarge !== colRemark1 ? String(cellAt(row, colRemark1) || '').trim() : '');
+                        const isKho4File = updatedWhSet.has('KHO 4') || defaultWh === 'KHO 4' || sheetLevelCustomer === 'EASTWOOD' || fileNameClean.includes('EW') || fileNameClean.includes('KHO 4');
+                        const vesselName = String(cellAt(row, colVessel) || '').trim() || (!isKho4File ? directRemark : '');
                         const weighOutTime = weighOutTimeAny;
                         const sourceOrRemark = String(cellAt(row, colPlace >= 1 ? colPlace : colRemark1) || '').trim();
                         let originWhName = colOriginWhName >= 1 ? String(cellAt(row, colOriginWhName) || '').trim() : '';
@@ -2517,11 +2598,7 @@ export const WarehouseInventoryService = {
                             originWhName = p.tenKho;
                             originArea = p.khuVuc;
                         }
-                        const directRemark = colRemark2 >= 1
-                            ? String(cellAt(row, colRemark2) || '').trim()
-                            : (colRemark1 >= 1 && colPlace !== colRemark1 && colBarge !== colRemark1 ? String(cellAt(row, colRemark1) || '').trim() : '');
 
-                        const isKho4File = updatedWhSet.has('KHO 4') || defaultWh === 'KHO 4' || sheetLevelCustomer === 'EASTWOOD' || fileNameClean.includes('EW') || fileNameClean.includes('KHO 4');
                         const targetWh: WarehouseId = isKho4File ? 'KHO 4' : 'KHO 1';
                         const directCust = isKho4File
                             ? sanitizeCustomerName(sheetLevelCustomer, configs['KHO 4']?.currentCustomer || 'EASTWOOD')
@@ -4093,7 +4170,7 @@ export const WarehouseInventoryService = {
             'Ngày cân vào',
             'Ngày cân ra',
             'Salan',
-            'Ghi chú',
+            'Tàu',
             'Nhà xe'
         ];
         const hRow = sheet.getRow(7);
@@ -4152,7 +4229,7 @@ export const WarehouseInventoryService = {
             row.getCell(11).alignment = { horizontal: 'center', vertical: 'middle' };
             row.getCell(12).value = t.bargeInfo || '';
             row.getCell(12).alignment = { vertical: 'middle' };
-            row.getCell(13).value = t.rawNote || '';
+            row.getCell(13).value = t.vesselName || t.rawNote || '';
             row.getCell(13).alignment = { vertical: 'middle' };
             row.getCell(14).value = t.carrierName || '';
             row.getCell(14).alignment = { vertical: 'middle' };
@@ -4264,7 +4341,7 @@ export const WarehouseInventoryService = {
             'Nơi Nhận',
             'Tên Kho',
             'Khu Vực',
-            'Ghi chú',
+            'Tàu',
             'Nhà xe'
         ];
         const hRow = sheet.getRow(12);
@@ -4341,7 +4418,7 @@ export const WarehouseInventoryService = {
             row.getCell(16).alignment = { vertical: 'middle' };
             row.getCell(17).value = t.originArea || '';
             row.getCell(17).alignment = { vertical: 'middle' };
-            row.getCell(18).value = t.rawNote || '';
+            row.getCell(18).value = t.vesselName || t.rawNote || '';
             row.getCell(18).alignment = { vertical: 'middle' };
             row.getCell(19).value = t.carrierName || '';
             row.getCell(19).alignment = { vertical: 'middle' };

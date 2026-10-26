@@ -32,10 +32,18 @@
      - Cỡ chữ nhỏ nhất trên giao diện là `12px` (`text-xs`). Tiêu đề Banner dùng `text-3xl font-display font-black`, tiêu đề phân khu / Modal dùng `text-xl font-display font-black`.
   3. **Phân Cấp Bo Góc (Border Radius):**
      - Khối lớn: `rounded-[2.5rem]` (40px); Khối vừa / Sidebar / Modal: `rounded-[2rem]` hoặc `rounded-[24px]`; Khối nhỏ: `rounded-3xl`; Input / Nút phụ: `rounded-2xl`; Nút hành động nhỏ trong bảng: `rounded-xl`; Nút Puffy / Icon tròn: `rounded-full`.
-  4. **Quy Chuẩn Nút Bấm (Buttons Spec):**
+  4. **Quy Chuẩn Nút Bấm (Buttons Spec - Mục 4 DESIGN.md):**
      - **Primary (Puffy):** `bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all`
      - **Secondary (Outline):** `bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm`
      - **Icon Button (Tròn):** `size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all`
      - **Table Action Icon (Edit / Delete / Print):** Kích thước `size-8 rounded-full` (`bg-primary/5 text-primary` cho Sửa, `bg-red-50 text-red-500` cho Xóa, `bg-teal-50 text-teal-600` cho In) kèm `active:scale-95 transition-all`.
+  5. **Quy Chuẩn Thanh Công Cụ Toolbar & Tab Switcher (Mục 6 DESIGN.md):**
+     - **Tab Switcher nhỏ gọn:** Container `flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center` chứa các button `px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5` (`bg-primary text-white shadow-soft` khi active, `text-slate-600 hover:text-slate-800 hover:bg-white/50` khi inactive).
+     - **Search input:** `h-7 px-3 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold`.
+     - **Count badge:** `h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold`.
+     - **Nút Toolbar (Import / Sơ đồ / Tiện ích):** `h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5`.
+     - **Nút Toolbar Lưu / Final (Teal):** `h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm`.
+     - **Nút Toolbar Xuất Excel / Export:** `h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5`.
+     - **Nút Toolbar Xóa hết / Delete:** `h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5`.
 
 
