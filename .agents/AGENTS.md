@@ -22,3 +22,20 @@
   1. **BẮT BUỘC nhắc người dùng ngay trong phản hồi:** Nêu rõ tên file migration SQL, đường dẫn file và hướng dẫn các bước dán vào Supabase SQL Editor (kèm link Dashboard).
   2. Tuyệt đối không được âm thầm dựa vào fallback mà không nhắc nhở người dùng chạy database chính thức.
 
+## UI & Design System Workflow (DESIGN.md)
+- Khi tạo mới, chỉnh sửa hoặc refactor bất kỳ trang (View) hay thành phần giao diện (Component) nào trong dự án, **BẮT BUỘC** đọc và tuân thủ nghiêm ngặt quy chuẩn thiết kế tại `DESIGN.md`:
+  1. **Hệ Màu (Color System):**
+     - Màu chủ đạo: `primary` (`#4a78c2`, hover `#3b5e9c`), nền ứng dụng `bg-background-light` (`#f0f4f8`), nền thẻ `bg-white`, nền ô nhập liệu/nút phụ `bg-[#f1f5f9]`, chữ chính `text-[#1e293b]`, chữ phụ `text-slate-500` / `text-gray-400`.
+     - Trạng thái: Thành công dùng `text-teal-600` / `bg-teal-50`, Cảnh báo/Xóa dùng `text-rose-600` / `bg-rose-50`.
+  2. **Typography (Cỡ chữ & Phông chữ):**
+     - Tiêu đề / Nhấn mạnh dùng `font-display font-black` (`Space Grotesk`), nội dung / số liệu dùng `Quicksand`.
+     - Cỡ chữ nhỏ nhất trên giao diện là `12px` (`text-xs`). Tiêu đề Banner dùng `text-3xl font-display font-black`, tiêu đề phân khu / Modal dùng `text-xl font-display font-black`.
+  3. **Phân Cấp Bo Góc (Border Radius):**
+     - Khối lớn: `rounded-[2.5rem]` (40px); Khối vừa / Sidebar / Modal: `rounded-[2rem]` hoặc `rounded-[24px]`; Khối nhỏ: `rounded-3xl`; Input / Nút phụ: `rounded-2xl`; Nút hành động nhỏ trong bảng: `rounded-xl`; Nút Puffy / Icon tròn: `rounded-full`.
+  4. **Quy Chuẩn Nút Bấm (Buttons Spec):**
+     - **Primary (Puffy):** `bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all`
+     - **Secondary (Outline):** `bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm`
+     - **Icon Button (Tròn):** `size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all`
+     - **Table Action Icon (Edit / Delete / Print):** Kích thước `size-8 rounded-full` (`bg-primary/5 text-primary` cho Sửa, `bg-red-50 text-red-500` cho Xóa, `bg-teal-50 text-teal-600` cho In) kèm `active:scale-95 transition-all`.
+
+

@@ -23,11 +23,12 @@ const emit = defineEmits<{
 
 const { addToast } = useToast();
 
-type ViewWarehouseMode = WarehouseId | 'COMBINED_123' | 'VISUAL_MAP';
+type ViewWarehouseMode = WarehouseId | 'COMBINED_123';
 type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('IMPORT');
+const isVisualMapOpen = ref(false);
 const loading = ref(false);
 const importingCsv = ref(false);
 const importingHistoryExcel = ref(false);
@@ -142,7 +143,7 @@ const csvFileInput = ref<HTMLInputElement | null>(null);
 const historyExcelFileInput = ref<HTMLInputElement | null>(null);
 
 const activeSingleWarehouseId = computed<WarehouseId>(() => {
-    if (selectedWarehouseMode.value === 'COMBINED_123' || selectedWarehouseMode.value === 'VISUAL_MAP') return 'KHO 1';
+    if (selectedWarehouseMode.value === 'COMBINED_123') return 'KHO 1';
     return selectedWarehouseMode.value;
 });
 
@@ -963,10 +964,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Overview / FINAL Kho 4) -->
                     <div
-                        @click="selectedWarehouseMode = 'KHO 4'; activeSheetTab = 'FINAL'"
+                        @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4'; activeSheetTab = 'FINAL'"
                         :class="[
                             'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
-                            selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
+                            !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
                                 ? 'bg-primary text-white shadow-sm font-black'
                                 : 'hover:bg-slate-100/70 text-[#1e293b]'
                         ]"
@@ -974,7 +975,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span
                                 class="material-symbols-outlined text-base shrink-0"
-                                :class="selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
                             >
                                 corporate_fare
                             </span>
@@ -987,20 +988,20 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     @click.stop="openEditCustomerModal('KHO_4')"
                                     :class="[
                                         'size-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-colors',
-                                        selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
+                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
                                             ? 'bg-white/20 hover:bg-white/30 text-white'
                                             : 'bg-primary/10 hover:bg-primary/20 text-primary'
                                     ]"
                                     title="Đổi tên khách hàng"
                                 >
-                                    <span class="material-symbols-outlined text-[11px]">edit</span>
+                                    <span class="material-symbols-outlined text-xs">edit</span>
                                 </button>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             <span
-                                class="text-[11px] font-mono font-black"
-                                :class="selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                                class="text-xs font-mono font-black"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
                             </span>
@@ -1013,7 +1014,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     class="material-symbols-outlined text-sm transition-transform"
                                     :class="[
                                         {'rotate-180': expandedCustomer['EASTWOOD']},
-                                        selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
+                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
                                     ]"
                                 >
                                     expand_more
@@ -1025,10 +1026,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     <!-- Child Warehouses of EASTWOOD: Kho 4 with subdirectory_arrow_right -->
                     <div v-if="expandedCustomer['EASTWOOD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
                         <button
-                            @click="selectedWarehouseMode = 'KHO 4'"
+                            @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4'"
                             :class="[
                                 'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
-                                selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
+                                !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
@@ -1038,8 +1039,8 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <span>KHO 4</span>
                             </span>
                             <span
-                                class="text-[11px] font-mono font-black shrink-0"
-                                :class="selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                                class="text-xs font-mono font-black shrink-0"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
                             </span>
@@ -1051,10 +1052,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Combined overview Kho 1-2-3) -->
                     <div
-                        @click="selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
+                        @click="isVisualMapOpen = false; selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
                         :class="[
                             'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
-                            selectedWarehouseMode === 'COMBINED_123'
+                            !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123'
                                 ? 'bg-teal-600 text-white shadow-sm font-black'
                                 : 'hover:bg-slate-100/70 text-[#1e293b]'
                         ]"
@@ -1062,7 +1063,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span
                                 class="material-symbols-outlined text-base shrink-0"
-                                :class="selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-600'"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-600'"
                             >
                                 apartment
                             </span>
@@ -1075,20 +1076,20 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     @click.stop="openEditCustomerModal('KHO_123')"
                                     :class="[
                                         'size-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-colors',
-                                        selectedWarehouseMode === 'COMBINED_123'
+                                        !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123'
                                             ? 'bg-white/20 hover:bg-white/30 text-white'
                                             : 'bg-teal-600/10 hover:bg-teal-600/20 text-teal-700'
                                     ]"
                                     title="Đổi tên khách hàng"
                                 >
-                                    <span class="material-symbols-outlined text-[11px]">edit</span>
+                                    <span class="material-symbols-outlined text-xs">edit</span>
                                 </button>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             <span
-                                class="text-[11px] font-mono font-black"
-                                :class="selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-700'"
+                                class="text-xs font-mono font-black"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-teal-700'"
                             >
                                 {{
                                     formatTons(
@@ -1107,7 +1108,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     class="material-symbols-outlined text-sm transition-transform"
                                     :class="[
                                         {'rotate-180': expandedCustomer['GBD']},
-                                        selectedWarehouseMode === 'COMBINED_123' ? 'text-white/80' : 'text-slate-400'
+                                        !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white/80' : 'text-slate-400'
                                     ]"
                                 >
                                     expand_more
@@ -1122,10 +1123,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <button
                             v-for="whId in (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[])"
                             :key="whId"
-                            @click="selectedWarehouseMode = whId"
+                            @click="isVisualMapOpen = false; selectedWarehouseMode = whId"
                             :class="[
                                 'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
-                                selectedWarehouseMode === whId
+                                !isVisualMapOpen && selectedWarehouseMode === whId
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
@@ -1134,7 +1135,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <span class="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
                                 <span>{{ whId }}</span>
                             </span>
-                            <span class="text-[11px] font-mono font-black shrink-0" :class="selectedWarehouseMode === whId ? 'text-white' : 'text-slate-600'">
+                            <span class="text-xs font-mono font-black shrink-0" :class="!isVisualMapOpen && selectedWarehouseMode === whId ? 'text-white' : 'text-slate-600'">
                                 {{ formatTons(finalTablesByWarehouse[whId].closingStockTons) }} T
                             </span>
                         </button>
@@ -1142,7 +1143,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                 </div>
 
                 <!-- Quick Help / Information -->
-                <div class="mt-auto p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-500 font-semibold flex flex-col gap-1">
+                <div class="mt-auto p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs text-slate-500 font-semibold flex flex-col gap-1">
                     <div class="font-bold text-slate-700 flex items-center gap-1">
                         <span class="material-symbols-outlined text-xs text-primary">info</span>
                         Quy tắc dữ liệu
@@ -1154,11 +1155,12 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
 
             <!-- Main Content Area: Action Bar + Sheet Tabs + Tables -->
             <div class="flex-1 flex flex-col gap-3.5 min-h-0 overflow-hidden">
-                <!-- VISUAL WAREHOUSE MAP MODE -->
+                <!-- VISUAL WAREHOUSE MAP MODE (Only opens when user explicitly clicks "Sơ đồ kho") -->
                 <WarehouseVisualMap
-                    v-if="selectedWarehouseMode === 'VISUAL_MAP'"
+                    v-if="isVisualMapOpen"
                     :configs="configs"
                     :closing-stocks="closingStocksByWarehouse"
+                    @close="isVisualMapOpen = false"
                 />
 
                 <template v-else>
@@ -1167,7 +1169,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow shrink-0 flex flex-wrap items-center justify-between gap-3"
                 >
                     <div class="flex items-center gap-2">
-                        <div class="text-[11px] font-bold text-slate-400 uppercase">Đang xem</div>
+                        <div class="text-xs font-bold text-slate-400 uppercase">Đang xem</div>
                         <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                             <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : activeSingleWarehouseId }}</span>
                             <span class="text-primary">
@@ -1180,10 +1182,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             <button
                                 v-if="selectedWarehouseMode !== 'COMBINED_123'"
                                 @click="openEditConfigModal(activeSingleWarehouseId)"
-                                class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer"
+                                class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                 title="Sửa Tồn đầu kỳ & Tên khách hàng"
                             >
-                                <span class="material-symbols-outlined text-xs">edit</span>
+                                <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
                         </div>
                     </div>
@@ -1192,18 +1194,18 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     <div class="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
-                            @click="selectedWarehouseMode = 'VISUAL_MAP'"
-                            class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                            @click="isVisualMapOpen = true"
+                            class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                             title="Mở Sơ đồ trực quan 4 Kho & Bãi Cont"
                         >
-                            <span class="material-symbols-outlined text-sm text-amber-600">map</span>
+                            <span class="material-symbols-outlined text-sm text-primary">map</span>
                             <span>Sơ đồ kho</span>
                         </button>
 
                         <button
                             @click="triggerCsvImport"
                             :disabled="importingCsv"
-                            class="px-3.5 py-2 bg-primary text-white font-bold rounded-2xl text-xs shadow-[0_3px_0_0_#6495ed] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#6495ed] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             title="Chọn 1 hoặc 2 file CSV/Excel từ trạm cân (Nhập + Xuất)"
                         >
                             <span class="material-symbols-outlined text-sm">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
@@ -1213,7 +1215,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <button
                             @click="triggerHistoryExcelImport"
                             :disabled="importingHistoryExcel"
-                            class="px-3.5 py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                            class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
                             title="Nạp từ file Excel Tồn kho đang dùng"
                         >
                             <span class="material-symbols-outlined text-sm">{{ importingHistoryExcel ? 'sync' : 'folder_open' }}</span>
@@ -1645,7 +1647,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 </button>
                             </div>
                         </div>
-                        <table class="w-full text-left border-collapse text-[11px] font-bold whitespace-nowrap">
+                        <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                             <thead class="bg-slate-100 text-slate-700 border-b border-slate-300">
                                 <tr>
                                     <th class="py-2 px-2 text-center border-r border-slate-200">Ngày</th>
@@ -1685,7 +1687,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                             type="text"
                                             :value="r.remark"
                                             @change="handleSaveDailyRemark(whId, r.reportDate, ($event.target as HTMLInputElement).value)"
-                                            class="w-full px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-[11px] font-semibold outline-none"
+                                            class="w-full px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
                                         />
                                     </td>
                                 </tr>
@@ -1819,14 +1821,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
                                         @click="openEditTicketModal(t)"
-                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
                                         @click="handleDeleteTicket(t)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">delete</span>
@@ -1932,14 +1934,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
                                         @click="openEditTicketModal(t)"
-                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
                                         @click="handleDeleteTicket(t)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">delete</span>
@@ -2307,14 +2309,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
                                         @click="openEditTicketModal(t)"
-                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
                                         @click="handleDeleteTicket(t)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">delete</span>
@@ -2421,14 +2423,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
                                         @click="openEditTicketModal(t)"
-                                        class="size-7 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
                                         @click="handleDeleteTicket(t)"
-                                        class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-colors"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
                                     >
                                         <span class="material-symbols-outlined text-sm">delete</span>
@@ -2470,12 +2472,12 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
         >
             <div class="bg-white rounded-[2rem] p-6 w-full max-w-md border border-primary/10 shadow-xl flex flex-col gap-4">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-black text-[#1e293b]">
+                    <h3 class="text-xl font-display font-black text-[#1e293b]">
                         Cấu hình {{ editingConfigForm.warehouseId }}
                     </h3>
                     <button
                         @click="showConfigModal = false"
-                        class="size-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-500 hover:text-rose-600 cursor-pointer"
+                        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-base">close</span>
                     </button>
@@ -2490,7 +2492,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             placeholder="VD: EASTWOOD, GỖ BÌNH ĐỊNH..."
                             class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-primary"
                         />
-                        <span class="text-[11px] text-slate-400 font-normal">
+                        <span class="text-xs text-slate-400 font-normal">
                             Lưu ý: Khi đổi tên khách hàng, lịch sử tồn kho vẫn được cộng dồn liên tục (không tách lô).
                         </span>
                     </div>
@@ -2518,7 +2520,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         @click="showConfigModal = false"
-                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs cursor-pointer"
+                        class="px-4 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm cursor-pointer"
                     >
                         Hủy
                     </button>
@@ -2539,12 +2541,12 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
         >
             <div class="bg-white rounded-[2rem] p-6 w-full max-w-md border border-primary/10 shadow-xl flex flex-col gap-4">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-black text-[#1e293b]">
+                    <h3 class="text-xl font-display font-black text-[#1e293b]">
                         Đổi Tên Khách Hàng ({{ editingCustomerGroup === 'KHO_4' ? 'Kho 4' : 'Kho 1 - 2 - 3' }})
                     </h3>
                     <button
                         @click="showEditCustomerModal = false"
-                        class="size-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-500 hover:text-rose-600 cursor-pointer"
+                        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-base">close</span>
                     </button>
@@ -2560,7 +2562,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             @keydown.enter="saveCustomerNameModal"
                             class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-primary"
                         />
-                        <span class="text-[11px] text-slate-400 font-normal">
+                        <span class="text-xs text-slate-400 font-normal">
                             {{
                                 editingCustomerGroup === 'KHO_4'
                                     ? 'Tên này sẽ áp dụng cho toàn bộ báo cáo và phiếu của Kho 4.'
@@ -2573,7 +2575,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         @click="showEditCustomerModal = false"
-                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs cursor-pointer"
+                        class="px-4 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm cursor-pointer"
                     >
                         Hủy
                     </button>
@@ -2596,21 +2598,21 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                 <!-- Header -->
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
                     <div class="flex items-center gap-2.5">
-                        <div class="size-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                        <div class="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                             <span class="material-symbols-outlined text-lg">edit_note</span>
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-[#1e293b]">
+                            <h3 class="text-xl font-display font-black text-[#1e293b]">
                                 Sửa Phiếu Cân: {{ editingTicketForm.soPhieu || editingTicketForm.vehiclePlate }}
                             </h3>
-                            <p class="text-[11px] text-slate-500 font-semibold">
+                            <p class="text-xs text-slate-500 font-semibold">
                                 Luồng: <span class="font-bold text-primary">{{ editingTicketForm.flowType }}</span> • Kho: <span class="font-bold">{{ editingTicketForm.warehouseId || 'Xá thẳng' }}</span>
                             </p>
                         </div>
                     </div>
                     <button
                         @click="showEditTicketModal = false"
-                        class="size-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-500 hover:text-rose-600 cursor-pointer transition-colors"
+                        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-base">close</span>
                     </button>
@@ -2830,7 +2832,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         <button
                             type="button"
                             @click="showEditTicketModal = false"
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs cursor-pointer"
+                            class="px-4 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm cursor-pointer"
                         >
                             Hủy
                         </button>

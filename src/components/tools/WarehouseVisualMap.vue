@@ -21,6 +21,10 @@ const props = defineProps<{
     closingStocks: Record<WarehouseId, number>;
 }>();
 
+const emit = defineEmits<{
+    (e: 'close'): void;
+}>();
+
 const { addToast } = useToast();
 
 const mapState = ref<WarehouseVisualMapState>(getDefaultVisualMapState());
@@ -341,22 +345,32 @@ onMounted(() => {
     <div class="flex flex-col gap-3.5 h-full min-h-0">
         <!-- Top Control Bar -->
         <div class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div class="flex items-center gap-2.5">
-                <div class="size-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+            <div class="flex items-center gap-3">
+                <button
+                    type="button"
+                    @click="emit('close')"
+                    class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+                    title="Quay lại bảng dữ liệu tồn kho"
+                >
+                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    <span>Quay lại</span>
+                </button>
+
+                <div class="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-xl">map</span>
                 </div>
                 <div>
-                    <div class="text-sm font-black text-[#1e293b] flex items-center gap-2">
+                    <div class="text-xl font-display font-black text-[#1e293b] flex flex-wrap items-center gap-2">
                         <span>SƠ ĐỒ TRỰC QUAN KHO CẢNG NGUYÊN NGỌC</span>
                         <span
                             v-if="isEditing"
-                            class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 border border-amber-300"
+                            class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300"
                         >
                             ĐANG CHỈNH SỬA (KÉO THẢ ĐỈNH ĐA GIÁC)
                         </span>
                         <span
                             v-else
-                            class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-200"
+                            class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-600 border border-teal-200"
                         >
                             CHẾ ĐỘ XEM THEO DÕI
                         </span>
@@ -377,7 +391,7 @@ onMounted(() => {
                         v-if="!isEditing"
                         type="button"
                         @click="isEditing = true"
-                        class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_3px_0_0_#6495ed] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#6495ed] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+                        class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-sm">edit_square</span>
                         <span>Chỉnh sửa sơ đồ</span>
@@ -387,7 +401,7 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="loadMapState(); isEditing = false"
-                            class="px-3.5 py-2 bg-[#f1f5f9] hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition-all flex items-center gap-1 cursor-pointer"
+                            class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
                         >
                             <span class="material-symbols-outlined text-sm">close</span>
                             <span>Hủy</span>
@@ -397,7 +411,7 @@ onMounted(() => {
                             type="button"
                             @click="handleSaveMapState"
                             :disabled="saving"
-                            class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_3px_0_0_#6495ed] hover:translate-y-[1px] hover:shadow-[0_1px_0_0_#6495ed] active:translate-y-[3px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            class="px-4 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                             <span class="material-symbols-outlined text-sm">{{ saving ? 'sync' : 'save' }}</span>
                             <span>{{ saving ? 'Đang lưu...' : 'Lưu sơ đồ' }}</span>
@@ -419,7 +433,7 @@ onMounted(() => {
                     <input
                         v-model="mapState.title"
                         type="text"
-                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold text-[#1e293b]"
+                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-xs font-bold text-[#1e293b]"
                     />
                 </div>
 
@@ -429,7 +443,7 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="setUpdatedNow6AM"
-                            class="text-[11px] font-black text-primary hover:underline cursor-pointer"
+                            class="text-xs font-black text-primary hover:underline cursor-pointer"
                         >
                             Đặt 06h00 hôm nay
                         </button>
@@ -438,7 +452,7 @@ onMounted(() => {
                         v-model="mapState.updatedAtLabel"
                         type="text"
                         placeholder="06h00, 26/10/2026"
-                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold text-[#1e293b]"
+                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-xs font-bold text-[#1e293b]"
                     />
                 </div>
 
@@ -448,7 +462,7 @@ onMounted(() => {
                         v-model.number="mapState.containerYard.loadedConts"
                         type="number"
                         min="0"
-                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold text-[#1e293b]"
+                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-xs font-bold text-[#1e293b]"
                     />
                 </div>
 
@@ -458,12 +472,12 @@ onMounted(() => {
                         v-model.number="mapState.containerYard.emptyConts"
                         type="number"
                         min="0"
-                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-xl text-xs font-bold text-[#1e293b]"
+                        class="h-8 px-3 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-xs font-bold text-[#1e293b]"
                     />
                 </div>
 
                 <div class="lg:col-span-2 flex items-center justify-end gap-2 h-8">
-                    <label class="flex items-center gap-1.5 text-xs font-bold text-[#1e293b] cursor-pointer select-none bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/20">
+                    <label class="flex items-center gap-1.5 text-xs font-bold text-[#1e293b] cursor-pointer select-none bg-primary/5 px-3 py-1.5 rounded-2xl border border-primary/20">
                         <input
                             v-model="enableSnap"
                             type="checkbox"
