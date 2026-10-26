@@ -26,7 +26,6 @@ const { addToast } = useToast();
 const mapState = ref<WarehouseVisualMapState>(getDefaultVisualMapState());
 const loading = ref(false);
 const saving = ref(false);
-const exportingImage = ref(false);
 const isEditing = ref(false);
 const enableSnap = ref(true);
 
@@ -99,7 +98,9 @@ function getEffectiveCustomerName(whId: WarehouseId): string {
     if (zone?.customCustomerName && zone.customCustomerName.trim()) {
         return zone.customCustomerName.trim();
     }
-    return props.configs[whId]?.currentCustomer || (whId === 'KHO 4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH');
+    const raw = props.configs[whId]?.currentCustomer || (whId === 'KHO 4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH');
+    if (/EASTWOOD/i.test(raw)) return 'EASTWOOD';
+    return raw;
 }
 
 function getEffectiveStockTons(whId: WarehouseId): number {
@@ -331,88 +332,6 @@ async function handleSaveMapState() {
     }
 }
 
-async function renderSvgToPngBlob(): Promise<Blob> {
-    const svgEl = svgRef.value;
-    if (!svgEl) throw new Error('Không tìm thấy sơ đồ SVG');
-
-    // Clone SVG and strip interactive handles so exported image is 100% clean
-    const clone = svgEl.cloneNode(true) as SVGSVGElement;
-    clone.querySelectorAll('[data-edit-only="true"]').forEach(el => el.remove());
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    clone.setAttribute('width', String(SVG_WIDTH * 2));
-    clone.setAttribute('height', String(SVG_HEIGHT * 2));
-
-    const svgString = new XMLSerializer().serializeToString(clone);
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    try {
-        const img = new Image();
-        await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = (e) => reject(e);
-            img.src = url;
-        });
-
-        const canvas = document.createElement('canvas');
-        canvas.width = SVG_WIDTH * 2;
-        canvas.height = SVG_HEIGHT * 2;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Không thể khởi tạo Canvas 2D');
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        const pngBlob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-        if (!pngBlob) throw new Error('Không thể xuất ảnh PNG');
-        return pngBlob;
-    } finally {
-        URL.revokeObjectURL(url);
-    }
-}
-
-async function handleCopyMapImage() {
-    exportingImage.value = true;
-    try {
-        const blob = await renderSvgToPngBlob();
-        if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
-            addToast('Đã copy ảnh Sơ đồ kho nét cao! Bạn có thể Ctrl+V dán thẳng vào Zalo.', 'success');
-        } else {
-            await handleDownloadMapImage();
-        }
-    } catch (err: any) {
-        addToast('Không thể copy ảnh tự động, đang tải file PNG...', 'info');
-        await handleDownloadMapImage();
-    } finally {
-        exportingImage.value = false;
-    }
-}
-
-async function handleDownloadMapImage() {
-    exportingImage.value = true;
-    try {
-        const blob = await renderSvgToPngBlob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const dateSlug = (mapState.value.updatedAtLabel || 'hom-nay').replace(/[^0-9]/g, '');
-        a.href = url;
-        a.download = `So-do-kho-Nguyen-Ngoc-${dateSlug || 'TVPL'}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        addToast('Đã tải xuống ảnh PNG Sơ đồ kho!', 'success');
-    } catch (err: any) {
-        addToast('Lỗi xuất ảnh: ' + (err?.message || err), 'error');
-    } finally {
-        exportingImage.value = false;
-    }
-}
-
 onMounted(() => {
     loadMapState();
 });
@@ -452,30 +371,6 @@ onMounted(() => {
 
             <!-- Action Buttons -->
             <div class="flex flex-wrap items-center gap-2">
-                <!-- Copy Image for Zalo -->
-                <button
-                    type="button"
-                    @click="handleCopyMapImage"
-                    :disabled="exportingImage"
-                    class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                    title="Copy ảnh sơ đồ độ nét cao vào Clipboard để dán vào Zalo"
-                >
-                    <span class="material-symbols-outlined text-sm">content_copy</span>
-                    <span>Copy ảnh Zalo</span>
-                </button>
-
-                <!-- Download PNG -->
-                <button
-                    type="button"
-                    @click="handleDownloadMapImage"
-                    :disabled="exportingImage"
-                    class="px-3.5 py-2 bg-white border border-primary/20 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                    title="Tải file ảnh PNG"
-                >
-                    <span class="material-symbols-outlined text-sm">download</span>
-                    <span>Tải ảnh PNG</span>
-                </button>
-
                 <!-- Role-gated Edit & Save Controls -->
                 <template v-if="canEditMap">
                     <button

@@ -959,55 +959,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
         <div class="flex-1 flex flex-col md:flex-row gap-3.5 min-h-0 overflow-hidden">
             <!-- Sidebar: Tree Structure by Customer & Warehouses -->
             <aside class="w-full md:w-64 bg-white rounded-[24px] p-3 border border-primary/5 soft-shadow flex flex-col gap-2 shrink-0 overflow-y-auto">
-                <div class="px-2 py-1 flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span class="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base text-primary">account_tree</span>
-                        Cây Khách Hàng & Kho
-                    </span>
-                    <button
-                        @click="openEditConfigModal(activeSingleWarehouseId)"
-                        class="size-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center cursor-pointer transition-colors"
-                        title="Cấu hình tồn đầu & khách hàng"
-                    >
-                        <span class="material-symbols-outlined text-xs">settings</span>
-                    </button>
-                </div>
-
-                <!-- Visual Warehouse Map Button -->
-                <button
-                    type="button"
-                    @click="selectedWarehouseMode = 'VISUAL_MAP'"
-                    :class="[
-                        'w-full p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none',
-                        selectedWarehouseMode === 'VISUAL_MAP'
-                            ? 'bg-amber-500 border-amber-600 text-white shadow-sm font-black'
-                            : 'bg-amber-50/80 hover:bg-amber-100/80 border-amber-200 text-[#1e293b] font-black'
-                    ]"
-                >
-                    <span class="flex items-center gap-1.5 text-xs truncate">
-                        <span
-                            class="material-symbols-outlined text-base shrink-0"
-                            :class="selectedWarehouseMode === 'VISUAL_MAP' ? 'text-white' : 'text-amber-600'"
-                        >
-                            map
-                        </span>
-                        <span>SƠ ĐỒ KHO CẢNG</span>
-                    </span>
-                    <span
-                        class="text-[11px] font-mono font-black shrink-0"
-                        :class="selectedWarehouseMode === 'VISUAL_MAP' ? 'text-white' : 'text-amber-700'"
-                    >
-                        {{
-                            formatTons(
-                                finalTablesByWarehouse['KHO 1'].closingStockTons +
-                                finalTablesByWarehouse['KHO 2'].closingStockTons +
-                                finalTablesByWarehouse['KHO 3'].closingStockTons +
-                                finalTablesByWarehouse['KHO 4'].closingStockTons
-                            )
-                        }} T
-                    </span>
-                </button>
-
                 <!-- Tree Group 1: EASTWOOD (Kho 4) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Overview / FINAL Kho 4) -->
