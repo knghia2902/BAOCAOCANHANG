@@ -15,6 +15,7 @@ import type {
     WarehouseVehicleMap,
     WarehouseFinalRow
 } from '@/types/excel';
+import WarehouseVisualMap from './WarehouseVisualMap.vue';
 
 const emit = defineEmits<{
     (e: 'synced-to-allocator', payload: { syncedTicketsCount: number; matchedBargesCount: number }): void;
@@ -22,7 +23,7 @@ const emit = defineEmits<{
 
 const { addToast } = useToast();
 
-type ViewWarehouseMode = WarehouseId | 'COMBINED_123';
+type ViewWarehouseMode = WarehouseId | 'COMBINED_123' | 'VISUAL_MAP';
 type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
@@ -141,7 +142,7 @@ const csvFileInput = ref<HTMLInputElement | null>(null);
 const historyExcelFileInput = ref<HTMLInputElement | null>(null);
 
 const activeSingleWarehouseId = computed<WarehouseId>(() => {
-    if (selectedWarehouseMode.value === 'COMBINED_123') return 'KHO 1';
+    if (selectedWarehouseMode.value === 'COMBINED_123' || selectedWarehouseMode.value === 'VISUAL_MAP') return 'KHO 1';
     return selectedWarehouseMode.value;
 });
 
@@ -200,6 +201,13 @@ const finalTablesByWarehouse = computed(() => {
 const activeFinalCalc = computed(() => {
     return finalTablesByWarehouse.value[activeSingleWarehouseId.value];
 });
+
+const closingStocksByWarehouse = computed<Record<WarehouseId, number>>(() => ({
+    'KHO 1': finalTablesByWarehouse.value['KHO 1'].closingStockTons,
+    'KHO 2': finalTablesByWarehouse.value['KHO 2'].closingStockTons,
+    'KHO 3': finalTablesByWarehouse.value['KHO 3'].closingStockTons,
+    'KHO 4': finalTablesByWarehouse.value['KHO 4'].closingStockTons
+}));
 
 // Filtered detail tickets for IMPORT, EXPORT, DIRECT tabs
 const filteredDetailTickets = computed(() => {
@@ -965,6 +973,41 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     </button>
                 </div>
 
+                <!-- Visual Warehouse Map Button -->
+                <button
+                    type="button"
+                    @click="selectedWarehouseMode = 'VISUAL_MAP'"
+                    :class="[
+                        'w-full p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none',
+                        selectedWarehouseMode === 'VISUAL_MAP'
+                            ? 'bg-amber-500 border-amber-600 text-white shadow-sm font-black'
+                            : 'bg-amber-50/80 hover:bg-amber-100/80 border-amber-200 text-[#1e293b] font-black'
+                    ]"
+                >
+                    <span class="flex items-center gap-1.5 text-xs truncate">
+                        <span
+                            class="material-symbols-outlined text-base shrink-0"
+                            :class="selectedWarehouseMode === 'VISUAL_MAP' ? 'text-white' : 'text-amber-600'"
+                        >
+                            map
+                        </span>
+                        <span>SƠ ĐỒ KHO CẢNG</span>
+                    </span>
+                    <span
+                        class="text-[11px] font-mono font-black shrink-0"
+                        :class="selectedWarehouseMode === 'VISUAL_MAP' ? 'text-white' : 'text-amber-700'"
+                    >
+                        {{
+                            formatTons(
+                                finalTablesByWarehouse['KHO 1'].closingStockTons +
+                                finalTablesByWarehouse['KHO 2'].closingStockTons +
+                                finalTablesByWarehouse['KHO 3'].closingStockTons +
+                                finalTablesByWarehouse['KHO 4'].closingStockTons
+                            )
+                        }} T
+                    </span>
+                </button>
+
                 <!-- Tree Group 1: EASTWOOD (Kho 4) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Overview / FINAL Kho 4) -->
@@ -1160,6 +1203,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
 
             <!-- Main Content Area: Action Bar + Sheet Tabs + Tables -->
             <div class="flex-1 flex flex-col gap-3.5 min-h-0 overflow-hidden">
+                <!-- VISUAL WAREHOUSE MAP MODE -->
+                <WarehouseVisualMap
+                    v-if="selectedWarehouseMode === 'VISUAL_MAP'"
+                    :configs="configs"
+                    :closing-stocks="closingStocksByWarehouse"
+                />
+
+                <template v-else>
                 <!-- Action & View Header Bar -->
                 <div
                     class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow shrink-0 flex flex-wrap items-center justify-between gap-3"
@@ -1188,6 +1239,16 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
 
                     <!-- Primary Actions on the right -->
                     <div class="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            @click="selectedWarehouseMode = 'VISUAL_MAP'"
+                            class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                            title="Mở Sơ đồ trực quan 4 Kho & Bãi Cont"
+                        >
+                            <span class="material-symbols-outlined text-sm text-amber-600">map</span>
+                            <span>Sơ đồ kho</span>
+                        </button>
+
                         <button
                             @click="triggerCsvImport"
                             :disabled="importingCsv"
@@ -2445,6 +2506,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
             </div>
             <!-- /Card 3: Sheet Tabs + Main Table Content -->
             </div>
+                </template>
         <!-- /Main Content Area: line 1040 -->
         </div>
         <!-- /Main Master-Detail Work Area: line 881 -->

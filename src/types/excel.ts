@@ -200,4 +200,47 @@ export interface WarehouseImportSummary {
     errors: string[];
 }
 
+export interface WarehouseMapVertex {
+    /** Tọa độ ngang chuẩn hóa trong kho: 0 (tường trái) -> 1 (tường phải) */
+    xRatio: number;
+    /** Tọa độ dọc tính theo số ô kho: 0 (đáy kho) -> totalBays (đỉnh kho) */
+    bayY: number;
+}
+
+export interface WarehouseMapPolygon {
+    id: string;
+    label?: string;
+    color?: string;
+    vertices: WarehouseMapVertex[];
+}
+
+export interface WarehouseZoneMapConfig {
+    warehouseId: WarehouseId;
+    areaM2: number;
+    totalBays: number;
+    fillColor: string;
+    cargoName: string;
+    customCustomerName?: string;
+    overrideStockTons?: number | null;
+    showConveyor?: boolean;
+    conveyorBayY?: number;
+    polygons: WarehouseMapPolygon[];
+}
+
+export interface ContainerYardMapConfig {
+    loadedConts: number;
+    emptyConts: number;
+    overrideTotalConts?: number | null;
+    fillColor?: string;
+}
+
+export interface WarehouseVisualMapState {
+    title: string;
+    updatedAtLabel: string;
+    containerYard: ContainerYardMapConfig;
+    warehouses: Record<WarehouseId, WarehouseZoneMapConfig>;
+    updatedAt?: string;
+    updatedBy?: string;
+}
+
 

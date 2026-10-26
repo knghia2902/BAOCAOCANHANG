@@ -8,7 +8,10 @@ import type {
     WarehouseConfig,
     WarehouseVehicleMap,
     WarehouseFinalRow,
-    WarehouseImportSummary
+    WarehouseImportSummary,
+    WarehouseMapVertex,
+    WarehouseMapPolygon,
+    WarehouseVisualMapState
 } from '@/types/excel';
 
 export const ALL_WAREHOUSES: WarehouseId[] = ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4'];
@@ -16,6 +19,7 @@ export const ALL_WAREHOUSES: WarehouseId[] = ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4'
 const LOCAL_TICKETS_KEY = 'warehouse_inventory_tickets';
 const LOCAL_CONFIGS_KEY = 'warehouse_configs';
 const LOCAL_VEHICLES_KEY = 'warehouse_vehicles';
+const LOCAL_VISUAL_MAP_KEY = 'warehouse_visual_map';
 
 function round2(n: number): number {
     return Math.round((Number(n) || 0) * 1000) / 1000;
@@ -1021,6 +1025,306 @@ async function loadFallbackStateFromContentSettings(): Promise<{
     return null;
 }
 
+export function snapMapVertex(
+    vertex: WarehouseMapVertex,
+    totalBays: number,
+    enableSnap = true
+): WarehouseMapVertex {
+    const safeTotalBays = Math.max(1, Number(totalBays) || 6);
+    let x = Math.max(0, Math.min(1, Number(vertex.xRatio) || 0));
+    let y = Math.max(0, Math.min(safeTotalBays, Number(vertex.bayY) || 0));
+
+    if (!enableSnap) {
+        return {
+            xRatio: Math.round(x * 1000) / 1000,
+            bayY: Math.round(y * 1000) / 1000
+        };
+    }
+
+    // Snap xRatio to left/right walls or 0.02 grid
+    if (x <= 0.03) {
+        x = 0;
+    } else if (x >= 0.97) {
+        x = 1;
+    } else if (Math.abs(x - 0.5) <= 0.025) {
+        x = 0.5;
+    } else {
+        x = Math.round(x * 50) / 50;
+    }
+
+    // Snap bayY to floor/ceiling, integer bay lines, or half-bay lines
+    if (y <= 0.14) {
+        y = 0;
+    } else if (y >= safeTotalBays - 0.14) {
+        y = safeTotalBays;
+    } else {
+        const nearestInt = Math.round(y);
+        const nearestHalf = Math.floor(y) + 0.5;
+        if (Math.abs(y - nearestInt) <= 0.12) {
+            y = nearestInt;
+        } else if (Math.abs(y - nearestHalf) <= 0.08) {
+            y = nearestHalf;
+        } else {
+            y = Math.round(y * 20) / 20;
+        }
+    }
+
+    return {
+        xRatio: Number(x.toFixed(3)),
+        bayY: Number(y.toFixed(2))
+    };
+}
+
+export function createWarehousePresetPolygons(
+    warehouseId: WarehouseId,
+    totalBays: number,
+    preset: 'DEFAULT' | 'FULL' | 'ANGLED_AISLE' | 'STEPPED_AISLE' = 'DEFAULT'
+): WarehouseMapPolygon[] {
+    const b = Math.max(1, Number(totalBays) || 6);
+
+    if (preset === 'FULL') {
+        return [
+            {
+                id: `${warehouseId}_poly_full`,
+                label: 'Khối hàng chính',
+                vertices: [
+                    { xRatio: 0, bayY: 0 },
+                    { xRatio: 0, bayY: b },
+                    { xRatio: 1, bayY: b },
+                    { xRatio: 1, bayY: 0 }
+                ]
+            }
+        ];
+    }
+
+    if (preset === 'ANGLED_AISLE') {
+        const midY = Number((b * 0.55).toFixed(1));
+        const lowY = Number((b * 0.35).toFixed(1));
+        return [
+            {
+                id: `${warehouseId}_poly_angled`,
+                label: 'Khối hàng lối vát chéo',
+                vertices: [
+                    { xRatio: 0, bayY: 0 },
+                    { xRatio: 0, bayY: b },
+                    { xRatio: 1, bayY: b },
+                    { xRatio: 1, bayY: 0 },
+                    { xRatio: 0.85, bayY: 0 },
+                    { xRatio: 0.92, bayY: lowY },
+                    { xRatio: 0.65, bayY: midY },
+                    { xRatio: 0.35, bayY: midY },
+                    { xRatio: 0.08, bayY: lowY },
+                    { xRatio: 0.15, bayY: 0 }
+                ]
+            }
+        ];
+    }
+
+    if (preset === 'STEPPED_AISLE') {
+        const highY = Number((b * 0.72).toFixed(1));
+        return [
+            {
+                id: `${warehouseId}_poly_stepped`,
+                label: 'Khối hàng bậc thang',
+                vertices: [
+                    { xRatio: 0, bayY: 0 },
+                    { xRatio: 0, bayY: b },
+                    { xRatio: 1, bayY: b },
+                    { xRatio: 1, bayY: 0 },
+                    { xRatio: 0.75, bayY: 0 },
+                    { xRatio: 0.75, bayY: 0.6 },
+                    { xRatio: 0.94, bayY: 0.6 },
+                    { xRatio: 0.94, bayY: highY },
+                    { xRatio: 0.06, bayY: highY },
+                    { xRatio: 0.06, bayY: 0.6 },
+                    { xRatio: 0.25, bayY: 0.6 },
+                    { xRatio: 0.25, bayY: 0 }
+                ]
+            }
+        ];
+    }
+
+    // DEFAULT preset matching "TVPL - Sơ đồ kho cảng Nguyên Ngọc" reference diagram 100%
+    if (warehouseId === 'KHO 1') {
+        return [
+            {
+                id: 'KHO1_main',
+                label: 'Khối hàng chính',
+                vertices: [
+                    { xRatio: 0, bayY: 0 },
+                    { xRatio: 0, bayY: 6 },
+                    { xRatio: 1, bayY: 6 },
+                    { xRatio: 1, bayY: 0 },
+                    { xRatio: 0.64, bayY: 0 },
+                    { xRatio: 0.82, bayY: 2.5 },
+                    { xRatio: 0.14, bayY: 2.5 },
+                    { xRatio: 0.14, bayY: 0.15 },
+                    { xRatio: 0.34, bayY: 0.15 },
+                    { xRatio: 0.34, bayY: 0 }
+                ]
+            }
+        ];
+    }
+
+    if (warehouseId === 'KHO 2') {
+        return [
+            {
+                id: 'KHO2_main',
+                label: 'Khối hàng chính',
+                vertices: [
+                    { xRatio: 0, bayY: 0 },
+                    { xRatio: 0, bayY: 11 },
+                    { xRatio: 1, bayY: 11 },
+                    { xRatio: 1, bayY: 0 },
+                    { xRatio: 0.73, bayY: 0 },
+                    { xRatio: 0.73, bayY: 0.65 },
+                    { xRatio: 0.95, bayY: 0.65 },
+                    { xRatio: 0.95, bayY: 8.35 },
+                    { xRatio: 0.42, bayY: 8.85 },
+                    { xRatio: 0.42, bayY: 8.0 },
+                    { xRatio: 0.13, bayY: 8.0 },
+                    { xRatio: 0.13, bayY: 9.15 },
+                    { xRatio: 0.04, bayY: 9.15 },
+                    { xRatio: 0.04, bayY: 0.65 },
+                    { xRatio: 0.14, bayY: 0.65 },
+                    { xRatio: 0.14, bayY: 0 }
+                ]
+            }
+        ];
+    }
+
+    if (warehouseId === 'KHO 3') {
+        return [
+            {
+                id: 'KHO3_main',
+                label: 'Khối hàng chính',
+                vertices: [
+                    { xRatio: 0, bayY: 0 },
+                    { xRatio: 0, bayY: 11 },
+                    { xRatio: 1, bayY: 11 },
+                    { xRatio: 1, bayY: 0 },
+                    { xRatio: 0.85, bayY: 0 },
+                    { xRatio: 0.85, bayY: 0.2 },
+                    { xRatio: 0.96, bayY: 0.2 },
+                    { xRatio: 0.96, bayY: 3.55 },
+                    { xRatio: 0.68, bayY: 6.25 },
+                    { xRatio: 0.55, bayY: 6.25 },
+                    { xRatio: 0.04, bayY: 4.75 },
+                    { xRatio: 0.04, bayY: 0.25 },
+                    { xRatio: 0.40, bayY: 0.25 },
+                    { xRatio: 0.40, bayY: 0 }
+                ]
+            }
+        ];
+    }
+
+    // KHO 4: 4 polygons (Upper main stock + 3 smaller corner/side piles)
+    return [
+        {
+            id: 'KHO4_main',
+            label: 'Khối hàng trên (Ô 6–12)',
+            vertices: [
+                { xRatio: 0, bayY: 6.15 },
+                { xRatio: 0, bayY: 12 },
+                { xRatio: 1, bayY: 12 },
+                { xRatio: 1, bayY: 6.15 },
+                { xRatio: 0.95, bayY: 6.15 },
+                { xRatio: 0.92, bayY: 8.35 },
+                { xRatio: 0.06, bayY: 8.35 },
+                { xRatio: 0.06, bayY: 6.15 }
+            ]
+        },
+        {
+            id: 'KHO4_mid_right',
+            label: 'Cụm phải (Ô 3–4)',
+            vertices: [
+                { xRatio: 0.83, bayY: 3.0 },
+                { xRatio: 0.83, bayY: 4.35 },
+                { xRatio: 1, bayY: 4.35 },
+                { xRatio: 1, bayY: 3.0 }
+            ]
+        },
+        {
+            id: 'KHO4_bottom_left',
+            label: 'Cụm đáy trái (Ô 1)',
+            vertices: [
+                { xRatio: 0, bayY: 0 },
+                { xRatio: 0, bayY: 1.25 },
+                { xRatio: 0.28, bayY: 1.25 },
+                { xRatio: 0.28, bayY: 0 }
+            ]
+        },
+        {
+            id: 'KHO4_bottom_right',
+            label: 'Cụm đáy phải (Ô 1–2)',
+            vertices: [
+                { xRatio: 0.80, bayY: 0 },
+                { xRatio: 0.80, bayY: 1.85 },
+                { xRatio: 1, bayY: 1.85 },
+                { xRatio: 1, bayY: 0 }
+            ]
+        }
+    ];
+}
+
+export function getDefaultVisualMapState(): WarehouseVisualMapState {
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = now.getFullYear();
+
+    return {
+        title: 'TVPL - Sơ đồ kho cảng Nguyên Ngọc',
+        updatedAtLabel: `06h00, ${d}/${m}/${y}`,
+        containerYard: {
+            loadedConts: 0,
+            emptyConts: 784,
+            overrideTotalConts: null,
+            fillColor: '#FADBD8'
+        },
+        warehouses: {
+            'KHO 1': {
+                warehouseId: 'KHO 1',
+                areaM2: 1080,
+                totalBays: 6,
+                fillColor: '#F7DF94',
+                cargoName: 'VIÊN NÉN GỖ',
+                overrideStockTons: null,
+                polygons: createWarehousePresetPolygons('KHO 1', 6, 'DEFAULT')
+            },
+            'KHO 2': {
+                warehouseId: 'KHO 2',
+                areaM2: 1980,
+                totalBays: 11,
+                fillColor: '#00ADEF',
+                cargoName: 'VIÊN NÉN GỖ',
+                overrideStockTons: null,
+                polygons: createWarehousePresetPolygons('KHO 2', 11, 'DEFAULT')
+            },
+            'KHO 3': {
+                warehouseId: 'KHO 3',
+                areaM2: 1980,
+                totalBays: 11,
+                fillColor: '#00B050',
+                cargoName: 'VIÊN NÉN GỖ',
+                overrideStockTons: null,
+                polygons: createWarehousePresetPolygons('KHO 3', 11, 'DEFAULT')
+            },
+            'KHO 4': {
+                warehouseId: 'KHO 4',
+                areaM2: 5000,
+                totalBays: 12,
+                fillColor: '#FFFF00',
+                cargoName: 'VIÊN NÉN GỖ',
+                overrideStockTons: null,
+                showConveyor: true,
+                conveyorBayY: 5.8,
+                polygons: createWarehousePresetPolygons('KHO 4', 12, 'DEFAULT')
+            }
+        }
+    };
+}
+
 export const WarehouseInventoryService = {
     normalizeWarehouseId,
     normalizePlateKey,
@@ -1031,6 +1335,105 @@ export const WarehouseInventoryService = {
     classifyWeighbridgeRow,
     computeWarehouseFinalTable,
     parseWeighbridgeCsvText,
+    snapMapVertex,
+    createWarehousePresetPolygons,
+    getDefaultVisualMapState,
+
+    async getVisualMapState(): Promise<WarehouseVisualMapState> {
+        const defaults = getDefaultVisualMapState();
+        const local = await dbContext.get<WarehouseVisualMapState>(LOCAL_VISUAL_MAP_KEY);
+        let remote: WarehouseVisualMapState | null = null;
+
+        try {
+            const { data, error } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+            if (!error && data?.settings?.warehouse_visual_map) {
+                remote = data.settings.warehouse_visual_map as WarehouseVisualMapState;
+            }
+        } catch (_) {}
+
+        const source = remote || local;
+        if (!source) return defaults;
+
+        const merged: WarehouseVisualMapState = {
+            title: source.title || defaults.title,
+            updatedAtLabel: source.updatedAtLabel || defaults.updatedAtLabel,
+            containerYard: {
+                ...defaults.containerYard,
+                ...(source.containerYard || {})
+            },
+            warehouses: {
+                'KHO 1': {
+                    ...defaults.warehouses['KHO 1'],
+                    ...(source.warehouses?.['KHO 1'] || {}),
+                    polygons: Array.isArray(source.warehouses?.['KHO 1']?.polygons) && source.warehouses['KHO 1'].polygons.length > 0
+                        ? source.warehouses['KHO 1'].polygons
+                        : defaults.warehouses['KHO 1'].polygons
+                },
+                'KHO 2': {
+                    ...defaults.warehouses['KHO 2'],
+                    ...(source.warehouses?.['KHO 2'] || {}),
+                    polygons: Array.isArray(source.warehouses?.['KHO 2']?.polygons) && source.warehouses['KHO 2'].polygons.length > 0
+                        ? source.warehouses['KHO 2'].polygons
+                        : defaults.warehouses['KHO 2'].polygons
+                },
+                'KHO 3': {
+                    ...defaults.warehouses['KHO 3'],
+                    ...(source.warehouses?.['KHO 3'] || {}),
+                    polygons: Array.isArray(source.warehouses?.['KHO 3']?.polygons) && source.warehouses['KHO 3'].polygons.length > 0
+                        ? source.warehouses['KHO 3'].polygons
+                        : defaults.warehouses['KHO 3'].polygons
+                },
+                'KHO 4': {
+                    ...defaults.warehouses['KHO 4'],
+                    ...(source.warehouses?.['KHO 4'] || {}),
+                    polygons: Array.isArray(source.warehouses?.['KHO 4']?.polygons) && source.warehouses['KHO 4'].polygons.length > 0
+                        ? source.warehouses['KHO 4'].polygons
+                        : defaults.warehouses['KHO 4'].polygons
+                }
+            },
+            updatedAt: source.updatedAt,
+            updatedBy: source.updatedBy
+        };
+
+        await dbContext.set(LOCAL_VISUAL_MAP_KEY, merged);
+        return merged;
+    },
+
+    async saveVisualMapState(state: WarehouseVisualMapState): Promise<boolean> {
+        const payload: WarehouseVisualMapState = {
+            ...state,
+            updatedAt: new Date().toISOString()
+        };
+        await dbContext.set(LOCAL_VISUAL_MAP_KEY, payload);
+
+        try {
+            const { data: current } = await supabase
+                .from('content')
+                .select('settings')
+                .eq('id', 'main')
+                .single();
+            if (current) {
+                const updatedSettings = {
+                    ...(current.settings || {}),
+                    warehouse_visual_map: payload
+                };
+                const { error } = await supabase
+                    .from('content')
+                    .update({ settings: updatedSettings })
+                    .eq('id', 'main');
+                if (error) {
+                    console.warn('Supabase saveVisualMapState warning:', error.message);
+                }
+            }
+        } catch (err) {
+            console.warn('Supabase saveVisualMapState fallback to local:', err);
+        }
+        return true;
+    },
 
     async getConfigs(): Promise<Record<WarehouseId, WarehouseConfig>> {
         const defaults = getDefaultConfigs();

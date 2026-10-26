@@ -95,7 +95,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 18. Sao lưu & Khôi phục Google Drive (/admin) | v1.2 | 0/2 | Not started | - |
 | 19. Tách sà lan De Heus theo Khóa/Mở | v1.2 | 1/1 | Complete    | 2026-10-21 |
 | 20. Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng | v1.2 | 3/3 | Complete | 2026-10-21 |
-| 21. Sơ đồ trực quan Kho cảng Nguyên Ngọc | v1.2 | 0/2 | Not started | - |
+| 21. Sơ đồ trực quan Kho cảng Nguyên Ngọc | v1.2 | 2/2 | Complete | 2026-10-26 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -247,7 +247,7 @@ Plans:
 
 Plans:
 
-- [ ] 21-01: Thiết kế cấu trúc dữ liệu Sơ đồ kho (`WarehouseMapConfig` / đa giác mặc định 4 kho & Bãi Cont), tích hợp đồng bộ lưu/tải trên Supabase trong `WarehouseInventoryService.ts` và liên kết tự động với số Tồn cuối 4 Kho.
-- [ ] 21-02: Xây dựng component `WarehouseVisualMap.vue` (vẽ SVG 5 phân khu chuẩn mẫu TVPL, trình kéo thả/thêm/xóa đỉnh đa giác có bắt dính theo ô kho, chế độ Xem/Chỉnh sửa theo phân quyền `authStore`, xuất/copy ảnh PNG) và tích hợp vào `WarehouseInventoryManager.vue`.
+- [x] 21-01: Thiết kế cấu trúc dữ liệu Sơ đồ kho (`WarehouseMapConfig` / đa giác mặc định 4 kho & Bãi Cont), tích hợp đồng bộ lưu/tải trên Supabase trong `WarehouseInventoryService.ts` và liên kết tự động với số Tồn cuối 4 Kho.
+- [x] 21-02: Xây dựng component `WarehouseVisualMap.vue` (vẽ SVG 5 phân khu chuẩn mẫu TVPL, trình kéo thả/thêm/xóa đỉnh đa giác có bắt dính theo ô kho, chế độ Xem/Chỉnh sửa theo phân quyền `authStore`, xuất/copy ảnh PNG) và tích hợp vào `WarehouseInventoryManager.vue`.
 
 

@@ -4,16 +4,16 @@ milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
 current_phase: 21
 current_phase_name: s-tr-c-quan-kho-c-ng-nguy-n-ng-c-interactive-warehouse-map
-status: planned
-stopped_at: Phase 21 planned (21-01-PLAN.md, 21-02-PLAN.md created)
-last_updated: "2026-10-26T13:12:00+07:00"
+status: completed
+stopped_at: Phase 21 completed (21-01, 21-02 executed and verified)
+last_updated: "2026-10-26T13:25:00+07:00"
 last_activity: 2026-10-26
-last_activity_desc: Phase 21 planned — Sơ đồ trực quan Kho cảng Nguyên Ngọc (21-01, 21-02)
+last_activity_desc: Phase 21 completed — Sơ đồ trực quan Kho cảng Nguyên Ngọc (21-01, 21-02)
 progress:
-  total_phases: 14
-  completed_phases: 14
-  total_plans: 25
-  completed_plans: 25
+  total_phases: 15
+  completed_phases: 15
+  total_plans: 27
+  completed_plans: 27
 ---
 
 # Project State
