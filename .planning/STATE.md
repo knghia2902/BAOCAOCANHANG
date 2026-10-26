@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 20
-current_phase_name: qu-n-l-b-o-c-o-t-n-kho-4-kho-h-ng-s-ng
-status: completed
-stopped_at: Phase 20 completed (20-01, 20-02, 20-03 executed and verified)
-last_updated: "2026-10-21T20:15:00+07:00"
-last_activity: 2026-10-21
-last_activity_desc: Phase 20 completed — Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng (20-01, 20-02, 20-03)
+current_phase: 21
+current_phase_name: s-tr-c-quan-kho-c-ng-nguy-n-ng-c-interactive-warehouse-map
+status: planned
+stopped_at: Phase 21 planned (21-01-PLAN.md, 21-02-PLAN.md created)
+last_updated: "2026-10-26T13:12:00+07:00"
+last_activity: 2026-10-26
+last_activity_desc: Phase 21 planned — Sơ đồ trực quan Kho cảng Nguyên Ngọc (21-01, 21-02)
 progress:
   total_phases: 14
   completed_phases: 14
