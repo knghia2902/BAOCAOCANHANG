@@ -80,9 +80,15 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Standardized Weighbridge Template & Vessel Master Data (WBTPL)
 
-- [ ] **WBTPL-01**: Chuẩn hóa 1 mẫu phiếu cân toàn cảng duy nhất được cấu hình trực tiếp tại thanh công cụ của màn hình "Báo cáo cân hàng" (Báo cáo tổng quan), loại bỏ việc lưu và chỉnh sửa layout riêng rẽ tại từng sà lan. Mọi điều chỉnh layout áp dụng đồng bộ ngay lập tức cho toàn bộ sà lan.
-- [ ] **WBTPL-02**: Quản lý Master Data (bảng danh mục chuẩn) gồm 3 trường thông tin: Tên khách hàng, Loại hàng, và Mã hàng.
-- [ ] **WBTPL-03**: Form tạo/sửa Nguồn tàu (Vessel) cung cấp bảng chọn 3 thông tin từ Master Data. Tất cả sà lan thuộc nguồn tàu bắt buộc thừa kế 100% dữ liệu này (khóa sửa tại sà lan). Cấp sà lan chỉ nhập liệu các thông tin động thực tế (số phiếu, danh sách xe, kết luận phẩm cấp).
+- [x] **WBTPL-01**: Chuẩn hóa 1 mẫu phiếu cân toàn cảng duy nhất được cấu hình trực tiếp tại thanh công cụ của màn hình "Báo cáo cân hàng" (Báo cáo tổng quan), loại bỏ việc lưu và chỉnh sửa layout riêng rẽ tại từng sà lan. Mọi điều chỉnh layout áp dụng đồng bộ ngay lập tức cho toàn bộ sà lan.
+- [x] **WBTPL-02**: Quản lý Master Data (bảng danh mục chuẩn) gồm 3 trường thông tin: Tên khách hàng, Loại hàng, và Mã hàng.
+- [x] **WBTPL-03**: Form tạo/sửa Nguồn tàu (Vessel) cung cấp bảng chọn 3 thông tin từ Master Data. Tất cả sà lan thuộc nguồn tàu bắt buộc thừa kế 100% dữ liệu này (khóa sửa tại sà lan). Cấp sà lan chỉ nhập liệu các thông tin động thực tế (số phiếu, danh sách xe, kết luận phẩm cấp).
+
+### Interactive Warehouse Map — Sơ đồ Kho Cảng Nguyên Ngọc (PHASE-21)
+
+- [ ] **WMAP-01**: Tích hợp Tab/Chế độ xem **"Sơ đồ kho cảng"** ngay trong màn hình Báo Cáo Tồn Kho 4 Kho (`/tools/warehouse`), hiển thị mặt bằng 5 phân khu chuẩn tỷ lệ (`BÃI CONT`, `KHO 1 - 6 ô`, `KHO 2 - 11 ô`, `KHO 3 - 11 ô`, `KHO 4 - 12 ô` kèm cửa kho và nhãn "Băng tải") và tự động đồng bộ Tên khách hàng + Số tấn tồn cuối mới nhất từ 4 Kho (hỗ trợ nhập/ghi đè số Cont có hàng, Cont rỗng và thời gian cập nhật).
+- [ ] **WMAP-02**: Cung cấp trình chỉnh sửa đa giác trực quan (Interactive SVG Polygon Editor) cho từng kho: hỗ trợ tạo một hoặc nhiều khối đa giác (mảng hàng chính vát chéo/bậc thang và các đống hàng lẻ ở góc), kéo thả đỉnh (vertex handles), thêm/xóa đỉnh và tự động bắt dính (snap) vào vạch kẻ ô ngang hoặc cạnh tường kho.
+- [ ] **WMAP-03**: Lưu trữ trạng thái sơ đồ lên Supabase kèm cơ chế phân quyền theo vai trò (`authStore`): mọi người dùng đều xem được sơ đồ sạch đẹp ở chế độ Xem (View-only) và chụp/copy ảnh báo cáo, chỉ người dùng có quyền cập nhật mới bật được chế độ Chỉnh sửa và Lưu sơ đồ.
 
 ## Future Requirements (v2+)
 
@@ -133,16 +139,19 @@ Which phases cover which requirements.
 | INV-03 | Phase 20 | Complete |
 | INV-04 | Phase 20 | Complete |
 | INV-05 | Phase 20 | Complete |
-| WBTPL-01 | Phase 21 | Pending |
-| WBTPL-02 | Phase 21 | Pending |
-| WBTPL-03 | Phase 21 | Pending |
+| WBTPL-01 | Quick 261025-tu5 | Complete |
+| WBTPL-02 | Quick 261025-tu5 | Complete |
+| WBTPL-03 | Quick 261025-tu5 | Complete |
+| WMAP-01 | Phase 21 | Pending |
+| WMAP-02 | Phase 21 | Pending |
+| WMAP-03 | Phase 21 | Pending |
 
 **Coverage:**
-- v1.1 / v1.2 requirements: 36 total
-- Mapped to phases: 36
+- v1.1 / v1.2 requirements: 39 total
+- Mapped to phases: 39
 - Unmapped: 0 ✓
 
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-10-23 after Standardized Weighbridge Template exploration*
+*Last updated: 2026-10-26 after Interactive Warehouse Map exploration*

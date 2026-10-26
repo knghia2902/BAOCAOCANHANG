@@ -94,7 +94,8 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 17. Phân nhóm sà lan De Heus | v1.2 | 1/1 | Complete    | 2026-10-19 |
 | 18. Sao lưu & Khôi phục Google Drive (/admin) | v1.2 | 0/2 | Not started | - |
 | 19. Tách sà lan De Heus theo Khóa/Mở | v1.2 | 1/1 | Complete    | 2026-10-21 |
-| 20. Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng | v1.2 | 0/3 | Not started | - |
+| 20. Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng | v1.2 | 3/3 | Complete | 2026-10-21 |
+| 21. Sơ đồ trực quan Kho cảng Nguyên Ngọc | v1.2 | 0/2 | Not started | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -236,4 +237,17 @@ Plans:
 - [x] 20-01: Thiết kế bảng dữ liệu Supabase & `WarehouseInventoryService.ts` (logic cắt ca 6h sáng, phân loại Nhập kho / Xuất kho / Đi thẳng từ CSV, nạp lịch sử từ file Excel mẫu 4 kho, và tự động đẩy chuyến xuất sang `allocator_tickets` / Sà lan).
 - [x] 20-02: Xây dựng giao diện Quản lý & Báo cáo Tồn Kho 4 Kho (bảng tổng hợp `FINAL` cộng dồn xuyên suốt theo từng kho & chế độ ghép ngang Kho 1-2-3, chi tiết `IMPORT / EXPORT / ĐI THẲNG`, kèm nút chụp/copy ảnh bảng tổng hợp gửi Zalo).
 - [x] 20-03: Triển khai trình xuất file Excel Báo cáo Tồn kho chuẩn mẫu khách hàng (đa sheet `IMPORT`, `EXPORT`, `FINAL`, `ĐI THẲNG / XÁ THẲNG`, `Data` giữ nguyên công thức `SUMIFS`/`SUMIF` và định dạng in ấn).
+
+### Phase 21: Sơ đồ trực quan Kho cảng Nguyên Ngọc (Interactive Warehouse Map)
+
+**Goal:** Xây dựng công cụ theo dõi & chỉnh sửa **Sơ đồ kho cảng Nguyên Ngọc (TVPL)** trực tiếp trong màn hình Báo Cáo Tồn Kho 4 Kho (`/tools/warehouse`): hiển thị mặt bằng 5 phân khu (`BÃI CONT`, `KHO 1`, `KHO 2`, `KHO 3`, `KHO 4`), tự động đồng bộ Tên khách hàng và Khối lượng tồn cuối từ dữ liệu 4 Kho, hỗ trợ vẽ/kéo thả các đỉnh đa giác (polygons) biểu diễn vùng hàng hóa thực tế theo từng ô kho (kèm cơ chế bắt dính vạch ô & cạnh tường), lưu trữ trạng thái lên Supabase, phân quyền Xem / Chỉnh sửa theo vai trò người dùng (`authStore`), và hỗ trợ chụp/copy ảnh sơ đồ nét cao.
+**Requirements**: WMAP-01, WMAP-02, WMAP-03
+**Depends on:** Phase 20
+**Plans:** 2 plans
+
+Plans:
+
+- [ ] 21-01: Thiết kế cấu trúc dữ liệu Sơ đồ kho (`WarehouseMapConfig` / đa giác mặc định 4 kho & Bãi Cont), tích hợp đồng bộ lưu/tải trên Supabase trong `WarehouseInventoryService.ts` và liên kết tự động với số Tồn cuối 4 Kho.
+- [ ] 21-02: Xây dựng component `WarehouseVisualMap.vue` (vẽ SVG 5 phân khu chuẩn mẫu TVPL, trình kéo thả/thêm/xóa đỉnh đa giác có bắt dính theo ô kho, chế độ Xem/Chỉnh sửa theo phân quyền `authStore`, xuất/copy ảnh PNG) và tích hợp vào `WarehouseInventoryManager.vue`.
+
 

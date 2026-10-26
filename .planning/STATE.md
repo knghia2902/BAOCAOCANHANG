@@ -84,6 +84,8 @@ Recent decisions affecting current work:
 - Phase 17 added: Phân nhóm Sà lan Chưa phân bổ và Đã phân bổ tại Sidebar cho Tàu Nông Sản De Heus
 - Phase 18 added: Hệ thống Sao lưu & Khôi phục Tự động qua Google Drive tại /admin
 - Phase 19 added: Tách sà lan Nông sản De Heus theo trạng thái Khóa/Mở tại Báo Cáo Tổng Quan
+- Phase 20 added: Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng
+- Phase 21 added: Sơ đồ trực quan Kho cảng Nguyên Ngọc (Interactive Warehouse Map)
 
 ### Pending Todos
 
