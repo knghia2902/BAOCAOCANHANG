@@ -15,6 +15,7 @@ vi.mock('@/supabase', () => {
     const chain: any = {
         select: () => chain,
         eq: () => chain,
+        in: () => Promise.resolve({ data: [], error: null }),
         neq: () => Promise.resolve({ data: [], error: null }),
         order: () => chain,
         range: () => Promise.resolve({ data: [], error: null }),
@@ -717,6 +718,237 @@ describe('WarehouseInventoryService', () => {
             const outWs = outWb.addWorksheet('EXPORT');
             WarehouseInventoryService.populateExportWorksheet(outWs, 'KHO 4', 'EASTWOOD', [t!]);
             expect(outWs.getRow(8).getCell(8).value).toBe('Xuất');
+        });
+    });
+
+    describe('Duplicate Scanning & Smart Deduplication', () => {
+        beforeEach(async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+        });
+
+        it('1. Re-importing the exact same CSV file does not duplicate tickets, reports newCount/duplicateCount, and preserves manual edits', async () => {
+            const csvText = [
+                'So phieu,Ma lenh,So xe,Khach hang,KL can lan 1,KL can lan 2,KL hang,Ngay can lan 1,Gio can lan 1,Ngay can lan 2,Gio can lan 2,Xuat/Nhap,Loai hang,Loai Salan,Tai Xe,Ghi chu',
+                '007209/26A,,60C 37772,CÔNG TY EASTWOOD ENERGY,45300,16000,29300,24/10/2026,08:40:00,24/10/2026,09:03:41,Nhap,Viên Nén Gỗ,KHO 4,ĐỒNG NAI,'
+            ].join('\n');
+            const file1 = new File([csvText], '2410 cc1.csv', { type: 'text/csv' });
+
+            const sum1 = await WarehouseInventoryService.importWeighbridgeCsvFiles([file1]);
+            expect(sum1.importedCount).toBe(1);
+            expect(sum1.newCount).toBe(1);
+            expect(sum1.duplicateCount).toBe(0);
+
+            // Manually edit factoryWeight and rawNote on the imported ticket
+            const ticketsAfterFirst = await WarehouseInventoryService.getAllTickets();
+            expect(ticketsAfterFirst).toHaveLength(1);
+            const edited = { ...ticketsAfterFirst[0]!, factoryWeight: 29.1, rawNote: 'Ghi chú sửa tay' };
+            await WarehouseInventoryService.updateTicket(edited);
+
+            // Re-import the exact same CSV file
+            const file2 = new File([csvText], '2410 cc1.csv', { type: 'text/csv' });
+            const sum2 = await WarehouseInventoryService.importWeighbridgeCsvFiles([file2]);
+            expect(sum2.importedCount).toBe(1);
+            expect(sum2.newCount).toBe(0);
+            expect(sum2.duplicateCount).toBe(1);
+
+            const ticketsAfterSecond = await WarehouseInventoryService.getAllTickets();
+            expect(ticketsAfterSecond).toHaveLength(1);
+            expect(ticketsAfterSecond[0]?.factoryWeight).toBe(29.1);
+            expect(ticketsAfterSecond[0]?.rawNote).toBe('Ghi chú sửa tay');
+        });
+
+        it('2. Cross-format deduplication: Historical Excel ticket (_rowNum ID) + Daily CSV ticket (_HH:mm:ss ID) with same soPhieu merge into 1 row', async () => {
+            // Simulate a ticket already imported from Historical Excel (ID ends with row index _2191)
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'IMPORT_KHO 4_007124/26A_2026-10-21_2191',
+                    soPhieu: '007124/26A',
+                    maLenh: '',
+                    reportDate: '2026-10-21',
+                    weighInDate: '2026-10-21',
+                    weighInTime: '09:05:10',
+                    weighOutDate: '2026-10-21',
+                    weighOutTime: '09:28:28',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: '50H 17116',
+                    carrierName: 'NGUYÊN NGỌC',
+                    grossWeight: 54.88,
+                    tareWeight: 16.0,
+                    netWeight: 38.88,
+                    factoryWeight: 38.5,
+                    bargeInfo: '',
+                    vesselName: '',
+                    sourceOrRemark: 'BÌNH PHƯỚC',
+                    rawNote: 'Từ file lịch sử'
+                }
+            ]);
+
+            // Now import a Daily CSV containing the same ticket 007124/26A (which generates ID ending in _09:28:28)
+            const csvText = [
+                'So phieu,Ma lenh,So xe,Khach hang,KL can lan 1,KL can lan 2,KL hang,Ngay can lan 1,Gio can lan 1,Ngay can lan 2,Gio can lan 2,Xuat/Nhap,Loai hang,Loai Salan,Tai Xe,Ghi chu',
+                '007124/26A,,50H 17116,CÔNG TY EASTWOOD ENERGY,54880,16000,38880,21/10/2026,09:05:10,21/10/2026,09:28:28,Nhap,Viên Nén Gỗ,KHO 4,BÌNH PHƯỚC,'
+            ].join('\n');
+            const file = new File([csvText], '2110 cc1.csv', { type: 'text/csv' });
+            const summary = await WarehouseInventoryService.importWeighbridgeCsvFiles([file]);
+
+            expect(summary.newCount).toBe(0);
+            expect(summary.duplicateCount).toBe(1);
+
+            const all = await WarehouseInventoryService.getAllTickets();
+            expect(all).toHaveLength(1);
+            expect(all[0]?.id).toBe('IMPORT_KHO 4_007124/26A_2026-10-21_2191');
+            expect(all[0]?.factoryWeight).toBe(38.5);
+            expect(all[0]?.rawNote).toBe('Từ file lịch sử');
+        });
+
+        it('3. Re-classified ticket deduplication: fixing a swapped CSV row from DIRECT to EXPORT KHO 4 replaces the old DIRECT ticket', async () => {
+            // Previously misclassified as DIRECT
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'DIRECT_016918/26B_2026-10-25_08:21:56',
+                    soPhieu: '016918/26B',
+                    maLenh: '',
+                    reportDate: '2026-10-25',
+                    weighInDate: '2026-10-25',
+                    weighInTime: '07:36:06',
+                    weighOutDate: '2026-10-25',
+                    weighOutTime: '08:21:56',
+                    flowType: 'DIRECT',
+                    warehouseId: null,
+                    customerName: 'CÔNG TY EASTWOOD ENERGY',
+                    cargoType: 'Viên Nén Gỗ',
+                    vehiclePlate: '50H 35185',
+                    carrierName: '',
+                    grossWeight: 49.5,
+                    tareWeight: 20.98,
+                    netWeight: 28.52,
+                    factoryWeight: null,
+                    bargeInfo: 'HÀNG BỤI',
+                    vesselName: 'HÀNG BỤI SÀN TRẢ NHÀ MÁY',
+                    sourceOrRemark: 'KHO 4',
+                    rawNote: 'HÀNG BỤI SÀN TRẢ NHÀ MÁY'
+                }
+            ]);
+
+            // Now import corrected row classified as EXPORT KHO 4
+            const csvText = [
+                'So phieu,Ma lenh,So xe,Khach hang,KL can lan 1,KL can lan 2,KL hang,Ngay can lan 1,Gio can lan 1,Ngay can lan 2,Gio can lan 2,Xuat/Nhap,Loai hang,Loai Salan,Tai Xe,Ghi chu',
+                '016918/26B,,50H 35185,CÔNG TY EASTWOOD ENERGY,20980,49500,28520,25/10/2026,07:36:06,25/10/2026,08:21:56,Xuat,Viên Nén Gỗ,HÀNG BỤI,KHO 4,HÀNG BỤI SÀN TRẢ NHÀ MÁY'
+            ].join('\n');
+            const file = new File([csvText], '2510 cc2.csv', { type: 'text/csv' });
+            const summary = await WarehouseInventoryService.importWeighbridgeCsvFiles([file]);
+
+            expect(summary.duplicateCount).toBe(1);
+
+            const all = await WarehouseInventoryService.getAllTickets();
+            expect(all).toHaveLength(1);
+            expect(all[0]?.flowType).toBe('EXPORT');
+            expect(all[0]?.warehouseId).toBe('KHO 4');
+            expect(all[0]?.id).toBe('EXPORT_KHO 4_016918/26B_2026-10-25_08:21:56');
+        });
+
+        it('4. Intra-file duplicate rows: a CSV containing the same ticket twice only saves 1 record', async () => {
+            const csvText = [
+                'So phieu,Ma lenh,So xe,Khach hang,KL can lan 1,KL can lan 2,KL hang,Ngay can lan 1,Gio can lan 1,Ngay can lan 2,Gio can lan 2,Xuat/Nhap,Loai hang,Loai Salan,Tai Xe,Ghi chu',
+                '016970/26B,175,50E 34118,CÔNG TY EASTWOOD ENERGY,15000,45700,30700,26/10/2026,03:10:00,26/10/2026,03:44:55,Xuat,Viên Nén Gỗ,TH 18,KHO 4,BL IVY',
+                '016970/26B,175,50E 34118,CÔNG TY EASTWOOD ENERGY,15000,45700,30700,26/10/2026,03:10:00,26/10/2026,03:44:55,Xuat,Viên Nén Gỗ,TH 18,KHO 4,BL IVY'
+            ].join('\n');
+            const file = new File([csvText], 'dup_in_same_file.csv', { type: 'text/csv' });
+            const summary = await WarehouseInventoryService.importWeighbridgeCsvFiles([file]);
+
+            expect(summary.importedCount).toBe(2);
+            expect(summary.newCount).toBe(1);
+            expect(summary.duplicateCount).toBe(1);
+
+            const all = await WarehouseInventoryService.getAllTickets();
+            expect(all).toHaveLength(1);
+        });
+
+        it('5. Fallback deduplication when soPhieu is empty (by Plate + Date + NetWeight + Time), while keeping distinct XE_CLEAR adjustment rows', async () => {
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'IMPORT_KHO 4_50H17116_2026-10-21_100',
+                    soPhieu: '',
+                    reportDate: '2026-10-21',
+                    weighOutDate: '2026-10-21',
+                    weighOutTime: '09:28:28',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: '50H-171.16',
+                    carrierName: 'NGUYÊN NGỌC',
+                    grossWeight: 54.88,
+                    tareWeight: 16.0,
+                    netWeight: 38.88
+                },
+                {
+                    id: 'EXPORT_KHO 1_XECLEAR_2026-03-14_86',
+                    soPhieu: '',
+                    reportDate: '2026-03-14',
+                    weighOutDate: '2026-03-14',
+                    weighOutTime: '',
+                    flowType: 'EXPORT',
+                    warehouseId: 'KHO 1',
+                    customerName: 'GỖ BÌNH ĐỊNH',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: 'XE_CLEAR',
+                    carrierName: '',
+                    grossWeight: 0,
+                    tareWeight: 0,
+                    netWeight: 1.0,
+                    rawNote: 'Clear chênh lệch đợt 1'
+                }
+            ]);
+
+            // Save a duplicate no-serial ticket with different ID format + a second distinct XE_CLEAR row
+            const stats = await WarehouseInventoryService.saveTicketsBulkWithStats(
+                [
+                    {
+                        id: 'IMPORT_KHO 4_50H17116_2026-10-21_09:28:28',
+                        soPhieu: '',
+                        reportDate: '2026-10-21',
+                        weighOutDate: '2026-10-21',
+                        weighOutTime: '09:28:28',
+                        flowType: 'IMPORT',
+                        warehouseId: 'KHO 4',
+                        customerName: 'EASTWOOD',
+                        cargoType: 'Viên nén gỗ',
+                        vehiclePlate: '50H 17116',
+                        carrierName: 'NGUYÊN NGỌC',
+                        grossWeight: 54.88,
+                        tareWeight: 16.0,
+                        netWeight: 38.88
+                    },
+                    {
+                        id: 'EXPORT_KHO 1_XECLEAR_2026-08-02_281',
+                        soPhieu: '',
+                        reportDate: '2026-08-02',
+                        weighOutDate: '2026-08-02',
+                        weighOutTime: '',
+                        flowType: 'EXPORT',
+                        warehouseId: 'KHO 1',
+                        customerName: 'GỖ BÌNH ĐỊNH',
+                        cargoType: 'Viên nén gỗ',
+                        vehiclePlate: 'XE_CLEAR',
+                        carrierName: '',
+                        grossWeight: 0,
+                        tareWeight: 0,
+                        netWeight: 1.0,
+                        rawNote: 'Clear chênh lệch đợt 2'
+                    }
+                ],
+                { preserveExistingFields: true }
+            );
+
+            expect(stats.newCount).toBe(1);
+            expect(stats.duplicateCount).toBe(1);
+
+            const all = await WarehouseInventoryService.getAllTickets();
+            expect(all).toHaveLength(3);
         });
     });
 });

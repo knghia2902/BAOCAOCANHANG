@@ -940,6 +940,61 @@ async function readCsvFileDecoded(file: File): Promise<string> {
     return utf8Text;
 }
 
+function isRealTicketSerial(soPhieu: string | undefined | null, vehiclePlate?: string | null): boolean {
+    const sp = String(soPhieu || '').trim();
+    if (!sp) return false;
+    if (vehiclePlate === 'XE_CLEAR') return false;
+    if (/clear|chenh\s*lech/i.test(stripAccents(sp))) return false;
+    return true;
+}
+
+function findMatchingExistingTicket(
+    map: Map<string, WarehouseInventoryTicket>,
+    incoming: WarehouseInventoryTicket
+): WarehouseInventoryTicket | undefined {
+    const exact = map.get(incoming.id);
+    if (exact) return exact;
+
+    if (isRealTicketSerial(incoming.soPhieu, incoming.vehiclePlate)) {
+        const incSp = incoming.soPhieu.trim().toUpperCase();
+        const incPlate = normalizePlateKey(incoming.vehiclePlate);
+        for (const existingT of map.values()) {
+            if (
+                isRealTicketSerial(existingT.soPhieu, existingT.vehiclePlate) &&
+                existingT.soPhieu.trim().toUpperCase() === incSp
+            ) {
+                const exPlate = normalizePlateKey(existingT.vehiclePlate);
+                if (!exPlate || !incPlate || exPlate === incPlate) {
+                    return existingT;
+                }
+            }
+        }
+    } else if (
+        incoming.vehiclePlate &&
+        incoming.vehiclePlate !== 'XE_CLEAR' &&
+        !/clear|chenh\s*lech/i.test(stripAccents(incoming.rawNote || ''))
+    ) {
+        const incPlate = normalizePlateKey(incoming.vehiclePlate);
+        const incNet = round2(incoming.netWeight);
+        for (const existingT of map.values()) {
+            if (
+                !isRealTicketSerial(existingT.soPhieu, existingT.vehiclePlate) &&
+                existingT.vehiclePlate !== 'XE_CLEAR' &&
+                existingT.flowType === incoming.flowType &&
+                existingT.warehouseId === incoming.warehouseId &&
+                existingT.reportDate === incoming.reportDate &&
+                normalizePlateKey(existingT.vehiclePlate) === incPlate &&
+                Math.abs(round2(existingT.netWeight) - incNet) < 0.005 &&
+                (!existingT.weighOutTime || !incoming.weighOutTime || existingT.weighOutTime === incoming.weighOutTime)
+            ) {
+                return existingT;
+            }
+        }
+    }
+
+    return undefined;
+}
+
 function sanitizeLoadedTicketWeights(t: WarehouseInventoryTicket): WarehouseInventoryTicket {
     if (Math.abs(t.grossWeight) > 100) t.grossWeight = round2(t.grossWeight / 1000);
     if (Math.abs(t.tareWeight) > 100) t.tareWeight = round2(t.tareWeight / 1000);
@@ -1753,10 +1808,17 @@ export const WarehouseInventoryService = {
                     const mergedMap = new Map<string, WarehouseInventoryTicket>();
                     for (const t of local) mergedMap.set(t.id, t);
                     for (const t of allRemote) {
-                        const existingLocal = mergedMap.get(t.id);
+                        const existingLocal = findMatchingExistingTicket(mergedMap, t);
                         if (existingLocal) {
-                            if (existingLocal.originWarehouseName) t.originWarehouseName = existingLocal.originWarehouseName;
-                            if (existingLocal.originArea) t.originArea = existingLocal.originArea;
+                            if (existingLocal.originWarehouseName && !t.originWarehouseName) {
+                                t.originWarehouseName = existingLocal.originWarehouseName;
+                            }
+                            if (existingLocal.originArea && !t.originArea) {
+                                t.originArea = existingLocal.originArea;
+                            }
+                            if (existingLocal.id !== t.id) {
+                                mergedMap.delete(existingLocal.id);
+                            }
                         }
                         mergedMap.set(t.id, t);
                     }
@@ -1809,30 +1871,91 @@ export const WarehouseInventoryService = {
         return finalTickets;
     },
 
-    async saveTicketsBulk(tickets: WarehouseInventoryTicket[]): Promise<number> {
-        if (!tickets || tickets.length === 0) return 0;
+    async saveTicketsBulk(
+        tickets: WarehouseInventoryTicket[],
+        options?: { preserveExistingFields?: boolean }
+    ): Promise<number> {
+        const stats = await this.saveTicketsBulkWithStats(tickets, options);
+        return stats.totalProcessed;
+    },
+
+    async saveTicketsBulkWithStats(
+        tickets: WarehouseInventoryTicket[],
+        options?: { preserveExistingFields?: boolean }
+    ): Promise<{ totalProcessed: number; newCount: number; duplicateCount: number }> {
+        if (!tickets || tickets.length === 0) {
+            return { totalProcessed: 0, newCount: 0, duplicateCount: 0 };
+        }
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
         const map = new Map<string, WarehouseInventoryTicket>();
         for (const t of current) map.set(t.id, t);
         const obsoleteIdsToDelete: string[] = [];
+        const ticketsToUpsertMap = new Map<string, WarehouseInventoryTicket>();
+        let newCount = 0;
+        let duplicateCount = 0;
+        const preserveExisting = Boolean(options?.preserveExistingFields);
 
         for (const t of tickets) {
-            // If incoming ticket has a valid weighOutTime, remove any legacy _00:00:00 ticket for the same soPhieu
-            if (t.soPhieu && t.weighOutTime && !t.id.endsWith('_00:00:00')) {
-                for (const [existingId, existingT] of map.entries()) {
-                    if (
-                        existingId !== t.id &&
-                        existingId.endsWith('_00:00:00') &&
-                        existingT.soPhieu === t.soPhieu &&
-                        existingT.flowType === t.flowType &&
-                        existingT.warehouseId === t.warehouseId
-                    ) {
-                        map.delete(existingId);
-                        obsoleteIdsToDelete.push(existingId);
+            const existingT = findMatchingExistingTicket(map, t);
+            let finalId = t.id;
+            let finalTicket: WarehouseInventoryTicket = t;
+
+            if (existingT) {
+                duplicateCount++;
+                const flowOrWhChanged =
+                    existingT.flowType !== t.flowType ||
+                    existingT.warehouseId !== t.warehouseId;
+                const upgradedFromMissingTime =
+                    existingT.id.endsWith('_00:00:00') &&
+                    Boolean(t.weighOutTime) &&
+                    !t.id.endsWith('_00:00:00');
+
+                if (existingT.id !== t.id) {
+                    if (flowOrWhChanged || upgradedFromMissingTime) {
+                        map.delete(existingT.id);
+                        ticketsToUpsertMap.delete(existingT.id);
+                        obsoleteIdsToDelete.push(existingT.id);
+                        finalId = t.id;
+                    } else {
+                        // Preserve existing ID (e.g. historical row ID _2191) to avoid duplicate rows
+                        finalId = existingT.id;
                     }
                 }
+
+                if (preserveExisting) {
+                    finalTicket = {
+                        ...existingT,
+                        ...t,
+                        id: finalId,
+                        weighInDate: t.weighInDate || existingT.weighInDate,
+                        weighInTime: t.weighInTime || existingT.weighInTime,
+                        weighOutDate: t.weighOutDate || existingT.weighOutDate,
+                        weighOutTime: t.weighOutTime || existingT.weighOutTime,
+                        factoryWeight:
+                            t.factoryWeight != null && t.factoryWeight > 0
+                                ? t.factoryWeight
+                                : (existingT.factoryWeight ?? null),
+                        bargeInfo: t.bargeInfo || existingT.bargeInfo,
+                        vesselName: t.vesselName || existingT.vesselName,
+                        carrierName: t.carrierName || existingT.carrierName,
+                        sourceOrRemark: t.sourceOrRemark || existingT.sourceOrRemark,
+                        originWarehouseName: t.originWarehouseName || existingT.originWarehouseName,
+                        originArea: t.originArea || existingT.originArea,
+                        rawNote: t.rawNote || existingT.rawNote,
+                        maLenh: t.maLenh || existingT.maLenh
+                    };
+                } else {
+                    finalTicket = {
+                        ...t,
+                        id: finalId
+                    };
+                }
+            } else {
+                newCount++;
             }
-            map.set(t.id, t);
+
+            map.set(finalId, finalTicket);
+            ticketsToUpsertMap.set(finalId, finalTicket);
         }
 
         const merged = Array.from(map.values()).sort(compareTicketsOrder);
@@ -1842,9 +1965,11 @@ export const WarehouseInventoryService = {
         if (!dedicatedTablesMissing) {
             try {
                 if (obsoleteIdsToDelete.length > 0) {
-                    await supabase.from('warehouse_inventory_tickets').delete().in('id', obsoleteIdsToDelete);
+                    try {
+                        await supabase.from('warehouse_inventory_tickets').delete().in('id', obsoleteIdsToDelete);
+                    } catch (_) {}
                 }
-                const dbRows = tickets.map(mapModelTicketToDb);
+                const dbRows = Array.from(ticketsToUpsertMap.values()).map(mapModelTicketToDb);
                 const chunkSize = 500;
                 for (let i = 0; i < dbRows.length; i += chunkSize) {
                     const chunk = dbRows.slice(i, i + chunkSize);
@@ -1869,7 +1994,11 @@ export const WarehouseInventoryService = {
             await syncFallbackStateToContentSettings();
         }
 
-        return tickets.length;
+        return {
+            totalProcessed: tickets.length,
+            newCount,
+            duplicateCount
+        };
     },
 
     async updateTicket(ticket: WarehouseInventoryTicket): Promise<boolean> {
@@ -2208,8 +2337,13 @@ export const WarehouseInventoryService = {
         }
 
         if (classifiedTickets.length > 0) {
-            await this.saveTicketsBulk(classifiedTickets);
+            const stats = await this.saveTicketsBulkWithStats(classifiedTickets, { preserveExistingFields: true });
             summary.importedCount = classifiedTickets.length;
+            summary.newCount = stats.newCount;
+            summary.duplicateCount = stats.duplicateCount;
+        } else {
+            summary.newCount = 0;
+            summary.duplicateCount = 0;
         }
 
         for (const whId of updatedWhSet) {
@@ -2820,8 +2954,13 @@ export const WarehouseInventoryService = {
                 } else if (updatedWhSet.has('KHO 1') || updatedWhSet.has('KHO 2') || updatedWhSet.has('KHO 3')) {
                     await this.clearWarehouseTickets('GROUP_KHO123');
                 }
-                await this.saveTicketsBulk(allTickets);
+                const stats = await this.saveTicketsBulkWithStats(allTickets, { preserveExistingFields: true });
                 summary.importedCount = allTickets.length;
+                summary.newCount = stats.newCount;
+                summary.duplicateCount = stats.duplicateCount;
+            } else {
+                summary.newCount = 0;
+                summary.duplicateCount = 0;
             }
 
             for (const whId of updatedWhSet) {

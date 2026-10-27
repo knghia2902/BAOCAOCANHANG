@@ -189,6 +189,8 @@ export interface WarehouseFinalRow {
 
 export interface WarehouseImportSummary {
     importedCount: number;
+    newCount?: number;
+    duplicateCount?: number;
     importFlowCount: number;
     exportFlowCount: number;
     directFlowCount: number;
@@ -242,5 +244,3 @@ export interface WarehouseVisualMapState {
     updatedAt?: string;
     updatedBy?: string;
 }
-
-

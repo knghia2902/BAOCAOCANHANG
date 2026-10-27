@@ -358,8 +358,11 @@ async function handleCsvFilesSelected(e: Event) {
             }
         }
 
+        const dupNote = summary.duplicateCount && summary.duplicateCount > 0
+            ? ` [Mới: ${summary.newCount ?? 0}, Trùng đã gộp: ${summary.duplicateCount}]`
+            : '';
         const msgParts = [
-            `Đã nạp ${summary.importedCount} phiếu vào Tồn kho (Nhập kho: ${summary.importFlowCount}, Xuất kho: ${summary.exportFlowCount}, Đi thẳng: ${summary.directFlowCount})`
+            `Đã nạp ${summary.importedCount} phiếu vào Tồn kho${dupNote} (Nhập kho: ${summary.importFlowCount}, Xuất kho: ${summary.exportFlowCount}, Đi thẳng: ${summary.directFlowCount})`
         ];
         if (summary.syncedToAllocatorCount > 0) {
             msgParts.push(`Đã đồng bộ ${summary.syncedToAllocatorCount} phiếu vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng`);
