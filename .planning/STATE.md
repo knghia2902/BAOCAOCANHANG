@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-20)
 Phase: 20 — Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng
 Plans: 3/3 completed (20-01, 20-02, 20-03)
 Status: Completed
-Last activity: 2026-10-21 — Phase 20 executed and verified
+Last activity: 2026-11-01 - Completed quick task 261101-tnn: Kiểm tra và sửa lỗi lặp dữ liệu phiếu cân khi đồng bộ từ Báo cáo cân hàng qua Báo cáo tổng quan
 
 ## Performance Metrics
 
@@ -113,6 +113,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 261021-imy | Mặc định thu gọn các tàu ở sidebar trái trong Báo Cáo Tổng Quan | 2026-10-21 | [261021-imy-mac-dinh-thu-gon-cac-tau-o-sidebar-trai-](./quick/261021-imy-mac-dinh-thu-gon-cac-tau-o-sidebar-trai-/) |
 | 261025-edt | Thêm nút Edit ở mỗi phiếu cân và Modal chỉnh sửa chi tiết trong Tồn Kho 4 Kho | 2026-10-25 | [261025-edt-them-nut-edit-o-moi-phieu-can](./quick/261025-edt-them-nut-edit-o-moi-phieu-can/) |
 | 261025-tu5 | Chuẩn hóa mẫu phiếu cân toàn cảng và đồng bộ thông tin Nguồn tàu | 2026-10-25 | [261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b](./quick/261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b/) |
+| 261101-tnn | Kiểm tra và sửa lỗi lặp dữ liệu phiếu cân khi đồng bộ từ Báo cáo cân hàng qua Báo cáo tổng quan | 2026-11-01 | [261101-tnn-kiem-tra-lai-co-che-dong-bo-phieu-can-tu](./quick/261101-tnn-kiem-tra-lai-co-che-dong-bo-phieu-can-tu/) |
 
 ## Session Continuity
 
