@@ -4,7 +4,7 @@ import { authStore, canCreate, canUpdate, canDelete, hasDetailPermission } from 
 import { supabase } from '@/supabase';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
-import { WeighbridgeService, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
+import { WeighbridgeService, isSameScaleTicket, deduplicateBargeTrucks, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
 import { LogService } from '@/services/storage/LogService';
 const props = withDefaults(defineProps<{
     hideCard?: boolean;
@@ -19,6 +19,10 @@ const activeTab = ref<'data' | 'config' | 'goods'>('data');
 // Global goods list state & sync channel
 const globalGoodsList = ref<string[]>([]);
 const syncChannel = new BroadcastChannel('allocator_sync_channel');
+let isAllocatorSyncRunning = false;
+let pendingAllocatorSync = false;
+let allocatorSyncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 syncChannel.onmessage = async (event) => {
     try {
         if (event.data.type === 'goods') {
@@ -27,10 +31,13 @@ syncChannel.onmessage = async (event) => {
                 globalGoodsList.value = saved;
             }
         } else if (event.data.type === 'manual_sync_request') {
-            await autoSyncAllBarges(true);
+            await autoSyncAllBarges(true, true);
         } else if (event.data.type === 'tickets') {
-            await autoSyncAllBarges(false);
-            await loadVessels();
+            if (allocatorSyncDebounceTimer) clearTimeout(allocatorSyncDebounceTimer);
+            allocatorSyncDebounceTimer = setTimeout(async () => {
+                await autoSyncAllBarges(false, true);
+                await loadVessels();
+            }, 150);
         }
     } catch (e) {
         console.error('Lỗi khi đồng bộ qua in phiếu cân:', e);
@@ -2667,6 +2674,7 @@ function regenerateAllTicketNumbers(trucksList: Truck[], startingSeed: string | 
         
         return {
             ...truck,
+            sourceTicketNo: truck.sourceTicketNo || (truck.ticketNo && !/^\d{5,6}\/\d{4}$/.test(truck.ticketNo) ? truck.ticketNo : undefined),
             ticketNo: `${serialStr}/${suffix}`
         };
     });
@@ -3398,25 +3406,35 @@ function isBargeMatch(trip: any, barge: Barge): boolean {
     return false;
 }
 
-async function autoSyncAllBarges(isManual = false) {
+async function autoSyncAllBarges(isManual = false, preferLocalIdb = false) {
+    if (isAllocatorSyncRunning) {
+        pendingAllocatorSync = true;
+        return;
+    }
+    isAllocatorSyncRunning = true;
     try {
         let allocatorTrips: any[] = [];
-        try {
-            const { data, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-                
-            if (!fetchError && data?.settings) {
-                allocatorTrips = data.settings.allocator_tickets || [];
-                await dbContext.set('allocator_tickets', allocatorTrips);
-            } else {
+        if (preferLocalIdb) {
+            allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
+        }
+        if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('content')
+                    .select('settings')
+                    .eq('id', 'main')
+                    .single();
+                    
+                if (!fetchError && data?.settings) {
+                    allocatorTrips = data.settings.allocator_tickets || [];
+                    await dbContext.set('allocator_tickets', allocatorTrips);
+                } else {
+                    allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
+                }
+            } catch (dbErr) {
+                console.error('Lỗi khi truy xuất dữ liệu đồng bộ:', dbErr);
                 allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
             }
-        } catch (dbErr) {
-            console.error('Lỗi khi truy xuất dữ liệu đồng bộ:', dbErr);
-            allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
         }
 
         if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
@@ -3471,23 +3489,33 @@ async function autoSyncAllBarges(isManual = false) {
                     try {
                         if (t.dateInStr && t.timeInStr) {
                             dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`);
-                        } else if (t.date1Obj) {
+                        }
+                        if (!dIn && t.date1Obj) {
                             dIn = parseExcelDate(t.date1Obj);
-                        } else if (t.dateInStr) {
+                        }
+                        if (!dIn && t.dateInStr) {
                             dIn = parseExcelDate(t.dateInStr);
                         }
 
                         if (t.dateOutStr && t.timeOutStr) {
                             dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`);
-                        } else if (t.date2Obj) {
+                        }
+                        if (!dOut && t.date2Obj) {
                             dOut = parseExcelDate(t.date2Obj);
-                        } else if (t.dateOutStr) {
+                        }
+                        if (!dOut && t.dateOutStr) {
                             dOut = parseExcelDate(t.dateOutStr);
                         }
                     } catch (e) {
                         console.warn('Error parsing date:', e);
                     }
 
+                    if (!dIn && dOut) {
+                        dIn = dOut;
+                    }
+                    if (!dOut && dIn) {
+                        dOut = dIn;
+                    }
                     if (!dIn) {
                         const now = new Date();
                         const y = now.getFullYear();
@@ -3505,7 +3533,7 @@ async function autoSyncAllBarges(isManual = false) {
                         id: Date.now() + idx,
                         barge_id: barge.id,
                         ticketNo: t.ticketNo || '',
-                        sourceTicketNo: t.ticketNo || t.sourceTicketNo || '', // Original CSV ticketNo for dedup
+                        sourceTicketNo: t.sourceTicketNo || t.ticketNo || '', // Original CSV ticketNo for dedup
                         plateNumber: t.plateNumber || '',
                         driver: t.driverName || t.driver || '',
                         weight1: Number(t.weight1) || 0,
@@ -3513,23 +3541,34 @@ async function autoSyncAllBarges(isManual = false) {
                         weightNet: Number(t.weightNet) || 0,
                         dateIn: dIn,
                         dateOut: dOut,
-                        note: t.notes || t.note || ''
+                        note: t.notes || t.note || '',
+                        ...(t.yard ? { yard: t.yard } : {})
                     };
                 });
 
-                const currentTrucks = await WeighbridgeService.getTrucks(barge.id);
-                
-                const normPlate = (p: string) => p.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-                const tripsToAdd = importedTrucks.filter(tr => {
-                    if (tr.ticketNo) {
-                        return !currentTrucks.some(ct => ct.ticketNo === tr.ticketNo);
+                const rawCurrentTrucks = await WeighbridgeService.getTrucks(barge.id);
+                const { uniqueTrucks: currentTrucks, removedIds: existingDupIds } = deduplicateBargeTrucks(rawCurrentTrucks);
+                let hasMetadataUpdate = existingDupIds.length > 0;
+
+                const tripsToAdd: Truck[] = [];
+                for (const tr of importedTrucks) {
+                    const existingMatch = currentTrucks.find(ct => isSameScaleTicket(ct, tr));
+                    if (existingMatch) {
+                        if (!existingMatch.sourceTicketNo && tr.sourceTicketNo) {
+                            existingMatch.sourceTicketNo = tr.sourceTicketNo;
+                            hasMetadataUpdate = true;
+                        }
+                        if (tr.yard && existingMatch.yard !== tr.yard) {
+                            existingMatch.yard = tr.yard;
+                            hasMetadataUpdate = true;
+                        }
+                        continue;
                     }
-                    return !currentTrucks.some(ct => 
-                        normPlate(ct.plateNumber || '') === normPlate(tr.plateNumber || '') && 
-                        ct.weightNet === tr.weightNet &&
-                        ct.dateOut === tr.dateOut
-                    );
-                });
+                    if (tripsToAdd.some(added => isSameScaleTicket(added, tr))) {
+                        continue;
+                    }
+                    tripsToAdd.push(tr);
+                }
 
                 const mergedTrucks = [...currentTrucks, ...tripsToAdd];
 
@@ -3543,7 +3582,7 @@ async function autoSyncAllBarges(isManual = false) {
                 }
 
                 // Compare mergedTrucks and currentTrucks to prevent redundant saves/toasts
-                let isIdentical = mergedTrucks.length === currentTrucks.length;
+                let isIdentical = !hasMetadataUpdate && mergedTrucks.length === currentTrucks.length;
                 if (isIdentical) {
                     for (let i = 0; i < mergedTrucks.length; i++) {
                         const mt = mergedTrucks[i]!;
@@ -3596,6 +3635,12 @@ async function autoSyncAllBarges(isManual = false) {
         }
     } catch (e) {
         console.error('Lỗi khi tự động đồng bộ từ phân bổ:', e);
+    } finally {
+        isAllocatorSyncRunning = false;
+        if (pendingAllocatorSync) {
+            pendingAllocatorSync = false;
+            await autoSyncAllBarges(false, true);
+        }
     }
 }
 
@@ -3615,13 +3660,18 @@ const syncFromAllocatorActiveBarge = async () => {
         return;
     }
 
-    
     const bargeOrderNo = activeBarge.value.config?.orderNo ? String(activeBarge.value.config.orderNo).trim() : '';
     if (!bargeOrderNo) {
         showToast(`Cảnh báo: Sà lan "${activeBarge.value.name}" chưa được cấu hình Mã lệnh!`, 'error');
         return;
     }
 
+    if (isAllocatorSyncRunning) {
+        showToast('Hệ thống đang đồng bộ dữ liệu, vui lòng đợi giây lát...', 'warning');
+        return;
+    }
+
+    isAllocatorSyncRunning = true;
     loading.value = true;
     try {
         const { data, error: fetchError } = await supabase
@@ -3652,8 +3702,9 @@ const syncFromAllocatorActiveBarge = async () => {
             return;
         }
 
-        // Get current trucks
-        const currentTrucks = await WeighbridgeService.getTrucks(bargeId);
+        // Get current trucks (already deduplicated by WeighbridgeService.getTrucks)
+        const rawCurrentTrucks = await WeighbridgeService.getTrucks(bargeId);
+        const { uniqueTrucks: currentTrucks } = deduplicateBargeTrucks(rawCurrentTrucks);
         let action: 'overwrite' | 'append' = 'append';
 
         if (currentTrucks.length > 0) {
@@ -3673,23 +3724,33 @@ const syncFromAllocatorActiveBarge = async () => {
             try {
                 if (t.dateInStr && t.timeInStr) {
                     dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`);
-                } else if (t.date1Obj) {
+                }
+                if (!dIn && t.date1Obj) {
                     dIn = parseExcelDate(t.date1Obj);
-                } else if (t.dateInStr) {
+                }
+                if (!dIn && t.dateInStr) {
                     dIn = parseExcelDate(t.dateInStr);
                 }
 
                 if (t.dateOutStr && t.timeOutStr) {
                     dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`);
-                } else if (t.date2Obj) {
+                }
+                if (!dOut && t.date2Obj) {
                     dOut = parseExcelDate(t.date2Obj);
-                } else if (t.dateOutStr) {
+                }
+                if (!dOut && t.dateOutStr) {
                     dOut = parseExcelDate(t.dateOutStr);
                 }
             } catch (e) {
                 console.warn('Error parsing date:', e);
             }
 
+            if (!dIn && dOut) {
+                dIn = dOut;
+            }
+            if (!dOut && dIn) {
+                dOut = dIn;
+            }
             if (!dIn) {
                 const now = new Date();
                 const y = now.getFullYear();
@@ -3707,7 +3768,7 @@ const syncFromAllocatorActiveBarge = async () => {
                 id: Date.now() + idx,
                 barge_id: bargeId,
                 ticketNo: t.ticketNo || '',
-                sourceTicketNo: t.ticketNo || t.sourceTicketNo || '', // Original CSV ticketNo for dedup
+                sourceTicketNo: t.sourceTicketNo || t.ticketNo || '', // Original CSV ticketNo for dedup
                 plateNumber: t.plateNumber || '',
                 driver: t.driverName || t.driver || '',
                 weight1: Number(t.weight1) || 0,
@@ -3715,7 +3776,8 @@ const syncFromAllocatorActiveBarge = async () => {
                 weightNet: Number(t.weightNet) || 0,
                 dateIn: dIn,
                 dateOut: dOut,
-                note: t.notes || t.note || ''
+                note: t.notes || t.note || '',
+                ...(t.yard ? { yard: t.yard } : {})
             };
         });
 
@@ -3723,26 +3785,33 @@ const syncFromAllocatorActiveBarge = async () => {
         let allTrucks: Truck[] = [];
         if (action === 'overwrite') {
             await WeighbridgeService.deleteAllTrucksForBarge(bargeId);
-            for (const tr of importedTrucks) {
+            const { uniqueTrucks: dedupedImports } = deduplicateBargeTrucks(importedTrucks);
+            for (const tr of dedupedImports) {
                 if (!tr.ticketNo) {
-                    tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, importedTrucks, currentSeed, tr.id);
+                    tr.ticketNo = getNextTicketNumber(tr.dateOut || tr.dateIn, dedupedImports, currentSeed, tr.id);
                     const serialPart = tr.ticketNo.split('/')[0];
                     currentSeed = (parseInt(serialPart || '0', 10) || 1) + 1;
                 }
             }
-            allTrucks = importedTrucks;
+            allTrucks = dedupedImports;
         } else {
-            const normPlate = (p: string) => p.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
-            const tripsToAdd = importedTrucks.filter(tr => {
-                if (tr.ticketNo) {
-                    return !currentTrucks.some(ct => ct.ticketNo === tr.ticketNo);
+            const tripsToAdd: Truck[] = [];
+            for (const tr of importedTrucks) {
+                const existingMatch = currentTrucks.find(ct => isSameScaleTicket(ct, tr));
+                if (existingMatch) {
+                    if (!existingMatch.sourceTicketNo && tr.sourceTicketNo) {
+                        existingMatch.sourceTicketNo = tr.sourceTicketNo;
+                    }
+                    if (tr.yard && existingMatch.yard !== tr.yard) {
+                        existingMatch.yard = tr.yard;
+                    }
+                    continue;
                 }
-                return !currentTrucks.some(ct => 
-                    normPlate(ct.plateNumber || '') === normPlate(tr.plateNumber || '') && 
-                    ct.weightNet === tr.weightNet &&
-                    ct.dateOut === tr.dateOut
-                );
-            });
+                if (tripsToAdd.some(added => isSameScaleTicket(added, tr))) {
+                    continue;
+                }
+                tripsToAdd.push(tr);
+            }
 
             allTrucks = [...currentTrucks, ...tripsToAdd];
             for (const tr of allTrucks) {
@@ -3758,7 +3827,7 @@ const syncFromAllocatorActiveBarge = async () => {
         if (success) {
             cfgForm.ticketSeed = String(currentSeed).padStart(6, '0');
             await WeighbridgeService.updateBargeConfig(bargeId, { ...cfgForm });
-            showToast(`Đồng bộ thành công ${importedTrucks.length} xe từ Phân rã chuyến!`);
+            showToast(`Đồng bộ thành công ${allTrucks.length} xe từ Phân rã chuyến!`);
             trucks.value = await WeighbridgeService.getTrucks(bargeId);
         } else {
             showToast('Không thể lưu danh sách xe sau đồng bộ!', 'error');
@@ -3768,6 +3837,11 @@ const syncFromAllocatorActiveBarge = async () => {
         showToast('Lỗi khi đồng bộ dữ liệu: ' + (e.message || e), 'error');
     } finally {
         loading.value = false;
+        isAllocatorSyncRunning = false;
+        if (pendingAllocatorSync) {
+            pendingAllocatorSync = false;
+            await autoSyncAllBarges(false, true);
+        }
     }
 };
 
@@ -4707,6 +4781,10 @@ watch([activeTab, showGlobalTemplateModal], async ([newTab, showModal]) => {
 }, { immediate: true });
 
 onUnmounted(() => {
+    if (allocatorSyncDebounceTimer) {
+        clearTimeout(allocatorSyncDebounceTimer);
+        allocatorSyncDebounceTimer = null;
+    }
     try {
         syncChannel.close();
     } catch (e) {}

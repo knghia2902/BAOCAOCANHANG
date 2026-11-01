@@ -231,6 +231,296 @@ export interface Truck {
     note: string;
     created_at?: string;
     sourceTicketNo?: string; // Original CSV ticketNo used for sync dedup (not persisted to DB)
+    yard?: string;
+    clientName?: string;
+    driverName?: string;
+}
+
+const AUTO_SERIAL_TICKET_RE = /^\d{5,6}\/\d{4}$/;
+const SHORT_SEQ_TICKET_RE = /^\d{1,4}$/;
+
+/**
+ * Chuẩn hóa biển số xe đầu kéo chính: tách bỏ phần rơ-moóc sau dấu '/',
+ * xóa ký tự đặc biệt và viết hoa (VD: "61H-16907/61R-55588" -> "61H16907").
+ */
+export function normalizeMainPlate(plate?: string | null): string {
+    if (!plate) return '';
+    return (String(plate).split('/')[0] || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+}
+
+/**
+ * Chuẩn hóa chuỗi ngày giờ về định dạng đến phút YYYY-MM-DDTHH:mm (hoặc YYYY-MM-DD nếu chỉ có ngày).
+ */
+export function normalizeDateTimeMinute(dt?: string | null): string {
+    if (!dt) return '';
+    const str = String(dt).trim();
+    if (!str) return '';
+
+    // 1. ISO hoặc YYYY-MM-DD HH:mm(:ss.sssZ)
+    const isoMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})[T\s]+(\d{1,2}):(\d{1,2})/i);
+    if (isoMatch && isoMatch[1] && isoMatch[2] && isoMatch[3] && isoMatch[4] && isoMatch[5]) {
+        const y = isoMatch[1];
+        const m = String(isoMatch[2]).padStart(2, '0');
+        const d = String(isoMatch[3]).padStart(2, '0');
+        const h = String(isoMatch[4]).padStart(2, '0');
+        const min = String(isoMatch[5]).padStart(2, '0');
+        return `${y}-${m}-${d}T${h}:${min}`;
+    }
+
+    // 2. Định dạng Việt Nam: DD/MM/YYYY HH:mm(:ss) [AM/PM]
+    const dmyHm = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[T\s]+(\d{1,2}):(\d{1,2})(?::\d{1,2})?\s*(AM|PM)?/i);
+    if (dmyHm && dmyHm[1] && dmyHm[2] && dmyHm[3] && dmyHm[4] && dmyHm[5]) {
+        let day = parseInt(dmyHm[1], 10);
+        let month = parseInt(dmyHm[2], 10);
+        const y = dmyHm[3];
+        let hour = parseInt(dmyHm[4], 10);
+        const min = String(dmyHm[5]).padStart(2, '0');
+        const ampm = (dmyHm[6] || '').toUpperCase();
+
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+
+        if (day <= 12 && month > 12) {
+            const tmp = day;
+            day = month;
+            month = tmp;
+        }
+
+        return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${min}`;
+    }
+
+    // 3. Chỉ có ngày YYYY-MM-DD
+    const ymdOnly = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (ymdOnly && ymdOnly[1] && ymdOnly[2] && ymdOnly[3]) {
+        return `${ymdOnly[1]}-${String(ymdOnly[2]).padStart(2, '0')}-${String(ymdOnly[3]).padStart(2, '0')}`;
+    }
+
+    // 4. Chỉ có ngày DD/MM/YYYY
+    const dmyOnly = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmyOnly && dmyOnly[1] && dmyOnly[2] && dmyOnly[3]) {
+        let day = parseInt(dmyOnly[1], 10);
+        let month = parseInt(dmyOnly[2], 10);
+        const y = dmyOnly[3];
+        if (day <= 12 && month > 12) {
+            const tmp = day;
+            day = month;
+            month = tmp;
+        }
+        return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    return str.slice(0, 16);
+}
+
+function normalizeTicketCode(code?: string | null): string {
+    if (!code) return '';
+    return String(code).trim().toUpperCase();
+}
+
+function extractRawDateTime(item: Partial<any>, dir: 'in' | 'out'): string {
+    if (!item) return '';
+    if (dir === 'out') {
+        if (item.dateOut) return String(item.dateOut);
+        if (item.dateOutStr) return `${item.dateOutStr} ${item.timeOutStr || ''}`.trim();
+        if (item.date2Obj) return item.date2Obj instanceof Date ? item.date2Obj.toISOString() : String(item.date2Obj);
+        return '';
+    } else {
+        if (item.dateIn) return String(item.dateIn);
+        if (item.dateInStr) return `${item.dateInStr} ${item.timeInStr || ''}`.trim();
+        if (item.date1Obj) return item.date1Obj instanceof Date ? item.date1Obj.toISOString() : String(item.date1Obj);
+        return '';
+    }
+}
+
+/**
+ * Xác định 2 bản ghi xe/phiếu cân có phải là cùng một chuyến cân thực tế hay không.
+ * Hỗ trợ đối chiếu 2 lớp:
+ * 1. Khớp mã phiếu (ticketNo / sourceTicketNo).
+ * 2. Khớp chữ ký vật lý chuyến cân (biển số đầu kéo chính + khối lượng tịnh + thời gian cân / cặp cân)
+ *    ngay cả khi ticketNo trên sà lan đã bị đánh số lại (ví dụ 000001/1026).
+ */
+export function isSameScaleTicket(a: Partial<any>, b: Partial<any>): boolean {
+    if (!a || !b) return false;
+
+    const plateA = normalizeMainPlate(a.plateNumber || a.plate);
+    const plateB = normalizeMainPlate(b.plateNumber || b.plate);
+    const netA = Number(a.weightNet ?? 0);
+    const netB = Number(b.weightNet ?? 0);
+
+    // Lớp 1: Đối chiếu tất cả mã phiếu có mặt trên a và b
+    const ticketsA = Array.from(new Set([
+        normalizeTicketCode(a.ticketNo),
+        normalizeTicketCode(a.sourceTicketNo)
+    ].filter(Boolean)));
+    const ticketsB = Array.from(new Set([
+        normalizeTicketCode(b.ticketNo),
+        normalizeTicketCode(b.sourceTicketNo)
+    ].filter(Boolean)));
+
+    if (ticketsA.length > 0 && ticketsB.length > 0) {
+        const matchedTicket = ticketsA.find(t => ticketsB.includes(t));
+        if (matchedTicket) {
+            const platesConflict = Boolean(plateA && plateB && plateA !== plateB);
+            if (!platesConflict) {
+                if (SHORT_SEQ_TICKET_RE.test(matchedTicket) && netA > 0 && netB > 0 && Math.abs(netA - netB) > 0.01) {
+                    // Số thứ tự ngắn (1, 2, 3...) nhưng khác trọng lượng -> kiểm tra tiếp chữ ký vật lý
+                } else {
+                    return true;
+                }
+            } else if (!SHORT_SEQ_TICKET_RE.test(matchedTicket) && !AUTO_SERIAL_TICKET_RE.test(matchedTicket)) {
+                if (netA > 0 && netB > 0 && Math.abs(netA - netB) <= 0.01) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Lớp 2: Đối chiếu chữ ký vật lý của chuyến cân (Physical Trip Signature)
+    if (!plateA || !plateB || plateA !== plateB) return false;
+    if (netA <= 0 || netB <= 0 || Math.abs(netA - netB) > 0.01) return false;
+
+    const outA = normalizeDateTimeMinute(extractRawDateTime(a, 'out'));
+    const outB = normalizeDateTimeMinute(extractRawDateTime(b, 'out'));
+    const inA = normalizeDateTimeMinute(extractRawDateTime(a, 'in'));
+    const inB = normalizeDateTimeMinute(extractRawDateTime(b, 'in'));
+
+    const hasSpecificMinute = (dt: string) => dt.length >= 16 && !dt.endsWith('T00:00');
+
+    // Khớp giờ ra tới phút
+    if (outA && outB && hasSpecificMinute(outA) && hasSpecificMinute(outB) && outA === outB) {
+        return true;
+    }
+    // Khớp giờ vào tới phút
+    if (inA && inB && hasSpecificMinute(inA) && hasSpecificMinute(inB) && inA === inB) {
+        return true;
+    }
+
+    // Nếu cả 2 đều có giờ cân cụ thể nhưng lệch nhau -> 2 chuyến khác nhau của cùng 1 xe trong ngày
+    const outConflict = Boolean(outA && outB && hasSpecificMinute(outA) && hasSpecificMinute(outB) && outA !== outB);
+    const inConflict = Boolean(inA && inB && hasSpecificMinute(inA) && hasSpecificMinute(inB) && inA !== inB);
+    if (outConflict && inConflict) {
+        return false;
+    }
+    if (outConflict && (!inA || !inB || !hasSpecificMinute(inA) || !hasSpecificMinute(inB))) {
+        return false;
+    }
+    if (inConflict && (!outA || !outB || !hasSpecificMinute(outA) || !hasSpecificMinute(outB))) {
+        return false;
+    }
+
+    // Cùng ngày (YYYY-MM-DD) và khớp cặp cân lần 1 & lần 2 (hoặc bản ghi chỉ có ngày)
+    const dayA = (outA || inA).slice(0, 10);
+    const dayB = (outB || inB).slice(0, 10);
+    if (dayA && dayB && dayA.length === 10 && dayA === dayB) {
+        const w1A = Number(a.weight1 ?? 0);
+        const w1B = Number(b.weight1 ?? 0);
+        const w2A = Number(a.weight2 ?? 0);
+        const w2B = Number(b.weight2 ?? 0);
+        if (w1A > 0 && w1B > 0 && Math.abs(w1A - w1B) <= 0.01 && Math.abs(w2A - w2B) <= 0.01) {
+            return true;
+        }
+        if (!hasSpecificMinute(outA) && !hasSpecificMinute(inA) && !hasSpecificMinute(outB) && !hasSpecificMinute(inB)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Gộp và loại bỏ các bản ghi xe/phiếu cân bị lặp trên cùng một sà lan.
+ * Bảo toàn id ổn định, ticketNo chuẩn, sourceTicketNo, yard, clientName, driverName,
+ * và trả về danh sách removedIds để xóa trên Supabase.
+ */
+export function deduplicateBargeTrucks<T extends Record<string, any>>(trucks: T[]): {
+    uniqueTrucks: T[];
+    removedIds: any[];
+} {
+    const uniqueTrucks: T[] = [];
+    const removedIds: any[] = [];
+
+    if (!Array.isArray(trucks) || trucks.length === 0) {
+        return { uniqueTrucks, removedIds };
+    }
+
+    const hasSpecificMinute = (dt?: string) => {
+        const norm = normalizeDateTimeMinute(dt);
+        return norm.length >= 16 && !norm.endsWith('T00:00');
+    };
+
+    for (const item of trucks) {
+        if (!item) continue;
+        const dupIdx = uniqueTrucks.findIndex(existing => isSameScaleTicket(existing, item));
+        if (dupIdx === -1) {
+            uniqueTrucks.push({ ...item });
+            continue;
+        }
+
+        const existing = uniqueTrucks[dupIdx]!;
+        const existingIsAutoSerial = AUTO_SERIAL_TICKET_RE.test(String(existing.ticketNo || '').trim());
+        const itemIsAutoSerial = AUTO_SERIAL_TICKET_RE.test(String(item.ticketNo || '').trim());
+
+        const preferItemAsPrimary = !existingIsAutoSerial && itemIsAutoSerial;
+        const primary: Record<string, any> = preferItemAsPrimary ? { ...item } : { ...existing };
+        const secondary: Record<string, any> = preferItemAsPrimary ? existing : item;
+
+        const rawSourceTicket =
+            primary.sourceTicketNo ||
+            secondary.sourceTicketNo ||
+            (!AUTO_SERIAL_TICKET_RE.test(String(primary.ticketNo || '').trim()) ? primary.ticketNo : '') ||
+            (!AUTO_SERIAL_TICKET_RE.test(String(secondary.ticketNo || '').trim()) ? secondary.ticketNo : '') ||
+            '';
+
+        const merged: Record<string, any> = {
+            ...secondary,
+            ...primary,
+            id: primary.id ?? secondary.id,
+            barge_id: primary.barge_id ?? secondary.barge_id,
+            ticketNo: primary.ticketNo || secondary.ticketNo || '',
+            plateNumber: (primary.plateNumber && String(primary.plateNumber).includes('/'))
+                ? primary.plateNumber
+                : (secondary.plateNumber && String(secondary.plateNumber).includes('/'))
+                    ? secondary.plateNumber
+                    : (primary.plateNumber || secondary.plateNumber || ''),
+            driver: primary.driver || secondary.driver || primary.driverName || secondary.driverName || '',
+            weight1: Number(primary.weight1) || Number(secondary.weight1) || 0,
+            weight2: Number(primary.weight2) || Number(secondary.weight2) || 0,
+            weightNet: Number(primary.weightNet) || Number(secondary.weightNet) || 0,
+            dateIn: hasSpecificMinute(primary.dateIn)
+                ? primary.dateIn
+                : hasSpecificMinute(secondary.dateIn)
+                    ? secondary.dateIn
+                    : (primary.dateIn || secondary.dateIn || ''),
+            dateOut: hasSpecificMinute(primary.dateOut)
+                ? primary.dateOut
+                : hasSpecificMinute(secondary.dateOut)
+                    ? secondary.dateOut
+                    : (primary.dateOut || secondary.dateOut || ''),
+            note: primary.note || secondary.note || ''
+        };
+
+        if (rawSourceTicket) {
+            merged.sourceTicketNo = rawSourceTicket;
+        }
+        if (primary.yard || secondary.yard) {
+            merged.yard = primary.yard || secondary.yard;
+        }
+        if (primary.clientName || secondary.clientName) {
+            merged.clientName = primary.clientName || secondary.clientName;
+        }
+        if (primary.driverName || secondary.driverName) {
+            merged.driverName = primary.driverName || secondary.driverName;
+        }
+
+        uniqueTrucks[dupIdx] = merged as T;
+
+        const removedId = secondary.id;
+        if (removedId !== undefined && removedId !== null && removedId !== merged.id && !removedIds.includes(removedId)) {
+            removedIds.push(removedId);
+        }
+    }
+
+    return { uniqueTrucks, removedIds };
 }
 
 // Local IndexedDB cache helpers
@@ -1064,11 +1354,24 @@ export const WeighbridgeService = {
      * Get all trucks for a specific barge
      */
     async getTrucks(bargeId: number): Promise<Truck[]> {
-        const getLocalTrucks = async () => {
-            return (await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)) || [];
+        const getLocalTrucks = async (): Promise<Truck[]> => {
+            const rawLocal = (await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)) || [];
+            const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(rawLocal);
+            if (removedIds.length > 0) {
+                await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
+            }
+            return uniqueTrucks;
         };
 
         try {
+            const cachedLocal = (await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)) || [];
+            const localById = new Map<any, Truck>();
+            for (const lt of cachedLocal) {
+                if (lt && lt.id !== undefined && lt.id !== null) {
+                    localById.set(lt.id, lt);
+                }
+            }
+
             const { data, error } = await supabase
                 .from('weighbridge_trucks')
                 .select('*')
@@ -1080,23 +1383,45 @@ export const WeighbridgeService = {
                 return await getLocalTrucks();
             }
 
-            const formatted = (data || []).map((t: any) => ({
-                id: t.id,
-                barge_id: t.barge_id,
-                ticketNo: t.ticket_no,
-                plateNumber: t.plate_number,
-                driver: t.driver || '',
-                weight1: Number(t.weight_1),
-                weight2: Number(t.weight_2),
-                weightNet: Number(t.weight_net),
-                dateIn: t.date_in || '',
-                dateOut: t.date_out || '',
-                note: t.note || '',
-                created_at: t.created_at
-            }));
+            const formatted: Truck[] = (data || []).map((t: any) => {
+                const prev = localById.get(t.id);
+                return {
+                    id: t.id,
+                    barge_id: t.barge_id,
+                    ticketNo: t.ticket_no,
+                    sourceTicketNo: prev?.sourceTicketNo || '',
+                    plateNumber: t.plate_number,
+                    driver: t.driver || '',
+                    weight1: Number(t.weight_1),
+                    weight2: Number(t.weight_2),
+                    weightNet: Number(t.weight_net),
+                    dateIn: t.date_in || '',
+                    dateOut: t.date_out || '',
+                    note: t.note || '',
+                    created_at: t.created_at,
+                    ...(prev?.yard ? { yard: prev.yard } : {})
+                };
+            });
 
-            await dbContext.set(`wb_trucks_${bargeId}`, formatted);
-            return formatted;
+            const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(formatted);
+            await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
+
+            if (removedIds.length > 0) {
+                try {
+                    const { error: delError } = await supabase
+                        .from('weighbridge_trucks')
+                        .delete()
+                        .eq('barge_id', bargeId)
+                        .in('id', removedIds);
+                    if (delError) {
+                        console.warn('Supabase cleanup duplicate trucks failed:', delError);
+                    }
+                } catch (cleanupErr) {
+                    console.warn('Supabase offline during duplicate trucks cleanup:', cleanupErr);
+                }
+            }
+
+            return uniqueTrucks;
         } catch (e) {
             console.warn('Supabase offline, loading trucks locally:', e);
             return await getLocalTrucks();
@@ -1127,12 +1452,24 @@ export const WeighbridgeService = {
      * Upsert multiple trucks (used in Excel import or bulk edits)
      */
     async saveTrucks(bargeId: number, trucks: any[]): Promise<boolean> {
-        await dbContext.set(`wb_trucks_${bargeId}`, trucks);
+        const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(trucks);
+        await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
 
         try {
-            if (trucks.length === 0) return true;
+            if (removedIds.length > 0) {
+                const { error: delError } = await supabase
+                    .from('weighbridge_trucks')
+                    .delete()
+                    .eq('barge_id', bargeId)
+                    .in('id', removedIds);
+                if (delError) {
+                    console.warn('Supabase delete duplicate trucks in saveTrucks failed:', delError);
+                }
+            }
 
-            const dbTrucks = trucks.map(t => ({
+            if (uniqueTrucks.length === 0) return true;
+
+            const dbTrucks = uniqueTrucks.map(t => ({
                 id: t.id,
                 barge_id: bargeId,
                 ticket_no: t.ticketNo,
