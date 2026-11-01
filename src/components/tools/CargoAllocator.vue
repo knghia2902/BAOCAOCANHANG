@@ -10,6 +10,7 @@ import WeighbridgeOtherManager from '@/components/tools/WeighbridgeOtherManager.
 import { LogService } from '@/services/storage/LogService';
 import { AllocatorService } from '@/services/excel/AllocatorService';
 import { VehicleService } from '@/services/excel/VehicleService';
+import { normalizeMainPlate, isSameScaleTicket, deduplicateBargeTrucks } from '@/services/excel/WeighbridgeService';
 
 const { addToast } = useToast();
 
@@ -261,6 +262,7 @@ syncChannel.onmessage = async (event) => {
     } catch (e) {
         console.error('Lỗi khi đồng bộ giữa các tab:', e);
     } finally {
+        await nextTick();
         isSyncingFromChannel = false;
     }
 };
@@ -566,7 +568,7 @@ function parseCSVText(text: string): CSVRecord[] {
     const normHeaders = headers.map(cleanHeader);
     
     // Map headers to indexes
-    const idxTicket = normHeaders.findIndex(h => h.includes('phieu') || h.includes('ticket') || (h === 'stt' && !normHeaders.some(x => x.includes('phieu'))));
+    const idxTicket = normHeaders.findIndex(h => h.includes('phieu') || h.includes('ticket'));
     const idxPlate = normHeaders.findIndex(h => h.includes('bien so') || h.includes('so xe') || h.includes('xe') || h.includes('plate'));
     const idxCustomer = normHeaders.findIndex(h => h.includes('khach') || h.includes('chu hang') || h.includes('customer'));
     const idxWeight1 = normHeaders.findIndex(h => 
@@ -848,15 +850,14 @@ function getHistoryDuplicates(records: CSVRecord[]): { dupRecords: CSVRecord[], 
     const dupRecords: CSVRecord[] = [];
     records.forEach(rec => {
         const isDup = existingTrips.value.some(et => {
-            if (rec.ticketNo && et.ticketNo && rec.ticketNo === et.ticketNo) {
+            if (isSameScaleTicket(rec, et)) {
                 return true;
             }
-            // Check by plate + weight + date only if ticket number is missing
-            if (!rec.ticketNo && rec.plateNumber) {
+            if (rec.plateNumber && et.plateNumber) {
                 const recDate = parseDateTime(rec.dateInStr, rec.timeInStr);
                 const etDate = ensureDate(et.date1Obj);
-                return normalizePlate(rec.plateNumber) === normalizePlate(et.plateNumber) &&
-                       rec.weightNet === et.weightNet &&
+                return normalizeMainPlate(rec.plateNumber) === normalizeMainPlate(et.plateNumber) &&
+                       Math.abs(Number(rec.weightNet || 0) - Number(et.weightNet || 0)) <= 0.01 &&
                        formatExcelDate(recDate) === formatExcelDate(etDate);
             }
             return false;
@@ -897,10 +898,7 @@ async function handleTicketImport(event: Event) {
                 });
                 if (proceed) {
                     // Filter out duplicates
-                    finalRecords = newRecords.filter(r => !dupRecords.some(dr => {
-                        if (r.ticketNo && dr.ticketNo) return r.ticketNo === dr.ticketNo;
-                        return r.plateNumber === dr.plateNumber && r.weightNet === dr.weightNet && r.dateInStr === dr.dateInStr;
-                    }));
+                    finalRecords = newRecords.filter(r => !dupRecords.some(dr => isSameScaleTicket(r, dr)));
                 }
             }
             
@@ -970,7 +968,7 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
         // Map headers to column indexes using cleanHeader
         const normHeaders = headers.map(cleanHeader);
         
-        const idxTicket = normHeaders.findIndex(h => h.includes('phieu') || h.includes('ticket') || (h === 'stt' && !normHeaders.some(x => x.includes('phieu'))));
+        const idxTicket = normHeaders.findIndex(h => h.includes('phieu') || h.includes('ticket'));
         const idxPlate = normHeaders.findIndex(h => h.includes('bien so') || h.includes('so xe') || h.includes('xe') || h.includes('plate'));
         const idxCustomer = normHeaders.findIndex(h => h.includes('khach') || h.includes('chu hang') || h.includes('customer'));
         const idxWeight1 = normHeaders.findIndex(h => 
@@ -1146,10 +1144,7 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
             });
             if (proceed) {
                 // Filter out duplicates
-                finalRecords = newRecords.filter(r => !dupRecords.some(dr => {
-                    if (r.ticketNo && dr.ticketNo) return r.ticketNo === dr.ticketNo;
-                    return r.plateNumber === dr.plateNumber && r.weightNet === dr.weightNet && r.dateInStr === dr.dateInStr;
-                }));
+                finalRecords = newRecords.filter(r => !dupRecords.some(dr => isSameScaleTicket(r, dr)));
             }
         }
         
@@ -1169,36 +1164,38 @@ async function handleTicketExcelUpload(file: File, manualOrderNo: string = '') {
 
 // Smart merge tickets to prevent duplicates
 function mergeTickets(newRecords: CSVRecord[]): { added: number; updated: number; skipped: number } {
-    const currentList = [...csvRecords.value];
+    const { uniqueTrucks: currentList } = deduplicateBargeTrucks([...csvRecords.value]);
     let added = 0;
     let updated = 0;
     let skipped = 0;
     
     newRecords.forEach(rec => {
-        // Tìm trùng theo số phiếu
-        let matchIdx = rec.ticketNo 
-            ? currentList.findIndex(x => x.ticketNo === rec.ticketNo)
-            : -1;
-        
-        // Nếu không có số phiếu, tìm trùng theo biển số + khối lượng hàng + ngày vào
-        if (matchIdx === -1 && !rec.ticketNo && rec.plateNumber) {
-            matchIdx = currentList.findIndex(x => 
-                x.plateNumber === rec.plateNumber && 
-                x.weightNet === rec.weightNet &&
-                x.dateInStr === rec.dateInStr
-            );
-        }
+        // Tìm trùng theo cả số phiếu lẫn chữ ký vật lý (biển số chính + khối lượng tịnh + ngày giờ cân)
+        const matchIdx = currentList.findIndex(x => isSameScaleTicket(x, rec));
             
         const id = rec.id || 'ticket_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         const mergedRec = { ...rec, id };
         
         if (matchIdx !== -1) {
-            // Kiểm tra nếu dữ liệu hoàn toàn giống nhau thì bỏ qua
-            const existing = currentList[matchIdx];
-            if (existing && existing.ticketNo === rec.ticketNo && existing.plateNumber === rec.plateNumber && existing.weightNet === rec.weightNet) {
+            const existing = currentList[matchIdx]!;
+            const preservedId = existing.id || id;
+            const nextRec: CSVRecord = {
+                ...existing,
+                ...rec,
+                id: preservedId,
+                ticketNo: rec.ticketNo || existing.ticketNo || '',
+                orderNo: rec.orderNo || existing.orderNo || ''
+            };
+            if (
+                existing.ticketNo === nextRec.ticketNo &&
+                existing.plateNumber === nextRec.plateNumber &&
+                existing.weightNet === nextRec.weightNet &&
+                (existing.orderNo || '') === (nextRec.orderNo || '') &&
+                (existing.notes || '') === (nextRec.notes || '')
+            ) {
                 skipped++;
             } else {
-                currentList[matchIdx] = mergedRec;
+                currentList[matchIdx] = nextRec;
                 updated++;
             }
         } else {
@@ -1485,12 +1482,13 @@ async function loadTicketsFromSupabase() {
         if (data?.settings) {
             isSyncingFromChannel = true; // disable watch writes during supabase load
 
-            // 1. Overwrite tickets
+            // 1. Overwrite tickets (after deduplicating)
             const remoteTickets = data.settings.allocator_tickets;
             if (Array.isArray(remoteTickets)) {
-                if (JSON.stringify(csvRecords.value) !== JSON.stringify(remoteTickets)) {
-                    csvRecords.value = remoteTickets;
-                    await dbContext.set('allocator_tickets', remoteTickets);
+                const { uniqueTrucks: dedupedRemote } = deduplicateBargeTrucks(remoteTickets as CSVRecord[]);
+                if (JSON.stringify(csvRecords.value) !== JSON.stringify(dedupedRemote)) {
+                    csvRecords.value = dedupedRemote;
+                    await dbContext.set('allocator_tickets', dedupedRemote);
                 }
             } else {
                 if (csvRecords.value.length > 0) {
@@ -1538,6 +1536,7 @@ async function loadTicketsFromSupabase() {
         console.warn('Lỗi khi tải dữ liệu từ Supabase:', e);
         syncStatus.value = 'error';
     } finally {
+        await nextTick();
         isSyncingFromChannel = false;
         isInitLoading.value = false;
     }
@@ -2287,12 +2286,14 @@ onMounted(async () => {
                 }
             }
 
-            csvRecords.value = savedTickets;
+            const { uniqueTrucks: cleanSavedTickets } = deduplicateBargeTrucks(savedTickets);
+            csvRecords.value = cleanSavedTickets;
             existingTrips.value = hydrateTrips(savedHistory);
 
             // Load latest data from Supabase in the background
             await loadTicketsFromSupabase();
         } finally {
+            await nextTick();
             isInitLoading.value = false;
         }
     } catch (e) {

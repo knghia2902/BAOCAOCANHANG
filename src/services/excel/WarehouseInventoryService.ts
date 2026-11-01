@@ -1,6 +1,6 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
-import { WeighbridgeService, type Vessel } from '@/services/weighbridge/WeighbridgeService';
+import { WeighbridgeService, type Vessel, normalizeMainPlate, isSameScaleTicket } from '@/services/weighbridge/WeighbridgeService';
 import type {
     WarehouseId,
     WarehouseFlowType,
@@ -2166,9 +2166,30 @@ export const WarehouseInventoryService = {
             const timeInStr = parseToTimeStr(r.gio1);
             const timeOutStr = parseToTimeStr(r.gio2);
 
+            const candidateForMatch = {
+                ticketNo,
+                sourceTicketNo: ticketNo,
+                plateNumber,
+                weight1,
+                weight2,
+                weightNet,
+                dateInStr,
+                timeInStr,
+                dateOutStr,
+                timeOutStr,
+                date1Obj: dInIso ? `${dInIso}T${timeInStr || '00:00:00'}` : null,
+                date2Obj: dOutIso ? `${dOutIso}T${timeOutStr || '00:00:00'}` : null
+            };
+
             const existsIdx = existingAllocatorTickets.findIndex(x =>
-                (ticketNo && x.ticketNo === ticketNo) ||
-                (!ticketNo && x.plateNumber === plateNumber && x.weightNet === weightNet && x.dateOutStr === dateOutStr)
+                (ticketNo && (x.ticketNo === ticketNo || x.sourceTicketNo === ticketNo)) ||
+                isSameScaleTicket(x, candidateForMatch) ||
+                (
+                    normalizeMainPlate(x.plateNumber) === normalizeMainPlate(plateNumber) &&
+                    Math.abs(Number(x.weightNet || 0) - Number(weightNet || 0)) <= 0.01 &&
+                    x.dateInStr === dateInStr &&
+                    ((timeInStr && x.timeInStr === timeInStr) || (timeOutStr && x.timeOutStr === timeOutStr) || (!timeInStr && !timeOutStr))
+                )
             );
 
             const recordPayload = {
