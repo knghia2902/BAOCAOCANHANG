@@ -72,37 +72,9 @@ const handleSaveProfile = async () => {
     }
 };
 
-const allowedTools = ref<string[]>([]);
-const loadingTools = ref(true);
-
-const loadTools = async () => {
-    loadingTools.value = true;
-    if (authStore.isAuthenticated) {
-        if (authStore.role === 'admin') {
-            allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'];
-        } else {
-            try {
-                const rolePerms = await ContentService.loadRolePermissions();
-                authStore.rolePermissions = rolePerms;
-                allowedTools.value = rolePerms[authStore.role || 'staff']?.tools || [];
-            } catch (e) {
-                console.error(e);
-                allowedTools.value = [];
-            }
-        }
-    } else {
-        allowedTools.value = [];
-    }
-    loadingTools.value = false;
-};
-
-watch(() => [authStore.isAuthenticated, authStore.role], async () => {
-    await loadTools();
-}, { immediate: true });
-
 const updateZoom = () => {
     if (typeof window !== 'undefined') {
-        const isToolPage = route.path.startsWith('/tools/');
+        const isToolPage = route.path.startsWith('/tools/') || route.path.startsWith('/workspace') || route.path === '/split';
         if (window.innerWidth >= 1024) {
             (document.documentElement.style as any).zoom = isToolPage ? 0.9 : 0.8;
         } else {
@@ -142,7 +114,10 @@ onUnmounted(() => {
             <span class="material-symbols-outlined text-base">home</span>
             Home
         </router-link>
-        <router-link v-if="allowedTools.length > 0" to="/tools" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Tools</router-link>
+        <router-link to="/workspace" class="flex items-center gap-1.5 text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">
+            <span class="material-symbols-outlined text-base text-primary">account_tree</span>
+            Workspace
+        </router-link>
         <router-link to="/documents" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Docs</router-link>
         <router-link to="/about" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">About</router-link>
       </nav>
@@ -194,13 +169,12 @@ onUnmounted(() => {
                   Home
                 </router-link>
                 <router-link 
-                  v-if="allowedTools.length > 0"
-                  to="/tools" 
+                  to="/workspace" 
                   @click="closeDropdown"
                   class="px-4 py-2.5 hover:bg-primary/10 text-[#1e293b]/85 font-bold text-xs flex items-center gap-2 transition-colors border-t border-primary/5"
                 >
-                  <span class="material-symbols-outlined text-base text-primary/60">widgets</span>
-                  Tools
+                  <span class="material-symbols-outlined text-base text-primary/60">account_tree</span>
+                  Workspace
                 </router-link>
                 <router-link 
                   to="/documents" 

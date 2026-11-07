@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
-
+import { ref, onMounted, computed } from 'vue';
 import { authStore } from '../stores/auth';
-
 import { WeighbridgeService } from '../services/excel/WeighbridgeService';
-import { ContentService } from '../services/ContentService';
-
-
 
 const vessels = ref<any[]>([]);
 const loading = ref(true);
-const allowedTools = ref<string[]>([]);
-const loadingTools = ref(true);
 
 const loadData = async () => {
     try {
@@ -48,21 +41,6 @@ const allBarges = computed(() => {
     return list;
 });
 
-
-
-const loadToolsConfig = async () => {
-    loadingTools.value = true;
-    if (authStore.role === 'admin') {
-        allowedTools.value = ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'];
-    } else if (authStore.role === 'staff') {
-        allowedTools.value = await ContentService.loadStaffTools();
-    } else {
-        // Least privilege: unknown roles get no tools
-        allowedTools.value = [];
-    }
-    loadingTools.value = false;
-};
-
 // Format current date
 const formattedDate = computed(() => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -76,10 +54,6 @@ const greeting = computed(() => {
     if (hour < 18) return 'Chào buổi chiều';
     return 'Chào buổi tối';
 });
-
-watch(() => [authStore.isAuthenticated, authStore.role], async () => {
-    await loadToolsConfig();
-}, { immediate: true });
 
 onMounted(async () => {
     loadData();
@@ -121,8 +95,9 @@ onMounted(async () => {
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-4 justify-center lg:justify-start">
-                    <router-link to="/tools" class="min-w-[180px] h-14 flex items-center justify-center rounded-full bg-primary text-white font-bold text-lg glow-primary hover:translate-y-[-2px] transition-all">
-                        Mở công cụ
+                    <router-link to="/workspace" class="min-w-[200px] px-6 h-14 flex items-center justify-center gap-2 rounded-full bg-primary text-white font-bold text-lg glow-primary hover:translate-y-[-2px] transition-all">
+                        <span class="material-symbols-outlined text-xl">account_tree</span>
+                        <span>Mở Workspace</span>
                     </router-link>
                     <router-link v-if="authStore.role === 'admin'" to="/admin" class="min-w-[180px] h-14 flex items-center justify-center rounded-full border-2 border-strawberry-cream font-bold text-lg hover:bg-white/50 transition-all text-primary">
                         Quản trị
@@ -168,26 +143,24 @@ onMounted(async () => {
                 <h2 class="text-3xl md:text-4xl font-bold text-center text-[#1e293b]">Tiện ích hệ thống</h2>
                 <div class="h-1.5 w-24 bg-primary rounded-full glow-primary"></div>
             </div>
-            <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4" v-if="!loadingTools">
-                <!-- Báo Cáo Tổng Quan -->
+            <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4">
+                <!-- Tạo Nguồn Tàu -->
                 <router-link
-                    v-if="allowedTools.includes('weighbridge')"
-                    to="/tools/weighbridge"
+                    to="/workspace?tab=vessel-source"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
-                        <span class="material-symbols-outlined text-3xl">monitoring</span>
+                        <span class="material-symbols-outlined text-3xl">directions_boat</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Báo Cáo Tổng Quan</p>
+                        <p class="font-bold text-lg leading-none">Tạo Nguồn Tàu</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
                 <!-- Dữ Liệu Cân Hàng -->
                 <router-link
-                    v-if="allowedTools.includes('allocator')"
-                    to="/tools/allocator"
+                    to="/workspace?tab=scale-data"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
@@ -199,14 +172,41 @@ onMounted(async () => {
                     </div>
                 </router-link>
 
-                <!-- Quản Lý Hồ Sơ Phương Tiện -->
+                <!-- Báo Cáo Tồn Kho -->
                 <router-link
-                    v-if="allowedTools.includes('vehicles')"
-                    to="/tools/vehicles"
+                    to="/workspace?tab=report-inventory"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-amber-600 transition-colors group-hover:bg-amber-600/5">
+                        <span class="material-symbols-outlined text-3xl">warehouse</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Báo Cáo Tồn Kho</p>
+                        <p class="text-[10px] text-amber-600 font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Báo Cáo Lô Hàng -->
+                <router-link
+                    to="/workspace?tab=report-shipment"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
-                        <span class="material-symbols-outlined text-3xl">directions_boat</span>
+                        <span class="material-symbols-outlined text-3xl">monitoring</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold text-lg leading-none">Báo Cáo Lô Hàng</p>
+                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                    </div>
+                </router-link>
+
+                <!-- Quản Lý Hồ Sơ Phương Tiện -->
+                <router-link
+                    to="/workspace?tab=vehicles"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                >
+                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
+                        <span class="material-symbols-outlined text-3xl">sailing</span>
                     </div>
                     <div class="text-center">
                         <p class="font-bold text-lg leading-none">Quản Lý Hồ Sơ Phương Tiện</p>
@@ -216,7 +216,7 @@ onMounted(async () => {
 
                 <!-- Biên Bản Sà Lan -->
                 <router-link
-                    to="/tools/minutes"
+                    to="/workspace?tab=minutes"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
@@ -224,34 +224,6 @@ onMounted(async () => {
                     </div>
                     <div class="text-center">
                         <p class="font-bold text-lg leading-none">Biên Bản Sà Lan</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
-                    </div>
-                </router-link>
-
-                <!-- Báo Cáo Tồn Kho 4 Kho -->
-                <router-link
-                    to="/tools/warehouse"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
-                >
-                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-amber-600 transition-colors group-hover:bg-amber-600/5">
-                        <span class="material-symbols-outlined text-3xl">warehouse</span>
-                    </div>
-                    <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Tồn Kho 4 Kho</p>
-                        <p class="text-[10px] text-amber-600 font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
-                    </div>
-                </router-link>
-
-                <!-- Bộ công cụ Excel/PDF -->
-                <router-link
-                    to="/tools/utilities"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
-                >
-                    <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
-                        <span class="material-symbols-outlined text-3xl">construction</span>
-                    </div>
-                    <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Excel & PDF</p>
                         <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>

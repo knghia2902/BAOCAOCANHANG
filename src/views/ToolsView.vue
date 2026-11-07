@@ -51,6 +51,14 @@ onMounted(async () => {
 
 const allTools = [
   {
+    id: 'workspace',
+    name: 'Sơ Đồ Điều Hành (Workspace) ✨',
+    desc: 'Không gian làm việc hợp nhất dạng Sơ đồ cây 2 phân hệ (Nghiệp vụ & Danh mục), tiếp nhận 2 file cân và liên thông toàn bộ báo cáo.',
+    icon: 'account_tree',
+    bgIcon: 'bg-primary text-white shadow-soft',
+    tags: ['Sơ đồ cây', 'Hợp nhất', '2 Phân hệ', 'Liên thông']
+  },
+  {
     id: 'weighbridge',
     name: 'Báo Cáo Tổng Quan 🚢',
     desc: 'Báo cáo tổng quan tiến độ làm hàng của các tàu mẹ, theo dõi danh sách sà lan và thống kê khối lượng toàn cảng.',
@@ -125,7 +133,9 @@ const toolsList = computed(() => {
 });
 
 const openTool = (id: string) => {
-  if (id === 'split') {
+  if (id === 'workspace') {
+    router.push('/workspace');
+  } else if (id === 'split') {
     router.push('/split');
   } else {
     router.push(`/tools/${id}`);

@@ -5,6 +5,7 @@ import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
 import { LogService } from '@/services/storage/LogService';
 import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
+import { WeighbridgeService, type MasterCargoItem } from '@/services/excel/WeighbridgeService';
 
 const { addToast } = useToast();
 
@@ -61,15 +62,88 @@ function handleConfirmCancel() {
 
 const syncChannel = new BroadcastChannel('allocator_sync_channel');
 
-syncChannel.onmessage = async (event) => {
+const goodsItems = ref<MasterCargoItem[]>([]);
+const searchQuery = ref('');
+
+// Form state
+const goodsNameInput = ref('');
+const goodsCodeInput = ref('');
+const editingIndex = ref<number | null>(null);
+
+const syncStatus = ref<'synced' | 'saving' | 'error'>('synced');
+const loadingCloud = ref(false);
+
+async function loadUnifiedGoods() {
+    loadingCloud.value = true;
     try {
-        if (event.data.type === 'goods') {
-            const saved = await dbContext.get<string[]>('allocator_goods');
-            if (saved && Array.isArray(saved)) {
-                if (JSON.stringify(goodsList.value) !== JSON.stringify(saved)) {
-                    goodsList.value = saved;
+        // 1. Load from WeighbridgeService master data (has { name, code })
+        const wbMaster = await WeighbridgeService.getMasterData();
+        const map = new Map<string, string>();
+
+        if (wbMaster?.goods && Array.isArray(wbMaster.goods)) {
+            for (const g of wbMaster.goods) {
+                if (g && g.name) {
+                    map.set(g.name.trim().toUpperCase(), (g.code || '').trim().toUpperCase());
                 }
             }
+        }
+
+        // 2. Merge with allocator_goods (string[]) from IndexedDB / Supabase
+        const localNames = await dbContext.get<string[]>('allocator_goods');
+        if (localNames && Array.isArray(localNames)) {
+            for (const n of localNames) {
+                const key = String(n || '').trim().toUpperCase();
+                if (key && !map.has(key)) {
+                    map.set(key, '');
+                }
+            }
+        }
+
+        const { data, error } = await supabase
+            .from('content')
+            .select('settings')
+            .eq('id', 'main')
+            .single();
+
+        if (!error && data?.settings) {
+            const remoteGoods = data.settings.allocator_goods;
+            if (Array.isArray(remoteGoods)) {
+                for (const n of remoteGoods) {
+                    const key = String(n || '').trim().toUpperCase();
+                    if (key && !map.has(key)) {
+                        map.set(key, '');
+                    }
+                }
+            }
+            const remoteMaster = data.settings.weighbridge_master_data;
+            if (remoteMaster?.goods && Array.isArray(remoteMaster.goods)) {
+                for (const g of remoteMaster.goods) {
+                    if (g && g.name) {
+                        const key = g.name.trim().toUpperCase();
+                        const code = (g.code || '').trim().toUpperCase();
+                        if (code || !map.has(key)) {
+                            map.set(key, code);
+                        }
+                    }
+                }
+            }
+        }
+
+        goodsItems.value = Array.from(map.entries()).map(([name, code]) => ({ name, code }));
+        await dbContext.set('allocator_goods', goodsItems.value.map(g => g.name));
+        syncStatus.value = 'synced';
+    } catch (e) {
+        console.warn('Lỗi khi tải danh mục hàng hóa:', e);
+        syncStatus.value = 'error';
+    } finally {
+        loadingCloud.value = false;
+    }
+}
+
+syncChannel.onmessage = async (event) => {
+    try {
+        if (event.data.type === 'goods' || event.data.type === 'master_data') {
+            await loadUnifiedGoods();
         }
     } catch (e) {
         console.error('Lỗi khi đồng bộ danh sách hàng hóa giữa các tab:', e);
@@ -84,161 +158,106 @@ onUnmounted(() => {
     }
 });
 
-const goodsList = ref<string[]>([]);
-const searchQuery = ref('');
+onMounted(async () => {
+    await loadUnifiedGoods();
+});
 
-// Form state
-const goodsInput = ref('');
-const editingIndex = ref<number | null>(null);
-
-const syncStatus = ref<'synced' | 'saving' | 'error'>('synced');
-const loadingCloud = ref(false);
-
-async function loadGoodsFromSupabase() {
-    loadingCloud.value = true;
-    try {
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        if (error) throw error;
-        
-        if (data?.settings) {
-            const remoteGoods = data.settings.allocator_goods;
-            if (Array.isArray(remoteGoods)) {
-                if (JSON.stringify(goodsList.value) !== JSON.stringify(remoteGoods)) {
-                    goodsList.value = remoteGoods;
-                    await dbContext.set('allocator_goods', remoteGoods);
-                }
-                syncStatus.value = 'synced';
-            } else {
-                if (goodsList.value.length > 0) {
-                    await saveGoodsToSupabase();
-                } else {
-                    syncStatus.value = 'synced';
-                }
-            }
-        }
-    } catch (e) {
-        console.warn('Lỗi khi tải danh sách hàng hóa từ Supabase:', e);
-        syncStatus.value = 'error';
-    } finally {
-        loadingCloud.value = false;
-    }
-}
-
-async function saveGoodsToSupabase() {
+const saveToStorage = async () => {
     syncStatus.value = 'saving';
     try {
+        const namesList = goodsItems.value.map(g => g.name);
+        await dbContext.set('allocator_goods', namesList);
+
+        // Update WeighbridgeService MasterData
+        const wbMaster = await WeighbridgeService.getMasterData();
+        wbMaster.goods = [...goodsItems.value];
+        await WeighbridgeService.saveMasterData(wbMaster);
+
+        // Also update allocator_goods in Supabase settings
         const { data: current, error: fetchError } = await supabase
             .from('content')
             .select('settings')
             .eq('id', 'main')
             .single();
-        
-        if (fetchError) throw fetchError;
-        
-        const currentSettings = current?.settings || {};
-        const updatedSettings = {
-            ...currentSettings,
-            allocator_goods: goodsList.value
-        };
 
-        const { error: updateError } = await supabase
-            .from('content')
-            .update({ settings: updatedSettings })
-            .eq('id', 'main');
-
-        if (updateError) throw updateError;
-        
-        syncStatus.value = 'synced';
-    } catch (e) {
-        console.error('Lỗi khi lưu danh sách hàng hóa lên Supabase:', e);
-        syncStatus.value = 'error';
-        addToast('Lỗi đồng bộ dữ liệu đám mây!', 'error');
-    }
-}
-
-// Load goods on mount
-onMounted(async () => {
-    try {
-        const saved = await dbContext.get<string[]>('allocator_goods');
-        if (saved && Array.isArray(saved)) {
-            goodsList.value = saved;
+        if (!fetchError) {
+            const currentSettings = current?.settings || {};
+            const updatedSettings = {
+                ...currentSettings,
+                allocator_goods: namesList,
+                weighbridge_master_data: wbMaster
+            };
+            await supabase
+                .from('content')
+                .update({ settings: updatedSettings })
+                .eq('id', 'main');
         }
-        await loadGoodsFromSupabase();
-    } catch (e) {
-        console.error('Lỗi khi tải danh sách hàng hóa:', e);
-    }
-});
 
-// Save to DB
-const saveToStorage = async () => {
-    try {
-        await dbContext.set('allocator_goods', goodsList.value);
-        await saveGoodsToSupabase();
+        syncStatus.value = 'synced';
         syncChannel.postMessage({ type: 'goods' });
+        syncChannel.postMessage({ type: 'master_data' });
     } catch (e) {
         console.error('Lỗi khi lưu danh sách hàng hóa:', e);
+        syncStatus.value = 'error';
         addToast('Lỗi khi lưu dữ liệu hàng hóa!', 'error');
     }
 };
 
-// Filtered goods list
 const filteredGoods = computed(() => {
     const q = searchQuery.value.trim().toLowerCase();
-    if (!q) return goodsList.value;
-    return goodsList.value.filter(item => 
-        item.toLowerCase().includes(q)
+    if (!q) return goodsItems.value;
+    return goodsItems.value.filter(
+        item =>
+            item.name.toLowerCase().includes(q) ||
+            (item.code && item.code.toLowerCase().includes(q))
     );
 });
 
-// Form submission handler
 const handleSubmit = async () => {
     const isNew = editingIndex.value === null;
     if (authStore.role !== 'admin' && ((isNew && !canCreate()) || (!isNew && !canUpdate()))) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
-    const item = goodsInput.value.trim();
-    if (!item) return;
+    const name = goodsNameInput.value.trim().toUpperCase();
+    const code = goodsCodeInput.value.trim().toUpperCase();
+    if (!name) return;
 
     if (editingIndex.value !== null) {
-        // Edit mode
         const index = editingIndex.value;
-        const exists = goodsList.value.some((g, i) => g.toLowerCase() === item.toLowerCase() && i !== index);
+        const exists = goodsItems.value.some((g, i) => g.name.toLowerCase() === name.toLowerCase() && i !== index);
         if (exists) {
-            addToast('Tên hàng hóa đã tồn tại trong danh sách!', 'error');
+            addToast('Tên loại hàng đã tồn tại trong danh sách!', 'error');
             return;
         }
-        goodsList.value[index] = item;
-        addToast('Cập nhật hàng hóa thành công!', 'success');
-        await LogService.logAction('Sửa hàng hóa', 'Cập nhật: ' + item);
+        goodsItems.value[index] = { name, code };
+        addToast('Cập nhật loại hàng thành công!', 'success');
+        await LogService.logAction('Sửa hàng hóa', `Cập nhật: ${name} (${code || '-'})`);
         editingIndex.value = null;
     } else {
-        // Add mode
-        const exists = goodsList.value.some(g => g.toLowerCase() === item.toLowerCase());
+        const exists = goodsItems.value.some(g => g.name.toLowerCase() === name.toLowerCase());
         if (exists) {
-            addToast('Tên hàng hóa đã tồn tại!', 'error');
+            addToast('Tên loại hàng đã tồn tại!', 'error');
             return;
         }
-        goodsList.value.push(item);
-        addToast('Thêm hàng hóa mới thành công!', 'success');
-        await LogService.logAction('Thêm hàng hóa', 'Thêm mới: ' + item);
+        goodsItems.value.unshift({ name, code });
+        addToast('Thêm loại hàng mới thành công!', 'success');
+        await LogService.logAction('Thêm hàng hóa', `Thêm mới: ${name} (${code || '-'})`);
     }
 
-    goodsInput.value = '';
+    goodsNameInput.value = '';
+    goodsCodeInput.value = '';
     await saveToStorage();
 };
 
 const editItem = (index: number) => {
     const item = filteredGoods.value[index];
     if (item !== undefined) {
-        const realIndex = goodsList.value.indexOf(item);
+        const realIndex = goodsItems.value.findIndex(g => g.name === item.name);
         if (realIndex !== -1) {
             editingIndex.value = realIndex;
-            goodsInput.value = goodsList.value[realIndex] || '';
+            goodsNameInput.value = goodsItems.value[realIndex]?.name || '';
+            goodsCodeInput.value = goodsItems.value[realIndex]?.code || '';
         }
     }
 };
@@ -250,23 +269,24 @@ const deleteItem = async (index: number) => {
     }
     const item = filteredGoods.value[index];
     if (item !== undefined) {
-        const realIndex = goodsList.value.indexOf(item);
+        const realIndex = goodsItems.value.findIndex(g => g.name === item.name);
         if (realIndex !== -1) {
             const confirmDelete = await showConfirm({
                 title: 'Xác nhận xóa hàng hóa',
-                message: `Bạn có chắc chắn muốn xóa hàng hóa "${item}" khỏi danh mục không?`,
+                message: `Bạn có chắc chắn muốn xóa loại hàng "${item.name}" khỏi danh mục không?`,
                 type: 'danger',
                 okText: 'Xóa hàng hóa',
                 cancelText: 'Hủy'
             });
 
             if (confirmDelete) {
-                goodsList.value.splice(realIndex, 1);
-                addToast('Đã xóa hàng hóa!', 'success');
-                await LogService.logAction('Xóa hàng hóa', 'Xóa: ' + item);
+                goodsItems.value.splice(realIndex, 1);
+                addToast('Đã xóa loại hàng!', 'success');
+                await LogService.logAction('Xóa hàng hóa', 'Xóa: ' + item.name);
                 if (editingIndex.value === realIndex) {
                     editingIndex.value = null;
-                    goodsInput.value = '';
+                    goodsNameInput.value = '';
+                    goodsCodeInput.value = '';
                 }
                 await saveToStorage();
             }
@@ -276,7 +296,8 @@ const deleteItem = async (index: number) => {
 
 const cancelEdit = () => {
     editingIndex.value = null;
-    goodsInput.value = '';
+    goodsNameInput.value = '';
+    goodsCodeInput.value = '';
 };
 
 const clearAll = async () => {
@@ -293,9 +314,10 @@ const clearAll = async () => {
     });
 
     if (confirmClear) {
-        goodsList.value = [];
+        goodsItems.value = [];
         editingIndex.value = null;
-        goodsInput.value = '';
+        goodsNameInput.value = '';
+        goodsCodeInput.value = '';
         await saveToStorage();
         addToast('Đã xóa sạch danh sách hàng hóa!', 'success');
         await LogService.logAction('Xóa tất cả hàng hóa', 'Xóa sạch danh sách hàng hóa');
@@ -304,27 +326,26 @@ const clearAll = async () => {
 </script>
 
 <template>
-    <div class="w-full flex-1 flex flex-col gap-6 bg-white rounded-3xl p-6 border border-primary/5 shadow-soft">
-        
+    <div class="w-full flex-1 flex flex-col gap-6 bg-white rounded-3xl p-6 border border-primary/5 shadow-soft font-display">
         <!-- Header Section -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
                 <h3 class="text-base font-black text-primary flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl">inventory_2</span>
-                    Danh mục hàng hóa
+                    Danh mục hàng hóa &amp; Mã hàng
                 </h3>
                 <p class="text-xs text-gray-500 font-semibold mt-1">
-                    Quản lý danh mục loại hàng hóa dùng chung cho toàn bộ tàu và sà lan. Tổng cộng: 
-                    <span class="text-teal-600 font-bold font-mono">{{ goodsList.length }}</span> mặt hàng.
+                    Quản lý danh mục Loại hàng và Mã hàng dùng chung cho Khai báo Nguồn tàu, Sà lan và Phiếu cân. Tổng cộng:
+                    <span class="text-teal-600 font-bold font-mono">{{ goodsItems.length }}</span> mặt hàng.
                 </p>
             </div>
-            
+
             <!-- Actions buttons -->
             <div class="flex items-center gap-2">
-                <button 
-                    v-if="goodsList.length > 0 && (authStore.role === 'admin' || canDelete())"
+                <button
+                    v-if="goodsItems.length > 0 && (authStore.role === 'admin' || canDelete())"
                     @click="clearAll"
-                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all"
+                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
                     Xóa sạch
@@ -334,103 +355,124 @@ const clearAll = async () => {
 
         <!-- Add/Edit form + Search in 1 row grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            
             <!-- Form Card -->
             <div v-if="authStore.role === 'admin' || canCreate() || canUpdate()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">{{ editingIndex !== null ? 'edit_note' : 'add_circle' }}</span>
                     {{ editingIndex !== null ? 'Cập nhật hàng hóa' : 'Thêm hàng hóa mới' }}
                 </h4>
-                
+
                 <form @submit.prevent="handleSubmit" class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tên hàng hóa *</label>
-                        <input 
-                            type="text" 
-                            v-model="goodsInput"
-                            placeholder="Ví dụ: Viên Nén Gỗ (FSC Mix %)"
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Loại hàng (Tên hàng hóa) *</label>
+                        <input
+                            type="text"
+                            v-model="goodsNameInput"
+                            placeholder="Ví dụ: LÚA MÌ, BẮP HẠT, VIÊN NÉN GỖ..."
                             required
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all uppercase"
                         />
                     </div>
-                    
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Mã hàng</label>
+                        <input
+                            type="text"
+                            v-model="goodsCodeInput"
+                            placeholder="Ví dụ: LM, BH, 01..."
+                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold font-mono focus:outline-none focus:border-primary transition-all uppercase"
+                        />
+                    </div>
+
                     <div class="flex items-center gap-2 mt-2">
-                        <button 
+                        <button
                             type="submit"
-                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-[12px] text-xs shadow-soft hover:opacity-90 transition-all"
+                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-[12px] text-xs shadow-soft hover:opacity-90 transition-all cursor-pointer"
                         >
                             {{ editingIndex !== null ? 'Cập nhật' : 'Thêm mới' }}
                         </button>
-                        
-                        <button 
+
+                        <button
                             v-if="editingIndex !== null"
                             type="button"
                             @click="cancelEdit"
-                            class="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-[12px] text-xs transition-all"
+                            class="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-[12px] text-xs transition-all cursor-pointer"
                         >
                             Hủy
                         </button>
                     </div>
                 </form>
             </div>
-            
+
             <!-- List Card -->
             <div :class="(authStore.role === 'admin' || canCreate() || canUpdate()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 min-h-[350px]">
                 <!-- Search bar -->
                 <div class="relative w-full flex items-center">
                     <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
-                    <input 
-                        type="text" 
-                        v-model="searchQuery" 
-                        placeholder="Tìm kiếm hàng hóa..." 
+                    <input
+                        type="text"
+                        v-model="searchQuery"
+                        placeholder="Tìm kiếm theo loại hàng hoặc mã hàng..."
                         class="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-100 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-gray-400"
-                    >
-                    <button 
-                        v-if="searchQuery" 
-                        @click="searchQuery = ''" 
-                        class="absolute right-3 text-gray-400 hover:text-primary flex items-center"
+                    />
+                    <button
+                        v-if="searchQuery"
+                        @click="searchQuery = ''"
+                        class="absolute right-3 text-gray-400 hover:text-primary flex items-center cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-xs">close</span>
                     </button>
                 </div>
 
                 <!-- Table Container -->
-                <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[300px] border border-gray-100 rounded-[16px]">
+                <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[380px] border border-gray-100 rounded-[16px]">
                     <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                         <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap sticky top-0 z-10">
                                 <th class="py-2.5 px-4 w-16 text-center">STT</th>
-                                <th class="py-2.5 px-4">Tên hàng hóa</th>
+                                <th class="py-2.5 px-4">Loại hàng (Tên hàng hóa)</th>
+                                <th class="py-2.5 px-4 w-36">Mã hàng</th>
                                 <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2.5 px-4 w-28 text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
-                            <tr 
-                                v-for="(item, idx) in filteredGoods" 
-                                :key="idx"
+                            <tr
+                                v-for="(item, idx) in filteredGoods"
+                                :key="item.name"
                                 class="hover:bg-gray-50 transition-colors"
                             >
-                                <td class="py-2 px-4 text-center font-bold text-gray-400">{{ idx + 1 }}</td>
-                                <td class="py-2 px-4 font-bold text-gray-800">{{ item }}</td>
-                                <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2 px-4 text-center flex items-center justify-center gap-1.5">
-                                    <button v-if="authStore.role === 'admin' || canUpdate()"
+                                <td class="py-2.5 px-4 text-center font-bold font-mono text-gray-400">{{ idx + 1 }}</td>
+                                <td class="py-2.5 px-4 font-bold text-primary">{{ item.name }}</td>
+                                <td class="py-2.5 px-4 font-mono font-bold">
+                                    <span
+                                        v-if="item.code"
+                                        class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-xs"
+                                    >
+                                        {{ item.code }}
+                                    </span>
+                                    <span v-else class="text-gray-400 italic font-normal">--</span>
+                                </td>
+                                <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2.5 px-4 text-center flex items-center justify-center gap-1.5">
+                                    <button
+                                        v-if="authStore.role === 'admin' || canUpdate()"
                                         @click="editItem(idx)"
-                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                         title="Chỉnh sửa"
                                     >
-                                        <span class="material-symbols-outlined text-[12px]">edit</span>
+                                        <span class="material-symbols-outlined text-[14px]">edit</span>
                                     </button>
-                                    <button v-if="authStore.role === 'admin' || canDelete()"
+                                    <button
+                                        v-if="authStore.role === 'admin' || canDelete()"
                                         @click="deleteItem(idx)"
-                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                         title="Xóa"
                                     >
-                                        <span class="material-symbols-outlined text-[12px]">delete</span>
+                                        <span class="material-symbols-outlined text-[14px]">delete</span>
                                     </button>
                                 </td>
                             </tr>
                             <tr v-if="filteredGoods.length === 0">
-                                <td colspan="3" class="p-8 text-center text-gray-400 italic">
+                                <td colspan="4" class="p-8 text-center text-gray-400 italic">
                                     Không tìm thấy hàng hóa nào phù hợp!
                                 </td>
                             </tr>
@@ -450,14 +492,14 @@ const clearAll = async () => {
                 leave-from-class="opacity-100"
                 leave-to-class="opacity-0"
             >
-                <div 
-                    v-if="confirmDialog.show" 
+                <div
+                    v-if="confirmDialog.show"
                     class="fixed inset-0 z-[999] flex items-center justify-center bg-[#1e293b]/40 backdrop-blur-sm p-4"
                     @click.self="handleConfirmCancel"
                 >
                     <div class="w-full max-w-[420px] bg-white rounded-[24px] border border-gray-100 shadow-2xl p-6 flex flex-col gap-4 transform transition-all scale-100 animate-scale-up text-xs">
                         <div class="flex items-center gap-3">
-                            <div 
+                            <div
                                 class="size-10 rounded-full flex items-center justify-center"
                                 :class="[
                                     confirmDialog.type === 'danger' ? 'bg-red-50 text-red-600' :
@@ -467,7 +509,7 @@ const clearAll = async () => {
                                 ]"
                             >
                                 <span class="material-symbols-outlined text-xl">
-                                    {{ 
+                                    {{
                                         confirmDialog.type === 'danger' ? 'error' :
                                         confirmDialog.type === 'warning' ? 'warning' :
                                         confirmDialog.type === 'success' ? 'check_circle' :
@@ -483,15 +525,15 @@ const clearAll = async () => {
                             {{ confirmDialog.message }}
                         </div>
                         <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-50">
-                            <button 
+                            <button
                                 @click="handleConfirmCancel"
-                                class="h-9 px-4 rounded-[12px] text-xs font-bold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
+                                class="h-9 px-4 rounded-[12px] text-xs font-bold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100 cursor-pointer"
                             >
                                 {{ confirmDialog.cancelText }}
                             </button>
-                            <button 
+                            <button
                                 @click="handleConfirmOk"
-                                class="h-9 px-4 rounded-[12px] text-xs font-bold text-white active:scale-95 transition-all"
+                                class="h-9 px-4 rounded-[12px] text-xs font-bold text-white active:scale-95 transition-all cursor-pointer"
                                 :class="[
                                     confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' :
                                     confirmDialog.type === 'warning' ? 'bg-amber-500 hover:bg-amber-600' :

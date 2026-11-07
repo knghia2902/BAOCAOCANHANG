@@ -96,6 +96,7 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 19. Tách sà lan De Heus theo Khóa/Mở | v1.2 | 1/1 | Complete    | 2026-10-21 |
 | 20. Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng | v1.2 | 3/3 | Complete | 2026-10-21 |
 | 21. Sơ đồ trực quan Kho cảng Nguyên Ngọc | v1.2 | 2/2 | Complete | 2026-10-26 |
+| 22. Sơ đồ cây điều hướng & Workspace hợp nhất | v1.2 | 3/3 | Complete    | 2026-11-05 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -250,4 +251,15 @@ Plans:
 - [x] 21-01: Thiết kế cấu trúc dữ liệu Sơ đồ kho (`WarehouseMapConfig` / đa giác mặc định 4 kho & Bãi Cont), tích hợp đồng bộ lưu/tải trên Supabase trong `WarehouseInventoryService.ts` và liên kết tự động với số Tồn cuối 4 Kho.
 - [x] 21-02: Xây dựng component `WarehouseVisualMap.vue` (vẽ SVG 5 phân khu chuẩn mẫu TVPL, trình kéo thả/thêm/xóa đỉnh đa giác có bắt dính theo ô kho, chế độ Xem/Chỉnh sửa theo phân quyền `authStore`, xuất/copy ảnh PNG) và tích hợp vào `WarehouseInventoryManager.vue`.
 
+### Phase 22: Sơ đồ cây điều hướng 2 phân hệ và Không gian làm việc hợp nhất
 
+**Goal:** Thiết kế và xây dựng Không gian làm việc hợp nhất (Unified Workspace) với Sơ đồ cây điều hướng bên trái (Collapsible Sidebar Tree) gồm 2 nhánh lớn [PHÂN HỆ] và [DANH MỤC], có nút thu gọn linh hoạt và cơ chế KeepAlive bảo toàn phiên làm việc. Tách biệt màn hình Tạo nguồn tàu tinh gọn (không chứa dữ liệu cân), xây dựng cổng tiếp nhận 2 file cân nguồn (File 1: Cân xá thẳng xuống sà lan, File 2: Cân nhập kho), phân luồng tự động sang 3 loại Báo cáo (Tồn kho 4 kho, Lô hàng tiến độ tàu, Phân bổ De Heus) & Biên bản sà lan, đồng thời chuẩn hóa khu vực Danh mục nền tảng dùng chung (Xe, Khách hàng, Kho hàng, Hàng hóa).
+**Requirements**: WORKSPACE-TREE-01, WORKSPACE-TREE-02, WORKSPACE-TREE-03
+**Depends on:** Phase 20, Phase 21
+**Plans:** 3/3 plans complete
+
+Plans:
+
+- [x] 22-01: Xây dựng khung giao diện Sơ đồ cây điều hướng (Collapsible Tree Sidebar) với 2 nhánh [PHÂN HỆ] & [DANH MỤC], nút thu gọn mở rộng, và cơ chế KeepAlive giữ nguyên trạng thái làm việc khi chuyển đổi.
+- [x] 22-02: Phân tách màn hình "Tạo nguồn tàu" tinh gọn (chỉ quản lý tàu mẹ, hầm hàng, sà lan tiếp nhận - không lẫn dữ liệu cân) và xây dựng cổng tiếp nhận "Dữ liệu cân" cho 2 file (Cân xá thẳng sà lan & Cân nhập kho).
+- [x] 22-03: Liên thông dữ liệu tự động từ 2 file cân sang 3 Báo cáo (Tồn kho, Lô hàng, Phân bổ De Heus) & Biên bản sà lan, đồng thời kết nối khu vực Danh mục dùng chung (Xe, Khách hàng, Kho hàng).

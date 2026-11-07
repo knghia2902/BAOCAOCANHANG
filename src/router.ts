@@ -11,10 +11,14 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
-            path: '/tools',
-            name: 'tools',
-            component: () => import('./views/ToolsView.vue'),
+            path: '/workspace',
+            name: 'workspace',
+            component: () => import('./views/workspace/UnifiedWorkspaceView.vue'),
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/tools',
+            redirect: '/workspace'
         },
         {
             path: '/tools/weighbridge',

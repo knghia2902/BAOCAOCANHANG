@@ -925,7 +925,7 @@ export function parseWeighbridgeCsvText(text: string): RawWeighbridgeRow[] {
     return rows;
 }
 
-async function readCsvFileDecoded(file: File): Promise<string> {
+export async function readCsvFileDecoded(file: File): Promise<string> {
     const buffer = await file.arrayBuffer();
     const utf8Decoder = new TextDecoder('utf-8', { fatal: false });
     const utf8Text = utf8Decoder.decode(buffer);
@@ -938,6 +938,41 @@ async function readCsvFileDecoded(file: File): Promise<string> {
         }
     }
     return utf8Text;
+}
+
+export async function parseWeighbridgeFile(file: File): Promise<RawWeighbridgeRow[]> {
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'csv') {
+        const text = await readCsvFileDecoded(file);
+        return parseWeighbridgeCsvText(text);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+        const ExcelJS = await import('exceljs');
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(await file.arrayBuffer());
+        const sheet = wb.worksheets[0];
+        if (sheet) {
+            const csvLines: string[] = [];
+            sheet.eachRow((row) => {
+                const vals: string[] = [];
+                for (let c = 1; c <= Math.min(20, row.cellCount); c++) {
+                    const cell = row.getCell(c);
+                    let v: any = cell.value;
+                    if (v && typeof v === 'object' && 'result' in v) v = v.result;
+                    if (v instanceof Date) {
+                        if (v.getUTCFullYear() <= 1901) {
+                            v = `${String(v.getUTCHours()).padStart(2, '0')}:${String(v.getUTCMinutes()).padStart(2, '0')}:${String(v.getUTCSeconds()).padStart(2, '0')}`;
+                        } else {
+                            v = `${String(v.getUTCDate()).padStart(2, '0')}/${String(v.getUTCMonth() + 1).padStart(2, '0')}/${v.getUTCFullYear()}`;
+                        }
+                    }
+                    vals.push(`"${String(v ?? '').replace(/"/g, '""')}"`);
+                }
+                csvLines.push(vals.join(','));
+            });
+            return parseWeighbridgeCsvText(csvLines.join('\n'));
+        }
+    }
+    return [];
 }
 
 function isRealTicketSerial(soPhieu: string | undefined | null, vehiclePlate?: string | null): boolean {
@@ -2373,11 +2408,15 @@ export const WarehouseInventoryService = {
         summary.warehousesUpdated = Array.from(updatedWhSet);
 
         // Quy tắc nạp vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng:
-        // - Nếu có nạp file "cc2" (ví dụ xxxx cc2.csv): nạp TOÀN BỘ phiếu trong file cc2 (bao gồm cả Nhập và Xuất).
-        // - Nếu không có file cc2: nạp các dòng Xuất (Xuat/nhap = Xuat) từ các file đã chọn.
-        const rowsToSyncToAllocator = cc2RawRows.length > 0
+        // - Mọi xe có cột "Ma lenh" (Mã lệnh) từ cả File 1 (Nhập kho & Nhập thẳng từ sà lan tại Cảng về nhà máy)
+        //   và File 2 (Xuất từ kho xuống sà lan tại Cảng & Xuất từ nhà máy xuống sà lan tại Cảng) đều được nạp để làm Báo cáo lô hàng.
+        // - Ngoài ra giữ nguyên việc nạp toàn bộ phiếu từ file cc2 / dòng Xuất nếu có.
+        const rowsWithMaLenh = allRawRows.filter(r => String(r.maLenh || '').trim() !== '');
+        const fallbackRows = cc2RawRows.length > 0
             ? cc2RawRows
             : allRawRows.filter(r => stripAccents(r.xuatNhap || '').toUpperCase().includes('XUAT'));
+        const rowsToSyncSet = new Set<RawWeighbridgeRow>([...rowsWithMaLenh, ...fallbackRows]);
+        const rowsToSyncToAllocator = Array.from(rowsToSyncSet);
 
         const syncRes = await this.syncRowsToAllocator(rowsToSyncToAllocator);
         summary.syncedToAllocatorCount = syncRes.syncedTicketsCount;

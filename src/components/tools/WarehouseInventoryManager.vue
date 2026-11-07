@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onActivated, watch, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
 import {
     WarehouseInventoryService,
@@ -160,6 +160,19 @@ const currentOperatingWarehouseName = computed(() => {
     return `${whId}${custName ? ` (${custName})` : ''}`;
 });
 
+const rootContainer = ref<HTMLElement | null>(null);
+
+async function scrollTablesToBottom() {
+    await nextTick();
+    requestAnimationFrame(() => {
+        if (!rootContainer.value) return;
+        const scrollEls = rootContainer.value.querySelectorAll<HTMLElement>('.inventory-table-scroll');
+        scrollEls.forEach(el => {
+            el.scrollTop = el.scrollHeight;
+        });
+    });
+}
+
 async function loadAllData() {
     loading.value = true;
     try {
@@ -176,12 +189,25 @@ async function loadAllData() {
         addToast('Không thể tải dữ liệu tồn kho: ' + (err?.message || err), 'error');
     } finally {
         loading.value = false;
+        void scrollTablesToBottom();
     }
 }
 
 onMounted(() => {
     loadAllData();
 });
+
+onActivated(() => {
+    loadAllData();
+    void scrollTablesToBottom();
+});
+
+watch(
+    [selectedWarehouseMode, activeSheetTab, isVisualMapOpen, detailFilterDate, filterFromDate, filterToDate],
+    () => {
+        void scrollTablesToBottom();
+    }
+);
 
 // Computed FINAL tables for each warehouse
 const finalTablesByWarehouse = computed(() => {
@@ -941,7 +967,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
 </script>
 
 <template>
-    <div class="w-full h-full flex flex-col gap-3.5 font-display text-[#1e293b] min-h-0 overflow-y-auto md:overflow-hidden pb-4 md:pb-0">
+    <div ref="rootContainer" class="w-full h-full flex flex-col gap-3.5 font-display text-[#1e293b] min-h-0 overflow-y-auto md:overflow-hidden pb-4 md:pb-0">
         <!-- Hidden File Inputs -->
         <input
             ref="csvFileInput"
@@ -1519,7 +1545,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
             <!-- TAB 1A: SINGLE WAREHOUSE FINAL TABLE -->
             <div
                 v-if="activeSheetTab === 'FINAL' && selectedWarehouseMode !== 'COMBINED_123'"
-                class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
+                class="inventory-table-scroll flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
             >
                 <table class="w-full text-left border-collapse text-xs font-bold">
                     <thead
@@ -1630,7 +1656,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
             <!-- TAB 1B: COMBINED 3-WAREHOUSE HORIZONTAL VIEW (KHO 1, KHO 2, KHO 3) -->
             <div
                 v-else-if="activeSheetTab === 'FINAL' && selectedWarehouseMode === 'COMBINED_123'"
-                class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-50/50 p-2"
+                class="inventory-table-scroll flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-50/50 p-2"
             >
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 min-w-[1200px]">
                     <div
@@ -1728,7 +1754,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
             <!-- TAB 2: IMPORT SHEET DETAILS -->
             <div
                 v-else-if="activeSheetTab === 'IMPORT'"
-                class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
+                class="inventory-table-scroll flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
             >
                 <!-- KHO 1-2-3 (GỖ BÌNH ĐỊNH) 18-COLUMN IMPORT TABLE -->
                 <table v-if="activeCustomerGroup === 'KHO_123'" class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
@@ -2005,7 +2031,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     </button>
                 </div>
 
-                <div class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                <div class="inventory-table-scroll flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white">
                     <!-- KHO 1-2-3 (GỖ BÌNH ĐỊNH) 14-COLUMN EXPORT TABLE -->
                     <table v-if="activeCustomerGroup === 'KHO_123'" class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                         <thead class="sticky top-0 z-10 bg-[#92d050] text-[#1e293b] border-b border-slate-300">
@@ -2207,7 +2233,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
             <!-- TAB 4: XÁ THẲNG DETAILS -->
             <div
                 v-else-if="activeSheetTab === 'DIRECT'"
-                class="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
+                class="inventory-table-scroll flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
             >
                 <!-- KHO 1-2-3 (GỖ BÌNH ĐỊNH) 19-COLUMN XÁ THẲNG TABLE -->
                 <table v-if="activeCustomerGroup === 'KHO_123'" class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">

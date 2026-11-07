@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 21
-current_phase_name: s-tr-c-quan-kho-c-ng-nguy-n-ng-c-interactive-warehouse-map
-status: completed
-stopped_at: Phase 21 completed (21-01, 21-02 executed and verified)
-last_updated: "2026-10-26T13:25:00+07:00"
-last_activity: 2026-10-26
-last_activity_desc: Phase 21 completed — Sơ đồ trực quan Kho cảng Nguyên Ngọc (21-01, 21-02)
+current_phase: 7
+current_phase_name: advanced filtering & excel export
+status: planning
+stopped_at: Completed quick task 261021-imy (Mặc định thu gọn các tàu ở sidebar trái trong Báo Cáo Tổng Quan)
+last_updated: "2026-11-07T03:28:47.894Z"
+last_activity: 2026-11-07
+last_activity_desc: Phase 22 complete, transitioned to Phase 7
 progress:
-  total_phases: 15
+  total_phases: 17
   completed_phases: 15
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 31
+  completed_plans: 29
 ---
 
 # Project State
@@ -27,16 +27,16 @@ See: .planning/PROJECT.md (updated 2026-10-20)
 
 ## Current Position
 
-Phase: 20 — Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng
+Phase: 7 — advanced filtering & excel export
 Plans: 3/3 completed (20-01, 20-02, 20-03)
-Status: Completed
-Last activity: 2026-11-01 - Completed quick task 261101-tnn: Kiểm tra và sửa lỗi lặp dữ liệu phiếu cân khi đồng bộ từ Báo cáo cân hàng qua Báo cáo tổng quan
+Status: Ready to plan
+Last activity: 2026-11-07 — Phase 22 complete, transitioned to Phase 7
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
+- Total plans completed: 4
 - Total execution time: ~1.0 hours
 
 **By Phase:**
@@ -48,6 +48,7 @@ Last activity: 2026-11-01 - Completed quick task 261101-tnn: Kiểm tra và sử
 | 3. Pipelines | 0/2 | 0m | - |
 | 4. UI Dashboard | 0/2 | 0m | - |
 | 15 | 1 | - | - |
+| 22 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -86,6 +87,7 @@ Recent decisions affecting current work:
 - Phase 19 added: Tách sà lan Nông sản De Heus theo trạng thái Khóa/Mở tại Báo Cáo Tổng Quan
 - Phase 20 added: Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng
 - Phase 21 added: Sơ đồ trực quan Kho cảng Nguyên Ngọc (Interactive Warehouse Map)
+- Phase 22 added: Sơ đồ cây điều hướng 2 phân hệ và Không gian làm việc hợp nhất (Unified Workspace & Collapsible Tree Sidebar)
 
 ### Pending Todos
 
