@@ -90,6 +90,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **WMAP-02**: Cung cấp trình chỉnh sửa đa giác trực quan (Interactive SVG Polygon Editor) cho từng kho: hỗ trợ tạo một hoặc nhiều khối đa giác (mảng hàng chính vát chéo/bậc thang và các đống hàng lẻ ở góc), kéo thả đỉnh (vertex handles), thêm/xóa đỉnh và tự động bắt dính (snap) vào vạch kẻ ô ngang hoặc cạnh tường kho.
 - [x] **WMAP-03**: Lưu trữ trạng thái sơ đồ lên Supabase kèm cơ chế phân quyền theo vai trò (`authStore`): mọi người dùng đều xem được sơ đồ sạch đẹp ở chế độ Xem (View-only) và chụp/copy ảnh báo cáo, chỉ người dùng có quyền cập nhật mới bật được chế độ Chỉnh sửa và Lưu sơ đồ.
 
+### Split Kho 4 for Bach Khoa & Eastwood (KHO4-BK)
+
+- [ ] **INV-BK-01**: Phân chia Kho 4 thành 2 phân hệ độc lập: Kho 4 (Eastwood) và Kho 4 (Bách Khoa), mỗi bên có Tồn đầu kỳ, Ngày bắt đầu và ghi chú ngày riêng biệt (Tồn đầu Bách Khoa mặc định khởi tạo = 0 tấn).
+- [ ] **INV-BK-02**: Tự động nhận diện và phân luồng phiếu cân Kho 4 dựa vào từ khóa tên khách hàng (`customerName`: Bách Khoa / Bach Khoa / BK vs Eastwood / East Wood / EW) kèm khả năng chỉnh sửa nhóm thủ công nếu cần.
+- [ ] **INV-BK-03**: Báo cáo tổng hợp FINAL và xuất file Excel độc lập cho Bách Khoa (`WEIGHT LIST GỖ NÉN_KHO NGUYÊN NGỌC_BK_<DDMMYYYY>.xlsx`) gồm đầy đủ các sheet IMPORT 4, EXPORT 4, FINAL 4 với công thức số dư lũy kế.
+- [ ] **INV-BK-04**: Bố trí phân khu tách riêng một góc trong Kho 4 trên Sơ đồ kho trực quan (Warehouse Visual Map) dành riêng cho khách hàng Bách Khoa.
+
 ## Future Requirements (v2+)
 
 - **QRY-03**: Interactive dashboard charts showing monthly tonnage and volume trends.
@@ -145,13 +152,16 @@ Which phases cover which requirements.
 | WMAP-01 | Phase 21 | Complete |
 | WMAP-02 | Phase 21 | Complete |
 | WMAP-03 | Phase 21 | Complete |
+| INV-BK-01 | Pending | Pending |
+| INV-BK-02 | Pending | Pending |
+| INV-BK-03 | Pending | Pending |
+| INV-BK-04 | Pending | Pending |
 
 **Coverage:**
-- v1.1 / v1.2 requirements: 39 total
+- v1.1 / v1.2 requirements: 43 total
 - Mapped to phases: 39
-- Unmapped: 0 ✓
-
+- Pending mapping: 4
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-10-26 after Interactive Warehouse Map exploration*
+*Last updated: 2026-11-09 after Kho 4 Bach Khoa exploration*
