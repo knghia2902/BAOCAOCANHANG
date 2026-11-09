@@ -22,8 +22,11 @@ export interface AllocatorTripRow {
     date2_obj?: string | null;
     notes?: string;
     is_recovered?: boolean;
+    file_source?: string | null;
     created_at?: string;
 }
+
+export type ScaleHead = 'FILE_1' | 'FILE_2';
 
 export interface AllocatorTripItem {
     id?: number;
@@ -48,10 +51,54 @@ export interface AllocatorTripItem {
     date2Obj: Date;
     orderNo?: string;
     isRecovered?: boolean;
+    fileSource?: 'FILE_1' | 'FILE_2' | 'MANUAL' | '';
 }
 
 export class AllocatorService {
     public static readonly TABLE_NAME = 'weighbridge_tracking';
+
+    /** Cờ ghi nhớ khi bảng chưa có cột file_source (chưa chạy migration 20261108) */
+    private static fileSourceColumnMissing = false;
+    private static scaleHeadSynced = false;
+
+    /**
+     * Nhận diện Đầu cân từ định dạng Số phiếu:
+     * - Đầu cân 1 (FILE_1): xxxxxx/26A (hoặc kết thúc bằng /..A, ..26A)
+     * - Đầu cân 2 (FILE_2): xxxxxx/26B (hoặc kết thúc bằng /..B, ..26B)
+     */
+    static detectScaleHeadFromTicketNo(ticketNo?: string | null): ScaleHead | null {
+        const raw = String(ticketNo || '').trim().toUpperCase();
+        if (!raw) return null;
+        if (/\/\s*\d*A\b/.test(raw) || /\d+A$/.test(raw)) return 'FILE_1';
+        if (/\/\s*\d*B\b/.test(raw) || /\d+B$/.test(raw)) return 'FILE_2';
+        return null;
+    }
+
+    /**
+     * Xác định chuyến xe / phiếu cân thuộc Đầu cân nào:
+     * 1. Ưu tiên cao nhất: Định dạng số phiếu xxxxxx/26A -> FILE_1 (Đầu cân 1), xxxxxx/26B -> FILE_2 (Đầu cân 2)
+     * 2. Tiếp theo: fileSource đã gán ('FILE_1' | 'FILE_2')
+     * 3. Dự phòng (khi phiếu không có hậu tố A/B và chưa có fileSource): suy ra từ cột Xuất/Nhập
+     */
+    static resolveScaleHead(trip: {
+        ticketNo?: string | null;
+        sourceTicketNo?: string | null;
+        soPhieu?: string | null;
+        fileSource?: string | null;
+        direction?: string | null;
+    }): ScaleHead {
+        const byTicket =
+            this.detectScaleHeadFromTicketNo(trip.ticketNo) ||
+            this.detectScaleHeadFromTicketNo(trip.sourceTicketNo) ||
+            this.detectScaleHeadFromTicketNo(trip.soPhieu);
+        if (byTicket) return byTicket;
+        if (trip.fileSource === 'FILE_1' || trip.fileSource === 'FILE_2') return trip.fileSource;
+        const dir = String(trip.direction || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase();
+        return dir.includes('NHAP') ? 'FILE_1' : 'FILE_2';
+    }
 
     /**
      * Chuyển đổi từ row trong cơ sở dữ liệu sang đối tượng ứng dụng
@@ -59,6 +106,9 @@ export class AllocatorService {
     static rowToTrip(row: AllocatorTripRow): AllocatorTripItem {
         const d1 = row.date1_obj ? new Date(row.date1_obj) : new Date();
         const d2 = row.date2_obj ? new Date(row.date2_obj) : d1;
+        const detectedByTicket =
+            AllocatorService.detectScaleHeadFromTicketNo(row.ticket_no) ||
+            AllocatorService.detectScaleHeadFromTicketNo(row.source_ticket_no);
         return {
             id: row.id,
             stt: row.stt || 0,
@@ -80,7 +130,12 @@ export class AllocatorService {
             date1Obj: isNaN(d1.getTime()) ? new Date() : d1,
             date2Obj: isNaN(d2.getTime()) ? new Date() : d2,
             notes: row.notes || '',
-            isRecovered: !!row.is_recovered
+            isRecovered: !!row.is_recovered,
+            fileSource:
+                detectedByTicket ||
+                (row.file_source === 'FILE_1' || row.file_source === 'FILE_2' || row.file_source === 'MANUAL'
+                    ? row.file_source
+                    : '')
         };
     }
 
@@ -108,7 +163,7 @@ export class AllocatorService {
             ? trip.weightTons 
             : Number((net / 1000).toFixed(3));
 
-        return {
+        const row: Partial<AllocatorTripRow> = {
             stt: Number(trip.stt || 0),
             time_str: String(trip.timeStr || ''),
             plate_number: String(trip.plateNumber || '').trim(),
@@ -130,6 +185,38 @@ export class AllocatorService {
             notes: String(trip.notes || ''),
             is_recovered: !!trip.isRecovered
         };
+        const resolvedSource =
+            AllocatorService.detectScaleHeadFromTicketNo(trip.ticketNo) ||
+            AllocatorService.detectScaleHeadFromTicketNo(trip.sourceTicketNo) ||
+            (trip.fileSource === 'FILE_1' || trip.fileSource === 'FILE_2' || trip.fileSource === 'MANUAL'
+                ? trip.fileSource
+                : undefined);
+        if (resolvedSource) {
+            row.file_source = resolvedSource;
+        }
+        return row;
+    }
+
+    /** Đồng bộ ngầm cột file_source trên Supabase theo số phiếu xxxxxx/26A (FILE_1) và xxxxxx/26B (FILE_2) */
+    static async syncScaleHeadByTicketNo(): Promise<void> {
+        if (AllocatorService.fileSourceColumnMissing || AllocatorService.scaleHeadSynced) return;
+        AllocatorService.scaleHeadSynced = true;
+        try {
+            const q1 = supabase.from(AllocatorService.TABLE_NAME).update({ file_source: 'FILE_1' });
+            const q2 = supabase.from(AllocatorService.TABLE_NAME).update({ file_source: 'FILE_2' });
+            if (typeof (q1 as any)?.ilike === 'function' && typeof (q2 as any)?.ilike === 'function') {
+                await Promise.all([
+                    (q1 as any).ilike('ticket_no', '%/%A').neq('file_source', 'FILE_1'),
+                    (q2 as any).ilike('ticket_no', '%/%B').neq('file_source', 'FILE_2')
+                ]);
+            }
+        } catch (_) {}
+    }
+
+    /** Lỗi PostgREST khi bảng chưa có cột file_source */
+    private static isMissingFileSourceColumn(error: any): boolean {
+        const msg = String(error?.message || '');
+        return msg.includes('file_source') && (error?.code === 'PGRST204' || msg.includes('column'));
     }
 
     /**
@@ -201,6 +288,7 @@ export class AllocatorService {
             if (data.length < pageSize) break;
         }
 
+        void this.syncScaleHeadByTicketNo();
         return allRows.map(this.rowToTrip);
     }
 
@@ -250,17 +338,36 @@ export class AllocatorService {
     static async insertTrips(trips: any[]): Promise<{ count: number; data?: AllocatorTripItem[]; error: any }> {
         if (!trips || trips.length === 0) return { count: 0, data: [], error: null };
 
-        const rows = trips.map(this.tripToRow);
+        const stripFileSource = (r: Partial<AllocatorTripRow>) => {
+            const { file_source: _ignored, ...rest } = r;
+            return rest;
+        };
+        let rows = trips.map(t => this.tripToRow(t));
+        if (AllocatorService.fileSourceColumnMissing) rows = rows.map(stripFileSource);
         const CHUNK_SIZE = 500;
         let insertedCount = 0;
         const insertedRows: AllocatorTripRow[] = [];
 
         for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-            const chunk = rows.slice(i, i + CHUNK_SIZE);
-            const { data, error } = await supabase
+            let chunk = rows.slice(i, i + CHUNK_SIZE);
+            let { data, error } = await supabase
                 .from(AllocatorService.TABLE_NAME)
                 .insert(chunk)
                 .select('*');
+
+            // Fallback: bảng chưa có cột file_source -> bỏ cột và chèn lại (phân loại sẽ dựa theo Xuất/Nhập)
+            if (error && this.isMissingFileSourceColumn(error)) {
+                console.warn(
+                    `[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa có cột file_source. Vui lòng chạy migration 'database/migrations/20261108_add_file_source_to_weighbridge_tracking.sql'.`
+                );
+                AllocatorService.fileSourceColumnMissing = true;
+                rows = rows.map(stripFileSource);
+                chunk = rows.slice(i, i + CHUNK_SIZE);
+                ({ data, error } = await supabase
+                    .from(AllocatorService.TABLE_NAME)
+                    .insert(chunk)
+                    .select('*'));
+            }
 
             if (error) {
                 console.error(`Lỗi chèn đợt ${i} - ${i + chunk.length}:`, error);

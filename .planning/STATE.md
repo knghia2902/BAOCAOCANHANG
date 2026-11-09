@@ -119,8 +119,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-21T13:26:00+07:00
-Stopped at: Completed quick task 261021-imy (Mặc định thu gọn các tàu ở sidebar trái trong Báo Cáo Tổng Quan)
+Last session: 2026-11-09T10:17:00+07:00
+Stopped at: Completed Phase 22 task 2/2 (Tách Sổ theo dõi 2 đầu cân theo định dạng số phiếu xxxxxx/26A và xxxxxx/26B)
 Resume file: None
 
 ## Operator Next Steps

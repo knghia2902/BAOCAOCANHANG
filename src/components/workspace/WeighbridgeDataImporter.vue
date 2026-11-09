@@ -74,11 +74,14 @@ interface SplitTrip {
     date1Obj: Date;
     date2Obj: Date;
     orderNo?: string;
+    fileSource?: 'FILE_1' | 'FILE_2' | 'MANUAL' | '';
 }
 
 // Main view tabs (như trước đây: 1. Phiếu cân | 2. Sổ theo dõi | 3. Cân Kho & Container)
 const activeMainTab = ref<'source' | 'history' | 'other_tickets'>('source');
 const sourceQuickFilter = ref<'all' | 'has_order' | 'file1' | 'file2'>('all');
+// Sổ theo dõi tách theo 2 đầu cân: Đầu cân 1 (File 1 - Nhập) | Đầu cân 2 (File 2 - Xuất) | Tất cả
+const historyScaleFilter = ref<'all' | 'FILE_1' | 'FILE_2'>('all');
 
 // File inputs & loading states
 const file1InputRef = ref<HTMLInputElement | null>(null);
@@ -342,6 +345,9 @@ function convertRawRowToCSVRecord(r: RawWeighbridgeRow, sourceTag: 'FILE_1' | 'F
     const plateNumber = String(r.soXe || '').trim();
     if (!plateNumber) return null;
 
+    const resolvedSource: 'FILE_1' | 'FILE_2' =
+        AllocatorService.detectScaleHeadFromTicketNo(ticketNo) || sourceTag;
+
     const weight1 = normalizeWeightToKg(r.kl1);
     const weight2 = normalizeWeightToKg(r.kl2);
     let weightNet = normalizeWeightToKg(r.klHang);
@@ -372,13 +378,13 @@ function convertRawRowToCSVRecord(r: RawWeighbridgeRow, sourceTag: 'FILE_1' | 'F
         timeOutStr,
         date1Obj: dInIso ? `${dInIso}T${timeInStr || '00:00:00'}` : null,
         date2Obj: dOutIso ? `${dOutIso}T${timeOutStr || '00:00:00'}` : null,
-        direction: String(r.xuatNhap || (sourceTag === 'FILE_1' ? 'Nhap' : 'Xuat')).trim(),
+        direction: String(r.xuatNhap || (resolvedSource === 'FILE_1' ? 'Nhap' : 'Xuat')).trim(),
         cargoType: String(r.loaiHang || '').trim(),
         bargeName: String(r.loaiSalan || '').trim(),
         driverName: String(r.taiXe || '').trim(),
         notes: String(r.ghiChu || '').trim(),
         orderNo: String(r.maLenh || '').trim(),
-        fileSource: sourceTag
+        fileSource: resolvedSource
     };
 }
 
@@ -671,7 +677,10 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
                 else file2Name.value = f.name;
             }
 
-            rows.forEach(r => allRawRows.push({ row: r, tag: resolvedTag }));
+            rows.forEach(r => {
+                const rowTag = AllocatorService.detectScaleHeadFromTicketNo(r.soPhieu) || resolvedTag;
+                allRawRows.push({ row: r, tag: rowTag });
+            });
         }
 
         if (allRawRows.length === 0) {
@@ -893,14 +902,22 @@ const ticketsWithOrderCount = computed(() => {
 });
 
 const file1TicketsCount = computed(() => {
-    return csvRecords.value.filter(
-        t => t.fileSource === 'FILE_1' || (!t.fileSource && String(t.direction || '').toUpperCase().includes('NHAP'))
-    ).length;
+    return csvRecords.value.filter(t => AllocatorService.resolveScaleHead(t) === 'FILE_1').length;
 });
 
 const file2TicketsCount = computed(() => {
+    return csvRecords.value.filter(t => AllocatorService.resolveScaleHead(t) === 'FILE_2').length;
+});
+
+const file1OrderTicketsCount = computed(() => {
     return csvRecords.value.filter(
-        t => t.fileSource === 'FILE_2' || (!t.fileSource && String(t.direction || '').toUpperCase().includes('XUAT'))
+        t => AllocatorService.resolveScaleHead(t) === 'FILE_1' && t.orderNo && String(t.orderNo).trim() !== ''
+    ).length;
+});
+
+const file2OrderTicketsCount = computed(() => {
+    return csvRecords.value.filter(
+        t => AllocatorService.resolveScaleHead(t) === 'FILE_2' && t.orderNo && String(t.orderNo).trim() !== ''
     ).length;
 });
 
@@ -910,13 +927,9 @@ const filteredSourceTickets = computed(() => {
     if (sourceQuickFilter.value === 'has_order') {
         list = list.filter(t => t.orderNo && String(t.orderNo).trim() !== '');
     } else if (sourceQuickFilter.value === 'file1') {
-        list = list.filter(
-            t => t.fileSource === 'FILE_1' || (!t.fileSource && String(t.direction || '').toUpperCase().includes('NHAP'))
-        );
+        list = list.filter(t => AllocatorService.resolveScaleHead(t) === 'FILE_1');
     } else if (sourceQuickFilter.value === 'file2') {
-        list = list.filter(
-            t => t.fileSource === 'FILE_2' || (!t.fileSource && String(t.direction || '').toUpperCase().includes('XUAT'))
-        );
+        list = list.filter(t => AllocatorService.resolveScaleHead(t) === 'FILE_2');
     }
 
     if (sourceSearchQuery.value.trim()) {
@@ -963,8 +976,38 @@ const totalCsvWeightTons = computed(() => {
 });
 
 // History (Tab 2: Sổ theo dõi) computed
+function tripWeightTons(t: SplitTrip): number {
+    return typeof t.weightTons === 'number' ? t.weightTons : Number(t.weightNet) / 1000 || 0;
+}
+
+const historyScaleStats = computed(() => {
+    const stats = {
+        FILE_1: { count: 0, tons: 0 },
+        FILE_2: { count: 0, tons: 0 }
+    };
+    for (const t of existingTrips.value) {
+        const head = AllocatorService.resolveScaleHead(t);
+        stats[head].count++;
+        stats[head].tons += tripWeightTons(t);
+    }
+    return stats;
+});
+
+function openScaleHistory(head: 'FILE_1' | 'FILE_2') {
+    historyScaleFilter.value = head;
+    activeMainTab.value = 'history';
+}
+
+watch(historyScaleFilter, () => {
+    historyCurrentPage.value = 1;
+});
+
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
+    if (historyScaleFilter.value !== 'all') {
+        const head = historyScaleFilter.value;
+        list = list.filter(t => AllocatorService.resolveScaleHead(t) === head);
+    }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase().trim();
         list = list.filter(
@@ -993,10 +1036,7 @@ const historyTotalPages = computed(() => {
 });
 
 const historyTotalWeightTons = computed(() => {
-    return filteredHistoryTrips.value.reduce(
-        (sum, t) => sum + (typeof t.weightTons === 'number' ? t.weightTons : Number(t.weightNet) / 1000 || 0),
-        0
-    );
+    return filteredHistoryTrips.value.reduce((sum, t) => sum + tripWeightTons(t), 0);
 });
 
 // CRUD Phiếu cân (Thêm / Sửa / Xóa / Xóa hết)
@@ -1188,7 +1228,10 @@ async function saveSourceTicketsToHistory() {
                 bargeName: rec.bargeName || '',
                 date1Obj: d1,
                 date2Obj: d2,
-                orderNo: rec.orderNo || ''
+                orderNo: rec.orderNo || '',
+                fileSource: rec.fileSource === 'FILE_1' || rec.fileSource === 'FILE_2'
+                    ? rec.fileSource
+                    : AllocatorService.resolveScaleHead(rec)
             };
         });
 
@@ -1198,14 +1241,22 @@ async function saveSourceTicketsToHistory() {
             return;
         }
 
-        const savedItems =
-            insertRes.data && insertRes.data.length === tripsToSave.length ? insertRes.data : tripsToSave;
+        const savedItems: SplitTrip[] =
+            insertRes.data && insertRes.data.length === tripsToSave.length
+                ? insertRes.data.map((item, i): SplitTrip => ({
+                      ...item,
+                      fileSource: item.fileSource || tripsToSave[i]?.fileSource || ''
+                  }))
+                : tripsToSave;
         existingTrips.value = [...savedItems, ...existingTrips.value];
         await dbContext.set('allocator_history_trips', existingTrips.value);
 
         csvRecords.value = [];
         await doExecuteSaveTicketsToSupabase();
 
+        // Mở đúng Sổ theo dõi của đầu cân vừa lưu (nếu lưu cả 2 đầu cân thì xem Tất cả)
+        const savedHeads = new Set(tripsToSave.map(t => AllocatorService.resolveScaleHead(t)));
+        historyScaleFilter.value = savedHeads.size === 1 ? [...savedHeads][0]! : 'all';
         activeMainTab.value = 'history';
         addToast(`Đã lưu thành công ${tripsToSave.length} phiếu cân vào Sổ Theo Dõi!`, 'success');
         await LogService.logAction('Lưu Sổ Theo Dõi', `Lưu ${tripsToSave.length} phiếu cân vào sổ theo dõi`);
@@ -1410,7 +1461,8 @@ async function exportHistoryTrips() {
             'Giờ ra',
             'Xuất/Nhập',
             'Sà lan',
-            'Ghi chú'
+            'Ghi chú',
+            'Đầu cân'
         ];
         const headerRow = sheet.getRow(1);
         headers.forEach((h, i) => {
@@ -1459,6 +1511,10 @@ async function exportHistoryTrips() {
             row.getCell(14).value = trip.direction || '';
             row.getCell(15).value = trip.bargeName || '';
             row.getCell(16).value = trip.notes || '';
+            row.getCell(17).value =
+                AllocatorService.resolveScaleHead(trip) === 'FILE_1'
+                    ? 'Đầu cân 1 (26A - Nhập)'
+                    : 'Đầu cân 2 (26B - Xuất)';
             row.font = { name: 'Arial', size: 10 };
         });
 
@@ -1473,7 +1529,12 @@ async function exportHistoryTrips() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'SỔ_THEO_DÕI_XẾP_HÀNG_HÓA.xlsx';
+        link.download =
+            historyScaleFilter.value === 'FILE_1'
+                ? 'SỔ_THEO_DÕI_ĐẦU_CÂN_1_26A.xlsx'
+                : historyScaleFilter.value === 'FILE_2'
+                  ? 'SỔ_THEO_DÕI_ĐẦU_CÂN_2_26B.xlsx'
+                  : 'SỔ_THEO_DÕI_XẾP_HÀNG_HÓA.xlsx';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1575,38 +1636,58 @@ async function exportHistoryTrips() {
 
         <!-- Chế độ 1 & 2: Phiếu cân & Sổ theo dõi -->
         <template v-else>
-            <!-- Card 2: 2 Khối Import File Phiếu Cân (File 1 & File 2 theo đúng quy tắc của người dùng) -->
-            <div v-if="activeMainTab === 'source'" class="grid grid-cols-1 lg:grid-cols-2 gap-3.5 shrink-0">
+            <!-- Card 2: 2 Khối Đầu cân (File 1 & File 2) - bấm vào khung để mở Sổ theo dõi của đầu cân tương ứng -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5 shrink-0">
                 <!-- Khối File 1: Nhập hàng vào kho & Nhập thẳng (từ sà lan tại Cảng về nhà máy) -->
-                <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div
+                    role="button"
+                    tabindex="0"
+                    @click="openScaleHistory('FILE_1')"
+                    @keydown.enter="openScaleHistory('FILE_1')"
+                    :class="[
+                        'bg-white rounded-[24px] p-4 soft-shadow border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 cursor-pointer transition-all hover:border-primary/40',
+                        activeMainTab === 'history' && historyScaleFilter === 'FILE_1'
+                            ? 'border-primary ring-2 ring-primary/20'
+                            : 'border-primary/5'
+                    ]"
+                    title="Bấm để mở Sổ theo dõi Đầu cân 1"
+                >
                     <div class="flex items-start gap-3 min-w-0 flex-1">
                         <div class="size-10 rounded-2xl bg-primary text-white flex items-center justify-center font-display font-black text-sm shadow-soft shrink-0">
                             1
                         </div>
                         <div class="min-w-0 flex-1">
                             <h3 class="text-xs font-display font-black text-[#1e293b] uppercase">
-                                File 1: Nhập hàng vào kho & Nhập thẳng
+                                Đầu cân 1 · File 1 (xxxxxx/26A): Nhập kho & Nhập thẳng
                             </h3>
                             <p v-if="file1Name" class="text-xs text-slate-500 font-semibold mt-0.5 truncate" :title="file1Name">
                                 Đã nạp: {{ file1Name }}
                             </p>
                             <div class="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs font-bold">
                                 <span class="text-slate-500">
-                                    Tổng: <strong class="text-[#1e293b] font-black">{{ file1Stats.total }} xe</strong>
+                                    Phiếu 26A: <strong class="text-[#1e293b] font-black">{{ file1TicketsCount }} xe</strong>
                                 </span>
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">
-                                    Có Mã lệnh: <strong class="text-teal-600 font-black">{{ file1Stats.orderCount }} xe</strong>
+                                    Có Mã lệnh: <strong class="text-teal-600 font-black">{{ file1OrderTicketsCount }} xe</strong>
                                 </span>
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">
                                     Nhập kho: <strong class="text-primary font-black">{{ file1Stats.whImportCount }} xe</strong>
                                 </span>
                             </div>
+                            <div class="flex items-center gap-1 mt-1 text-xs font-bold text-primary">
+                                <span class="material-symbols-outlined text-sm">menu_book</span>
+                                Sổ theo dõi: {{ historyScaleStats.FILE_1.count.toLocaleString() }} chuyến •
+                                {{ historyScaleStats.FILE_1.tons.toFixed(2) }}t
+                            </div>
                         </div>
                     </div>
 
-                    <label class="border-2 border-dashed border-primary/25 hover:border-primary bg-[#f1f5f9]/70 hover:bg-primary/5 rounded-2xl px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 group">
+                    <label
+                        @click.stop
+                        class="border-2 border-dashed border-primary/25 hover:border-primary bg-[#f1f5f9]/70 hover:bg-primary/5 rounded-2xl px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 group"
+                    >
                         <input
                             ref="file1InputRef"
                             type="file"
@@ -1631,25 +1712,37 @@ async function exportHistoryTrips() {
                 </div>
 
                 <!-- Khối File 2: Xuất hàng từ kho xuống sà lan tại Cảng & từ nhà máy xuống sà lan tại Cảng -->
-                <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div
+                    role="button"
+                    tabindex="0"
+                    @click="openScaleHistory('FILE_2')"
+                    @keydown.enter="openScaleHistory('FILE_2')"
+                    :class="[
+                        'bg-white rounded-[24px] p-4 soft-shadow border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 cursor-pointer transition-all hover:border-teal-400',
+                        activeMainTab === 'history' && historyScaleFilter === 'FILE_2'
+                            ? 'border-teal-600 ring-2 ring-teal-600/20'
+                            : 'border-primary/5'
+                    ]"
+                    title="Bấm để mở Sổ theo dõi Đầu cân 2"
+                >
                     <div class="flex items-start gap-3 min-w-0 flex-1">
                         <div class="size-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center font-display font-black text-sm shadow-soft shrink-0">
                             2
                         </div>
                         <div class="min-w-0 flex-1">
                             <h3 class="text-xs font-display font-black text-[#1e293b] uppercase">
-                                File 2: Xuất kho & Xuất thẳng xuống sà lan
+                                Đầu cân 2 · File 2 (xxxxxx/26B): Xuất kho & Xuất thẳng
                             </h3>
                             <p v-if="file2Name" class="text-xs text-slate-500 font-semibold mt-0.5 truncate" :title="file2Name">
                                 Đã nạp: {{ file2Name }}
                             </p>
                             <div class="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs font-bold">
                                 <span class="text-slate-500">
-                                    Tổng: <strong class="text-[#1e293b] font-black">{{ file2Stats.total }} xe</strong>
+                                    Phiếu 26B: <strong class="text-[#1e293b] font-black">{{ file2TicketsCount }} xe</strong>
                                 </span>
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">
-                                    Có Mã lệnh: <strong class="text-teal-600 font-black">{{ file2Stats.orderCount }} xe</strong>
+                                    Có Mã lệnh: <strong class="text-teal-600 font-black">{{ file2OrderTicketsCount }} xe</strong>
                                 </span>
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">
@@ -1659,10 +1752,18 @@ async function exportHistoryTrips() {
                                     </strong>
                                 </span>
                             </div>
+                            <div class="flex items-center gap-1 mt-1 text-xs font-bold text-teal-700">
+                                <span class="material-symbols-outlined text-sm">menu_book</span>
+                                Sổ theo dõi: {{ historyScaleStats.FILE_2.count.toLocaleString() }} chuyến •
+                                {{ historyScaleStats.FILE_2.tons.toFixed(2) }}t
+                            </div>
                         </div>
                     </div>
 
-                    <label class="border-2 border-dashed border-teal-400/50 hover:border-teal-600 bg-teal-50/40 hover:bg-teal-50 rounded-2xl px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 group">
+                    <label
+                        @click.stop
+                        class="border-2 border-dashed border-teal-400/50 hover:border-teal-600 bg-teal-50/40 hover:bg-teal-50 rounded-2xl px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 group"
+                    >
                         <input
                             ref="file2InputRef"
                             type="file"
@@ -1730,7 +1831,7 @@ async function exportHistoryTrips() {
                                             : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                                     ]"
                                 >
-                                    File 1: Nhập ({{ file1TicketsCount }})
+                                    File 1 · 26A ({{ file1TicketsCount }})
                                 </button>
                                 <button
                                     type="button"
@@ -1742,16 +1843,55 @@ async function exportHistoryTrips() {
                                             : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                                     ]"
                                 >
-                                    File 2: Xuất ({{ file2TicketsCount }})
+                                    File 2 · 26B ({{ file2TicketsCount }})
                                 </button>
                             </div>
                         </template>
 
                         <template v-else>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-display font-black text-primary uppercase">
-                                    Sổ theo dõi lịch sử phương tiện ({{ filteredHistoryTrips.length }} chuyến)
-                                </span>
+                            <!-- Tab Switcher Sổ theo dõi theo đầu cân (DESIGN.md Mục 6) -->
+                            <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center">
+                                <button
+                                    type="button"
+                                    @click="historyScaleFilter = 'all'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all cursor-pointer',
+                                        historyScaleFilter === 'all'
+                                            ? 'bg-primary text-white shadow-soft'
+                                            : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                                    ]"
+                                >
+                                    Tất cả ({{ existingTrips.length }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="historyScaleFilter = 'FILE_1'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all cursor-pointer',
+                                        historyScaleFilter === 'FILE_1'
+                                            ? 'bg-primary text-white shadow-soft'
+                                            : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                                    ]"
+                                    title="Đầu cân 1 - File 1 (xxxxxx/26A): Nhập kho & Nhập thẳng"
+                                >
+                                    Đầu cân 1 · 26A ({{ historyScaleStats.FILE_1.count }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="historyScaleFilter = 'FILE_2'"
+                                    :class="[
+                                        'px-2.5 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all cursor-pointer',
+                                        historyScaleFilter === 'FILE_2'
+                                            ? 'bg-teal-600 text-white shadow-soft'
+                                            : 'text-teal-700 hover:bg-white/50'
+                                    ]"
+                                    title="Đầu cân 2 - File 2 (xxxxxx/26B): Xuất kho & Xuất thẳng"
+                                >
+                                    Đầu cân 2 · 26B ({{ historyScaleStats.FILE_2.count }})
+                                </button>
+                            </div>
+                            <div class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center">
+                                {{ filteredHistoryTrips.length.toLocaleString() }} chuyến
                             </div>
                         </template>
                     </div>
@@ -1882,7 +2022,7 @@ async function exportHistoryTrips() {
                             <button
                                 type="button"
                                 @click="exportHistoryTrips"
-                                :disabled="existingTrips.length === 0 || compiling"
+                                :disabled="filteredHistoryTrips.length === 0 || compiling"
                                 class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
                             >
                                 <span v-if="compiling" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
@@ -2345,6 +2485,7 @@ async function exportHistoryTrips() {
                                     >
                                         Tên sà lan / Kho
                                     </th>
+                                    <th class="py-2.5 px-3 text-center">Đầu cân</th>
                                     <th class="py-2.5 px-3">Ghi chú</th>
                                     <th class="py-2.5 px-3 text-center w-20">Thao tác</th>
                                 </tr>
@@ -2398,6 +2539,17 @@ async function exportHistoryTrips() {
                                     </td>
                                     <td class="py-2 px-3 truncate max-w-[130px] text-gray-600" :title="trip.bargeName">
                                         {{ trip.bargeName || '-' }}
+                                    </td>
+                                    <td class="py-2 px-3 text-center">
+                                        <span
+                                            v-if="AllocatorService.resolveScaleHead(trip) === 'FILE_1'"
+                                            class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold"
+                                        >
+                                            ĐC 1 · 26A
+                                        </span>
+                                        <span v-else class="px-2 py-0.5 rounded-full bg-teal-50 text-teal-600 text-xs font-bold">
+                                            ĐC 2 · 26B
+                                        </span>
                                     </td>
                                     <td class="py-2 px-3 truncate max-w-[140px] text-gray-400" :title="trip.notes">
                                         {{ trip.notes || '-' }}
