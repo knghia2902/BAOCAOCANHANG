@@ -82,6 +82,15 @@ const activeMainTab = ref<'source' | 'history' | 'other_tickets'>('source');
 const sourceQuickFilter = ref<'all' | 'has_order' | 'file1' | 'file2'>('all');
 // Sổ theo dõi tách theo 2 đầu cân: Đầu cân 1 (File 1 - Nhập) | Đầu cân 2 (File 2 - Xuất) | Tất cả
 const historyScaleFilter = ref<'all' | 'FILE_1' | 'FILE_2'>('all');
+// Menu 3 chấm dọc cho các tác vụ phụ ở Tab 1 (Phiếu cân)
+const showSourceActionsMenu = ref(false);
+// Bộ lọc ngày Sổ theo dõi & Modal lọc ngày trước khi Xuất file
+const historyFromDate = ref('');
+const historyToDate = ref('');
+const showHistoryExportDialog = ref(false);
+const exportScaleFilter = ref<'all' | 'FILE_1' | 'FILE_2'>('all');
+const exportFromDate = ref('');
+const exportToDate = ref('');
 
 // File inputs & loading states
 const file1InputRef = ref<HTMLInputElement | null>(null);
@@ -998,15 +1007,67 @@ function openScaleHistory(head: 'FILE_1' | 'FILE_2') {
     activeMainTab.value = 'history';
 }
 
-watch(historyScaleFilter, () => {
+watch([historyScaleFilter, historyFromDate, historyToDate], () => {
     historyCurrentPage.value = 1;
 });
+
+function toYmdStr(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function formatYmdToDmy(ymd: string): string {
+    if (!ymd || !ymd.includes('-')) return ymd;
+    const [y, m, d] = ymd.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+function getTripWeighInYmd(trip: SplitTrip): string {
+    if (trip.date1Obj) {
+        const dt = new Date(trip.date1Obj);
+        if (!isNaN(dt.getTime())) return toYmdStr(dt);
+    }
+    if (trip.timeStr) {
+        const lines = String(trip.timeStr).split(/\r?\n/);
+        const datePart = lines.length > 1 ? lines[1] : lines[0];
+        const dt = parseDateTime(datePart || '', lines.length > 1 ? lines[0] || '' : '');
+        if (!isNaN(dt.getTime())) return toYmdStr(dt);
+    }
+    return '';
+}
+
+function getTripWeighOutYmd(trip: SplitTrip): string {
+    if (trip.date2Obj) {
+        const dt = new Date(trip.date2Obj);
+        if (!isNaN(dt.getTime())) return toYmdStr(dt);
+    }
+    return getTripWeighInYmd(trip);
+}
+
+/**
+ * Kiểm tra chuyến xe có nằm trong khoảng ngày lọc không:
+ * - Ngày bắt đầu (fromYmd) đối chiếu với Ngày cân vào (date1Obj)
+ * - Ngày kết thúc (toYmd) đối chiếu với Ngày cân ra (date2Obj, dự phòng date1Obj)
+ */
+function doesTripMatchDateRange(trip: SplitTrip, fromYmd: string, toYmd: string): boolean {
+    if (!fromYmd && !toYmd) return true;
+    const inYmd = getTripWeighInYmd(trip);
+    const outYmd = getTripWeighOutYmd(trip) || inYmd;
+    if (fromYmd && (!inYmd || inYmd < fromYmd)) return false;
+    if (toYmd && (!outYmd || outYmd > toYmd)) return false;
+    return true;
+}
 
 const filteredHistoryTrips = computed(() => {
     let list = existingTrips.value;
     if (historyScaleFilter.value !== 'all') {
         const head = historyScaleFilter.value;
         list = list.filter(t => AllocatorService.resolveScaleHead(t) === head);
+    }
+    if (historyFromDate.value || historyToDate.value) {
+        list = list.filter(t => doesTripMatchDateRange(t, historyFromDate.value, historyToDate.value));
     }
     if (historySearchQuery.value.trim()) {
         const q = historySearchQuery.value.toLowerCase().trim();
@@ -1433,11 +1494,116 @@ async function exportSourceTickets() {
     }
 }
 
-async function exportHistoryTrips() {
-    const dataToExport = filteredHistoryTrips.value;
-    if (dataToExport.length === 0) {
+const exportPreviewTrips = computed(() => {
+    let list = existingTrips.value;
+    if (exportScaleFilter.value !== 'all') {
+        const head = exportScaleFilter.value;
+        list = list.filter(t => AllocatorService.resolveScaleHead(t) === head);
+    }
+    if (exportFromDate.value || exportToDate.value) {
+        list = list.filter(t => doesTripMatchDateRange(t, exportFromDate.value, exportToDate.value));
+    }
+    if (historySearchQuery.value.trim()) {
+        const q = historySearchQuery.value.toLowerCase().trim();
+        list = list.filter(
+            t =>
+                (t.plateNumber && t.plateNumber.toLowerCase().includes(q)) ||
+                (t.ticketNo && t.ticketNo.toLowerCase().includes(q)) ||
+                (t.orderNo && t.orderNo.toLowerCase().includes(q)) ||
+                (t.customer && t.customer.toLowerCase().includes(q)) ||
+                (t.cargoType && t.cargoType.toLowerCase().includes(q)) ||
+                (t.bargeName && t.bargeName.toLowerCase().includes(q))
+        );
+    }
+    if (historySortKey.value) {
+        list = [...list].sort((a, b) => compareValues(a, b, historySortKey.value, historySortDesc.value));
+    }
+    return list;
+});
+
+const exportPreviewWeightTons = computed(() => {
+    return exportPreviewTrips.value.reduce((sum, t) => sum + tripWeightTons(t), 0);
+});
+
+function openHistoryExportDialog() {
+    if (existingTrips.value.length === 0) {
         addToast('Không có dữ liệu lịch sử để xuất!', 'info');
         return;
+    }
+    exportScaleFilter.value = historyScaleFilter.value;
+    if (historyFromDate.value || historyToDate.value) {
+        exportFromDate.value = historyFromDate.value;
+        exportToDate.value = historyToDate.value;
+    } else if (!exportFromDate.value && !exportToDate.value) {
+        const baseList =
+            exportScaleFilter.value === 'all'
+                ? existingTrips.value
+                : existingTrips.value.filter(t => AllocatorService.resolveScaleHead(t) === exportScaleFilter.value);
+        let minIn = '';
+        let maxOut = '';
+        for (const t of baseList) {
+            const inYmd = getTripWeighInYmd(t);
+            const outYmd = getTripWeighOutYmd(t) || inYmd;
+            if (inYmd && (!minIn || inYmd < minIn)) minIn = inYmd;
+            if (outYmd && (!maxOut || outYmd > maxOut)) maxOut = outYmd;
+        }
+        exportFromDate.value = minIn;
+        exportToDate.value = maxOut;
+    }
+    showHistoryExportDialog.value = true;
+}
+
+function setExportDatePreset(preset: 'today' | '7days' | 'month' | 'cycle26' | 'all') {
+    const now = new Date();
+    const todayYmd = toYmdStr(now);
+    if (preset === 'today') {
+        exportFromDate.value = todayYmd;
+        exportToDate.value = todayYmd;
+    } else if (preset === '7days') {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 6);
+        exportFromDate.value = toYmdStr(start);
+        exportToDate.value = todayYmd;
+    } else if (preset === 'month') {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        exportFromDate.value = toYmdStr(start);
+        exportToDate.value = todayYmd;
+    } else if (preset === 'cycle26') {
+        const day = now.getDate();
+        const start =
+            day >= 26
+                ? new Date(now.getFullYear(), now.getMonth(), 26)
+                : new Date(now.getFullYear(), now.getMonth() - 1, 26);
+        const end =
+            day >= 26
+                ? new Date(now.getFullYear(), now.getMonth() + 1, 25)
+                : new Date(now.getFullYear(), now.getMonth(), 25);
+        exportFromDate.value = toYmdStr(start);
+        exportToDate.value = toYmdStr(end);
+    } else {
+        exportFromDate.value = '';
+        exportToDate.value = '';
+    }
+}
+
+function applyExportDateFilterToTable() {
+    historyScaleFilter.value = exportScaleFilter.value;
+    historyFromDate.value = exportFromDate.value;
+    historyToDate.value = exportToDate.value;
+    showHistoryExportDialog.value = false;
+}
+
+async function exportHistoryTrips() {
+    const dataToExport = showHistoryExportDialog.value ? exportPreviewTrips.value : filteredHistoryTrips.value;
+    if (dataToExport.length === 0) {
+        addToast('Không có chuyến xe nào trong khoảng ngày đã chọn để xuất!', 'info');
+        return;
+    }
+    // Đồng bộ bộ lọc đang chọn trong modal ra bảng
+    if (showHistoryExportDialog.value) {
+        historyScaleFilter.value = exportScaleFilter.value;
+        historyFromDate.value = exportFromDate.value;
+        historyToDate.value = exportToDate.value;
     }
     compiling.value = true;
     try {
@@ -1529,17 +1695,24 @@ async function exportHistoryTrips() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download =
-            historyScaleFilter.value === 'FILE_1'
-                ? 'SỔ_THEO_DÕI_ĐẦU_CÂN_1_26A.xlsx'
-                : historyScaleFilter.value === 'FILE_2'
-                  ? 'SỔ_THEO_DÕI_ĐẦU_CÂN_2_26B.xlsx'
-                  : 'SỔ_THEO_DÕI_XẾP_HÀNG_HÓA.xlsx';
+        const activeScale = showHistoryExportDialog.value ? exportScaleFilter.value : historyScaleFilter.value;
+        const fromYmd = showHistoryExportDialog.value ? exportFromDate.value : historyFromDate.value;
+        const toYmd = showHistoryExportDialog.value ? exportToDate.value : historyToDate.value;
+        const dateSuffix =
+            fromYmd || toYmd ? `_${fromYmd || 'DAU'}_DEN_${toYmd || 'CUOI'}` : '';
+        const baseFileName =
+            activeScale === 'FILE_1'
+                ? 'SỔ_THEO_DÕI_ĐẦU_CÂN_1_26A'
+                : activeScale === 'FILE_2'
+                  ? 'SỔ_THEO_DÕI_ĐẦU_CÂN_2_26B'
+                  : 'SỔ_THEO_DÕI_XẾP_HÀNG_HÓA';
+        link.download = `${baseFileName}${dateSuffix}.xlsx`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        addToast('Đã xuất Sổ theo dõi thành công!', 'success');
+        showHistoryExportDialog.value = false;
+        addToast(`Đã xuất ${dataToExport.length} chuyến trong Sổ theo dõi thành công!`, 'success');
     } catch (error) {
         console.error(error);
         addToast('Có lỗi xảy ra khi tạo tệp Excel!', 'error');
@@ -1893,6 +2066,28 @@ async function exportHistoryTrips() {
                             <div class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center">
                                 {{ filteredHistoryTrips.length.toLocaleString() }} chuyến
                             </div>
+                            <div
+                                v-if="historyFromDate || historyToDate"
+                                class="h-7 px-2.5 bg-primary/10 border border-primary/20 text-primary rounded-[8px] text-xs font-bold flex items-center gap-1.5"
+                                title="Đang lọc theo khoảng Ngày cân vào – Ngày cân ra"
+                            >
+                                <span class="material-symbols-outlined text-xs">date_range</span>
+                                <span>
+                                    Vào: {{ historyFromDate ? formatYmdToDmy(historyFromDate) : 'Đầu' }} → Ra:
+                                    {{ historyToDate ? formatYmdToDmy(historyToDate) : 'Cuối' }}
+                                </span>
+                                <button
+                                    type="button"
+                                    @click="
+                                        historyFromDate = '';
+                                        historyToDate = '';
+                                    "
+                                    class="hover:text-rose-600 flex items-center cursor-pointer"
+                                    title="Bỏ lọc ngày"
+                                >
+                                    <span class="material-symbols-outlined text-xs">close</span>
+                                </button>
+                            </div>
                         </template>
                     </div>
 
@@ -1951,35 +2146,6 @@ async function exportHistoryTrips() {
                                 @change="handleMultiFileChange"
                                 class="hidden"
                             />
-                            <button
-                                type="button"
-                                @click="multiFileInputRef?.click()"
-                                :disabled="loadingMulti"
-                                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
-                                title="Import gộp 1 hoặc nhiều file phiếu cân (.csv, .xlsx)"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">upload_file</span>
-                                {{ loadingMulti ? 'Đang đọc...' : 'Import' }}
-                            </button>
-
-                            <button
-                                type="button"
-                                @click="openAddTicketDialog"
-                                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">add</span>
-                                Thêm
-                            </button>
-
-                            <button
-                                type="button"
-                                @click="clearAllTickets"
-                                :disabled="csvRecords.length === 0"
-                                class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
-                            >
-                                <span class="material-symbols-outlined text-[14px]">delete</span>
-                                Xóa hết
-                            </button>
 
                             <button
                                 type="button"
@@ -1990,7 +2156,7 @@ async function exportHistoryTrips() {
                             >
                                 <span v-if="isSavingToHistory" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
                                 <span v-else class="material-symbols-outlined text-[14px]">save</span>
-                                {{ isSavingToHistory ? 'Đang lưu...' : 'Lưu vào Sổ Theo Dõi' }}
+                                {{ isSavingToHistory ? 'Đang lưu...' : 'Lưu' }}
                             </button>
 
                             <button
@@ -1998,10 +2164,70 @@ async function exportHistoryTrips() {
                                 @click="exportSourceTickets"
                                 :disabled="csvRecords.length === 0 || compiling"
                                 class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                                title="Xuất danh sách phiếu cân ra Excel"
                             >
                                 <span class="material-symbols-outlined text-[14px]">download</span>
-                                Xuất Excel
+                                Xuất
                             </button>
+
+                            <!-- Nút dấu 3 chấm dọc bên phải ngoài cùng chứa: Nhập file, Thêm, Xóa -->
+                            <div class="relative">
+                                <div
+                                    v-if="showSourceActionsMenu"
+                                    class="fixed inset-0 z-20"
+                                    @click="showSourceActionsMenu = false"
+                                ></div>
+                                <button
+                                    type="button"
+                                    @click="showSourceActionsMenu = !showSourceActionsMenu"
+                                    class="h-7 w-7 bg-slate-100/80 hover:bg-primary/10 text-slate-600 hover:text-primary border border-slate-200/80 rounded-[8px] flex items-center justify-center transition-all active:scale-95 cursor-pointer relative z-30"
+                                    title="Tác vụ khác (Nhập file, Thêm, Xóa)"
+                                >
+                                    <span class="material-symbols-outlined text-base">more_vert</span>
+                                </button>
+
+                                <div
+                                    v-if="showSourceActionsMenu"
+                                    class="absolute right-0 top-full mt-1.5 z-30 w-40 bg-white rounded-2xl soft-shadow border border-gray-100 py-1.5 flex flex-col overflow-hidden"
+                                >
+                                    <button
+                                        type="button"
+                                        :disabled="loadingMulti"
+                                        @click="
+                                            showSourceActionsMenu = false;
+                                            multiFileInputRef?.click();
+                                        "
+                                        class="w-full px-3.5 py-2 text-left text-xs font-bold text-[#1e293b] hover:bg-primary/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-40"
+                                    >
+                                        <span class="material-symbols-outlined text-sm text-primary">upload_file</span>
+                                        <span>{{ loadingMulti ? 'Đang đọc...' : 'Nhập file' }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="
+                                            showSourceActionsMenu = false;
+                                            openAddTicketDialog();
+                                        "
+                                        class="w-full px-3.5 py-2 text-left text-xs font-bold text-[#1e293b] hover:bg-primary/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer"
+                                    >
+                                        <span class="material-symbols-outlined text-sm text-primary">add</span>
+                                        <span>Thêm</span>
+                                    </button>
+                                    <div class="my-1 border-t border-gray-100"></div>
+                                    <button
+                                        type="button"
+                                        :disabled="csvRecords.length === 0"
+                                        @click="
+                                            showSourceActionsMenu = false;
+                                            clearAllTickets();
+                                        "
+                                        class="w-full px-3.5 py-2 text-left text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-40"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                        <span>Xóa</span>
+                                    </button>
+                                </div>
+                            </div>
                         </template>
 
                         <!-- Actions for Tab 2: Sổ theo dõi -->
@@ -2021,13 +2247,14 @@ async function exportHistoryTrips() {
                             </button>
                             <button
                                 type="button"
-                                @click="exportHistoryTrips"
-                                :disabled="filteredHistoryTrips.length === 0 || compiling"
+                                @click="openHistoryExportDialog"
+                                :disabled="existingTrips.length === 0 || compiling"
                                 class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                                title="Chọn khoảng ngày (Ngày cân vào – Ngày cân ra) và xuất Sổ theo dõi ra Excel"
                             >
                                 <span v-if="compiling" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
                                 <span v-else class="material-symbols-outlined text-[14px]">download</span>
-                                Xuất Excel
+                                Xuất
                             </button>
                         </template>
                     </div>
@@ -2868,6 +3095,215 @@ async function exportHistoryTrips() {
                         >
                             Lưu phiếu cân
                         </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- DIALOG: BỘ LỌC NGÀY TRƯỚC KHI XUẤT SỔ THEO DÕI -->
+        <Teleport to="body">
+            <div
+                v-if="showHistoryExportDialog"
+                class="fixed inset-0 bg-[#1e293b]/40 backdrop-blur-sm z-[130] flex items-center justify-center p-4 font-display no-print"
+                @click.self="showHistoryExportDialog = false"
+            >
+                <div class="bg-white rounded-[24px] soft-shadow border border-primary/5 w-full max-w-lg overflow-hidden flex flex-col">
+                    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-display font-black text-[#1e293b] flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-xl">date_range</span>
+                                Xuất Sổ Theo Dõi
+                            </h3>
+                            <p class="text-xs text-slate-500 font-semibold mt-0.5">
+                                Chọn khoảng thời gian từ Ngày cân vào đến Ngày cân ra trước khi xuất file
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="showHistoryExportDialog = false"
+                            class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        >
+                            <span class="material-symbols-outlined text-base">close</span>
+                        </button>
+                    </div>
+
+                    <div class="p-5 flex flex-col gap-4">
+                        <!-- Chọn đầu cân cần xuất -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                Đầu cân cần xuất
+                            </label>
+                            <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 h-9 items-center">
+                                <button
+                                    type="button"
+                                    @click="exportScaleFilter = 'all'"
+                                    :class="[
+                                        'flex-1 py-1 rounded-lg text-xs font-display font-bold h-7 transition-all cursor-pointer',
+                                        exportScaleFilter === 'all'
+                                            ? 'bg-primary text-white shadow-soft'
+                                            : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                                    ]"
+                                >
+                                    Tất cả ({{ existingTrips.length }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="exportScaleFilter = 'FILE_1'"
+                                    :class="[
+                                        'flex-1 py-1 rounded-lg text-xs font-display font-bold h-7 transition-all cursor-pointer',
+                                        exportScaleFilter === 'FILE_1'
+                                            ? 'bg-primary text-white shadow-soft'
+                                            : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                                    ]"
+                                >
+                                    Đầu cân 1 · 26A ({{ historyScaleStats.FILE_1.count }})
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="exportScaleFilter = 'FILE_2'"
+                                    :class="[
+                                        'flex-1 py-1 rounded-lg text-xs font-display font-bold h-7 transition-all cursor-pointer',
+                                        exportScaleFilter === 'FILE_2'
+                                            ? 'bg-teal-600 text-white shadow-soft'
+                                            : 'text-teal-700 hover:bg-white/50'
+                                    ]"
+                                >
+                                    Đầu cân 2 · 26B ({{ historyScaleStats.FILE_2.count }})
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bộ lọc Từ ngày (Ngày cân vào) – Đến ngày (Ngày cân ra) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">login</span>
+                                    Từ ngày (Ngày cân vào)
+                                </label>
+                                <input
+                                    v-model="exportFromDate"
+                                    type="date"
+                                    class="px-3.5 py-2.5 rounded-2xl bg-[#f1f5f9] border border-transparent focus:border-primary/30 focus:bg-white text-xs font-bold text-[#1e293b] focus:outline-none"
+                                />
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-xs font-bold text-teal-600 uppercase tracking-wider flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">logout</span>
+                                    Đến ngày (Ngày cân ra)
+                                </label>
+                                <input
+                                    v-model="exportToDate"
+                                    type="date"
+                                    class="px-3.5 py-2.5 rounded-2xl bg-[#f1f5f9] border border-transparent focus:border-teal-600/30 focus:bg-white text-xs font-bold text-[#1e293b] focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Chọn nhanh khoảng ngày -->
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-xs font-bold text-slate-400 mr-1">Chọn nhanh:</span>
+                            <button
+                                type="button"
+                                @click="setExportDatePreset('today')"
+                                class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 transition-all cursor-pointer"
+                            >
+                                Hôm nay
+                            </button>
+                            <button
+                                type="button"
+                                @click="setExportDatePreset('7days')"
+                                class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 transition-all cursor-pointer"
+                            >
+                                7 ngày qua
+                            </button>
+                            <button
+                                type="button"
+                                @click="setExportDatePreset('month')"
+                                class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 transition-all cursor-pointer"
+                            >
+                                Tháng này
+                            </button>
+                            <button
+                                type="button"
+                                @click="setExportDatePreset('cycle26')"
+                                class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 transition-all cursor-pointer"
+                                title="Kỳ tính phí 26 tháng trước đến 25 tháng này"
+                            >
+                                Kỳ 26–25
+                            </button>
+                            <button
+                                type="button"
+                                @click="setExportDatePreset('all')"
+                                class="h-7 px-2.5 bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold rounded-[8px] hover:bg-slate-200/70 transition-all cursor-pointer"
+                            >
+                                Tất cả ngày
+                            </button>
+                        </div>
+
+                        <!-- Thống kê xem trước trước khi xuất -->
+                        <div
+                            :class="[
+                                'rounded-2xl p-3.5 border flex items-center justify-between gap-3',
+                                exportPreviewTrips.length > 0
+                                    ? 'bg-teal-50/70 border-teal-200 text-teal-800'
+                                    : 'bg-rose-50/70 border-rose-200 text-rose-700'
+                            ]"
+                        >
+                            <div class="flex items-center gap-2.5">
+                                <span class="material-symbols-outlined text-xl">
+                                    {{ exportPreviewTrips.length > 0 ? 'fact_check' : 'warning' }}
+                                </span>
+                                <div>
+                                    <div class="text-xs font-display font-black">
+                                        {{
+                                            exportPreviewTrips.length > 0
+                                                ? `Sẵn sàng xuất ${exportPreviewTrips.length.toLocaleString()} chuyến`
+                                                : 'Không có chuyến nào trong khoảng ngày đã chọn'
+                                        }}
+                                    </div>
+                                    <div class="text-xs font-semibold opacity-80">
+                                        Ngày cân vào: {{ exportFromDate ? formatYmdToDmy(exportFromDate) : 'Tất cả' }}
+                                        → Ngày cân ra: {{ exportToDate ? formatYmdToDmy(exportToDate) : 'Tất cả' }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-xs font-bold opacity-75">Tổng KL</div>
+                                <div class="text-sm font-display font-black">
+                                    {{ exportPreviewWeightTons.toFixed(2) }} tấn
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-5 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                        <button
+                            type="button"
+                            @click="applyExportDateFilterToTable"
+                            class="px-3.5 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 active:scale-95 text-xs transition-all shadow-sm cursor-pointer flex items-center gap-1"
+                        >
+                            <span class="material-symbols-outlined text-sm">filter_alt</span>
+                            Chỉ lọc trên bảng
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                @click="showHistoryExportDialog = false"
+                                class="px-4 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs transition-all cursor-pointer"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                type="button"
+                                :disabled="exportPreviewTrips.length === 0 || compiling"
+                                @click="exportHistoryTrips"
+                                class="px-5 py-2 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none text-xs transition-all disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                            >
+                                <span v-if="compiling" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                                <span v-else class="material-symbols-outlined text-sm">download</span>
+                                Xuất ({{ exportPreviewTrips.length }})
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
