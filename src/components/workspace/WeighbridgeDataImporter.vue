@@ -932,18 +932,6 @@ const file2TicketsCount = computed(() => {
     return csvRecords.value.filter(t => AllocatorService.resolveScaleHead(t) === 'FILE_2').length;
 });
 
-const file1OrderTicketsCount = computed(() => {
-    return csvRecords.value.filter(
-        t => AllocatorService.resolveScaleHead(t) === 'FILE_1' && t.orderNo && String(t.orderNo).trim() !== ''
-    ).length;
-});
-
-const file2OrderTicketsCount = computed(() => {
-    return csvRecords.value.filter(
-        t => AllocatorService.resolveScaleHead(t) === 'FILE_2' && t.orderNo && String(t.orderNo).trim() !== ''
-    ).length;
-});
-
 const filteredSourceTickets = computed(() => {
     let list = csvRecords.value;
 
@@ -1741,7 +1729,7 @@ async function exportHistoryTrips() {
         <!-- Card 1: Tab Switcher + Lối tắt báo cáo (Chuẩn DESIGN.md Mục 6) -->
         <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] py-2.5 px-4 soft-shadow border border-primary/5 gap-3 shrink-0">
             <div class="flex items-center gap-3">
-                <div class="text-xs font-black uppercase tracking-wider text-primary">Phân Hệ Dữ Liệu Cân Hàng & Sổ Theo Dõi</div>
+                <div class="text-sm md:text-base font-display font-black uppercase tracking-wide text-primary">Phân Hệ Dữ Liệu Cân Hàng & Sổ Theo Dõi</div>
             </div>
 
             <!-- Tab Switcher nhỏ gọn chuẩn DESIGN.md Mục 6 -->
@@ -1769,18 +1757,6 @@ async function exportHistoryTrips() {
                     ]"
                 >
                     <span>2. Sổ theo dõi ({{ existingTrips.length }})</span>
-                </button>
-                <button
-                    type="button"
-                    @click="activeMainTab = 'other_tickets'"
-                    :class="[
-                        'px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all cursor-pointer flex items-center gap-1',
-                        activeMainTab === 'other_tickets'
-                            ? 'bg-primary text-white shadow-soft'
-                            : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                    ]"
-                >
-                    <span>3. Cân Kho & Container</span>
                 </button>
             </div>
 
@@ -1845,7 +1821,7 @@ async function exportHistoryTrips() {
                         </div>
                         <div class="min-w-0 flex-1">
                             <h3 class="text-xs font-display font-black text-[#1e293b] uppercase">
-                                Đầu cân 1 · File 1 (xxxxxx/26A): Nhập kho & Nhập thẳng
+                                Đầu cân 1 · File 1: Nhập kho
                             </h3>
                             <p v-if="file1Name" class="text-xs text-slate-500 font-semibold mt-0.5 truncate" :title="file1Name">
                                 Đã nạp: {{ file1Name }}
@@ -1853,10 +1829,6 @@ async function exportHistoryTrips() {
                             <div class="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs font-bold">
                                 <span class="text-slate-500">
                                     Phiếu 26A: <strong class="text-[#1e293b] font-black">{{ file1TicketsCount }} xe</strong>
-                                </span>
-                                <span class="text-slate-300">•</span>
-                                <span class="text-slate-500">
-                                    Có Mã lệnh: <strong class="text-teal-600 font-black">{{ file1OrderTicketsCount }} xe</strong>
                                 </span>
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">
@@ -1918,7 +1890,7 @@ async function exportHistoryTrips() {
                         </div>
                         <div class="min-w-0 flex-1">
                             <h3 class="text-xs font-display font-black text-[#1e293b] uppercase">
-                                Đầu cân 2 · File 2 (xxxxxx/26B): Xuất kho & Xuất thẳng
+                                Đầu cân 2 · File 2: Xuất kho & Xuất thẳng
                             </h3>
                             <p v-if="file2Name" class="text-xs text-slate-500 font-semibold mt-0.5 truncate" :title="file2Name">
                                 Đã nạp: {{ file2Name }}
@@ -1926,10 +1898,6 @@ async function exportHistoryTrips() {
                             <div class="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs font-bold">
                                 <span class="text-slate-500">
                                     Phiếu 26B: <strong class="text-[#1e293b] font-black">{{ file2TicketsCount }} xe</strong>
-                                </span>
-                                <span class="text-slate-300">•</span>
-                                <span class="text-slate-500">
-                                    Có Mã lệnh: <strong class="text-teal-600 font-black">{{ file2OrderTicketsCount }} xe</strong>
                                 </span>
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-500">
@@ -1994,19 +1962,6 @@ async function exportHistoryTrips() {
                                     ]"
                                 >
                                     Tất cả ({{ csvRecords.length }})
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="sourceQuickFilter = 'has_order'"
-                                    :class="[
-                                        'px-2.5 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all cursor-pointer',
-                                        sourceQuickFilter === 'has_order'
-                                            ? 'bg-teal-600 text-white shadow-soft'
-                                            : 'text-teal-700 hover:bg-white/50'
-                                    ]"
-                                    title="Các xe có cột Mã lệnh sẽ dùng để làm Báo cáo lô hàng"
-                                >
-                                    Có Mã lệnh ({{ ticketsWithOrderCount }})
                                 </button>
                                 <button
                                     type="button"
