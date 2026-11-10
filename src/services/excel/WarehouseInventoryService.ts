@@ -308,10 +308,28 @@ export function isBachKhoaCustomer(name: string | undefined | null): boolean {
 }
 
 /**
+ * Check whether a customer name corresponds to Eastwood
+ */
+export function isEastwoodCustomer(name: string | undefined | null): boolean {
+    if (!name) return false;
+    const clean = stripAccents(name).toUpperCase();
+    return /\b(EASTWOOD|EAST\s*WOOD|EW)\b/.test(clean);
+}
+
+/**
  * Check whether a ticket belongs to Bách Khoa
+ * DỰA HOÀN TOÀN VÀO CỘT KHÁCH HÀNG (ticket.customerName), KHÔNG DỰA VÀO CÁC CỘT KHÁC
  */
 export function isBachKhoaTicket(ticket: WarehouseInventoryTicket): boolean {
-    return isBachKhoaCustomer(ticket.customerName) || isBachKhoaCustomer(ticket.sourceOrRemark);
+    return isBachKhoaCustomer(ticket.customerName);
+}
+
+/**
+ * Check whether a ticket belongs to Eastwood
+ * DỰA HOÀN TOÀN VÀO CỘT KHÁCH HÀNG (ticket.customerName), KHÔNG DỰA VÀO CÁC CỘT KHÁC
+ */
+export function isEastwoodTicket(ticket: WarehouseInventoryTicket): boolean {
+    return isEastwoodCustomer(ticket.customerName);
 }
 
 /**
@@ -319,37 +337,41 @@ export function isBachKhoaTicket(ticket: WarehouseInventoryTicket): boolean {
  * - KHO_4: Customer owning Kho 4 (Default EASTWOOD)
  * - KHO_4_BK: Customer Bách Khoa at Kho 4
  * - KHO_123: Customer owning Kho 1, 2, 3 (Default GỖ BÌNH ĐỊNH)
+ *
+ * QUY TẮC: Phân định hàng Bách Khoa hay Eastwood dựa vào cột khách hàng (customerName),
+ * không dựa vào các cột khác (tài xế, nơi nhận, ghi chú, tàu...).
  */
 export function getTicketCustomerGroup(
     ticket: WarehouseInventoryTicket,
     configs?: Partial<Record<string, WarehouseConfig>>
 ): 'KHO_4' | 'KHO_4_BK' | 'KHO_123' {
-    if (isBachKhoaTicket(ticket)) {
+    // 1. Kiểm tra trực tiếp cột Khách hàng xem có từ khóa Bách Khoa hay Eastwood
+    if (isBachKhoaCustomer(ticket.customerName)) {
         return 'KHO_4_BK';
     }
+    if (isEastwoodCustomer(ticket.customerName)) {
+        return 'KHO_4';
+    }
 
+    // 2. Nếu phiếu cân đã thuộc kho vật lý KHO 4 (và khách hàng không phải Bách Khoa) -> Gán về Eastwood
     if (ticket.warehouseId === 'KHO 4') return 'KHO_4';
+
+    // 3. Nếu phiếu cân thuộc các kho KHO 1, KHO 2, KHO 3 -> Gán về Gỗ Bình Định
     if (ticket.warehouseId === 'KHO 1' || ticket.warehouseId === 'KHO 2' || ticket.warehouseId === 'KHO 3') return 'KHO_123';
 
+    // 4. Đối với phiếu Xá Thẳng (flowType DIRECT không có kho vật lý):
     const custClean = stripAccents(ticket.customerName || '').toUpperCase().trim();
     const custKho4 = stripAccents(configs?.['KHO 4']?.currentCustomer || 'EASTWOOD').toUpperCase().trim();
     const custKho123 = stripAccents(configs?.['KHO 1']?.currentCustomer || 'GO BINH DINH').toUpperCase().trim();
 
     if (custClean) {
-        if (custClean.includes('EASTWOOD') || custClean.includes('EAST WOOD') || custClean.includes('EW') || (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean)))) {
+        if (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean))) {
             return 'KHO_4';
         }
         if (custClean.includes('BINH DINH') || custClean.includes('GBD') || (custKho123 && (custClean.includes(custKho123) || custKho123.includes(custClean)))) {
             return 'KHO_123';
         }
     }
-
-    const remarkClean = stripAccents(ticket.sourceOrRemark || '').toUpperCase();
-    if (remarkClean.includes('KHO 4') || remarkClean.includes('EW')) return 'KHO_4';
-    if (remarkClean.includes('KHO 1') || remarkClean.includes('KHO 2') || remarkClean.includes('KHO 3') || remarkClean.includes('GBD')) return 'KHO_123';
-
-    if (ticket.id.includes('KHO 4') || ticket.id.includes('EW')) return 'KHO_4';
-    if (ticket.id.includes('KHO 1') || ticket.id.includes('KHO 2') || ticket.id.includes('KHO 3') || ticket.id.includes('GBD')) return 'KHO_123';
 
     return 'KHO_123';
 }
@@ -1536,6 +1558,8 @@ export const WarehouseInventoryService = {
     getDefaultVisualMapState,
     isBachKhoaCustomer,
     isBachKhoaTicket,
+    isEastwoodCustomer,
+    isEastwoodTicket,
     getTicketCustomerGroup,
     getDefaultConfigs,
 
@@ -2499,7 +2523,15 @@ export const WarehouseInventoryService = {
 
             if (ticket.warehouseId) {
                 updatedWhSet.add(ticket.warehouseId);
-                if (ticket.customerName && configs[ticket.warehouseId]) {
+                if (ticket.warehouseId === 'KHO 4') {
+                    if (isBachKhoaTicket(ticket)) {
+                        if (configs['KHO 4 - BK']) {
+                            configs['KHO 4 - BK'].currentCustomer = ticket.customerName || 'BÁCH KHOA';
+                        }
+                    } else if (ticket.customerName && configs['KHO 4']) {
+                        configs['KHO 4'].currentCustomer = ticket.customerName;
+                    }
+                } else if (ticket.customerName && configs[ticket.warehouseId]) {
                     configs[ticket.warehouseId]!.currentCustomer = ticket.customerName;
                 }
             }
@@ -2519,6 +2551,9 @@ export const WarehouseInventoryService = {
             if (configs[whId]) {
                 await this.saveConfig(configs[whId]!);
             }
+        }
+        if (updatedWhSet.has('KHO 4') && configs['KHO 4 - BK']) {
+            await this.saveConfig(configs['KHO 4 - BK']);
         }
         summary.warehousesUpdated = Array.from(updatedWhSet);
 

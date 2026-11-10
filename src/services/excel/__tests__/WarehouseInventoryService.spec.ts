@@ -43,7 +43,9 @@ import {
     parseToIsoDate,
     getTicketCustomerGroup,
     isBachKhoaCustomer,
-    isBachKhoaTicket
+    isBachKhoaTicket,
+    isEastwoodCustomer,
+    isEastwoodTicket
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
@@ -119,24 +121,44 @@ describe('WarehouseInventoryService', () => {
             expect(isBachKhoaCustomer('EASTWOOD ENERGY')).toBe(false);
             expect(isBachKhoaCustomer('GỖ BÌNH ĐỊNH')).toBe(false);
             expect(isBachKhoaCustomer('')).toBe(false);
+
+            expect(isEastwoodCustomer('EASTWOOD ENERGY')).toBe(true);
+            expect(isEastwoodCustomer('EAST WOOD')).toBe(true);
+            expect(isEastwoodCustomer('EW')).toBe(true);
+            expect(isEastwoodCustomer('BÁCH KHOA')).toBe(false);
         });
 
-        it('detects Bach Khoa tickets by customerName, sourceOrRemark, or vesselName', () => {
+        it('identifies Bach Khoa vs Eastwood SOLELY by customerName column, ignoring any other columns', () => {
+            // Ticket with Bach Khoa customerName: must be Bach Khoa even if sourceOrRemark has EASTWOOD
             const ticketBK: WarehouseInventoryTicket = {
                 id: 'bk-1', soPhieu: '101', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
                 weighOutTime: '08:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'CÔNG TY CP BÁCH KHOA',
-                cargoType: 'Viên nén', vehiclePlate: '77C12345', carrierName: 'VT BK', grossWeight: 50, tareWeight: 15, netWeight: 35
+                cargoType: 'Viên nén', vehiclePlate: '77C12345', carrierName: 'VT BK', grossWeight: 50, tareWeight: 15, netWeight: 35,
+                sourceOrRemark: 'EASTWOOD KHO 4', vesselName: 'EASTWOOD BARGE'
             };
             expect(isBachKhoaTicket(ticketBK)).toBe(true);
+            expect(isEastwoodTicket(ticketBK)).toBe(false);
             expect(getTicketCustomerGroup(ticketBK)).toBe('KHO_4_BK');
 
+            // Ticket with Eastwood customerName: must be Eastwood even if sourceOrRemark or vesselName mentions BÁCH KHOA
             const ticketEW: WarehouseInventoryTicket = {
                 id: 'ew-1', soPhieu: '102', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
                 weighOutTime: '08:30', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'EASTWOOD',
-                cargoType: 'Viên nén', vehiclePlate: '77C67890', carrierName: 'VT EW', grossWeight: 50, tareWeight: 15, netWeight: 35
+                cargoType: 'Viên nén', vehiclePlate: '77C67890', carrierName: 'VT EW', grossWeight: 50, tareWeight: 15, netWeight: 35,
+                sourceOrRemark: 'BÁCH KHOA Ô 1', vesselName: 'SÀ LAN BÁCH KHOA'
             };
             expect(isBachKhoaTicket(ticketEW)).toBe(false);
+            expect(isEastwoodTicket(ticketEW)).toBe(true);
             expect(getTicketCustomerGroup(ticketEW)).toBe('KHO_4');
+
+            // Ticket with empty customerName: does NOT become Bach Khoa even if remark mentions BK
+            const ticketEmptyCust: WarehouseInventoryTicket = {
+                id: 'empty-1', soPhieu: '103', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                weighOutTime: '09:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: '',
+                cargoType: 'Viên nén', vehiclePlate: '77C99999', carrierName: 'VT', grossWeight: 50, tareWeight: 15, netWeight: 35,
+                sourceOrRemark: 'BÁCH KHOA'
+            };
+            expect(isBachKhoaTicket(ticketEmptyCust)).toBe(false);
         });
     });
 

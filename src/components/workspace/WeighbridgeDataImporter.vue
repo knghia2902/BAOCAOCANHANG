@@ -16,6 +16,7 @@ import {
     parseToIsoDate,
     parseToTimeStr,
     formatIsoToDmy,
+    isBachKhoaTicket,
     type RawWeighbridgeRow
 } from '@/services/excel/WarehouseInventoryService';
 import type { WarehouseId, WarehouseInventoryTicket } from '@/types/excel';
@@ -720,7 +721,15 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
 
                 if (whTicket.warehouseId) {
                     updatedWhSet.add(whTicket.warehouseId);
-                    if (whTicket.customerName && configs[whTicket.warehouseId]) {
+                    if (whTicket.warehouseId === 'KHO 4') {
+                        if (isBachKhoaTicket(whTicket)) {
+                            if (configs['KHO 4 - BK']) {
+                                configs['KHO 4 - BK'].currentCustomer = whTicket.customerName || 'BÁCH KHOA';
+                            }
+                        } else if (whTicket.customerName && configs['KHO 4']) {
+                            configs['KHO 4'].currentCustomer = whTicket.customerName;
+                        }
+                    } else if (whTicket.customerName && configs[whTicket.warehouseId]) {
                         configs[whTicket.warehouseId]!.currentCustomer = whTicket.customerName;
                     }
                 }
@@ -737,6 +746,9 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
                 if (configs[whId]) {
                     await WarehouseInventoryService.saveConfig(configs[whId]!);
                 }
+            }
+            if (updatedWhSet.has('KHO 4') && configs['KHO 4 - BK']) {
+                await WarehouseInventoryService.saveConfig(configs['KHO 4 - BK']);
             }
         }
 
