@@ -721,7 +721,7 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
                 if (whTicket.warehouseId) {
                     updatedWhSet.add(whTicket.warehouseId);
                     if (whTicket.customerName && configs[whTicket.warehouseId]) {
-                        configs[whTicket.warehouseId].currentCustomer = whTicket.customerName;
+                        configs[whTicket.warehouseId]!.currentCustomer = whTicket.customerName;
                     }
                 }
             }
@@ -734,7 +734,9 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
             });
             whDupCount = whStats.duplicateCount;
             for (const whId of updatedWhSet) {
-                await WarehouseInventoryService.saveConfig(configs[whId]);
+                if (configs[whId]) {
+                    await WarehouseInventoryService.saveConfig(configs[whId]!);
+                }
             }
         }
 

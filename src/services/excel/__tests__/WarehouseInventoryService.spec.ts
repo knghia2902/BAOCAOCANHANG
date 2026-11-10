@@ -41,7 +41,9 @@ import {
     sanitizeCustomerName,
     sanitizeDailyRemarks,
     parseToIsoDate,
-    getTicketCustomerGroup
+    getTicketCustomerGroup,
+    isBachKhoaCustomer,
+    isBachKhoaTicket
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
@@ -103,6 +105,38 @@ describe('WarehouseInventoryService', () => {
                 cargoType: 'Viên nén', vehiclePlate: '50H4', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
             };
             expect(getTicketCustomerGroup(ticketDirectGBD)).toBe('KHO_123');
+        });
+    });
+
+    describe('isBachKhoaCustomer & isBachKhoaTicket', () => {
+        it('accurately identifies Bach Khoa customer variants and keywords', () => {
+            expect(isBachKhoaCustomer('CÔNG TY CP NĂNG LƯỢNG BÁCH KHOA')).toBe(true);
+            expect(isBachKhoaCustomer('Bách Khoa')).toBe(true);
+            expect(isBachKhoaCustomer('BACH KHOA')).toBe(true);
+            expect(isBachKhoaCustomer('Cty BK')).toBe(true);
+            expect(isBachKhoaCustomer('BKTH')).toBe(true);
+            expect(isBachKhoaCustomer('KHÁCH BK')).toBe(true);
+            expect(isBachKhoaCustomer('EASTWOOD ENERGY')).toBe(false);
+            expect(isBachKhoaCustomer('GỖ BÌNH ĐỊNH')).toBe(false);
+            expect(isBachKhoaCustomer('')).toBe(false);
+        });
+
+        it('detects Bach Khoa tickets by customerName, sourceOrRemark, or vesselName', () => {
+            const ticketBK: WarehouseInventoryTicket = {
+                id: 'bk-1', soPhieu: '101', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                weighOutTime: '08:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'CÔNG TY CP BÁCH KHOA',
+                cargoType: 'Viên nén', vehiclePlate: '77C12345', carrierName: 'VT BK', grossWeight: 50, tareWeight: 15, netWeight: 35
+            };
+            expect(isBachKhoaTicket(ticketBK)).toBe(true);
+            expect(getTicketCustomerGroup(ticketBK)).toBe('KHO_4_BK');
+
+            const ticketEW: WarehouseInventoryTicket = {
+                id: 'ew-1', soPhieu: '102', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                weighOutTime: '08:30', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'EASTWOOD',
+                cargoType: 'Viên nén', vehiclePlate: '77C67890', carrierName: 'VT EW', grossWeight: 50, tareWeight: 15, netWeight: 35
+            };
+            expect(isBachKhoaTicket(ticketEW)).toBe(false);
+            expect(getTicketCustomerGroup(ticketEW)).toBe('KHO_4');
         });
     });
 
@@ -401,6 +435,37 @@ describe('WarehouseInventoryService', () => {
             expect(result.rows[1]?.remark).toBe('Xuất tàu MV. HENG SHUN');
             expect(result.closingStockTons).toBe(160);
         });
+
+        it('computes KHO 4 - BK independently with initialStock 0 and only BK tickets', () => {
+            const tickets: WarehouseInventoryTicket[] = [
+                {
+                    id: 'bk-1', soPhieu: '101', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                    weighOutTime: '08:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'BÁCH KHOA',
+                    cargoType: 'Viên nén', vehiclePlate: '77C1', carrierName: 'VT', grossWeight: 50, tareWeight: 20, netWeight: 30
+                },
+                {
+                    id: 'ew-1', soPhieu: '102', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                    weighOutTime: '09:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'EASTWOOD',
+                    cargoType: 'Viên nén', vehiclePlate: '77C2', carrierName: 'VT', grossWeight: 50, tareWeight: 10, netWeight: 40
+                },
+                {
+                    id: 'bk-2', soPhieu: '103', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                    weighOutTime: '14:00', flowType: 'EXPORT', warehouseId: 'KHO 4', customerName: 'BÁCH KHOA',
+                    cargoType: 'Viên nén', vehiclePlate: '77C3', carrierName: 'VT', grossWeight: 40, tareWeight: 30, netWeight: 10
+                }
+            ];
+
+            const configs = WarehouseInventoryService.getDefaultConfigs();
+            const resultBK = computeWarehouseFinalTable('KHO 4 - BK', tickets, configs['KHO 4 - BK']!);
+            expect(resultBK.totalImportTons).toBe(30);
+            expect(resultBK.totalExportTons).toBe(10);
+            expect(resultBK.closingStockTons).toBe(20);
+
+            const resultEW = computeWarehouseFinalTable('KHO 4', tickets, configs['KHO 4']!);
+            // EW has initial stock 532.55 by default in configs, and imported 40
+            expect(resultEW.totalImportTons).toBe(40);
+            expect(resultEW.totalExportTons).toBe(0);
+        });
     });
 
     describe('Multi-sheet Excel Report Exporters (INV-05)', () => {
@@ -453,7 +518,7 @@ describe('WarehouseInventoryService', () => {
 
         it('exports Single-Warehouse workbook with IMPORT 4, EXPORT 4, FINAL 4, XÁ THẲNG (without Data sheet) and live formulas', async () => {
             const { buffer, filename } = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4');
-            expect(filename).toContain('KHO 4');
+            expect(filename).toContain('EW');
             expect(buffer.byteLength).toBeGreaterThan(1000);
 
             const ExcelJS = await import('exceljs');
@@ -596,6 +661,20 @@ describe('WarehouseInventoryService', () => {
             expect(wb.getWorksheet('Data')).toBeUndefined();
         }, 30000);
 
+        it('exports Single-Warehouse workbook for KHO 4 - BK with _BK_ in filename and proper sheets', async () => {
+            const { buffer, filename } = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4 - BK');
+            expect(filename).toContain('_BK_');
+            const ExcelJS = await import('exceljs');
+            const wb = new ExcelJS.Workbook();
+            await wb.xlsx.load(buffer);
+            expect(wb.worksheets.map(s => s.name)).toEqual([
+                'IMPORT 4',
+                'EXPORT 4',
+                'FINAL 4',
+                'XÁ THẲNG'
+            ]);
+        }, 30000);
+
         it('clears only Kho 4 direct tickets when target is DIRECT_KHO4', async () => {
             await WarehouseInventoryService.clearWarehouseTickets('ALL');
             await WarehouseInventoryService.saveTicketsBulk([
@@ -615,6 +694,26 @@ describe('WarehouseInventoryService', () => {
             const remaining = await WarehouseInventoryService.getAllTickets();
             expect(remaining).toHaveLength(1);
             expect(remaining[0]?.id).toBe('DIR_GBD');
+        });
+
+        it('clears only Bach Khoa tickets when target is KHO 4 - BK', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'BK_1', soPhieu: '1', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                    weighOutTime: '10:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'BÁCH KHOA',
+                    cargoType: 'Viên nén', vehiclePlate: '50H1', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+                },
+                {
+                    id: 'EW_1', soPhieu: '2', reportDate: '2026-11-10', weighOutDate: '2026-11-10',
+                    weighOutTime: '10:00', flowType: 'IMPORT', warehouseId: 'KHO 4', customerName: 'EASTWOOD',
+                    cargoType: 'Viên nén', vehiclePlate: '50H2', carrierName: 'NN', grossWeight: 50, tareWeight: 10, netWeight: 40
+                }
+            ]);
+            await WarehouseInventoryService.clearWarehouseTickets('KHO 4 - BK');
+            const remaining = await WarehouseInventoryService.getAllTickets();
+            expect(remaining).toHaveLength(1);
+            expect(remaining[0]?.id).toBe('EW_1');
         });
 
         it('imports small Kg adjustment rows (e.g. -40 kg Clear chênh lệch) as -0.04 Tons instead of -40 Tons when sheet uses Kg', async () => {

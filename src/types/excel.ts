@@ -125,6 +125,7 @@ export interface ContainerTicket {
  * 4-Warehouse Daily Morning Inventory Types (Phase 20)
  */
 export type WarehouseId = 'KHO 1' | 'KHO 2' | 'KHO 3' | 'KHO 4';
+export type ExtendedWarehouseId = WarehouseId | 'KHO 4 - BK';
 
 export type WarehouseFlowType = 'IMPORT' | 'EXPORT' | 'DIRECT';
 
@@ -157,7 +158,7 @@ export interface WarehouseInventoryTicket {
 }
 
 export interface WarehouseConfig {
-    warehouseId: WarehouseId;
+    warehouseId: ExtendedWarehouseId | string;
     initialStock: number; // Tồn đầu kỳ (Tons)
     initialDate: string; // YYYY-MM-DD or DD/MM/YYYY
     currentCustomer: string;

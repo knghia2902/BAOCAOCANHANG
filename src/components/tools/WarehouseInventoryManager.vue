@@ -6,10 +6,12 @@ import {
     computeWarehouseFinalTable,
     formatIsoToDmy,
     getTicketCustomerGroup,
-    sanitizeCustomerName
+    sanitizeCustomerName,
+    isBachKhoaTicket
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
+    ExtendedWarehouseId,
     WarehouseInventoryTicket,
     WarehouseConfig,
     WarehouseVehicleMap,
@@ -23,7 +25,7 @@ const emit = defineEmits<{
 
 const { addToast } = useToast();
 
-type ViewWarehouseMode = WarehouseId | 'COMBINED_123';
+type ViewWarehouseMode = WarehouseId | 'KHO 4 - BK' | 'COMBINED_123';
 type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
@@ -36,11 +38,12 @@ const exportingExcel = ref(false);
 const capturingZaloImage = ref(false);
 
 const allTickets = ref<WarehouseInventoryTicket[]>([]);
-const configs = ref<Record<WarehouseId, WarehouseConfig>>({
+const configs = ref<Record<ExtendedWarehouseId, WarehouseConfig>>({
     'KHO 1': { warehouseId: 'KHO 1', initialStock: 0, initialDate: '', currentCustomer: 'GỖ BÌNH ĐỊNH', dailyRemarks: {} },
     'KHO 2': { warehouseId: 'KHO 2', initialStock: 0, initialDate: '', currentCustomer: 'GỖ BÌNH ĐỊNH', dailyRemarks: {} },
     'KHO 3': { warehouseId: 'KHO 3', initialStock: 0, initialDate: '', currentCustomer: 'GỖ BÌNH ĐỊNH', dailyRemarks: {} },
-    'KHO 4': { warehouseId: 'KHO 4', initialStock: 0, initialDate: '', currentCustomer: 'EASTWOOD', dailyRemarks: {} }
+    'KHO 4': { warehouseId: 'KHO 4', initialStock: 0, initialDate: '', currentCustomer: 'EASTWOOD', dailyRemarks: {} },
+    'KHO 4 - BK': { warehouseId: 'KHO 4 - BK', initialStock: 0, initialDate: '', currentCustomer: 'BÁCH KHOA', dailyRemarks: {} }
 });
 const vehiclesMap = ref<Record<string, WarehouseVehicleMap>>({});
 
@@ -54,6 +57,7 @@ const detailFilterDate = ref('');
 // Sidebar tree collapse state
 const expandedCustomer = ref<Record<string, boolean>>({
     'EASTWOOD': true,
+    'BACH_KHOA': true,
     'GBD': true
 });
 
@@ -63,7 +67,7 @@ const batchVesselName = ref('');
 // Config inline editing modal / panel
 const showConfigModal = ref(false);
 const editingConfigForm = ref<{
-    warehouseId: WarehouseId;
+    warehouseId: ExtendedWarehouseId;
     currentCustomer: string;
     initialStock: number;
     initialDate: string;
@@ -76,7 +80,7 @@ const editingConfigForm = ref<{
 
 // Customer inline editing modal
 const showEditCustomerModal = ref(false);
-const editingCustomerGroup = ref<'KHO_4' | 'KHO_123'>('KHO_4');
+const editingCustomerGroup = ref<'KHO_4' | 'KHO_4_BK' | 'KHO_123'>('KHO_4');
 const editingCustomerName = ref('');
 
 // Ticket detail editing modal
@@ -94,9 +98,11 @@ const editingTicketWeightsKg = ref<{
     factoryKg: ''
 });
 
-function openEditCustomerModal(group: 'KHO_4' | 'KHO_123') {
+function openEditCustomerModal(group: 'KHO_4' | 'KHO_4_BK' | 'KHO_123') {
     editingCustomerGroup.value = group;
-    if (group === 'KHO_4') {
+    if (group === 'KHO_4_BK') {
+        editingCustomerName.value = configs.value['KHO 4 - BK']?.currentCustomer || 'BÁCH KHOA';
+    } else if (group === 'KHO_4') {
         editingCustomerName.value = configs.value['KHO 4']?.currentCustomer || 'EASTWOOD';
     } else {
         editingCustomerName.value = configs.value['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH';
@@ -105,14 +111,30 @@ function openEditCustomerModal(group: 'KHO_4' | 'KHO_123') {
 }
 
 async function saveCustomerNameModal() {
-    const newName = sanitizeCustomerName(editingCustomerName.value.trim(), '');
+    const defaultFallback = editingCustomerGroup.value === 'KHO_4_BK'
+        ? 'BÁCH KHOA'
+        : (editingCustomerGroup.value === 'KHO_4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH');
+    const newName = sanitizeCustomerName(editingCustomerName.value.trim(), defaultFallback);
     if (!newName) {
         addToast('Vui lòng nhập tên khách hàng hợp lệ', 'error');
         return;
     }
 
     try {
-        if (editingCustomerGroup.value === 'KHO_4') {
+        if (editingCustomerGroup.value === 'KHO_4_BK') {
+            if (!configs.value['KHO 4 - BK']) {
+                configs.value['KHO 4 - BK'] = {
+                    warehouseId: 'KHO 4 - BK',
+                    initialStock: 0,
+                    initialDate: '',
+                    currentCustomer: newName,
+                    dailyRemarks: {}
+                };
+            } else {
+                configs.value['KHO 4 - BK'].currentCustomer = newName;
+            }
+            await WarehouseInventoryService.saveConfig(configs.value['KHO 4 - BK']);
+        } else if (editingCustomerGroup.value === 'KHO_4') {
             configs.value['KHO 4'].currentCustomer = newName;
             await WarehouseInventoryService.saveConfig(configs.value['KHO 4']);
         } else {
@@ -134,8 +156,10 @@ async function saveCustomerNameModal() {
 }
 
 // Active customer group
-const activeCustomerGroup = computed<'KHO_4' | 'KHO_123'>(() => {
-    return selectedWarehouseMode.value === 'KHO 4' ? 'KHO_4' : 'KHO_123';
+const activeCustomerGroup = computed<'KHO_4' | 'KHO_4_BK' | 'KHO_123'>(() => {
+    if (selectedWarehouseMode.value === 'KHO 4 - BK') return 'KHO_4_BK';
+    if (selectedWarehouseMode.value === 'KHO 4') return 'KHO_4';
+    return 'KHO_123';
 });
 
 // File inputs
@@ -144,7 +168,13 @@ const historyExcelFileInput = ref<HTMLInputElement | null>(null);
 
 const activeSingleWarehouseId = computed<WarehouseId>(() => {
     if (selectedWarehouseMode.value === 'COMBINED_123') return 'KHO 1';
-    return selectedWarehouseMode.value;
+    if (selectedWarehouseMode.value === 'KHO 4 - BK') return 'KHO 4';
+    return selectedWarehouseMode.value as WarehouseId;
+});
+
+const activeWarehouseConfigKey = computed<ExtendedWarehouseId>(() => {
+    if (selectedWarehouseMode.value === 'KHO 4 - BK') return 'KHO 4 - BK';
+    return activeSingleWarehouseId.value;
 });
 
 // Dropdown menu state for Delete options
@@ -154,6 +184,10 @@ const currentOperatingWarehouseName = computed(() => {
     if (selectedWarehouseMode.value === 'COMBINED_123') {
         const custName = configs.value['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH';
         return `${custName} (Kho 1, 2, 3)`;
+    }
+    if (selectedWarehouseMode.value === 'KHO 4 - BK') {
+        const custName = configs.value['KHO 4 - BK']?.currentCustomer || 'BÁCH KHOA';
+        return `Kho 4 (${custName})`;
     }
     const whId = activeSingleWarehouseId.value;
     const custName = configs.value[whId]?.currentCustomer;
@@ -218,14 +252,23 @@ const finalTablesByWarehouse = computed(() => {
         allConfigs: configs.value
     };
     return {
-        'KHO 1': computeWarehouseFinalTable('KHO 1', allTickets.value, configs.value['KHO 1'], opts),
-        'KHO 2': computeWarehouseFinalTable('KHO 2', allTickets.value, configs.value['KHO 2'], opts),
-        'KHO 3': computeWarehouseFinalTable('KHO 3', allTickets.value, configs.value['KHO 3'], opts),
-        'KHO 4': computeWarehouseFinalTable('KHO 4', allTickets.value, configs.value['KHO 4'], opts)
+        'KHO 1': computeWarehouseFinalTable('KHO 1', allTickets.value, configs.value['KHO 1']!, opts),
+        'KHO 2': computeWarehouseFinalTable('KHO 2', allTickets.value, configs.value['KHO 2']!, opts),
+        'KHO 3': computeWarehouseFinalTable('KHO 3', allTickets.value, configs.value['KHO 3']!, opts),
+        'KHO 4': computeWarehouseFinalTable('KHO 4', allTickets.value, configs.value['KHO 4']!, opts),
+        'KHO 4 - BK': computeWarehouseFinalTable(
+            'KHO 4 - BK',
+            allTickets.value,
+            configs.value['KHO 4 - BK'] || { warehouseId: 'KHO 4 - BK', initialStock: 0, initialDate: '', currentCustomer: 'BÁCH KHOA', dailyRemarks: {} },
+            opts
+        )
     };
 });
 
 const activeFinalCalc = computed(() => {
+    if (selectedWarehouseMode.value === 'KHO 4 - BK') {
+        return finalTablesByWarehouse.value['KHO 4 - BK'];
+    }
     return finalTablesByWarehouse.value[activeSingleWarehouseId.value];
 });
 
@@ -244,9 +287,21 @@ const filteredDetailTickets = computed(() => {
 
     let list = allTickets.value.filter(t => {
         if (activeSheetTab.value === 'IMPORT') {
+            if (selectedWarehouseMode.value === 'KHO 4 - BK') {
+                return t.flowType === 'IMPORT' && t.warehouseId === 'KHO 4' && isBachKhoaTicket(t);
+            }
+            if (selectedWarehouseMode.value === 'KHO 4') {
+                return t.flowType === 'IMPORT' && t.warehouseId === 'KHO 4' && !isBachKhoaTicket(t);
+            }
             return t.flowType === 'IMPORT' && t.warehouseId === whId;
         }
         if (activeSheetTab.value === 'EXPORT') {
+            if (selectedWarehouseMode.value === 'KHO 4 - BK') {
+                return t.flowType === 'EXPORT' && t.warehouseId === 'KHO 4' && isBachKhoaTicket(t);
+            }
+            if (selectedWarehouseMode.value === 'KHO 4') {
+                return t.flowType === 'EXPORT' && t.warehouseId === 'KHO 4' && !isBachKhoaTicket(t);
+            }
             return t.flowType === 'EXPORT' && t.warehouseId === whId;
         }
         if (activeSheetTab.value === 'DIRECT') {
@@ -454,6 +509,8 @@ async function handleClearCurrentWarehouse() {
         if (selectedWarehouseMode.value === 'COMBINED_123') {
             await WarehouseInventoryService.clearWarehouseTickets('GROUP_KHO123');
             await WarehouseInventoryService.clearWarehouseTickets('DIRECT_KHO123');
+        } else if (selectedWarehouseMode.value === 'KHO 4 - BK') {
+            await WarehouseInventoryService.clearWarehouseTickets('KHO 4 - BK');
         } else if (activeSingleWarehouseId.value === 'KHO 4') {
             await WarehouseInventoryService.clearWarehouseTickets('KHO 4');
             await WarehouseInventoryService.clearWarehouseTickets('DIRECT_KHO4');
@@ -482,7 +539,7 @@ async function handleClearAllWarehouses() {
 }
 
 // Save daily remark inline on FINAL table
-async function handleSaveDailyRemark(whId: WarehouseId, reportDate: string, newRemark: string) {
+async function handleSaveDailyRemark(whId: ExtendedWarehouseId | WarehouseId, reportDate: string, newRemark: string) {
     const cfg = configs.value[whId];
     if (!cfg) return;
     if (!cfg.dailyRemarks) cfg.dailyRemarks = {};
@@ -491,14 +548,14 @@ async function handleSaveDailyRemark(whId: WarehouseId, reportDate: string, newR
     addToast(`Đã lưu ghi chú ngày ${formatIsoToDmy(reportDate)} cho ${whId}`, 'success');
 }
 
-function openEditConfigModal(whId?: WarehouseId) {
-    const targetWh = whId || activeSingleWarehouseId.value;
+function openEditConfigModal(whId?: ExtendedWarehouseId) {
+    const targetWh = whId || activeWarehouseConfigKey.value;
     const cfg = configs.value[targetWh];
     editingConfigForm.value = {
         warehouseId: targetWh,
-        currentCustomer: cfg.currentCustomer || '',
-        initialStock: Number(cfg.initialStock) || 0,
-        initialDate: cfg.initialDate || ''
+        currentCustomer: cfg?.currentCustomer || '',
+        initialStock: Number(cfg?.initialStock) || 0,
+        initialDate: cfg?.initialDate || ''
     };
     showConfigModal.value = true;
 }
@@ -507,7 +564,13 @@ async function saveConfigModal() {
     const f = editingConfigForm.value;
     const cfg = configs.value[f.warehouseId];
     const updated: WarehouseConfig = {
-        ...cfg,
+        ...(cfg || {
+            warehouseId: f.warehouseId,
+            currentCustomer: f.currentCustomer.trim(),
+            initialStock: 0,
+            initialDate: '',
+            dailyRemarks: {}
+        }),
         warehouseId: f.warehouseId,
         currentCustomer: f.currentCustomer.trim(),
         initialStock: Number(f.initialStock) || 0,
@@ -623,9 +686,11 @@ async function handleExportExcel() {
             fromDate: filterFromDate.value || undefined,
             toDate: filterToDate.value || undefined
         };
-        const { buffer, filename } = activeCustomerGroup.value === 'KHO_4'
-            ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', opts)
-            : await WarehouseInventoryService.exportCombined123WarehouseWorkbook(opts);
+        const { buffer, filename } = selectedWarehouseMode.value === 'KHO 4 - BK'
+            ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4 - BK', opts)
+            : (activeCustomerGroup.value === 'KHO_4'
+                ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', opts)
+                : await WarehouseInventoryService.exportCombined123WarehouseWorkbook(opts));
 
         const blob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -651,25 +716,26 @@ async function handleExportExcel() {
  * Render crisp, high-DPI PNG image of the FINAL table directly using HTML5 2D Canvas
  * matching the Excel FINAL report style (last 3 days up to the report date, black separator bar, and Total row).
  */
-async function renderFinalTableToPngBlob(overrideWarehouseId?: WarehouseId): Promise<Blob> {
+async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouseId): Promise<Blob> {
     const scale = 2; // Retina 2x resolution for Zalo
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
 
     const isCombined = !overrideWarehouseId && selectedWarehouseMode.value === 'COMBINED_123';
-    const targetWarehouses: WarehouseId[] = isCombined
+    const isBK = !overrideWarehouseId && selectedWarehouseMode.value === 'KHO 4 - BK';
+    const targetWarehouses: ExtendedWarehouseId[] = isCombined
         ? ['KHO 1', 'KHO 2', 'KHO 3']
-        : [overrideWarehouseId || activeSingleWarehouseId.value];
+        : [isBK ? 'KHO 4 - BK' : (overrideWarehouseId || activeWarehouseConfigKey.value)];
 
-    const getBlockColWidths = (whId: WarehouseId): number[] => {
-        const hasDirect = !isCombined && whId === 'KHO 4' && showDirectColumnInSingleFinal.value;
+    const getBlockColWidths = (whId: string): number[] => {
+        const hasDirect = !isCombined && (whId === 'KHO 4' || whId === 'KHO 4 - BK') && showDirectColumnInSingleFinal.value;
         return hasDirect
             ? [135, 130, 130, 135, 125, 125]
             : [135, 130, 130, 135, 125];
     };
 
-    const getRecentRows = (whId: WarehouseId): WarehouseFinalRow[] => {
-        const allRows = finalTablesByWarehouse.value[whId].rows;
+    const getRecentRows = (whId: string): WarehouseFinalRow[] => {
+        const allRows = (finalTablesByWarehouse.value as any)[whId]?.rows || [];
         return allRows.slice(-3);
     };
 
@@ -721,9 +787,9 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: WarehouseId): Pro
         const blockW = blockWidths[bIdx]!;
         const startX = currentBlockStartX;
         const cfg = configs.value[whId];
-        const calc = finalTablesByWarehouse.value[whId];
+        const calc = (finalTablesByWarehouse.value as any)[whId];
         const recentRows = getRecentRows(whId);
-        const hasDirect = !isCombined && whId === 'KHO 4' && showDirectColumnInSingleFinal.value;
+        const hasDirect = !isCombined && (whId === 'KHO 4' || whId === 'KHO 4 - BK') && showDirectColumnInSingleFinal.value;
 
         let curY = padY;
 
@@ -754,9 +820,10 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: WarehouseId): Pro
         curY += rowBlankH;
 
         // 4-6. Info Rows: Nguồn gốc, Khách hàng, Loại hàng
+        const displayWhName = (whId === 'KHO 4' || whId === 'KHO 4 - BK') ? 'KHO 4' : whId;
         const infoRows: Array<[string, string]> = [
-            ['Nguồn gốc (Origin):', `${whId} NGUYÊN NGỌC`],
-            ['Khách hàng', cfg.currentCustomer || (whId === 'KHO 4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH')],
+            ['Nguồn gốc (Origin):', `${displayWhName} NGUYÊN NGỌC`],
+            ['Khách hàng', cfg?.currentCustomer || (whId === 'KHO 4 - BK' ? 'BÁCH KHOA' : (whId === 'KHO 4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH'))],
             ['Loại hàng:', 'VIÊN NÉN GỖ']
         ];
 
@@ -920,14 +987,14 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: WarehouseId): Pro
     });
 }
 
-async function handleCopyZaloImage(overrideWarehouseId?: WarehouseId | Event) {
-    const whId = typeof overrideWarehouseId === 'string' ? overrideWarehouseId : undefined;
+async function handleCopyZaloImage(overrideWarehouseId?: ExtendedWarehouseId | WarehouseId | Event) {
+    const whId = typeof overrideWarehouseId === 'string' ? (overrideWarehouseId as ExtendedWarehouseId) : undefined;
     capturingZaloImage.value = true;
     try {
         const blob = await renderFinalTableToPngBlob(whId);
         if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            const targetLabel = whId || (selectedWarehouseMode.value === 'COMBINED_123' ? 'Gộp Kho 1-2-3' : activeSingleWarehouseId.value);
+            const targetLabel = whId || (selectedWarehouseMode.value === 'COMBINED_123' ? 'Gộp Kho 1-2-3' : (selectedWarehouseMode.value === 'KHO 4 - BK' ? 'Kho 4 (Bách Khoa)' : activeSingleWarehouseId.value));
             addToast(`Đã copy ảnh Báo cáo Nhập-Xuất Kho (${targetLabel}) 3 ngày gần nhất vào Clipboard! Nhấn Ctrl+V vào Zalo ngay.`, 'success');
         } else {
             await handleDownloadZaloImage(whId);
@@ -940,7 +1007,7 @@ async function handleCopyZaloImage(overrideWarehouseId?: WarehouseId | Event) {
     }
 }
 
-async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
+async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId | WarehouseId) {
     capturingZaloImage.value = true;
     try {
         const blob = await renderFinalTableToPngBlob(overrideWarehouseId);
@@ -1077,7 +1144,95 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     </div>
                 </div>
 
-                <!-- Tree Group 2: GỖ BÌNH ĐỊNH (Kho 1, 2, 3) -->
+                <!-- Tree Group 2: BÁCH KHOA (Kho 4) -->
+                <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
+                    <!-- Customer Node Header (Click to view Overview / FINAL Kho 4 - Bách Khoa) -->
+                    <div
+                        @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4 - BK'; activeSheetTab = 'FINAL'"
+                        :class="[
+                            'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
+                            !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL'
+                                ? 'bg-primary text-white shadow-sm font-black'
+                                : 'hover:bg-slate-100/70 text-[#1e293b]'
+                        ]"
+                    >
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span
+                                class="material-symbols-outlined text-base shrink-0"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                            >
+                                school
+                            </span>
+                            <div class="min-w-0 flex items-center gap-1">
+                                <span class="text-xs font-black truncate max-w-[100px]">
+                                    {{ configs['KHO 4 - BK']?.currentCustomer || 'BÁCH KHOA' }}
+                                </span>
+                                <!-- Quick edit customer name button -->
+                                <button
+                                    @click.stop="openEditCustomerModal('KHO_4_BK')"
+                                    :class="[
+                                        'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
+                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL'
+                                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                    ]"
+                                    title="Đổi tên khách hàng"
+                                >
+                                    <span class="material-symbols-outlined text-xs">edit</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span
+                                class="text-xs font-mono font-black"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                            >
+                                {{ formatTons(finalTablesByWarehouse['KHO 4 - BK']?.closingStockTons || 0) }} T
+                            </span>
+                            <button
+                                @click.stop="expandedCustomer['BACH_KHOA'] = !expandedCustomer['BACH_KHOA']"
+                                class="size-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/10 transition-all active:scale-95"
+                                title="Đóng/mở nhánh"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-sm transition-transform"
+                                    :class="[
+                                        {'rotate-180': expandedCustomer['BACH_KHOA']},
+                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
+                                    ]"
+                                >
+                                    expand_more
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Child Warehouses of BÁCH KHOA: Kho 4 with subdirectory_arrow_right -->
+                    <div v-if="expandedCustomer['BACH_KHOA']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
+                        <button
+                            @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4 - BK'"
+                            :class="[
+                                'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
+                                !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab !== 'FINAL'
+                                    ? 'bg-primary text-white font-black shadow-sm'
+                                    : 'hover:bg-slate-50 text-slate-700 font-bold'
+                            ]"
+                        >
+                            <span class="flex items-center gap-1.5 text-xs truncate">
+                                <span class="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
+                                <span>KHO 4 (BK)</span>
+                            </span>
+                            <span
+                                class="text-xs font-mono font-black shrink-0"
+                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                            >
+                                {{ formatTons(finalTablesByWarehouse['KHO 4 - BK']?.closingStockTons || 0) }} T
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tree Group 3: GỖ BÌNH ĐỊNH (Kho 1, 2, 3) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Combined overview Kho 1-2-3) -->
                     <div
@@ -1178,6 +1333,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                         Quy tắc dữ liệu
                     </div>
                     <div>• <b>EASTWOOD</b>: Quản lý độc lập tại Kho 4.</div>
+                    <div>• <b>BÁCH KHOA</b>: Quản lý độc lập tại Kho 4.</div>
                     <div>• <b>GỖ BÌNH ĐỊNH</b>: Quản lý chung qua 3 Kho 1, 2, 3 và bảng Gộp.</div>
                 </div>
             </aside>
@@ -1200,17 +1356,17 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     <div class="flex items-center gap-2">
                         <div class="text-xs font-bold text-slate-400 uppercase">Đang xem</div>
                         <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
-                            <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : activeSingleWarehouseId }}</span>
+                            <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : (selectedWarehouseMode === 'KHO 4 - BK' ? 'KHO 4 (BÁCH KHOA)' : activeSingleWarehouseId) }}</span>
                             <span class="text-primary">
                                 ({{
                                     selectedWarehouseMode === 'COMBINED_123'
                                         ? (configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH')
-                                        : (configs[activeSingleWarehouseId]?.currentCustomer || 'Chưa gán')
+                                        : (configs[activeWarehouseConfigKey]?.currentCustomer || 'Chưa gán')
                                 }})
                             </span>
                             <button
                                 v-if="selectedWarehouseMode !== 'COMBINED_123'"
-                                @click="openEditConfigModal(activeSingleWarehouseId)"
+                                @click="openEditConfigModal(activeWarehouseConfigKey)"
                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                 title="Sửa Tồn đầu kỳ & Tên khách hàng"
                             >
@@ -1338,8 +1494,8 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     <!-- Sheet Tabs Navigation (DESIGN.md Section 6 Compact Tab Switcher & Toolbar) -->
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 shrink-0">
                         <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center gap-1 overflow-x-auto scrollbar-none">
-                            <!-- KHO 4 (EASTWOOD): 4 Tabs (Import, Export, Final, Xá Thẳng) -->
-                            <template v-if="activeCustomerGroup === 'KHO_4'">
+                            <!-- KHO 4 (EASTWOOD & BÁCH KHOA): 4 Tabs (Import, Export, Final, Xá Thẳng) -->
+                            <template v-if="activeCustomerGroup !== 'KHO_123'">
                                 <button
                                     @click="activeSheetTab = 'IMPORT'"
                                     :class="[
@@ -1571,11 +1727,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                     <tbody class="divide-y divide-slate-200">
                         <!-- Opening Stock Row (shown only if openingStockBeforeFilter != 0 and not already represented as the first date row) -->
                         <tr
-                            v-if="activeFinalCalc.openingStockBeforeFilter !== 0 && configs[activeSingleWarehouseId]?.initialDate !== activeFinalCalc.rows[0]?.reportDate"
+                            v-if="activeFinalCalc.openingStockBeforeFilter !== 0 && configs[activeWarehouseConfigKey]?.initialDate !== activeFinalCalc.rows[0]?.reportDate"
                             class="bg-slate-50 font-black"
                         >
                             <td class="py-2 px-3 text-center text-slate-700 border-r border-slate-200">
-                                {{ configs[activeSingleWarehouseId]?.initialDate ? formatIsoToDmy(configs[activeSingleWarehouseId].initialDate) : 'Tồn đầu' }}
+                                {{ configs[activeWarehouseConfigKey]?.initialDate ? formatIsoToDmy(configs[activeWarehouseConfigKey].initialDate) : 'Tồn đầu' }}
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-primary border-r border-slate-200">
                                 {{ formatKg(activeFinalCalc.openingStockBeforeFilter) }}
@@ -1584,9 +1740,9 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             <td class="py-2 px-3 text-right font-mono text-teal-800 bg-teal-50/50 border-r border-slate-200">
                                 {{ formatKg(activeFinalCalc.openingStockBeforeFilter) }}
                             </td>
-                            <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup === 'KHO_4'" class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
+                            <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup !== 'KHO_123'" class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
                             <td class="py-2 px-3 text-slate-500 italic">
-                                {{ configs[activeSingleWarehouseId]?.initialDate ? `Tồn kho đến ${formatIsoToDmy(configs[activeSingleWarehouseId].initialDate)} (Theo báo cáo)` : 'Tồn đầu kỳ lũy kế' }}
+                                {{ configs[activeWarehouseConfigKey]?.initialDate ? `Tồn kho đến ${formatIsoToDmy(configs[activeWarehouseConfigKey].initialDate)} (Theo báo cáo)` : 'Tồn đầu kỳ lũy kế' }}
                             </td>
                         </tr>
 
@@ -1599,7 +1755,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                 {{ row.displayDate }}
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-primary border-r border-slate-200">
-                                <template v-if="idx === 0 && activeFinalCalc.openingStockBeforeFilter > 0 && configs[activeSingleWarehouseId]?.initialDate === row.reportDate">
+                                <template v-if="idx === 0 && activeFinalCalc.openingStockBeforeFilter > 0 && configs[activeWarehouseConfigKey]?.initialDate === row.reportDate">
                                     {{ formatKg(row.importTons + activeFinalCalc.openingStockBeforeFilter) }}
                                 </template>
                                 <template v-else>
@@ -1612,7 +1768,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             <td class="py-2 px-3 text-right font-mono font-black text-teal-800 bg-teal-50/40 border-r border-slate-200">
                                 {{ row.remainingStockTons !== 0 ? formatKg(row.remainingStockTons) : '-' }}
                             </td>
-                            <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup === 'KHO_4'" class="py-2 px-3 text-right font-mono text-purple-700 border-r border-slate-200">
+                            <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup !== 'KHO_123'" class="py-2 px-3 text-right font-mono text-purple-700 border-r border-slate-200">
                                 {{ row.directTons > 0 ? formatKg(row.directTons) : '-' }}
                             </td>
                             <td class="py-1.5 px-2">
@@ -1620,15 +1776,15 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                                     type="text"
                                     :value="row.remark"
                                     placeholder=""
-                                    @change="handleSaveDailyRemark(activeSingleWarehouseId, row.reportDate, ($event.target as HTMLInputElement).value)"
+                                    @change="handleSaveDailyRemark(activeWarehouseConfigKey, row.reportDate, ($event.target as HTMLInputElement).value)"
                                     class="w-full px-2 py-1 rounded-lg bg-transparent hover:bg-slate-100 focus:bg-white focus:border focus:border-primary text-xs font-semibold outline-none transition-all"
                                 />
                             </td>
                         </tr>
 
                         <tr v-if="activeFinalCalc.rows.length === 0">
-                            <td :colspan="(showDirectColumnInSingleFinal && activeCustomerGroup === 'KHO_4') ? 6 : 5" class="py-12 text-center text-slate-400 font-semibold">
-                                Chưa có dữ liệu phát sinh cho {{ activeSingleWarehouseId }}. Hãy bấm <b>"Nạp CSV Trạm Cân"</b> hoặc <b>"Nạp từ Excel Tồn Kho Đang Dùng"</b> ở góc trên!
+                            <td :colspan="(showDirectColumnInSingleFinal && activeCustomerGroup !== 'KHO_123') ? 6 : 5" class="py-12 text-center text-slate-400 font-semibold">
+                                Chưa có dữ liệu phát sinh cho {{ selectedWarehouseMode === 'KHO 4 - BK' ? 'Kho 4 (Bách Khoa)' : activeSingleWarehouseId }}. Hãy bấm <b>"Nạp CSV Trạm Cân"</b> hoặc <b>"Nạp từ Excel Tồn Kho Đang Dùng"</b> ở góc trên!
                             </td>
                         </tr>
                     </tbody>
@@ -1644,7 +1800,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: WarehouseId) {
                             <td class="py-2.5 px-3 text-right font-mono text-teal-900 border-r border-slate-300">
                                 {{ formatKg(activeFinalCalc.closingStockTons) }}
                             </td>
-                            <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup === 'KHO_4'" class="py-2.5 px-3 text-right font-mono border-r border-slate-300">
+                            <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup !== 'KHO_123'" class="py-2.5 px-3 text-right font-mono border-r border-slate-300">
                                 {{ formatKg(activeFinalCalc.totalDirectTons) }}
                             </td>
                             <td class="py-2.5 px-3"></td>

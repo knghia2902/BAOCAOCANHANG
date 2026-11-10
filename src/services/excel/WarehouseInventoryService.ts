@@ -3,6 +3,7 @@ import { dbContext } from '@/services/storage/DBContext';
 import { WeighbridgeService, type Vessel, normalizeMainPlate, isSameScaleTicket } from '@/services/weighbridge/WeighbridgeService';
 import type {
     WarehouseId,
+    ExtendedWarehouseId,
     WarehouseFlowType,
     WarehouseInventoryTicket,
     WarehouseConfig,
@@ -298,14 +299,35 @@ export function sanitizeDailyRemarks(remarks: Record<string, string> | undefined
 }
 
 /**
+ * Check whether a customer name corresponds to Bách Khoa
+ */
+export function isBachKhoaCustomer(name: string | undefined | null): boolean {
+    if (!name) return false;
+    const clean = stripAccents(name).toUpperCase();
+    return /\b(BACH\s*KHOA|BACHKHOA|BK|BKTH)\b/.test(clean);
+}
+
+/**
+ * Check whether a ticket belongs to Bách Khoa
+ */
+export function isBachKhoaTicket(ticket: WarehouseInventoryTicket): boolean {
+    return isBachKhoaCustomer(ticket.customerName) || isBachKhoaCustomer(ticket.sourceOrRemark);
+}
+
+/**
  * Determine which Customer Group a ticket belongs to:
  * - KHO_4: Customer owning Kho 4 (Default EASTWOOD)
+ * - KHO_4_BK: Customer Bách Khoa at Kho 4
  * - KHO_123: Customer owning Kho 1, 2, 3 (Default GỖ BÌNH ĐỊNH)
  */
 export function getTicketCustomerGroup(
     ticket: WarehouseInventoryTicket,
-    configs?: Partial<Record<WarehouseId, WarehouseConfig>>
-): 'KHO_4' | 'KHO_123' {
+    configs?: Partial<Record<string, WarehouseConfig>>
+): 'KHO_4' | 'KHO_4_BK' | 'KHO_123' {
+    if (isBachKhoaTicket(ticket)) {
+        return 'KHO_4_BK';
+    }
+
     if (ticket.warehouseId === 'KHO 4') return 'KHO_4';
     if (ticket.warehouseId === 'KHO 1' || ticket.warehouseId === 'KHO 2' || ticket.warehouseId === 'KHO 3') return 'KHO_123';
 
@@ -314,7 +336,7 @@ export function getTicketCustomerGroup(
     const custKho123 = stripAccents(configs?.['KHO 1']?.currentCustomer || 'GO BINH DINH').toUpperCase().trim();
 
     if (custClean) {
-        if (custClean.includes('EASTWOOD') || custClean.includes('EAST WOOD') || custClean.includes('BACH KHOA') || custClean.includes('EW') || (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean)))) {
+        if (custClean.includes('EASTWOOD') || custClean.includes('EAST WOOD') || custClean.includes('EW') || (custKho4 && (custClean.includes(custKho4) || custKho4.includes(custClean)))) {
             return 'KHO_4';
         }
         if (custClean.includes('BINH DINH') || custClean.includes('GBD') || (custKho123 && (custClean.includes(custKho123) || custKho123.includes(custClean)))) {
@@ -332,7 +354,7 @@ export function getTicketCustomerGroup(
     return 'KHO_123';
 }
 
-function getDefaultConfigs(): Record<WarehouseId, WarehouseConfig> {
+export function getDefaultConfigs(): Record<ExtendedWarehouseId, WarehouseConfig> {
     return {
         'KHO 1': {
             warehouseId: 'KHO 1',
@@ -360,6 +382,13 @@ function getDefaultConfigs(): Record<WarehouseId, WarehouseConfig> {
             initialStock: 0,
             initialDate: '',
             currentCustomer: 'EASTWOOD',
+            dailyRemarks: {}
+        },
+        'KHO 4 - BK': {
+            warehouseId: 'KHO 4 - BK',
+            initialStock: 0,
+            initialDate: '',
+            currentCustomer: 'BÁCH KHOA',
             dailyRemarks: {}
         }
     };
@@ -642,14 +671,14 @@ export function classifyWeighbridgeRow(
  * Compute continuous cumulative FINAL summary table for a specific warehouse
  */
 export function computeWarehouseFinalTable(
-    warehouseId: WarehouseId,
+    warehouseId: ExtendedWarehouseId | WarehouseId,
     allTickets: WarehouseInventoryTicket[],
     config: WarehouseConfig,
     options?: {
         fromDate?: string;
         toDate?: string;
         includeDirectForCustomer?: boolean;
-        allConfigs?: Partial<Record<WarehouseId, WarehouseConfig>>;
+        allConfigs?: Partial<Record<string, WarehouseConfig>>;
     }
 ): {
     openingStockBeforeFilter: number;
@@ -662,11 +691,23 @@ export function computeWarehouseFinalTable(
     totalDirectTrips: number;
     closingStockTons: number;
 } {
-    const whTickets = allTickets.filter(t => t.warehouseId === warehouseId && (t.flowType === 'IMPORT' || t.flowType === 'EXPORT'));
-    const targetGroup = warehouseId === 'KHO 4' ? 'KHO_4' : 'KHO_123';
+    const isBK = warehouseId === 'KHO 4 - BK';
+    const isKho4 = warehouseId === 'KHO 4';
+    const isKho4Like = isKho4 || isBK;
+    const physicalWhId = isKho4Like ? 'KHO 4' : warehouseId;
+
+    const whTickets = allTickets.filter(t => {
+        if (t.warehouseId !== physicalWhId) return false;
+        if (t.flowType !== 'IMPORT' && t.flowType !== 'EXPORT') return false;
+        if (isBK) return isBachKhoaTicket(t);
+        if (isKho4) return !isBachKhoaTicket(t);
+        return true;
+    });
+
+    const targetGroup = isBK ? 'KHO_4_BK' : (isKho4 ? 'KHO_4' : 'KHO_123');
 
     // Direct tickets matching this warehouse's customer group:
-    // Kho 4 -> Customer 1 (EASTWOOD); Kho 1..3 -> Customer 2 (GỖ BÌNH ĐỊNH)
+    // Kho 4 (EW) -> Customer 1 (EASTWOOD); Kho 4 (BK) -> Bách Khoa; Kho 1..3 -> Customer 2 (GỖ BÌNH ĐỊNH)
     const directTickets = allTickets.filter(t => {
         if (t.flowType !== 'DIRECT') return false;
         if (options?.includeDirectForCustomer === false) return false;
@@ -689,8 +730,8 @@ export function computeWarehouseFinalTable(
         });
     }
 
-    if (warehouseId === 'KHO 4') {
-        // Include direct ticket dates for Kho 4
+    if (isKho4Like) {
+        // Include direct ticket dates for Kho 4 (Eastwood & Bách Khoa)
         if (whTickets.length > 0 || directTickets.length > 0) {
             directTickets.forEach(t => {
                 if (t.reportDate && /^\d{4}-\d{2}-\d{2}$/.test(t.reportDate)) {
@@ -808,10 +849,10 @@ export function computeWarehouseFinalTable(
     const totalImportTrips = filteredRows.reduce((s, r) => s + r.importTrips, 0);
     const totalExportTons = round2(filteredRows.reduce((s, r) => s + r.exportTons, 0));
     const totalExportTrips = filteredRows.reduce((s, r) => s + r.exportTrips, 0);
-    const totalDirectTons = warehouseId === 'KHO 4'
+    const totalDirectTons = isKho4Like
         ? round2(filteredRows.reduce((s, r) => s + r.directTons, 0))
         : round2(filteredDirectTickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
-    const totalDirectTrips = warehouseId === 'KHO 4'
+    const totalDirectTrips = isKho4Like
         ? filteredRows.reduce((s, r) => s + r.directTrips, 0)
         : filteredDirectTickets.length;
     const closingStockTons = filteredRows.length > 0
@@ -1400,7 +1441,8 @@ export function createWarehousePresetPolygons(
         },
         {
             id: 'KHO4_bottom_left',
-            label: 'Cụm đáy trái (Ô 1)',
+            label: 'BÁCH KHOA (Ô 1)',
+            color: '#F97316',
             vertices: [
                 { xRatio: 0, bayY: 0 },
                 { xRatio: 0, bayY: 1.25 },
@@ -1492,6 +1534,10 @@ export const WarehouseInventoryService = {
     snapMapVertex,
     createWarehousePresetPolygons,
     getDefaultVisualMapState,
+    isBachKhoaCustomer,
+    isBachKhoaTicket,
+    getTicketCustomerGroup,
+    getDefaultConfigs,
 
     async getVisualMapState(): Promise<WarehouseVisualMapState> {
         const defaults = getDefaultVisualMapState();
@@ -1589,14 +1635,15 @@ export const WarehouseInventoryService = {
         return true;
     },
 
-    async getConfigs(): Promise<Record<WarehouseId, WarehouseConfig>> {
+    async getConfigs(): Promise<Record<ExtendedWarehouseId, WarehouseConfig>> {
         const defaults = getDefaultConfigs();
-        const local = (await dbContext.get<Record<string, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {};
-        const merged: Record<WarehouseId, WarehouseConfig> = {
-            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] as WarehouseConfig || {}) },
-            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] as WarehouseConfig || {}) },
-            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] as WarehouseConfig || {}) },
-            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] as WarehouseConfig || {}) }
+        const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
+        const merged: Record<ExtendedWarehouseId, WarehouseConfig> = {
+            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
+            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
+            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
+            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) },
+            'KHO 4 - BK': { ...defaults['KHO 4 - BK'], ...(local['KHO 4 - BK'] || {}) }
         };
 
         if (!dedicatedTablesMissing) {
@@ -1608,16 +1655,28 @@ export const WarehouseInventoryService = {
                     dedicatedTablesMissing = true;
                 } else if (!error && Array.isArray(data) && data.length > 0) {
                     for (const row of data) {
-                        const whId = normalizeWarehouseId(row.warehouse_id);
-                        if (whId) {
-                            merged[whId] = {
-                                warehouseId: whId,
+                        const rawWhId = String(row.warehouse_id || '').trim();
+                        if (rawWhId === 'KHO 4 - BK' || rawWhId === 'KHO 4 (BK)') {
+                            merged['KHO 4 - BK'] = {
+                                warehouseId: 'KHO 4 - BK',
                                 initialStock: Number(row.initial_stock) || 0,
                                 initialDate: row.initial_date || '',
-                                currentCustomer: row.current_customer || merged[whId].currentCustomer,
+                                currentCustomer: row.current_customer || 'BÁCH KHOA',
                                 dailyRemarks: row.daily_remarks || {},
                                 updatedAt: row.updated_at
                             };
+                        } else {
+                            const whId = normalizeWarehouseId(row.warehouse_id);
+                            if (whId) {
+                                merged[whId] = {
+                                    warehouseId: whId,
+                                    initialStock: Number(row.initial_stock) || 0,
+                                    initialDate: row.initial_date || '',
+                                    currentCustomer: row.current_customer || merged[whId].currentCustomer,
+                                    dailyRemarks: row.daily_remarks || {},
+                                    updatedAt: row.updated_at
+                                };
+                            }
                         }
                     }
                     await dbContext.set(LOCAL_CONFIGS_KEY, merged);
@@ -1630,9 +1689,10 @@ export const WarehouseInventoryService = {
         if (dedicatedTablesMissing) {
             const fb = await loadFallbackStateFromContentSettings();
             if (fb?.configs) {
-                for (const whId of ALL_WAREHOUSES) {
-                    if (fb.configs[whId]) {
-                        merged[whId] = { ...merged[whId], ...fb.configs[whId] };
+                const fbConfigs = fb.configs as Record<string, any>;
+                for (const whKey of ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'KHO 4 - BK'] as ExtendedWarehouseId[]) {
+                    if (fbConfigs[whKey]) {
+                        merged[whKey] = { ...merged[whKey], ...fbConfigs[whKey] };
                     }
                 }
                 await dbContext.set(LOCAL_CONFIGS_KEY, merged);
@@ -1641,17 +1701,20 @@ export const WarehouseInventoryService = {
 
         // Sanitize customer names and dailyRemarks to eliminate date strings or Excel date serial artifacts
         merged['KHO 4'].currentCustomer = sanitizeCustomerName(merged['KHO 4'].currentCustomer, 'EASTWOOD');
+        merged['KHO 4 - BK'].currentCustomer = sanitizeCustomerName(merged['KHO 4 - BK'].currentCustomer, 'BÁCH KHOA');
         merged['KHO 1'].currentCustomer = sanitizeCustomerName(merged['KHO 1'].currentCustomer, 'GỖ BÌNH ĐỊNH');
         merged['KHO 2'].currentCustomer = sanitizeCustomerName(merged['KHO 2'].currentCustomer, 'GỖ BÌNH ĐỊNH');
         merged['KHO 3'].currentCustomer = sanitizeCustomerName(merged['KHO 3'].currentCustomer, 'GỖ BÌNH ĐỊNH');
 
         let anyCleaned = false;
-        for (const whId of ALL_WAREHOUSES) {
-            const { cleaned, hadInvalid } = sanitizeDailyRemarks(merged[whId].dailyRemarks);
-            if (hadInvalid) {
-                merged[whId].dailyRemarks = cleaned;
-                anyCleaned = true;
-                await this.saveConfig(merged[whId]);
+        for (const whKey of ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'KHO 4 - BK'] as ExtendedWarehouseId[]) {
+            if (merged[whKey]) {
+                const { cleaned, hadInvalid } = sanitizeDailyRemarks(merged[whKey].dailyRemarks);
+                if (hadInvalid) {
+                    merged[whKey].dailyRemarks = cleaned;
+                    anyCleaned = true;
+                    await this.saveConfig(merged[whKey]);
+                }
             }
         }
         if (anyCleaned) {
@@ -1663,14 +1726,16 @@ export const WarehouseInventoryService = {
 
     async saveConfig(config: WarehouseConfig): Promise<boolean> {
         const defaults = getDefaultConfigs();
-        const local = (await dbContext.get<Record<string, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {};
-        const current: Record<WarehouseId, WarehouseConfig> = {
-            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] as WarehouseConfig || {}) },
-            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] as WarehouseConfig || {}) },
-            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] as WarehouseConfig || {}) },
-            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] as WarehouseConfig || {}) }
+        const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
+        const current: Record<ExtendedWarehouseId, WarehouseConfig> = {
+            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
+            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
+            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
+            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) },
+            'KHO 4 - BK': { ...defaults['KHO 4 - BK'], ...(local['KHO 4 - BK'] || {}) }
         };
-        current[config.warehouseId] = {
+        const whKey = config.warehouseId as ExtendedWarehouseId;
+        current[whKey] = {
             ...config,
             updatedAt: new Date().toISOString()
         };
@@ -2052,7 +2117,7 @@ export const WarehouseInventoryService = {
     },
 
     async clearWarehouseTickets(
-        target?: WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
+        target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
     ): Promise<boolean> {
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
         const configs = await this.getConfigs();
@@ -2067,6 +2132,12 @@ export const WarehouseInventoryService = {
                 configs[whId].initialStock = 0;
                 configs[whId].initialDate = '';
                 await this.saveConfig(configs[whId]);
+            }
+            if (configs['KHO 4 - BK']) {
+                configs['KHO 4 - BK'].dailyRemarks = {};
+                configs['KHO 4 - BK'].initialStock = 0;
+                configs['KHO 4 - BK'].initialDate = '';
+                await this.saveConfig(configs['KHO 4 - BK']);
             }
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
@@ -2121,6 +2192,48 @@ export const WarehouseInventoryService = {
                 configs[whId].initialStock = 0;
                 configs[whId].initialDate = '';
                 await this.saveConfig(configs[whId]);
+            }
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
+            return true;
+        }
+
+        if (target === 'KHO 4 - BK') {
+            const idsToDelete = current.filter(t => getTicketCustomerGroup(t, configs) === 'KHO_4_BK').map(t => t.id);
+            const remaining = current.filter(t => getTicketCustomerGroup(t, configs) !== 'KHO_4_BK');
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            if (idsToDelete.length > 0) {
+                try {
+                    await supabase.from('warehouse_inventory_tickets').delete().in('id', idsToDelete);
+                } catch (_) {}
+            }
+            if (configs['KHO 4 - BK']) {
+                configs['KHO 4 - BK'].dailyRemarks = {};
+                configs['KHO 4 - BK'].initialStock = 0;
+                configs['KHO 4 - BK'].initialDate = '';
+                await this.saveConfig(configs['KHO 4 - BK']);
+            }
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
+            return true;
+        }
+
+        if (target === 'KHO 4') {
+            const idsToDelete = current.filter(t => t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs) === 'KHO_4').map(t => t.id);
+            const remaining = current.filter(t => !(t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs) === 'KHO_4'));
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            if (idsToDelete.length > 0) {
+                try {
+                    await supabase.from('warehouse_inventory_tickets').delete().in('id', idsToDelete);
+                } catch (_) {}
+            }
+            if (configs['KHO 4']) {
+                configs['KHO 4'].dailyRemarks = {};
+                configs['KHO 4'].initialStock = 0;
+                configs['KHO 4'].initialDate = '';
+                await this.saveConfig(configs['KHO 4']);
             }
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
@@ -2387,7 +2500,7 @@ export const WarehouseInventoryService = {
             if (ticket.warehouseId) {
                 updatedWhSet.add(ticket.warehouseId);
                 if (ticket.customerName && configs[ticket.warehouseId]) {
-                    configs[ticket.warehouseId].currentCustomer = ticket.customerName;
+                    configs[ticket.warehouseId]!.currentCustomer = ticket.customerName;
                 }
             }
         }
@@ -2403,7 +2516,9 @@ export const WarehouseInventoryService = {
         }
 
         for (const whId of updatedWhSet) {
-            await this.saveConfig(configs[whId]);
+            if (configs[whId]) {
+                await this.saveConfig(configs[whId]!);
+            }
         }
         summary.warehousesUpdated = Array.from(updatedWhSet);
 
@@ -2899,10 +3014,11 @@ export const WarehouseInventoryService = {
                     ];
                     for (const b of blocks) {
                         updatedWhSet.add(b.wh);
-                        configs[b.wh].dailyRemarks = {};
-                        configs[b.wh].initialStock = 0;
-                        configs[b.wh].initialDate = '';
-                        if (sheetLevelCustomer) configs[b.wh].currentCustomer = sheetLevelCustomer;
+                        const bCfg = configs[b.wh]!;
+                        bCfg.dailyRemarks = {};
+                        bCfg.initialStock = 0;
+                        bCfg.initialDate = '';
+                        if (sheetLevelCustomer) bCfg.currentCustomer = sheetLevelCustomer;
                         let firstDateIso = '';
                         let lastDateIso = '';
                         for (let r = 5; r <= finalSheet.rowCount; r++) {
@@ -2911,7 +3027,7 @@ export const WarehouseInventoryService = {
                             const rawDateStr = stripAccents(String(rawDateCell || '')).toUpperCase().trim();
                             if (rawDateStr.includes('TON DAU')) {
                                 const openVal = normalizeWeightToTons(getCellPrimitive(row.getCell(b.stockCol)) || getCellPrimitive(row.getCell(b.impCol)));
-                                configs[b.wh].initialStock = openVal;
+                                bCfg.initialStock = openVal;
                                 continue;
                             }
                             if (rawDateStr.includes('TONG CONG') || rawDateStr.includes('TOTAL')) {
@@ -2924,23 +3040,24 @@ export const WarehouseInventoryService = {
                             const rawRemCell = getCellPrimitive(row.getCell(b.remarkCol));
                             const rem = rawRemCell instanceof Date ? '' : String(rawRemCell || '').trim();
                             if (rem && !/^\d+(\.\d+)?$/.test(rem)) {
-                                configs[b.wh].dailyRemarks[dIso] = rem;
+                                bCfg.dailyRemarks[dIso] = rem;
                             }
                         }
-                        if (firstDateIso && configs[b.wh].dailyRemarks[firstDateIso] === undefined) {
-                            configs[b.wh].dailyRemarks[firstDateIso] = '';
+                        if (firstDateIso && bCfg.dailyRemarks[firstDateIso] === undefined) {
+                            bCfg.dailyRemarks[firstDateIso] = '';
                         }
-                        if (lastDateIso && configs[b.wh].dailyRemarks[lastDateIso] === undefined) {
-                            configs[b.wh].dailyRemarks[lastDateIso] = '';
+                        if (lastDateIso && bCfg.dailyRemarks[lastDateIso] === undefined) {
+                            bCfg.dailyRemarks[lastDateIso] = '';
                         }
                     }
                 } else {
                     const fWh = normalizeWarehouseId(finalSheet.name) || defaultWh;
                     updatedWhSet.add(fWh);
-                    configs[fWh].dailyRemarks = {};
-                    configs[fWh].initialStock = 0;
-                    configs[fWh].initialDate = '';
-                    if (sheetLevelCustomer) configs[fWh].currentCustomer = sheetLevelCustomer;
+                    const fCfg = configs[fWh]!;
+                    fCfg.dailyRemarks = {};
+                    fCfg.initialStock = 0;
+                    fCfg.initialDate = '';
+                    if (sheetLevelCustomer) fCfg.currentCustomer = sheetLevelCustomer;
 
                     // Detect columns in Single-Warehouse FINAL:
                     // Native template: Col 1=Ngày, Col 2=Trọng lượng nhập, Col 3=Trọng lượng xuất, Col 4=Tồn cuối, Col 5=Xá thẳng/Ghi chú, Col 6=Ghi chú
@@ -2974,7 +3091,7 @@ export const WarehouseInventoryService = {
 
                         if (rawDateStr.includes('TON DAU')) {
                             const openVal = normalizeWeightToTons(getCellPrimitive(row.getCell(stockCol)) || getCellPrimitive(row.getCell(impCol)));
-                            configs[fWh].initialStock = openVal;
+                            fCfg.initialStock = openVal;
                             continue;
                         }
                         if (rawDateStr.includes('TONG CONG') || rawDateStr.includes('TOTAL')) {
@@ -2986,7 +3103,7 @@ export const WarehouseInventoryService = {
 
                         const rawRemCell = getCellPrimitive(row.getCell(remCol));
                         const rem = rawRemCell instanceof Date ? '' : String(rawRemCell || '').trim();
-                        configs[fWh].dailyRemarks[dIso] = (!rem || /^\d+(\.\d+)?$/.test(rem)) ? '' : rem;
+                        fCfg.dailyRemarks[dIso] = (!rem || /^\d+(\.\d+)?$/.test(rem)) ? '' : rem;
 
                         // Detect opening stock row on first date row (e.g. 26/12/2025 in EW Kho 4 where Col 2 is a literal number 17,652,550 with remark "Tồn kho đến 26/12/2025")
                         if (!checkedFirstDataRow) {
@@ -2998,8 +3115,8 @@ export const WarehouseInventoryService = {
                                 t => t.warehouseId === fWh && t.flowType === 'IMPORT' && t.reportDate === dIso
                             );
                             if (isLiteralNumber && (!hasImportTicketsOnDate || remClean.includes('TON KHO DEN') || remClean.includes('THEO BAO CAO'))) {
-                                configs[fWh].initialStock = normalizeWeightToTons(impCellRaw);
-                                configs[fWh].initialDate = dIso;
+                                fCfg.initialStock = normalizeWeightToTons(impCellRaw);
+                                fCfg.initialDate = dIso;
                             }
                         }
                     }
@@ -3024,7 +3141,9 @@ export const WarehouseInventoryService = {
             }
 
             for (const whId of updatedWhSet) {
-                await this.saveConfig(configs[whId]);
+                if (configs[whId]) {
+                    await this.saveConfig(configs[whId]!);
+                }
             }
             summary.warehousesUpdated = Array.from(updatedWhSet);
         } catch (err: any) {
@@ -3040,7 +3159,7 @@ export const WarehouseInventoryService = {
      * Sheets: IMPORT {num}, EXPORT {num}, FINAL {num}, XÁ THẲNG
      */
     async exportSingleWarehouseWorkbook(
-        warehouseId: WarehouseId,
+        warehouseId: WarehouseId | ExtendedWarehouseId,
         options?: {
             fromDate?: string;
             toDate?: string;
@@ -3049,7 +3168,9 @@ export const WarehouseInventoryService = {
         const ExcelJS = await import('exceljs');
         const workbook = new ExcelJS.Workbook();
 
-        const whNum = warehouseId.replace('KHO ', '').trim();
+        const isBK = warehouseId === 'KHO 4 - BK';
+        const physicalWhId: WarehouseId = isBK ? 'KHO 4' : (warehouseId as WarehouseId);
+        const whNum = physicalWhId.replace('KHO ', '').trim();
         const importSheetName = `IMPORT ${whNum}`;
         const exportSheetName = `EXPORT ${whNum}`;
         const finalSheetName = `FINAL ${whNum}`;
@@ -3057,30 +3178,36 @@ export const WarehouseInventoryService = {
 
         const allTickets = await this.getAllTickets();
         const configs = await this.getConfigs();
-        const config = configs[warehouseId];
+        const config = (configs[warehouseId] || (isBK ? configs['KHO 4 - BK'] : configs['KHO 4']))!;
 
-        const whImports = allTickets.filter(t => t.warehouseId === warehouseId && t.flowType === 'IMPORT');
-        const whExports = allTickets.filter(t => t.warehouseId === warehouseId && t.flowType === 'EXPORT');
-        const targetGroup = warehouseId === 'KHO 4' ? 'KHO_4' : 'KHO_123';
+        const whImports = allTickets.filter(t => {
+            if (t.warehouseId !== physicalWhId || t.flowType !== 'IMPORT') return false;
+            return isBK ? isBachKhoaTicket(t) : !isBachKhoaTicket(t);
+        });
+        const whExports = allTickets.filter(t => {
+            if (t.warehouseId !== physicalWhId || t.flowType !== 'EXPORT') return false;
+            return isBK ? isBachKhoaTicket(t) : !isBachKhoaTicket(t);
+        });
+        const targetGroup = isBK ? 'KHO_4_BK' : (physicalWhId === 'KHO 4' ? 'KHO_4' : 'KHO_123');
         const directTickets = allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === targetGroup);
 
         const finalCalc = computeWarehouseFinalTable(warehouseId, allTickets, config, { ...options, allConfigs: configs });
 
-        if (warehouseId === 'KHO 4') {
+        if (physicalWhId === 'KHO 4') {
             // Keep Kho 4 100% untouched
             // 1. Sheet IMPORT X
             const wsImport = workbook.addWorksheet(importSheetName);
-            this.populateImportWorksheet(wsImport, warehouseId, config.currentCustomer, whImports);
+            this.populateImportWorksheet(wsImport, physicalWhId, config.currentCustomer, whImports);
 
             // 2. Sheet EXPORT X
             const wsExport = workbook.addWorksheet(exportSheetName);
-            this.populateExportWorksheet(wsExport, warehouseId, config.currentCustomer, whExports);
+            this.populateExportWorksheet(wsExport, physicalWhId, config.currentCustomer, whExports);
 
             // 3. Sheet FINAL X
             const wsFinal = workbook.addWorksheet(finalSheetName);
             this.populateSingleFinalWorksheet(
                 wsFinal,
-                warehouseId,
+                physicalWhId,
                 config.currentCustomer,
                 importSheetName,
                 exportSheetName,
@@ -3101,8 +3228,8 @@ export const WarehouseInventoryService = {
 
         const now = new Date();
         const ddmmyyyy = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
-        const custShort = (config.currentCustomer || 'KH').replace(/\s+/g, '_').toUpperCase();
-        const filename = `WL GỖ NÉN_${warehouseId} NGUYÊN NGỌC_${ddmmyyyy}_${custShort}.xlsx`;
+        const custTag = isBK ? 'BK' : 'EW';
+        const filename = `WEIGHT LIST GỖ NÉN_KHO NGUYÊN NGỌC_${custTag}_${ddmmyyyy}.xlsx`;
 
         const buffer = await workbook.xlsx.writeBuffer();
         return { buffer: buffer as ArrayBuffer, filename };
@@ -3123,16 +3250,19 @@ export const WarehouseInventoryService = {
         const configs = await this.getConfigs();
 
         const calcOpts = { ...options, allConfigs: configs };
-        const calc1 = computeWarehouseFinalTable('KHO 1', allTickets, configs['KHO 1'], calcOpts);
-        const calc2 = computeWarehouseFinalTable('KHO 2', allTickets, configs['KHO 2'], calcOpts);
-        const calc3 = computeWarehouseFinalTable('KHO 3', allTickets, configs['KHO 3'], calcOpts);
+        const cfg1 = configs['KHO 1']!;
+        const cfg2 = configs['KHO 2']!;
+        const cfg3 = configs['KHO 3']!;
+        const calc1 = computeWarehouseFinalTable('KHO 1', allTickets, cfg1, calcOpts);
+        const calc2 = computeWarehouseFinalTable('KHO 2', allTickets, cfg2, calcOpts);
+        const calc3 = computeWarehouseFinalTable('KHO 3', allTickets, cfg3, calcOpts);
 
         // 1. Sheet FINAL (3 horizontal tables side-by-side: A..E, G..K, M..Q)
         const wsFinal = workbook.addWorksheet('FINAL');
         this.populateCombined123FinalWorksheet(wsFinal, [
             {
                 whId: 'KHO 1',
-                customer: configs['KHO 1'].currentCustomer,
+                customer: cfg1.currentCustomer,
                 importSheet: 'IMPORT 1',
                 exportSheet: 'EXPORT 1',
                 startCol: 1,
@@ -3141,7 +3271,7 @@ export const WarehouseInventoryService = {
             },
             {
                 whId: 'KHO 2',
-                customer: configs['KHO 2'].currentCustomer,
+                customer: cfg2.currentCustomer,
                 importSheet: 'IMPORT 2',
                 exportSheet: 'EXPORT 2',
                 startCol: 7,
@@ -3150,7 +3280,7 @@ export const WarehouseInventoryService = {
             },
             {
                 whId: 'KHO 3',
-                customer: configs['KHO 3'].currentCustomer,
+                customer: cfg3.currentCustomer,
                 importSheet: 'IMPORT KHO 3',
                 exportSheet: 'EXPORT KH 3',
                 startCol: 13,

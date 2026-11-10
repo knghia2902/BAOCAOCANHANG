@@ -153,6 +153,21 @@ function getMidpoint(v1: WarehouseMapVertex, v2: WarehouseMapVertex): WarehouseM
     };
 }
 
+function getPolygonCenterPoint(whId: WarehouseId, vertices: WarehouseMapVertex[]): { x: number; y: number } {
+    if (!vertices || vertices.length === 0) return { x: 0, y: 0 };
+    let sumX = 0;
+    let sumY = 0;
+    for (const v of vertices) {
+        const pt = vertexToSvgPoint(whId, v);
+        sumX += pt.x;
+        sumY += pt.y;
+    }
+    return {
+        x: Math.round(sumX / vertices.length),
+        y: Math.round(sumY / vertices.length)
+    };
+}
+
 function selectWarehouseForEdit(whId: WarehouseId, polyIdx = 0) {
     selectedWarehouseId.value = whId;
     selectedPolygonIdx.value = polyIdx;
@@ -788,6 +803,23 @@ onMounted(() => {
                             class="transition-opacity"
                             @click.stop="isEditing && selectWarehouseForEdit(whId, pIdx)"
                         />
+                        <!-- Dedicated badge for Bách Khoa corner or custom pile label -->
+                        <text
+                            v-if="poly.label && poly.label.includes('BÁCH KHOA')"
+                            :x="getPolygonCenterPoint(whId, poly.vertices).x"
+                            :y="getPolygonCenterPoint(whId, poly.vertices).y + 4"
+                            text-anchor="middle"
+                            font-family="Cambria, Georgia, serif"
+                            font-size="10.5"
+                            font-weight="bold"
+                            fill="#ffffff"
+                            stroke="#7c2d12"
+                            stroke-width="0.6"
+                            paint-order="stroke fill"
+                            pointer-events="none"
+                        >
+                            BÁCH KHOA
+                        </text>
                     </g>
 
                     <!-- Horizontal Dashed Bay Dividers (drawn OVER cargo fill, matching TVPL image) -->
