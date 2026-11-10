@@ -13,7 +13,7 @@ const emit = defineEmits<{
     (e: 'update:isPinned', pinned: boolean): void;
 }>();
 
-// Pin state: Default false (Mặc định ẩn vào trong)
+// Pin state: Default false (Mặc định thu gọn thành cột biểu tượng)
 const localPinned = ref(props.isPinned ?? false);
 const pinned = computed({
     get: () => (props.isPinned !== undefined ? props.isPinned : localPinned.value),
@@ -24,15 +24,15 @@ const pinned = computed({
     }
 });
 
-// Hover and Drawer state
+// Hover state
 const isHovered = ref(false);
-const isMobileOpen = ref(false);
 
-const isOpen = computed(() => {
-    return pinned.value || isHovered.value || isMobileOpen.value;
+// Expanded when pinned OR when hovered
+const isExpanded = computed(() => {
+    return pinned.value || isHovered.value;
 });
 
-// Hover timer with grace period (180ms) for smooth interaction without accidental flickering
+// Hover timer with 180ms grace period to avoid flicker on edge crossings
 let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 const handleMouseEnter = () => {
@@ -60,26 +60,20 @@ const togglePin = () => {
     }
 };
 
-const hideSidebar = () => {
+const collapseSidebar = () => {
     pinned.value = false;
     isHovered.value = false;
-    isMobileOpen.value = false;
     if (leaveTimer) {
         clearTimeout(leaveTimer);
         leaveTimer = null;
     }
 };
 
-const handleTriggerClick = () => {
-    isMobileOpen.value = !isMobileOpen.value;
-    isHovered.value = true;
-};
-
 const handleSelect = (key: string) => {
     emit('select-node', key);
-    // Auto-close on mobile/touch screens
+    // On small screens, close after selecting
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        hideSidebar();
+        isHovered.value = false;
     }
 };
 
@@ -97,6 +91,11 @@ const expandedGroups = ref<Record<string, boolean>>({
 });
 
 const toggleGroup = (groupId: string) => {
+    if (!isExpanded.value) {
+        isHovered.value = true;
+        expandedGroups.value[groupId] = true;
+        return;
+    }
     expandedGroups.value[groupId] = !expandedGroups.value[groupId];
 };
 
@@ -135,65 +134,30 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
 </script>
 
 <template>
-    <!-- Outer Container: Manages layout docking vs floating overlay -->
+    <!-- Outer Wrapper: Preserves column space in layout, captures mouseenter/mouseleave -->
     <div
+        class="h-full relative font-display select-none shrink-0 no-print transition-all duration-300"
         :class="[
-            'font-display no-print select-none transition-all duration-300 z-40',
-            pinned
-                ? 'relative shrink-0 w-72 h-full'
-                : 'absolute inset-y-0 left-0 flex pointer-events-none'
+            pinned ? 'w-72' : 'w-[68px]'
         ]"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
     >
-        <!-- Mobile Backdrop Overlay (only on small screens when drawer is open) -->
-        <div
-            v-if="!pinned && isOpen"
-            class="pointer-events-auto fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-30 md:hidden"
-            @click="hideSidebar"
-        ></div>
-
-        <!-- Left Edge Hover Detection Strip (desktop only - effortless gesture) -->
-        <div
-            v-if="!pinned"
-            class="pointer-events-auto absolute left-0 top-0 bottom-0 w-3 md:w-4 z-30 cursor-pointer"
-            @mouseenter="handleMouseEnter"
-        ></div>
-
-        <!-- Trigger Tab Button (Nút Tab nổi mép trái khi đang ẩn vào trong) -->
-        <div
-            v-if="!pinned && !isOpen"
-            @mouseenter="handleMouseEnter"
-            @click="handleTriggerClick"
-            class="pointer-events-auto absolute left-0 top-16 md:top-20 z-30 flex items-center bg-white/95 hover:bg-primary backdrop-blur-md border border-primary/20 hover:border-primary border-l-0 rounded-r-2xl shadow-md hover:shadow-lg py-3 px-2 cursor-pointer transition-all duration-200 group text-primary hover:text-white"
-            title="Rê chuột hoặc bấm để mở Sơ đồ cây"
-        >
-            <div class="flex flex-col items-center gap-1.5 select-none">
-                <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">account_tree</span>
-                <span class="text-[10px] font-display font-black tracking-widest [writing-mode:vertical-rl] rotate-180 uppercase">
-                    Sơ đồ cây
-                </span>
-                <span class="material-symbols-outlined text-xs group-hover:translate-x-0.5 transition-transform">chevron_right</span>
-            </div>
-        </div>
-
-        <!-- Sidebar Panel (Thanh Sơ đồ cây chính) -->
+        <!-- Actual Sidebar: Collapses to w-[68px] with icons; Expands to w-72 / w-80 on hover as overlay -->
         <aside
-            @mouseenter="handleMouseEnter"
-            @mouseleave="handleMouseLeave"
             :class="[
-                'pointer-events-auto flex flex-col bg-white border border-primary/10 overflow-hidden font-display transition-all duration-300 ease-out',
+                'h-full flex flex-col bg-white rounded-[24px] border border-primary/10 font-display overflow-hidden select-none transition-all duration-300 ease-out',
                 pinned
-                    ? 'w-full h-full rounded-[24px] soft-shadow'
-                    : [
-                          'absolute top-3.5 md:top-4 bottom-3.5 md:bottom-4 left-3.5 md:left-4 w-72 md:w-80 rounded-[24px] shadow-2xl z-40',
-                          isOpen
-                              ? 'translate-x-0 opacity-100'
-                              : '-translate-x-[calc(100%+3rem)] opacity-0 pointer-events-none'
-                      ]
+                    ? 'w-full soft-shadow'
+                    : isExpanded
+                      ? 'absolute top-0 bottom-0 left-0 w-72 md:w-80 shadow-2xl z-40 ring-1 ring-primary/10'
+                      : 'w-full soft-shadow'
             ]"
         >
             <!-- Sidebar Header (DESIGN.md Mục 5B) -->
-            <div class="p-3.5 px-4 border-b border-primary/5 flex items-center justify-between shrink-0 bg-slate-50/50">
-                <div class="flex items-center gap-2.5 min-w-0">
+            <div class="p-3.5 px-3.5 border-b border-primary/5 flex items-center justify-between shrink-0 bg-slate-50/50 min-h-[57px]">
+                <!-- Expanded Header Title -->
+                <div v-if="isExpanded" class="flex items-center gap-2.5 min-w-0">
                     <div class="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
                         <span class="material-symbols-outlined text-lg">account_tree</span>
                     </div>
@@ -203,8 +167,18 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                     </div>
                 </div>
 
-                <!-- Header Action Buttons: Pin & Hide/Close -->
-                <div class="flex items-center gap-1.5 shrink-0">
+                <!-- Collapsed Header Icon -->
+                <div
+                    v-else
+                    class="mx-auto size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 cursor-pointer"
+                    title="Sơ đồ cây - Rê chuột để mở rộng"
+                    @click="isHovered = true"
+                >
+                    <span class="material-symbols-outlined text-lg">account_tree</span>
+                </div>
+
+                <!-- Header Action Buttons (Only when expanded) -->
+                <div v-if="isExpanded" class="flex items-center gap-1 shrink-0">
                     <!-- Pin / Unpin Button -->
                     <button
                         type="button"
@@ -215,19 +189,19 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                                 ? 'bg-primary text-white shadow-soft hover:bg-primary/90'
                                 : 'bg-[#f1f5f9] text-gray-400 hover:text-primary hover:scale-105 active:scale-95'
                         ]"
-                        :title="pinned ? 'Bỏ ghim (Tự động ẩn khi di chuột ra)' : 'Ghim cố định sơ đồ cây'"
+                        :title="pinned ? 'Bỏ ghim (Tự động thu gọn khi di chuột ra)' : 'Ghim cố định sơ đồ cây'"
                     >
                         <span class="material-symbols-outlined text-base" :class="{ '-rotate-45': pinned }">
                             push_pin
                         </span>
                     </button>
 
-                    <!-- Hide / Collapse Button -->
+                    <!-- Collapse Button -->
                     <button
                         type="button"
-                        @click="hideSidebar"
+                        @click="collapseSidebar"
                         class="size-8 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-primary hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                        title="Ẩn sơ đồ cây vào trong"
+                        title="Thu gọn thành cột biểu tượng"
                     >
                         <span class="material-symbols-outlined text-lg">
                             chevron_left
@@ -237,10 +211,12 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
             </div>
 
             <!-- Tree Navigation Body -->
-            <div class="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
+            <div class="flex-1 overflow-y-auto p-2.5 space-y-3.5 custom-scrollbar">
                 <!-- ================= NHÁNH 1: PHÂN HỆ ================= -->
                 <div class="space-y-1.5">
+                    <!-- Branch Header -->
                     <button
+                        v-if="isExpanded"
                         type="button"
                         @click="toggleGroup('modules')"
                         class="w-full flex items-center justify-between px-2 py-1 text-xs font-display font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors cursor-pointer group"
@@ -256,16 +232,21 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                             expand_more
                         </span>
                     </button>
+                    <div v-else class="py-1 flex justify-center" title="1. Phân hệ">
+                        <span class="material-symbols-outlined text-base text-primary/70">folder_open</span>
+                    </div>
 
-                    <div v-show="expandedGroups.modules" class="space-y-1.5">
-                        <!-- Tạo nguồn tàu & Dữ liệu cân -->
+                    <!-- Module Items (Tạo nguồn tàu & Dữ liệu cân) -->
+                    <div v-show="!isExpanded || expandedGroups.modules" class="space-y-1.5">
                         <button
                             v-for="item in moduleItems"
                             :key="item.key"
                             type="button"
                             @click="handleSelect(item.key)"
+                            :title="item.label"
                             :class="[
-                                'w-full flex items-center gap-2.5 p-2.5 px-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                'w-full flex items-center gap-2.5 p-2 rounded-[16px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                !isExpanded ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
                                 activeKey === item.key
                                     ? 'bg-primary text-white border-primary shadow-soft'
                                     : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100 hover:border-primary/20'
@@ -279,9 +260,9 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                             >
                                 {{ item.icon }}
                             </span>
-                            <span class="truncate flex-1">{{ item.label }}</span>
+                            <span v-if="isExpanded" class="truncate flex-1">{{ item.label }}</span>
                             <span
-                                v-if="item.badge"
+                                v-if="isExpanded && item.badge"
                                 :class="[
                                     'px-2 py-0.5 rounded-full text-xs font-bold shrink-0',
                                     activeKey === item.key
@@ -297,7 +278,9 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
 
                         <!-- Nhánh con: Báo cáo -->
                         <div class="space-y-1.5">
+                            <!-- Báo cáo Accordion Header (Chỉ hiện khi mở rộng) -->
                             <button
+                                v-if="isExpanded"
                                 type="button"
                                 @click="toggleGroup('reports')"
                                 :class="[
@@ -319,18 +302,24 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                                 </span>
                             </button>
 
-                            <!-- Các mục con trong Báo cáo -->
+                            <!-- Các mục con Báo cáo (Kho, Lô hàng, De Heus) -->
                             <div
-                                v-show="expandedGroups.reports"
-                                class="ml-3.5 pl-2.5 border-l-2 border-primary/15 space-y-1.5"
+                                v-show="!isExpanded || expandedGroups.reports"
+                                :class="[
+                                    !isExpanded
+                                        ? 'space-y-1.5'
+                                        : 'ml-3.5 pl-2.5 border-l-2 border-primary/15 space-y-1.5'
+                                ]"
                             >
                                 <button
                                     v-for="rep in reportItems"
                                     :key="rep.key"
                                     type="button"
                                     @click="handleSelect(rep.key)"
+                                    :title="rep.label"
                                     :class="[
-                                        'w-full flex items-center gap-2 p-2 px-3 rounded-[14px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                        'w-full flex items-center gap-2 rounded-[14px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                        !isExpanded ? 'justify-center px-0 py-2.5 rounded-[16px]' : 'p-2 px-3',
                                         activeKey === rep.key
                                             ? 'bg-primary text-white border-primary shadow-soft'
                                             : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100 hover:border-primary/20'
@@ -344,9 +333,9 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                                     >
                                         {{ rep.icon }}
                                     </span>
-                                    <span class="truncate flex-1">{{ rep.label }}</span>
+                                    <span v-if="isExpanded" class="truncate flex-1">{{ rep.label }}</span>
                                     <span
-                                        v-if="rep.badge"
+                                        v-if="isExpanded && rep.badge"
                                         :class="[
                                             'px-1.5 py-0.5 rounded-full text-xs font-bold shrink-0',
                                             activeKey === rep.key ? 'bg-white/20 text-white' : 'bg-teal-50 text-teal-600'
@@ -364,8 +353,10 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                             :key="item.key"
                             type="button"
                             @click="handleSelect(item.key)"
+                            :title="item.label"
                             :class="[
-                                'w-full flex items-center gap-2.5 p-2.5 px-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                'w-full flex items-center gap-2.5 p-2 rounded-[16px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                !isExpanded ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
                                 activeKey === item.key
                                     ? 'bg-primary text-white border-primary shadow-soft'
                                     : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100 hover:border-primary/20'
@@ -379,7 +370,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                             >
                                 {{ item.icon }}
                             </span>
-                            <span class="truncate flex-1">{{ item.label }}</span>
+                            <span v-if="isExpanded" class="truncate flex-1">{{ item.label }}</span>
                         </button>
                     </div>
                 </div>
@@ -389,6 +380,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                 <!-- ================= NHÁNH 2: DANH MỤC ================= -->
                 <div class="space-y-1.5">
                     <button
+                        v-if="isExpanded"
                         type="button"
                         @click="toggleGroup('categories')"
                         class="w-full flex items-center justify-between px-2 py-1 text-xs font-display font-black uppercase tracking-widest text-gray-400 hover:text-primary transition-colors cursor-pointer group"
@@ -404,15 +396,20 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                             expand_more
                         </span>
                     </button>
+                    <div v-else class="py-1 flex justify-center" title="2. Danh mục">
+                        <span class="material-symbols-outlined text-base text-teal-600">dataset</span>
+                    </div>
 
-                    <div v-show="expandedGroups.categories" class="space-y-1.5">
+                    <div v-show="!isExpanded || expandedGroups.categories" class="space-y-1.5">
                         <button
                             v-for="item in categoryItems"
                             :key="item.key"
                             type="button"
                             @click="handleSelect(item.key)"
+                            :title="item.label"
                             :class="[
-                                'w-full flex items-center gap-2.5 p-2.5 px-3 rounded-[16px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                'w-full flex items-center gap-2.5 p-2 rounded-[16px] cursor-pointer transition-all text-xs font-black border text-left group',
+                                !isExpanded ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
                                 activeKey === item.key
                                     ? 'bg-primary text-white border-primary shadow-soft'
                                     : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100 hover:border-primary/20'
@@ -426,7 +423,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                             >
                                 {{ item.icon }}
                             </span>
-                            <span class="truncate flex-1">{{ item.label }}</span>
+                            <span v-if="isExpanded" class="truncate flex-1">{{ item.label }}</span>
                         </button>
                     </div>
                 </div>
@@ -434,8 +431,11 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
 
             <!-- Sidebar Footer -->
             <div class="p-3 border-t border-primary/5 bg-slate-50/40 flex items-center justify-between text-xs font-bold text-gray-400 shrink-0">
-                <span class="truncate">Cảng Nguyên Ngọc</span>
-                <span class="text-primary font-black">v2.2</span>
+                <template v-if="isExpanded">
+                    <span class="truncate">Cảng Nguyên Ngọc</span>
+                    <span class="text-primary font-black">v2.2</span>
+                </template>
+                <span v-else class="material-symbols-outlined text-base text-primary/60 mx-auto" title="Cảng Nguyên Ngọc v2.2">anchor</span>
             </div>
         </aside>
     </div>
