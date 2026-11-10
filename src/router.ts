@@ -101,7 +101,9 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next) => {
-    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    if (to.path === '/login' && authStore.isAuthenticated) {
+        next('/');
+    } else if (to.meta.requiresAuth && !authStore.isAuthenticated) {
         next('/login');
     } else if (to.path === '/admin' && authStore.isFirstLogin) {
         next('/change-password');

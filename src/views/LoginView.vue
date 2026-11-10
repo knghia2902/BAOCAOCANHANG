@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { login, authStore } from '../stores/auth';
+import { login } from '../stores/auth';
 
 const router = useRouter();
 const username = ref('');
@@ -16,11 +16,8 @@ const handleLogin = async () => {
     try {
         const res = await login(username.value, password.value);
         if (res.success) {
-            if (authStore.role === 'admin') {
-                router.push('/admin');
-            } else {
-                router.push('/');
-            }
+            // Mặc định luôn chuyển vào tab Home khi đăng nhập thành công
+            router.push('/');
         } else {
             error.value = res.error || 'Tên đăng nhập hoặc mật khẩu không đúng!';
         }

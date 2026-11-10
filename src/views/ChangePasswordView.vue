@@ -27,11 +27,8 @@ const handleChangePassword = async () => {
         success.value = true;
         await LogService.logAction('Đổi mật khẩu', 'Đổi mật khẩu lần đăng nhập đầu tiên');
         setTimeout(() => {
-            if (authStore.role === 'admin') {
-                router.push('/admin');
-            } else {
-                router.push('/');
-            }
+            // Mặc định chuyển về tab Home
+            router.push('/');
         }, 1500);
     } catch (e) {
         error.value = 'Lỗi khi đổi mật khẩu.';
