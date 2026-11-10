@@ -22,7 +22,7 @@ const route = useRoute();
 const router = useRouter();
 
 const activeKey = ref<string>('scale-data');
-const isSidebarCollapsed = ref(false);
+const isSidebarPinned = ref(false);
 
 const nodeMetaMap: Record<string, { title: string; subtitle: string; icon: string; group: string }> = {
     'vessel-source': {
@@ -201,10 +201,10 @@ watch(
 
         <!-- Main Workspace Body (bg-cute-gradient + Left Tree Sidebar + Right Dynamic View) -->
         <div class="flex-1 bg-cute-gradient flex flex-col md:flex-row overflow-hidden relative p-3.5 md:p-4 gap-3.5 md:gap-4 min-h-0">
-            <!-- Left Tree Sidebar Navigation -->
+            <!-- Left Tree Sidebar Navigation (Mặc định ẩn vào trong, rê chuột hiện ra) -->
             <WorkspaceTreeSidebar
                 :active-key="activeKey"
-                v-model:is-collapsed="isSidebarCollapsed"
+                v-model:is-pinned="isSidebarPinned"
                 @select-node="handleSelectNode"
             />
 
