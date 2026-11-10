@@ -1,5 +1,6 @@
 import { reactive, watch } from 'vue';
 import { authService } from '../services/storage/AuthService';
+import { DemoSandboxService } from '../services/storage/DemoSandboxService';
 
 interface AuthState {
     isAuthenticated: boolean;
@@ -8,6 +9,7 @@ interface AuthState {
     displayName: string | null;
     avatar: string | null;
     isFirstLogin: boolean;
+    isDemoMode?: boolean;
     rolePermissions: Record<string, { 
         tools: string[]; 
         canCreate: boolean; 
@@ -35,6 +37,7 @@ const initialState: AuthState = {
     displayName: saved?.displayName ?? (saved?.isAuthenticated ? 'Admin' : null),
     avatar: saved?.avatar ?? null,
     isFirstLogin: saved?.isFirstLogin ?? false,
+    isDemoMode: saved?.isDemoMode ?? false,
     rolePermissions: saved?.rolePermissions ?? {
         admin: { 
             tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], 
@@ -96,9 +99,41 @@ watch(authStore, (state) => {
 
 import { ContentService } from '../services/ContentService';
 
+/** Đăng nhập chế độ Thử Nghiệm (Demo Sandbox Mode) */
+export const loginAsDemo = (): { success: boolean } => {
+    DemoSandboxService.reset();
+    authStore.isAuthenticated = true;
+    authStore.user = 'demo';
+    authStore.role = 'admin'; // Cấp toàn quyền admin để người test trải nghiệm trọn vẹn
+    authStore.displayName = 'Khách Trải Nghiệm (Demo)';
+    authStore.avatar = '';
+    authStore.isFirstLogin = false;
+    authStore.isDemoMode = true;
+    authStore.rolePermissions = {
+        admin: {
+            tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'],
+            canCreate: true,
+            canUpdate: true,
+            canDelete: true,
+            detailPermissions: {
+                weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
+                allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
+                vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+                minutes: ['min_create', 'min_export']
+            }
+        }
+    };
+    return { success: true };
+};
+
 export const login = async (username: string, pass: string): Promise<{ success: boolean; error?: string }> => {
+    if (username.trim().toLowerCase() === 'demo') {
+        return loginAsDemo();
+    }
+
     const res = await authService.login(username, pass);
     if (res.success && res.user) {
+        authStore.isDemoMode = false;
         authStore.isAuthenticated = true;
         authStore.user = res.user.username;
         authStore.role = res.user.role;
@@ -121,7 +156,10 @@ export const login = async (username: string, pass: string): Promise<{ success: 
 };
 
 export const logout = async () => {
-    if (authStore.user) {
+    if (authStore.isDemoMode) {
+        DemoSandboxService.reset();
+    }
+    if (authStore.user && !authStore.isDemoMode) {
         LogService.logAction('Đăng xuất', 'Đăng xuất khỏi hệ thống');
     }
     await authService.logout();
@@ -131,6 +169,7 @@ export const logout = async () => {
     authStore.displayName = null;
     authStore.avatar = null;
     authStore.isFirstLogin = false;
+    authStore.isDemoMode = false;
     localStorage.removeItem(STORAGE_KEY);
 };
 
@@ -146,6 +185,7 @@ if (typeof window !== 'undefined') {
                     authStore.role = null;
                     authStore.displayName = null;
                     authStore.avatar = null;
+                    authStore.isDemoMode = false;
                 }
             } catch (_) {}
         }
@@ -213,6 +253,3 @@ export const hasDetailPermission = (toolId: string, permissionId: string, action
     
     return toolPerms.some(p => p.startsWith(`${permissionId}:`));
 };
-
-
-

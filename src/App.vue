@@ -5,11 +5,19 @@ import { ContentService } from './services/ContentService';
 import { authStore, logout, updateStoreProfile } from './stores/auth';
 import { authService } from './services/storage/AuthService';
 import { StorageService } from './services/storage/StorageService';
+import { DemoSandboxService } from './services/storage/DemoSandboxService';
 import ToastNotification from './components/ui/ToastNotification.vue';
 
 const router = useRouter();
 const route = useRoute();
 const showDropdown = ref(false);
+
+const resetDemoData = () => {
+    if (confirm('Bạn có chắc chắn muốn xóa dữ liệu đã test thử và khôi phục lại dữ liệu gốc không?')) {
+        DemoSandboxService.reset();
+        window.location.reload();
+    }
+};
 
 const toggleDropdown = (e: Event) => {
     e.stopPropagation();
@@ -100,6 +108,36 @@ onUnmounted(() => {
 
 <template>
   <div class="layout-container flex h-full grow flex-col min-h-screen font-display">
+    <!-- Demo Mode Top Alert Banner -->
+    <div
+      v-if="authStore.isDemoMode"
+      class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white text-xs font-bold py-2 px-4 text-center flex flex-wrap items-center justify-center gap-3 sticky top-0 z-[60] shadow-md no-print"
+    >
+      <div class="flex items-center gap-1.5 font-display font-black tracking-wide uppercase">
+        <span class="material-symbols-outlined text-base animate-pulse">science</span>
+        <span>Chế Độ Thử Nghiệm (Sandbox Mode)</span>
+      </div>
+      <span class="hidden md:inline text-white/95 font-medium">• Bạn có toàn quyền test full tính năng (Nạp file, Lưu sổ, Sửa/Xóa). Dữ liệu chỉ lưu tạm trên máy này, bảo vệ an toàn 100% cho dữ liệu gốc.</span>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          @click="resetDemoData"
+          class="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1 cursor-pointer"
+          title="Xóa dữ liệu đã test và khôi phục lại dữ liệu gốc ban đầu"
+        >
+          <span class="material-symbols-outlined text-xs">restart_alt</span>
+          Đặt lại dữ liệu gốc
+        </button>
+        <button
+          type="button"
+          @click="handleHeaderLogout"
+          class="bg-white text-orange-600 hover:bg-white/90 px-2.5 py-1 rounded-lg text-xs font-black transition-all shadow-sm cursor-pointer"
+        >
+          Thoát Demo
+        </button>
+      </div>
+    </div>
+
     <!-- Top global floating header (only if logged in) -->
     <header v-if="authStore.isAuthenticated" class="mx-auto mt-6 w-[95%] max-w-[1200px] flex items-center justify-between whitespace-nowrap bg-white px-8 py-4 rounded-full shadow-sm sticky top-6 z-50 border border-soft-pink no-print">
       <div class="flex items-center gap-3">

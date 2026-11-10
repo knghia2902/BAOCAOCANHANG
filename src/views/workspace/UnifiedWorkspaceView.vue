@@ -185,6 +185,14 @@ watch(
             <!-- Right: User Profile Pill -->
             <div class="flex items-center gap-3 shrink-0">
                 <div
+                    v-if="authStore.isDemoMode"
+                    class="px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 shrink-0 shadow-xs"
+                    title="Đang ở chế độ Thử Nghiệm Sandbox - Không ảnh hưởng dữ liệu thật"
+                >
+                    <span class="material-symbols-outlined text-sm text-amber-600">science</span>
+                    <span class="hidden sm:inline">Sandbox Test</span>
+                </div>
+                <div
                     v-if="authStore.isAuthenticated"
                     class="flex items-center gap-2.5 bg-[#f1f5f9]/50 border border-primary/10 rounded-full pl-3 pr-1 py-1"
                 >
