@@ -18,9 +18,29 @@ interface CategoryItem {
     id: string;
     name: string;
     code?: string;
+    area?: string;
     note?: string;
     capacityTons?: number;
 }
+
+const DEFAULT_WAREHOUSE_CATEGORIES: CategoryItem[] = [
+    { id: 'wh-1', name: 'KHO 1', code: 'KH-01, KHO 1', area: 'Khu vực Cảng', note: 'Kho lưu trữ Gỗ Bình Định (GBD)', capacityTons: 25000 },
+    { id: 'wh-2', name: 'KHO 2', code: 'KH-02, KHO 2', area: 'Khu vực Cảng', note: 'Kho lưu trữ Gỗ Bình Định (GBD)', capacityTons: 25000 },
+    { id: 'wh-3', name: 'KHO 3', code: 'KH-03, KHO 3', area: 'Khu vực Cảng', note: 'Kho lưu trữ Gỗ Bình Định (GBD)', capacityTons: 20000 },
+    { id: 'wh-4', name: 'KHO 4', code: 'KH-04, KHO 4', area: 'Khu vực Cảng', note: 'Kho chuyên dụng Eastwood', capacityTons: 35000 },
+    { id: 'sat-1', name: 'GREEN WOOD', code: 'GREEN WOOD', area: 'Phường Đồng Xoài', note: 'Kho vệ tinh GREEN WOOD' },
+    { id: 'sat-2', name: 'Kho Bình Định', code: 'BINH DINH', area: 'Xã Trừ Văn Thố', note: 'Kho vệ tinh Bình Định' },
+    { id: 'sat-3', name: 'Kho Hùng', code: 'THONG HUNG PHAT, QUYNH ANH TH', area: 'Phường Tân Hiệp', note: 'Kho vệ tinh Thông Hùng Phát' },
+    { id: 'sat-4', name: 'Kho Bảo', code: 'NANG LUONG HUNG PHAT, HUNG PHAT, GIA BAO, QUYNH ANH', area: 'Phường Tân Hiệp', note: 'Kho vệ tinh Hùng Phát / Bảo' },
+    { id: 'sat-5', name: 'Kho Thanh', code: 'HA NAM', area: 'Bàu Bàng', note: 'Kho vệ tinh Hà Nam' },
+    { id: 'sat-6', name: 'Kho Hào', code: 'NGUYEN HUY, HOANG PHUONG GREEN, KHO HAO', area: 'Phường Tân Hiệp', note: 'Kho vệ tinh Nguyễn Huy / Hoàng Phương' },
+    { id: 'sat-7', name: 'Kho Mạnh', code: 'TUAN DUY', area: 'Nam Tân Uyên', note: 'Kho vệ tinh Tuấn Duy' },
+    { id: 'sat-8', name: 'Kho Bích Tân Uyên', code: 'KHAI HOAN PHAT', area: 'Phường Tân Hiệp', note: 'Kho vệ tinh Khải Hoàn Phát' },
+    { id: 'sat-9', name: 'Kho Cúc', code: 'THUY MOC THINH, KHO CUC', area: 'Xã Phước Hòa', note: 'Kho vệ tinh Thủy Mộc Thịnh / Cúc' },
+    { id: 'sat-10', name: 'Kho Tài', code: 'HOA BINH', area: 'Phường Bình Phước', note: 'Kho vệ tinh Hòa Bình' },
+    { id: 'sat-11', name: 'Kho Lan Bình Chuẩn', code: 'NANG LUONG TUONG LAI', area: 'Phường Tân Khánh', note: 'Kho vệ tinh Năng Lượng Tương Lai' },
+    { id: 'sat-12', name: 'Kho Khánh Bình 53', code: 'KB53', area: 'Phường Tân Hiệp', note: 'Kho vệ tinh KB53' }
+];
 
 const items = ref<CategoryItem[]>([]);
 const loading = ref(false);
@@ -28,6 +48,7 @@ const loading = ref(false);
 const form = ref({
     name: '',
     code: '',
+    area: '',
     note: '',
     capacityTons: 0
 });
@@ -50,7 +71,7 @@ const categoryDescription = computed(() => {
         case 'category-customers':
             return 'Quản lý danh mục chủ hàng và đối tác lưu thông qua cảng (Eastwood, Gỗ Bình Định, De Heus...).';
         case 'category-warehouses':
-            return 'Quản lý cấu hình thông số các kho bãi tại cảng (Kho 1, Kho 2, Kho 3, Kho 4) và sức chứa định mức.';
+            return 'Quản lý danh sách kho cảng (Kho 1-4) và các kho vệ tinh (GREEN WOOD, Kho Bảo, Kho Hùng...). Dữ liệu này dùng để chuẩn hóa Tên kho & Khu vực trong Báo cáo tồn kho.';
         default:
             return 'Quản lý danh mục dữ liệu nền tảng dùng chung cho toàn bộ hệ thống.';
     }
@@ -66,6 +87,42 @@ const categoryIcon = computed(() => {
             return 'dataset';
     }
 });
+
+function stripAccents(str: string): string {
+    return (str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+}
+
+const syncWarehousesToPlaceMap = async () => {
+    if (props.categoryKey !== 'category-warehouses') return;
+    try {
+        const placeMap: Record<string, { tenKho: string; khuVuc: string }> = {};
+        for (const item of items.value) {
+            const tenKho = item.name.trim();
+            const khuVuc = (item.area || '').trim();
+            const normName = stripAccents(tenKho).toUpperCase().replace(/\s+/g, ' ').trim();
+            if (normName) {
+                placeMap[normName] = { tenKho, khuVuc };
+            }
+            if (item.code) {
+                const keywords = item.code.split(',').map(s => s.trim()).filter(Boolean);
+                for (const kw of keywords) {
+                    const normKw = stripAccents(kw).toUpperCase().replace(/\s+/g, ' ').trim();
+                    if (normKw) {
+                        placeMap[normKw] = { tenKho, khuVuc };
+                    }
+                }
+            }
+        }
+        await dbContext.set('weighbridge_custom_place_map', placeMap);
+        syncChannel.postMessage({ type: 'warehouses_updated' });
+    } catch (e) {
+        console.warn('Lỗi đồng bộ kho hàng sang placeMap:', e);
+    }
+};
 
 const loadCategoryData = async () => {
     try {
@@ -115,17 +172,25 @@ const loadCategoryData = async () => {
 
             items.value = Array.from(map.values());
             await dbContext.set(key, items.value);
+        } else if (props.categoryKey === 'category-warehouses') {
+            if (saved && Array.isArray(saved) && saved.length > 0) {
+                // If only basic 4 warehouses were saved previously, enrich with satellites
+                if (saved.length <= 4 && !saved.some(i => i.id?.startsWith('sat-'))) {
+                    const existingNames = new Set(saved.map(s => stripAccents(s.name).toUpperCase()));
+                    const toAdd = DEFAULT_WAREHOUSE_CATEGORIES.filter(d => !existingNames.has(stripAccents(d.name).toUpperCase()));
+                    items.value = [...saved, ...toAdd];
+                } else {
+                    items.value = saved;
+                }
+            } else {
+                items.value = JSON.parse(JSON.stringify(DEFAULT_WAREHOUSE_CATEGORIES));
+            }
+            await dbContext.set(key, items.value);
+            await syncWarehousesToPlaceMap();
         } else if (saved && Array.isArray(saved) && saved.length > 0) {
             items.value = saved;
         } else {
-            if (props.categoryKey === 'category-warehouses') {
-                items.value = [
-                    { id: '1', name: 'KHO 1', code: 'KH-01', note: 'Kho lưu trữ Gỗ Bình Định (GBD)', capacityTons: 25000 },
-                    { id: '2', name: 'KHO 2', code: 'KH-02', note: 'Kho lưu trữ Gỗ Bình Định (GBD)', capacityTons: 25000 },
-                    { id: '3', name: 'KHO 3', code: 'KH-03', note: 'Kho lưu trữ Gỗ Bình Định (GBD)', capacityTons: 20000 },
-                    { id: '4', name: 'KHO 4', code: 'KH-04', note: 'Kho chuyên dụng Eastwood', capacityTons: 35000 }
-                ];
-            }
+            items.value = [];
             await dbContext.set(key, items.value);
         }
     } catch (e) {
@@ -153,6 +218,7 @@ const filteredItems = computed(() => {
         return (
             item.name.toLowerCase().includes(q) ||
             (item.code && item.code.toLowerCase().includes(q)) ||
+            (item.area && item.area.toLowerCase().includes(q)) ||
             (item.note && item.note.toLowerCase().includes(q))
         );
     });
@@ -163,6 +229,7 @@ const resetForm = () => {
     form.value = {
         name: '',
         code: '',
+        area: '',
         note: '',
         capacityTons: 0
     };
@@ -178,6 +245,7 @@ const handleSaveItem = async () => {
         id: editingId.value || String(Date.now()),
         name: form.value.name.trim().toUpperCase(),
         code: form.value.code.trim().toUpperCase(),
+        area: props.categoryKey === 'category-warehouses' ? form.value.area.trim() : undefined,
         note: form.value.note.trim(),
         capacityTons: props.categoryKey === 'category-warehouses' ? Number(form.value.capacityTons) || 0 : undefined
     };
@@ -196,6 +264,7 @@ const handleSaveItem = async () => {
     const key = getStorageKey(props.categoryKey);
     await dbContext.set(key, items.value);
     await syncCustomersToMasterData();
+    await syncWarehousesToPlaceMap();
     resetForm();
 };
 
@@ -204,6 +273,7 @@ const handleEditItem = (item: CategoryItem) => {
     form.value = {
         name: item.name,
         code: item.code || '',
+        area: item.area || '',
         note: item.note || '',
         capacityTons: item.capacityTons || 0
     };
@@ -216,8 +286,19 @@ const handleDeleteItem = async (item: CategoryItem) => {
     const key = getStorageKey(props.categoryKey);
     await dbContext.set(key, items.value);
     await syncCustomersToMasterData();
+    await syncWarehousesToPlaceMap();
     if (editingId.value === item.id) resetForm();
     addToast(`Đã xóa ${item.name}`, 'info');
+};
+
+const handleResetStandardWarehouses = async () => {
+    if (!confirm('Khôi phục danh sách kho về 16 kho mẫu chuẩn ban đầu (4 kho cảng + 12 kho vệ tinh)?')) return;
+    items.value = JSON.parse(JSON.stringify(DEFAULT_WAREHOUSE_CATEGORIES));
+    const key = getStorageKey(props.categoryKey);
+    await dbContext.set(key, items.value);
+    await syncWarehousesToPlaceMap();
+    resetForm();
+    addToast('Đã khôi phục 16 kho chuẩn thành công!', 'success');
 };
 
 syncChannel.onmessage = async (event) => {
@@ -262,6 +343,16 @@ onMounted(() => {
             </div>
 
             <div class="flex items-center gap-2">
+                <button
+                    v-if="categoryKey === 'category-warehouses'"
+                    type="button"
+                    @click="handleResetStandardWarehouses"
+                    class="h-7 px-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-bold rounded-[8px] transition-all flex items-center gap-1 cursor-pointer"
+                    title="Khôi phục danh sách 16 kho hàng và mã nhận diện chuẩn (4 kho cảng + 12 kho vệ tinh)"
+                >
+                    <span class="material-symbols-outlined text-sm">restart_alt</span>
+                    Nạp 16 kho chuẩn
+                </button>
                 <span class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center">
                     Đồng bộ tự động
                 </span>
@@ -287,20 +378,35 @@ onMounted(() => {
                         <input
                             v-model="form.name"
                             type="text"
-                            :placeholder="categoryKey === 'category-warehouses' ? 'Ví dụ: KHO 1' : 'Ví dụ: DE HEUS'"
+                            :placeholder="categoryKey === 'category-warehouses' ? 'Ví dụ: KHO 1 hoặc GREEN WOOD' : 'Ví dụ: DE HEUS'"
                             required
                             class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all"
                         />
                     </div>
 
+                    <div v-if="categoryKey === 'category-warehouses'" class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Khu vực *</label>
+                        <input
+                            v-model="form.area"
+                            type="text"
+                            placeholder="Ví dụ: Phường Tân Hiệp, Phường Đồng Xoài, Cảng..."
+                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                        />
+                    </div>
+
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Mã quy chuẩn</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            {{ categoryKey === 'category-warehouses' ? 'Mã hiệu / Nơi xuất nhận diện' : 'Mã quy chuẩn' }}
+                        </label>
                         <input
                             v-model="form.code"
                             type="text"
-                            :placeholder="categoryKey === 'category-warehouses' ? 'Ví dụ: KH-01' : 'Ví dụ: DH'"
+                            :placeholder="categoryKey === 'category-warehouses' ? 'Ví dụ: GREEN WOOD hoặc HUNG PHAT, NANG LUONG HUNG PHAT' : 'Ví dụ: DH'"
                             class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
                         />
+                        <p v-if="categoryKey === 'category-warehouses'" class="text-[11px] text-gray-400">
+                            Có thể nhập nhiều mã / nơi xuất trên phiếu cân, phân tách bằng dấu phẩy.
+                        </p>
                     </div>
 
                     <div v-if="categoryKey === 'category-warehouses'" class="flex flex-col gap-1.5">
@@ -365,8 +471,9 @@ onMounted(() => {
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-xs font-black text-gray-500 uppercase tracking-wider select-none">
                                 <tr>
                                     <th class="px-4 py-3 text-center w-14">STT</th>
-                                    <th class="px-4 py-3">Tên danh mục</th>
-                                    <th class="px-4 py-3">Mã hiệu</th>
+                                    <th class="px-4 py-3">{{ categoryKey === 'category-warehouses' ? 'Tên kho hàng' : 'Tên danh mục' }}</th>
+                                    <th v-if="categoryKey === 'category-warehouses'" class="px-4 py-3 w-40">Khu vực</th>
+                                    <th class="px-4 py-3">{{ categoryKey === 'category-warehouses' ? 'Mã hiệu / Nơi xuất' : 'Mã hiệu' }}</th>
                                     <th v-if="categoryKey === 'category-warehouses'" class="px-4 py-3 text-right">
                                         Sức chứa (tấn)
                                     </th>
@@ -388,6 +495,12 @@ onMounted(() => {
                                     </td>
                                     <td class="px-4 py-3 text-primary font-display font-black">
                                         {{ item.name }}
+                                    </td>
+                                    <td v-if="categoryKey === 'category-warehouses'" class="px-4 py-3 text-slate-600 font-semibold">
+                                        <span v-if="item.area" class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold">
+                                            {{ item.area }}
+                                        </span>
+                                        <span v-else class="text-gray-400 italic">--</span>
                                     </td>
                                     <td class="px-4 py-3 font-mono font-bold">
                                         <span
@@ -429,7 +542,7 @@ onMounted(() => {
                                     </td>
                                 </tr>
                                 <tr v-if="filteredItems.length === 0">
-                                    <td :colspan="categoryKey === 'category-warehouses' ? 6 : 5" class="px-4 py-8 text-center text-gray-400 italic">
+                                    <td :colspan="categoryKey === 'category-warehouses' ? 7 : 5" class="px-4 py-8 text-center text-gray-400 italic">
                                         Không tìm thấy dữ liệu nào phù hợp
                                     </td>
                                 </tr>

@@ -85,11 +85,13 @@ onUnmounted(() => {
 });
 
 import { VehicleService } from '@/services/excel/VehicleService';
+import { WarehouseInventoryService } from '@/services/excel/WarehouseInventoryService';
 
 interface Vehicle {
     id?: number;
     plateNumber: string;
     moocNumber: string;
+    carrierName?: string;
     notes?: string;
 }
 
@@ -104,19 +106,53 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // Form state
 const plateInput = ref('');
 const moocInput = ref('');
+const carrierInput = ref('');
 const editingIndex = ref<number | null>(null);
+
+const existingCarriers = computed(() => {
+    const set = new Set<string>();
+    vehicles.value.forEach(v => {
+        const c = (v.carrierName || '').trim().toUpperCase();
+        if (c) set.add(c);
+    });
+    return Array.from(set).sort();
+});
 
 const syncStatus = ref<'synced' | 'saving' | 'error'>('synced');
 const loadingCloud = ref(false);
+
+async function syncWithWarehouseVehicles() {
+    try {
+        const whMap = await WarehouseInventoryService.getVehicles();
+        let changed = false;
+        vehicles.value.forEach(v => {
+            const key = normalizePlate(v.plateNumber);
+            if (!v.carrierName && whMap[key]?.carrierName) {
+                v.carrierName = whMap[key].carrierName;
+                changed = true;
+            }
+        });
+        if (changed) {
+            await dbContext.set('allocator_vehicles', vehicles.value);
+        }
+    } catch (_) {}
+}
 
 async function loadVehiclesFromSupabase() {
     loadingCloud.value = true;
     try {
         const list = await VehicleService.getVehicles();
         if (list && list.length > 0) {
-            vehicles.value = list;
-            await dbContext.set('allocator_vehicles', list);
+            vehicles.value = list.map(v => ({
+                id: v.id,
+                plateNumber: v.plateNumber,
+                moocNumber: v.moocNumber,
+                carrierName: v.carrierName || '',
+                notes: v.notes
+            }));
+            await dbContext.set('allocator_vehicles', vehicles.value);
         }
+        await syncWithWarehouseVehicles();
         syncStatus.value = 'synced';
     } catch (e) {
         console.warn('Lỗi khi tải danh sách xe từ Supabase:', e);
@@ -176,6 +212,19 @@ const saveVehicles = async () => {
     try {
         await dbContext.set('allocator_vehicles', vehicles.value);
         await saveVehiclesToSupabase();
+
+        // Đồng bộ trực tiếp danh sách xe & nhà xe sang Báo cáo tồn kho
+        const whVehicles = vehicles.value
+            .filter(v => v.plateNumber && v.carrierName)
+            .map(v => ({
+                vehiclePlate: normalizePlate(v.plateNumber),
+                displayPlate: v.plateNumber,
+                carrierName: (v.carrierName || '').trim()
+            }));
+        if (whVehicles.length > 0) {
+            await WarehouseInventoryService.saveVehiclesBulk(whVehicles);
+        }
+
         syncChannel.postMessage({ type: 'vehicles' });
     } catch (e) {
         console.error('Lỗi khi lưu danh sách xe:', e);
@@ -189,7 +238,8 @@ const filteredVehicles = computed(() => {
     if (!q) return vehicles.value;
     return vehicles.value.filter(v => 
         v.plateNumber.toUpperCase().includes(q) || 
-        v.moocNumber.toUpperCase().includes(q)
+        v.moocNumber.toUpperCase().includes(q) ||
+        (v.carrierName || '').toUpperCase().includes(q)
     );
 });
 
@@ -202,6 +252,7 @@ const handleSubmit = async () => {
     }
     const plate = plateInput.value.trim().toUpperCase();
     const mooc = moocInput.value.trim().toUpperCase();
+    const carrier = carrierInput.value.trim().toUpperCase();
 
     if (!plate) {
         addToast('Vui lòng nhập biển số xe!', 'info');
@@ -215,7 +266,7 @@ const handleSubmit = async () => {
             addToast('Biển số xe này đã tồn tại trong danh sách!', 'info');
             return;
         }
-        vehicles.value.push({ plateNumber: plate, moocNumber: mooc });
+        vehicles.value.push({ plateNumber: plate, moocNumber: mooc, carrierName: carrier });
         addToast('Đã thêm xe mới thành công!', 'success');
         await LogService.logAction('Thêm xe', 'Thêm xe mới: ' + plate);
     } else {
@@ -228,7 +279,7 @@ const handleSubmit = async () => {
         }
         const currentVehicle = vehicles.value[index];
         if (currentVehicle) {
-            vehicles.value[index] = { plateNumber: plate, moocNumber: mooc };
+            vehicles.value[index] = { plateNumber: plate, moocNumber: mooc, carrierName: carrier };
             addToast('Đã cập nhật thông tin xe!', 'success');
             await LogService.logAction('Sửa xe', 'Cập nhật xe: ' + plate);
         }
@@ -238,6 +289,7 @@ const handleSubmit = async () => {
     // Reset form & save
     plateInput.value = '';
     moocInput.value = '';
+    carrierInput.value = '';
     await saveVehicles();
 };
 
@@ -247,6 +299,7 @@ const startEdit = (index: number) => {
     if (v) {
         plateInput.value = v.plateNumber;
         moocInput.value = v.moocNumber;
+        carrierInput.value = v.carrierName || '';
         editingIndex.value = index;
     }
 };
@@ -255,6 +308,7 @@ const startEdit = (index: number) => {
 const cancelEdit = () => {
     plateInput.value = '';
     moocInput.value = '';
+    carrierInput.value = '';
     editingIndex.value = null;
 };
 
@@ -305,6 +359,7 @@ const clearAll = async () => {
         editingIndex.value = null;
         plateInput.value = '';
         moocInput.value = '';
+        carrierInput.value = '';
         await VehicleService.clearAllVehicles();
         await saveVehicles();
         addToast('Đã xóa sạch danh sách xe!', 'info');
@@ -345,21 +400,24 @@ const handleImportExcel = async (e: Event) => {
             if (rowNumber === 1) return; // Bỏ qua tiêu đề
             const cell1 = row.getCell(1).value;
             const cell2 = row.getCell(2).value;
+            const cell3 = row.getCell(3).value;
 
             if (cell1) {
                 const plate = String(cell1).trim().toUpperCase();
                 const mooc = cell2 ? String(cell2).trim().toUpperCase() : '';
+                const carrier = cell3 ? String(cell3).trim().toUpperCase() : '';
 
                 if (plate) {
-                    const existingIdx = vehicles.value.findIndex(v => v.plateNumber === plate);
+                    const existingIdx = vehicles.value.findIndex(v => normalizePlate(v.plateNumber) === normalizePlate(plate));
                     if (existingIdx !== -1) {
                         const existingVehicle = vehicles.value[existingIdx];
                         if (existingVehicle) {
-                            existingVehicle.moocNumber = mooc;
+                            if (mooc) existingVehicle.moocNumber = mooc;
+                            if (carrier) existingVehicle.carrierName = carrier;
                             updatedCount++;
                         }
                     } else {
-                        vehicles.value.push({ plateNumber: plate, moocNumber: mooc });
+                        vehicles.value.push({ plateNumber: plate, moocNumber: mooc, carrierName: carrier });
                         importedCount++;
                     }
                 }
@@ -389,8 +447,9 @@ const handleExportExcel = async () => {
         const worksheet = workbook.addWorksheet('Danh sách xe');
 
         worksheet.columns = [
-            { header: 'Biển số xe', key: 'plateNumber', width: 25 },
-            { header: 'Số mooc', key: 'moocNumber', width: 25 }
+            { header: 'Biển số xe', key: 'plateNumber', width: 20 },
+            { header: 'Số mooc', key: 'moocNumber', width: 20 },
+            { header: 'Nhà xe', key: 'carrierName', width: 28 }
         ];
 
         // Format header
@@ -405,7 +464,8 @@ const handleExportExcel = async () => {
         vehicles.value.forEach(v => {
             worksheet.addRow({
                 plateNumber: v.plateNumber,
-                moocNumber: v.moocNumber
+                moocNumber: v.moocNumber,
+                carrierName: v.carrierName || ''
             });
         });
 
@@ -437,7 +497,7 @@ const handleExportExcel = async () => {
                     Danh sách xe
                 </h3>
                 <p class="text-xs text-gray-500 font-semibold mt-1">
-                    Quản lý danh sách biển số xe và số mooc tương ứng. Tổng cộng: 
+                    Quản lý danh sách biển số xe, số mooc và nhà xe vận tải tương ứng. Tổng cộng: 
                     <span class="text-teal-600 font-bold font-mono">{{ vehicles.length }}</span> xe.
                 </p>
             </div>
@@ -511,6 +571,20 @@ const handleExportExcel = async () => {
                         />
                     </div>
                     
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Nhà xe / Đơn vị vận tải</label>
+                        <input 
+                            type="text" 
+                            v-model="carrierInput"
+                            list="carrier-datalist"
+                            placeholder="Ví dụ: NGUYÊN NGỌC, TẤN PHÁT..."
+                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all uppercase font-bold"
+                        />
+                        <datalist id="carrier-datalist">
+                            <option v-for="c in existingCarriers" :key="c" :value="c" />
+                        </datalist>
+                    </div>
+                    
                     <div class="flex items-center gap-2 mt-2">
                         <button 
                             type="submit"
@@ -539,7 +613,7 @@ const handleExportExcel = async () => {
                     <input 
                         type="text" 
                         v-model="searchQuery" 
-                        placeholder="Tìm theo biển số xe hoặc số mooc..." 
+                        placeholder="Tìm theo biển số xe, số mooc hoặc nhà xe..." 
                         class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-semibold focus:outline-none focus:border-primary transition-all"
                     />
                 </div>
@@ -553,6 +627,7 @@ const handleExportExcel = async () => {
                                     <th class="px-4 py-3 text-center w-14">STT</th>
                                     <th class="px-4 py-3">Biển số xe</th>
                                     <th class="px-4 py-3">Số mooc</th>
+                                    <th class="px-4 py-3">Nhà xe</th>
                                     <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
@@ -567,6 +642,12 @@ const handleExportExcel = async () => {
                                     <td class="px-4 py-3 font-mono select-all">
                                         <span v-if="v.moocNumber" class="text-primary font-bold">{{ v.moocNumber }}</span>
                                         <span v-else class="text-gray-400 italic font-normal text-xs">Chưa cấu hình</span>
+                                    </td>
+                                    <td class="px-4 py-3 font-semibold select-all">
+                                        <span v-if="v.carrierName" class="px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-200/80 font-bold text-xs">
+                                            {{ v.carrierName }}
+                                        </span>
+                                        <span v-else class="text-gray-400 italic font-normal text-xs">Chưa gán</span>
                                     </td>
                                     <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">

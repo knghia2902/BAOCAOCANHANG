@@ -1,6 +1,7 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
 import { WeighbridgeService, type Vessel, normalizeMainPlate, isSameScaleTicket } from '@/services/weighbridge/WeighbridgeService';
+import { VehicleService } from '@/services/excel/VehicleService';
 import type {
     WarehouseId,
     ExtendedWarehouseId,
@@ -438,6 +439,8 @@ const DEFAULT_PLACE_LOOKUP: Record<string, { tenKho: string; khuVuc: string }> =
     'KHO HAO': { tenKho: 'Kho Hào', khuVuc: 'Phường Tân Hiệp' }
 };
 
+let cachedCustomPlaceMap: Record<string, { tenKho: string; khuVuc: string }> | null = null;
+
 export function lookupPlaceInfo(
     placeRaw: string | undefined | null,
     customMap?: Record<string, { tenKho: string; khuVuc: string }>
@@ -446,8 +449,62 @@ export function lookupPlaceInfo(
     const key = stripAccents(String(placeRaw)).toUpperCase().replace(/\s+/g, ' ').trim();
     if (!key) return { tenKho: '-', khuVuc: '-' };
     if (customMap && customMap[key]) return customMap[key];
+    if (cachedCustomPlaceMap && cachedCustomPlaceMap[key]) return cachedCustomPlaceMap[key];
     if (DEFAULT_PLACE_LOOKUP[key]) return DEFAULT_PLACE_LOOKUP[key];
     return { tenKho: '-', khuVuc: '-' };
+}
+
+/**
+ * Kiểm tra xem phiếu cân có hợp lệ theo Danh mục Nhà xe và Danh mục Kho hàng hay không.
+ * Nếu tên kho hoặc nhà xe không có trong danh mục (hoặc bị trống / không hợp lệ),
+ * hệ thống sẽ không ghi nhận vào báo cáo tồn kho.
+ */
+export function isTicketValidForInventoryReport(
+    ticket: WarehouseInventoryTicket,
+    validCarriers?: Set<string>,
+    validWarehouses?: Set<string>
+): boolean {
+    if (!ticket) return false;
+
+    // 1. Kiểm tra Nhà xe (bắt buộc phải có và thuộc danh mục xe)
+    const rawCarrier = ticket.carrierName ? stripAccents(ticket.carrierName).toUpperCase().trim() : '';
+    if (!rawCarrier || rawCarrier === '-' || rawCarrier === '0' || /^\d+(\.\d+)?$/.test(rawCarrier)) {
+        return false;
+    }
+    if (validCarriers && validCarriers.size > 0 && !validCarriers.has(rawCarrier)) {
+        return false;
+    }
+
+    // 2. Kiểm tra Tên kho & Khu vực theo luồng dữ liệu (flowType)
+    if (ticket.flowType === 'IMPORT') {
+        // Kho nhận tại cảng (KHO 1..4) phải hợp lệ
+        const whId = ticket.warehouseId ? stripAccents(ticket.warehouseId).toUpperCase().trim() : '';
+        if (!whId || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(whId))) {
+            return false;
+        }
+        // Tên kho xuất / kho vệ tinh phải hợp lệ
+        const originWh = ticket.originWarehouseName ? stripAccents(ticket.originWarehouseName).toUpperCase().trim() : '';
+        if (!originWh || originWh === '-' || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(originWh))) {
+            return false;
+        }
+        return true;
+    } else if (ticket.flowType === 'EXPORT') {
+        // Kho xuất tại cảng (KHO 1..4) phải hợp lệ
+        const whId = ticket.warehouseId ? stripAccents(ticket.warehouseId).toUpperCase().trim() : '';
+        if (!whId || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(whId))) {
+            return false;
+        }
+        return true;
+    } else if (ticket.flowType === 'DIRECT') {
+        // Tên kho xuất (kho vệ tinh đi thẳng ra tàu/xà lan) phải hợp lệ
+        const originWh = ticket.originWarehouseName ? stripAccents(ticket.originWarehouseName).toUpperCase().trim() : '';
+        if (!originWh || originWh === '-' || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(originWh))) {
+            return false;
+        }
+        return true;
+    }
+
+    return false;
 }
 
 export function lookupCarrierName(plate: string, vehicleMap: Record<string, WarehouseVehicleMap>): string {
@@ -2300,6 +2357,128 @@ export const WarehouseInventoryService = {
         return updated.length;
     },
 
+    async getWarehousePlaceMap(): Promise<Record<string, { tenKho: string; khuVuc: string }>> {
+        try {
+            const savedMap = await dbContext.get<Record<string, { tenKho: string; khuVuc: string }>>('weighbridge_custom_place_map');
+            if (savedMap && Object.keys(savedMap).length > 0) {
+                cachedCustomPlaceMap = { ...DEFAULT_PLACE_LOOKUP, ...savedMap };
+                return cachedCustomPlaceMap;
+            }
+            const masterWarehouses = await dbContext.get<any[]>('master_category-warehouses');
+            if (masterWarehouses && Array.isArray(masterWarehouses) && masterWarehouses.length > 0) {
+                const map: Record<string, { tenKho: string; khuVuc: string }> = { ...DEFAULT_PLACE_LOOKUP };
+                for (const item of masterWarehouses) {
+                    const tenKho = (item.name || '').trim();
+                    const khuVuc = (item.area || '').trim();
+                    const normName = stripAccents(tenKho).toUpperCase().replace(/\s+/g, ' ').trim();
+                    if (normName) map[normName] = { tenKho, khuVuc };
+                    if (item.code) {
+                        item.code.split(',').forEach((c: string) => {
+                            const normC = stripAccents(c).toUpperCase().replace(/\s+/g, ' ').trim();
+                            if (normC) map[normC] = { tenKho, khuVuc };
+                        });
+                    }
+                }
+                cachedCustomPlaceMap = map;
+                return map;
+            }
+        } catch (_) {}
+        cachedCustomPlaceMap = { ...DEFAULT_PLACE_LOOKUP };
+        return cachedCustomPlaceMap;
+    },
+
+    async getValidWarehouses(): Promise<Set<string>> {
+        const valid = new Set<string>();
+        ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4'].forEach(k => valid.add(k));
+
+        const placeMap = await this.getWarehousePlaceMap();
+        for (const [key, val] of Object.entries(placeMap)) {
+            if (key) valid.add(stripAccents(key).toUpperCase().trim());
+            if (val && val.tenKho) valid.add(stripAccents(val.tenKho).toUpperCase().trim());
+        }
+
+        return valid;
+    },
+
+    async getValidCarriers(): Promise<Set<string>> {
+        const valid = new Set<string>();
+        try {
+            const vehicles = await this.getVehicles();
+            for (const v of Object.values(vehicles)) {
+                if (v && v.carrierName) {
+                    const norm = stripAccents(v.carrierName).toUpperCase().trim();
+                    if (norm && norm !== '-' && norm !== '0' && !/^\d+(\.\d+)?$/.test(norm)) {
+                        valid.add(norm);
+                    }
+                }
+            }
+        } catch (_) {}
+        try {
+            const wbVehicles = await VehicleService.getVehicles();
+            for (const v of wbVehicles) {
+                if (v && v.carrierName) {
+                    const norm = stripAccents(v.carrierName).toUpperCase().trim();
+                    if (norm && norm !== '-' && norm !== '0' && !/^\d+(\.\d+)?$/.test(norm)) {
+                        valid.add(norm);
+                    }
+                }
+            }
+        } catch (_) {}
+        return valid;
+    },
+
+    async reapplyVehicleCarriersAndWarehouses(): Promise<{ updatedCount: number; validCount: number; totalCount: number }> {
+        const [vehicleMap, placeMap, validCarriers, validWarehouses, tickets] = await Promise.all([
+            this.getVehicles(),
+            this.getWarehousePlaceMap(),
+            this.getValidCarriers(),
+            this.getValidWarehouses(),
+            this.getAllTickets()
+        ]);
+
+        const updated: WarehouseInventoryTicket[] = [];
+
+        for (const t of tickets) {
+            let changed = false;
+            // 1. Re-lookup carrier
+            const lookedUpCarrier = lookupCarrierName(t.vehiclePlate, vehicleMap);
+            if (lookedUpCarrier && lookedUpCarrier !== t.carrierName) {
+                t.carrierName = lookedUpCarrier;
+                changed = true;
+            }
+
+            // 2. Re-lookup place info if needed (for IMPORT or DIRECT)
+            const rawPlace = t.sourceOrRemark;
+            if (rawPlace && (!t.originWarehouseName || t.originWarehouseName === '-' || !t.originArea || t.originArea === '-')) {
+                const p = lookupPlaceInfo(rawPlace, placeMap);
+                if (p.tenKho !== '-' && p.tenKho !== t.originWarehouseName) {
+                    t.originWarehouseName = p.tenKho;
+                    changed = true;
+                }
+                if (p.khuVuc !== '-' && p.khuVuc !== t.originArea) {
+                    t.originArea = p.khuVuc;
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                updated.push(t);
+            }
+        }
+
+        if (updated.length > 0) {
+            await this.saveTicketsBulk(updated);
+        }
+
+        const validCount = tickets.filter(t => isTicketValidForInventoryReport(t, validCarriers, validWarehouses)).length;
+
+        return {
+            updatedCount: updated.length,
+            validCount,
+            totalCount: tickets.length
+        };
+    },
+
     /**
      * Single-Point Import Sync: Push weighbridge rows directly to
      * `allocator_tickets` (CargoAllocator Tab 1 - Phiếu Cân).
@@ -3196,6 +3375,8 @@ export const WarehouseInventoryService = {
     async exportSingleWarehouseWorkbook(
         warehouseId: WarehouseId | ExtendedWarehouseId,
         options?: {
+            tickets?: WarehouseInventoryTicket[];
+            filterByCatalog?: boolean;
             fromDate?: string;
             toDate?: string;
         }
@@ -3211,7 +3392,19 @@ export const WarehouseInventoryService = {
         const finalSheetName = `FINAL ${whNum}`;
         const directSheetName = 'XÁ THẲNG';
 
-        const allTickets = await this.getAllTickets();
+        let allTickets: WarehouseInventoryTicket[];
+        if (options?.tickets) {
+            allTickets = options.tickets;
+        } else if (options?.filterByCatalog) {
+            const rawTickets = await this.getAllTickets();
+            const [validCarriers, validWarehouses] = await Promise.all([
+                this.getValidCarriers(),
+                this.getValidWarehouses()
+            ]);
+            allTickets = rawTickets.filter(t => isTicketValidForInventoryReport(t, validCarriers, validWarehouses));
+        } else {
+            allTickets = await this.getAllTickets();
+        }
         const configs = await this.getConfigs();
         const config = (configs[warehouseId] || (isBK ? configs['KHO 4 - BK'] : configs['KHO 4']))!;
 
@@ -3275,13 +3468,27 @@ export const WarehouseInventoryService = {
      * Matches WEIGHT LIST GỖ NÉN_KHO NGUYÊN NGỌC_GBD_DDMMYYYY.xlsx layout 100%
      */
     async exportCombined123WarehouseWorkbook(options?: {
+        tickets?: WarehouseInventoryTicket[];
+        filterByCatalog?: boolean;
         fromDate?: string;
         toDate?: string;
     }): Promise<{ buffer: ArrayBuffer; filename: string }> {
         const ExcelJS = await import('exceljs');
         const workbook = new ExcelJS.Workbook();
 
-        const allTickets = await this.getAllTickets();
+        let allTickets: WarehouseInventoryTicket[];
+        if (options?.tickets) {
+            allTickets = options.tickets;
+        } else if (options?.filterByCatalog) {
+            const rawTickets = await this.getAllTickets();
+            const [validCarriers, validWarehouses] = await Promise.all([
+                this.getValidCarriers(),
+                this.getValidWarehouses()
+            ]);
+            allTickets = rawTickets.filter(t => isTicketValidForInventoryReport(t, validCarriers, validWarehouses));
+        } else {
+            allTickets = await this.getAllTickets();
+        }
         const configs = await this.getConfigs();
 
         const calcOpts = { ...options, allConfigs: configs };

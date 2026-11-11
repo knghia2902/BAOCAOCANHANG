@@ -6,6 +6,7 @@ export interface VehicleRecord {
     id?: number;
     plateNumber: string;
     moocNumber: string;
+    carrierName?: string;
     notes?: string;
     created_at?: string;
     updated_at?: string;
@@ -36,6 +37,7 @@ export class VehicleService {
                     id: row.id,
                     plateNumber: row.plate_number || '',
                     moocNumber: row.mooc_number || '',
+                    carrierName: row.carrier_name || '',
                     notes: row.notes || '',
                     created_at: row.created_at,
                     updated_at: row.updated_at
@@ -81,26 +83,44 @@ export class VehicleService {
     /**
      * Add a single vehicle
      */
-    static async addVehicle(vehicle: { plateNumber: string; moocNumber: string; notes?: string }): Promise<VehicleRecord | null> {
+    static async addVehicle(vehicle: { plateNumber: string; moocNumber: string; carrierName?: string; notes?: string }): Promise<VehicleRecord | null> {
         const plate = vehicle.plateNumber.trim().toUpperCase();
         const mooc = vehicle.moocNumber.trim().toUpperCase();
+        const carrier = (vehicle.carrierName || '').trim();
 
         try {
-            const { data, error } = await supabase
+            let { data, error } = await supabase
                 .from(VehicleService.TABLE_NAME)
                 .insert([{
                     plate_number: plate,
                     mooc_number: mooc,
+                    carrier_name: carrier,
                     notes: vehicle.notes || ''
                 }])
                 .select()
                 .single();
+
+            if (error) {
+                // Retry without carrier_name if table column pending
+                const retry = await supabase
+                    .from(VehicleService.TABLE_NAME)
+                    .insert([{
+                        plate_number: plate,
+                        mooc_number: mooc,
+                        notes: vehicle.notes || ''
+                    }])
+                    .select()
+                    .single();
+                data = retry.data;
+                error = retry.error;
+            }
 
             if (!error && data) {
                 const record: VehicleRecord = {
                     id: data.id,
                     plateNumber: data.plate_number,
                     moocNumber: data.mooc_number,
+                    carrierName: data.carrier_name || carrier,
                     notes: data.notes,
                     created_at: data.created_at,
                     updated_at: data.updated_at
@@ -116,20 +136,36 @@ export class VehicleService {
     /**
      * Update an existing vehicle by plate number
      */
-    static async updateVehicle(oldPlate: string, vehicle: { plateNumber: string; moocNumber: string; notes?: string }): Promise<boolean> {
+    static async updateVehicle(oldPlate: string, vehicle: { plateNumber: string; moocNumber: string; carrierName?: string; notes?: string }): Promise<boolean> {
         const newPlate = vehicle.plateNumber.trim().toUpperCase();
         const newMooc = vehicle.moocNumber.trim().toUpperCase();
+        const carrier = (vehicle.carrierName || '').trim();
 
         try {
-            const { error } = await supabase
+            let { error } = await supabase
                 .from(VehicleService.TABLE_NAME)
                 .update({
                     plate_number: newPlate,
                     mooc_number: newMooc,
+                    carrier_name: carrier,
                     notes: vehicle.notes || '',
                     updated_at: new Date().toISOString()
                 })
                 .eq('plate_number', oldPlate.trim().toUpperCase());
+
+            if (error) {
+                // Retry without carrier_name
+                const retry = await supabase
+                    .from(VehicleService.TABLE_NAME)
+                    .update({
+                        plate_number: newPlate,
+                        mooc_number: newMooc,
+                        notes: vehicle.notes || '',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('plate_number', oldPlate.trim().toUpperCase());
+                error = retry.error;
+            }
 
             return !error;
         } catch (e) {
@@ -176,17 +212,18 @@ export class VehicleService {
     /**
      * Bulk upsert vehicles (for Excel import or initial migration)
      */
-    static async bulkUpsertVehicles(vehicles: { plateNumber: string; moocNumber: string; notes?: string }[]): Promise<{ count: number; error: any }> {
+    static async bulkUpsertVehicles(vehicles: { plateNumber: string; moocNumber: string; carrierName?: string; notes?: string }[]): Promise<{ count: number; error: any }> {
         if (!vehicles || vehicles.length === 0) return { count: 0, error: null };
 
         // Deduplicate vehicles by normalized plate number
-        const map = new Map<string, { plate_number: string; mooc_number: string; notes: string }>();
+        const map = new Map<string, { plate_number: string; mooc_number: string; carrier_name: string; notes: string }>();
         for (const v of vehicles) {
             const norm = VehicleService.normalizePlate(v.plateNumber);
             if (!norm || norm === 'SOXE') continue; // Skip empty or header rows
             map.set(norm, {
                 plate_number: v.plateNumber.trim().toUpperCase(),
                 mooc_number: v.moocNumber ? v.moocNumber.trim().toUpperCase() : '',
+                carrier_name: (v.carrierName || '').trim(),
                 notes: v.notes || ''
             });
         }

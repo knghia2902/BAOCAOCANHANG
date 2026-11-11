@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onActivated, onUnmounted, watch, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
 import {
     WarehouseInventoryService,
@@ -7,7 +7,8 @@ import {
     formatIsoToDmy,
     getTicketCustomerGroup,
     sanitizeCustomerName,
-    isBachKhoaTicket
+    isBachKhoaTicket,
+    isTicketValidForInventoryReport
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -38,6 +39,28 @@ const exportingExcel = ref(false);
 const capturingZaloImage = ref(false);
 
 const allTickets = ref<WarehouseInventoryTicket[]>([]);
+const validCarriers = ref<Set<string>>(new Set());
+const validWarehouses = ref<Set<string>>(new Set());
+const showExcludedModal = ref(false);
+const restandardizing = ref(false);
+
+const syncChannel = new BroadcastChannel('allocator_sync_channel');
+syncChannel.onmessage = async (event) => {
+    if (
+        event.data?.type === 'vehicles' ||
+        event.data?.type === 'vehicles_updated' ||
+        event.data?.type === 'warehouses_updated' ||
+        event.data?.type === 'master_data'
+    ) {
+        await loadAllData();
+    }
+};
+
+onUnmounted(() => {
+    try {
+        syncChannel.close();
+    } catch (_) {}
+});
 const configs = ref<Record<ExtendedWarehouseId, WarehouseConfig>>({
     'KHO 1': { warehouseId: 'KHO 1', initialStock: 0, initialDate: '', currentCustomer: 'GỖ BÌNH ĐỊNH', dailyRemarks: {} },
     'KHO 2': { warehouseId: 'KHO 2', initialStock: 0, initialDate: '', currentCustomer: 'GỖ BÌNH ĐỊNH', dailyRemarks: {} },
@@ -210,20 +233,55 @@ async function scrollTablesToBottom() {
 async function loadAllData() {
     loading.value = true;
     try {
-        const [loadedConfigs, loadedTickets, loadedVehicles] = await Promise.all([
+        const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses] = await Promise.all([
             WarehouseInventoryService.getConfigs(),
             WarehouseInventoryService.getAllTickets(),
-            WarehouseInventoryService.getVehicles()
+            WarehouseInventoryService.getVehicles(),
+            WarehouseInventoryService.getValidCarriers(),
+            WarehouseInventoryService.getValidWarehouses()
         ]);
         configs.value = loadedConfigs;
         allTickets.value = loadedTickets;
         vehiclesMap.value = loadedVehicles;
+        validCarriers.value = loadedCarriers;
+        validWarehouses.value = loadedWarehouses;
     } catch (err: any) {
         console.error('Lỗi tải dữ liệu tồn kho:', err);
         addToast('Không thể tải dữ liệu tồn kho: ' + (err?.message || err), 'error');
     } finally {
         loading.value = false;
         void scrollTablesToBottom();
+    }
+}
+
+// Danh sách phiếu hợp lệ theo Danh mục Nhà xe và Danh mục Kho hàng
+const validTickets = computed(() => {
+    return allTickets.value.filter(t =>
+        isTicketValidForInventoryReport(t, validCarriers.value, validWarehouses.value)
+    );
+});
+
+// Danh sách phiếu chưa chuẩn hóa (bị loại khỏi báo cáo)
+const excludedTickets = computed(() => {
+    return allTickets.value.filter(t =>
+        !isTicketValidForInventoryReport(t, validCarriers.value, validWarehouses.value)
+    );
+});
+
+async function handleRestandardizeData() {
+    restandardizing.value = true;
+    try {
+        const res = await WarehouseInventoryService.reapplyVehicleCarriersAndWarehouses();
+        addToast(
+            `Chuẩn hóa hoàn tất: ${res.updatedCount} phiếu cập nhật mới, ${res.validCount}/${res.totalCount} phiếu hợp lệ theo danh mục!`,
+            'success'
+        );
+        await loadAllData();
+    } catch (err: any) {
+        console.error('Lỗi chuẩn hóa tồn kho:', err);
+        addToast('Lỗi chuẩn hóa: ' + (err?.message || err), 'error');
+    } finally {
+        restandardizing.value = false;
     }
 }
 
@@ -252,13 +310,13 @@ const finalTablesByWarehouse = computed(() => {
         allConfigs: configs.value
     };
     return {
-        'KHO 1': computeWarehouseFinalTable('KHO 1', allTickets.value, configs.value['KHO 1']!, opts),
-        'KHO 2': computeWarehouseFinalTable('KHO 2', allTickets.value, configs.value['KHO 2']!, opts),
-        'KHO 3': computeWarehouseFinalTable('KHO 3', allTickets.value, configs.value['KHO 3']!, opts),
-        'KHO 4': computeWarehouseFinalTable('KHO 4', allTickets.value, configs.value['KHO 4']!, opts),
+        'KHO 1': computeWarehouseFinalTable('KHO 1', validTickets.value, configs.value['KHO 1']!, opts),
+        'KHO 2': computeWarehouseFinalTable('KHO 2', validTickets.value, configs.value['KHO 2']!, opts),
+        'KHO 3': computeWarehouseFinalTable('KHO 3', validTickets.value, configs.value['KHO 3']!, opts),
+        'KHO 4': computeWarehouseFinalTable('KHO 4', validTickets.value, configs.value['KHO 4']!, opts),
         'KHO 4 - BK': computeWarehouseFinalTable(
             'KHO 4 - BK',
-            allTickets.value,
+            validTickets.value,
             configs.value['KHO 4 - BK'] || { warehouseId: 'KHO 4 - BK', initialStock: 0, initialDate: '', currentCustomer: 'BÁCH KHOA', dailyRemarks: {} },
             opts
         )
@@ -285,7 +343,7 @@ const filteredDetailTickets = computed(() => {
     const q = detailSearchQuery.value.trim().toLowerCase();
     const dFilter = detailFilterDate.value;
 
-    let list = allTickets.value.filter(t => {
+    let list = validTickets.value.filter(t => {
         if (activeSheetTab.value === 'IMPORT') {
             if (selectedWarehouseMode.value === 'KHO 4 - BK') {
                 return t.flowType === 'IMPORT' && t.warehouseId === 'KHO 4' && isBachKhoaTicket(t);
@@ -683,6 +741,7 @@ async function handleExportExcel() {
     exportingExcel.value = true;
     try {
         const opts = {
+            tickets: validTickets.value,
             fromDate: filterFromDate.value || undefined,
             toDate: filterToDate.value || undefined
         };
@@ -1342,10 +1401,40 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
                         </div>
+
+                        <!-- Verified & Excluded Badges -->
+                        <div class="h-7 px-2.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5" title="Số lượng phiếu hợp lệ theo danh mục Nhà xe & Kho hàng">
+                            <span class="material-symbols-outlined text-[13px]">verified</span>
+                            <span>{{ validTickets.length }} xe hợp lệ</span>
+                        </div>
+
+                        <button
+                            v-if="excludedTickets.length > 0"
+                            type="button"
+                            @click="showExcludedModal = true"
+                            class="h-7 px-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                            title="Bấm để xem danh sách các xe chưa chuẩn hóa bị loại khỏi báo cáo"
+                        >
+                            <span class="material-symbols-outlined text-[13px]">warning</span>
+                            <span>{{ excludedTickets.length }} xe chưa chuẩn hóa</span>
+                        </button>
                     </div>
 
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
+                        <button
+                            type="button"
+                            @click="handleRestandardizeData"
+                            :disabled="restandardizing"
+                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Áp dụng lại danh mục Xe và Kho hàng mới nhất vào toàn bộ phiếu cân"
+                        >
+                            <span class="material-symbols-outlined text-[14px]" :class="{ 'animate-spin': restandardizing }">
+                                {{ restandardizing ? 'sync' : 'auto_fix_high' }}
+                            </span>
+                            <span>{{ restandardizing ? 'Đang chuẩn hóa...' : 'Chuẩn hóa lại' }}</span>
+                        </button>
+
                         <button
                             type="button"
                             @click="isVisualMapOpen = true"
@@ -3010,6 +3099,159 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <span>Lưu Phiếu Cân</span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Danh Sách Xe Chưa Chuẩn Hóa (Bị Loại Khỏi Báo Cáo Tồn Kho) -->
+        <div
+            v-if="showExcludedModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
+        >
+            <div
+                class="bg-white rounded-[2rem] p-6 max-w-4xl w-full flex flex-col gap-4 shadow-2xl border border-amber-200/50 max-h-[90vh] overflow-hidden"
+            >
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-500 text-2xl">warning</span>
+                        <div>
+                            <h3 class="text-base font-display font-black text-[#1e293b]">
+                                Danh Sách Xe Chưa Chuẩn Hóa
+                            </h3>
+                            <p class="text-xs text-slate-500 font-semibold">
+                                Các xe dưới đây chưa có Nhà xe hoặc Tên kho trong Danh mục nên không được ghi nhận vào Báo cáo tồn kho.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="showExcludedModal = false"
+                        class="size-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+
+                <!-- Summary Bar -->
+                <div class="flex items-center justify-between bg-amber-50/70 border border-amber-200/80 rounded-2xl px-4 py-2.5 text-xs shrink-0">
+                    <div class="flex items-center gap-2 font-bold text-amber-800">
+                        <span class="material-symbols-outlined text-base text-amber-600">info</span>
+                        <span>Tổng số xe bị loại: <span class="font-mono font-black text-amber-900 text-sm">{{ excludedTickets.length }}</span> xe</span>
+                    </div>
+                    <div class="text-[11px] text-amber-700 font-semibold">
+                        Vui lòng bổ sung vào Danh mục xe (Nhà xe) hoặc Danh mục kho hàng (Tên kho/Khu vực), sau đó bấm "Chuẩn hóa lại".
+                    </div>
+                </div>
+
+                <!-- Table of Excluded Tickets -->
+                <div class="overflow-y-auto flex-1 rounded-2xl border border-slate-200 min-h-0">
+                    <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+                        <thead class="bg-slate-50 sticky top-0 z-10 text-[11px] font-black uppercase text-slate-500 tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="px-3 py-2.5 text-center w-12">STT</th>
+                                <th class="px-3 py-2.5">Biển số</th>
+                                <th class="px-3 py-2.5">Nhà xe</th>
+                                <th class="px-3 py-2.5">Nơi xuất / Tên kho</th>
+                                <th class="px-3 py-2.5 text-center">Luồng</th>
+                                <th class="px-3 py-2.5 text-center">Kho cảng</th>
+                                <th class="px-3 py-2.5 text-center">Ngày cân</th>
+                                <th class="px-3 py-2.5 text-right">Lượng hàng (tấn)</th>
+                                <th class="px-3 py-2.5">Lý do chưa ghi nhận</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr
+                                v-for="(t, idx) in excludedTickets"
+                                :key="t.id || idx"
+                                class="hover:bg-amber-50/40 transition-colors"
+                            >
+                                <td class="px-3 py-2 text-center text-slate-400 font-mono font-bold">{{ idx + 1 }}</td>
+                                <td class="px-3 py-2 font-mono font-black text-primary">{{ t.vehiclePlate }}</td>
+                                <td class="px-3 py-2">
+                                    <span
+                                        v-if="t.carrierName && t.carrierName !== '-' && t.carrierName !== '0'"
+                                        class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200"
+                                    >
+                                        {{ t.carrierName }}
+                                    </span>
+                                    <span v-else class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs border border-rose-200">
+                                        Thiếu Nhà xe
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <span
+                                        v-if="t.originWarehouseName && t.originWarehouseName !== '-'"
+                                        class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200"
+                                    >
+                                        {{ t.originWarehouseName }}
+                                    </span>
+                                    <span
+                                        v-else-if="t.sourceOrRemark"
+                                        class="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-semibold text-xs border border-amber-200"
+                                    >
+                                        {{ t.sourceOrRemark }} (Chưa khớp)
+                                    </span>
+                                    <span v-else class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs border border-rose-200">
+                                        Thiếu Tên kho
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-center font-bold text-slate-600">
+                                    <span
+                                        :class="[
+                                            'px-2 py-0.5 rounded-lg text-xs font-black',
+                                            t.flowType === 'IMPORT' ? 'bg-teal-50 text-teal-700' :
+                                            t.flowType === 'EXPORT' ? 'bg-blue-50 text-blue-700' :
+                                            'bg-purple-50 text-purple-700'
+                                        ]"
+                                    >
+                                        {{ t.flowType }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-center font-bold text-slate-700">{{ t.warehouseId || '--' }}</td>
+                                <td class="px-3 py-2 text-center font-mono text-slate-600">{{ formatIsoToDmy(t.reportDate) }}</td>
+                                <td class="px-3 py-2 text-right font-mono font-black text-slate-800">
+                                    {{ t.netWeight ? Number(t.netWeight).toFixed(3) : '--' }}
+                                </td>
+                                <td class="px-3 py-2 text-rose-600 font-semibold text-[11px]">
+                                    <span v-if="!t.carrierName || t.carrierName === '-' || t.carrierName === '0'">
+                                        • Biển số xe chưa có Nhà xe hợp lệ trong Danh mục xe
+                                    </span>
+                                    <span v-else-if="t.flowType === 'IMPORT' && (!t.originWarehouseName || t.originWarehouseName === '-')">
+                                        • Tên nơi xuất chưa có trong Danh mục kho hàng
+                                    </span>
+                                    <span v-else-if="t.flowType === 'DIRECT' && (!t.originWarehouseName || t.originWarehouseName === '-')">
+                                        • Tên nơi xuất chưa có trong Danh mục kho hàng
+                                    </span>
+                                    <span v-else>
+                                        • Thông tin chưa khớp với Danh mục nền tảng
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+                    <button
+                        type="button"
+                        @click="handleRestandardizeData"
+                        :disabled="restandardizing"
+                        class="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-2xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                    >
+                        <span class="material-symbols-outlined text-sm" :class="{ 'animate-spin': restandardizing }">
+                            {{ restandardizing ? 'sync' : 'auto_fix_high' }}
+                        </span>
+                        <span>{{ restandardizing ? 'Đang chuẩn hóa lại...' : 'Chuẩn hóa lại ngay' }}</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="showExcludedModal = false"
+                        class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
+                    >
+                        Đóng
+                    </button>
                 </div>
             </div>
         </div>
