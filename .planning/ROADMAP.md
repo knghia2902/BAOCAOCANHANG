@@ -263,3 +263,16 @@ Plans:
 - [x] 22-01: Xây dựng khung giao diện Sơ đồ cây điều hướng (Collapsible Tree Sidebar) với 2 nhánh [PHÂN HỆ] & [DANH MỤC], nút thu gọn mở rộng, và cơ chế KeepAlive giữ nguyên trạng thái làm việc khi chuyển đổi.
 - [x] 22-02: Phân tách màn hình "Tạo nguồn tàu" tinh gọn (chỉ quản lý tàu mẹ, hầm hàng, sà lan tiếp nhận - không lẫn dữ liệu cân) và xây dựng cổng tiếp nhận "Dữ liệu cân" cho 2 file (Cân xá thẳng sà lan & Cân nhập kho).
 - [x] 22-03: Liên thông dữ liệu tự động từ 2 file cân sang 3 Báo cáo (Tồn kho, Lô hàng, Phân bổ De Heus) & Biên bản sà lan, đồng thời kết nối khu vực Danh mục dùng chung (Xe, Khách hàng, Kho hàng).
+
+### Phase 23: Quyết toán Lô hàng, Đề nghị thanh toán (DNTT) & Bảng kê Lưu sà lan theo Hợp đồng và Biến động giá dầu
+
+**Goal:** Xây dựng phân hệ Quyết toán Lô hàng & Đề nghị thanh toán (Debit Note) tích hợp vào Không gian làm việc hợp nhất (`UnifiedWorkspaceView`): quản lý Ma trận Biểu giá Hợp đồng 7 bậc biến động giá dầu DO Petrolimex (cho cả dịch vụ xếp dỡ cảng biển và cước xe tải đường bộ), giao diện nhập Ngày đến cảng & Ngày rời phao sà lan tự động tính lưu neo theo công thức làm tròn cảng biển (nấc 0.5/1 ngày), công cụ lập DNTT 1 & DNTT 2 chọn dịch vụ gắn số Hợp đồng/Phụ lục tự động áp đơn giá và tính tiền, cùng trình xuất file Excel trọn gói 8 sheet chuẩn mẫu cảng.
+**Requirements**: SETTLE-01, SETTLE-02, SETTLE-03, SETTLE-04
+**Depends on:** Phase 8, Phase 20, Phase 22
+**Plans:** 3 plans
+
+Plans:
+
+- [ ] 23-01: Thiết kế cấu trúc dữ liệu Ma trận Biểu giá Hợp đồng 7 bậc giá dầu, dịch vụ tính toán lưu sà lan (`BargeDemurrageService.ts`), và logic bóc tách số liệu cân theo nghiệp vụ (`EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `TRUCK`).
+- [ ] 23-02: Xây dựng giao diện Quyết toán Lô hàng & Lập Đề nghị thanh toán (`ShipmentSettlementModal.vue` / Tab Quyết toán): bảng kê lưu sà lan cho phép nhập Ngày đến / Ngày rời phao, bộ chọn bậc giá dầu, trình chọn dịch vụ gắn kèm số Hợp đồng/Phụ lục, tính tổng tiền, thuế VAT 8% và dịch số tiền thành chữ song ngữ.
+- [ ] 23-03: Triển khai trình xuất file Excel Quyết toán lô hàng chuẩn mẫu cảng trọn gói 8 sheet (`DNTT 1`, `DNTT 2`, `Giá dầu`, `BK SALAN`, `EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `LƯU SÀ LAN`, `TRUCK `) giữ nguyên công thức và định dạng in ấn.

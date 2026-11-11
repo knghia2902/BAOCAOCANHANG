@@ -46,7 +46,8 @@ import {
     isBachKhoaTicket,
     isEastwoodCustomer,
     isEastwoodTicket,
-    isTicketValidForInventoryReport
+    isTicketValidForInventoryReport,
+    getStandardCarrierDisplay
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
@@ -55,59 +56,42 @@ describe('WarehouseInventoryService', () => {
         const validCarriers = new Set(['VAN TAI A', 'CONG TY AN PHAT', 'THUONG MAI HOANG HA']);
         const validWarehouses = new Set(['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'GREEN WOOD', 'KHO BAO', 'KHO HUNG', 'KHO BINH DINH']);
 
-        it('accepts ticket when both carrier and warehouse are recognized in catalog', () => {
-            const ticket = {
+        it('accepts ticket into report when warehouse is recognized, even if carrier is missing or uncataloged (carrier column becomes blank)', () => {
+            const ticketWithoutCarrier = {
                 id: 'T1',
                 soPhieu: 'P001',
                 maLenh: 'ML1',
                 flowType: 'IMPORT',
                 warehouseId: 'KHO 1',
                 vehiclePlate: '77C-12345',
-                carrierName: 'Vận Tải A',
+                carrierName: '',
                 originWarehouseName: 'Kho Bảo',
                 originArea: 'Phường Tân Hiệp',
                 reportDate: '2026-10-20',
                 netWeight: 30
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport(ticket, validCarriers, validWarehouses)).toBe(true);
-        });
 
-        it('rejects ticket when carrierName is empty, hyphen, zero, or numeric', () => {
-            const baseTicket = {
-                id: 'T2',
-                soPhieu: 'P002',
-                maLenh: 'ML2',
-                flowType: 'IMPORT',
-                warehouseId: 'KHO 1',
-                vehiclePlate: '77C-12345',
-                originWarehouseName: 'Kho Bảo',
-                originArea: 'Phường Tân Hiệp',
-                reportDate: '2026-10-20',
-                netWeight: 30
+            // Vẫn ghi nhận vào báo cáo
+            expect(isTicketValidForInventoryReport(ticketWithoutCarrier, validWarehouses)).toBe(true);
+            // Cột nhà xe bị khuyết
+            expect(getStandardCarrierDisplay(ticketWithoutCarrier.carrierName, validCarriers)).toBe('');
+
+            const ticketWithUnknownCarrier = {
+                ...ticketWithoutCarrier,
+                carrierName: 'Nhà xe lạ chưa đăng ký'
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport({ ...baseTicket, carrierName: '' }, validCarriers, validWarehouses)).toBe(false);
-            expect(isTicketValidForInventoryReport({ ...baseTicket, carrierName: '-' }, validCarriers, validWarehouses)).toBe(false);
-            expect(isTicketValidForInventoryReport({ ...baseTicket, carrierName: '0' }, validCarriers, validWarehouses)).toBe(false);
-            expect(isTicketValidForInventoryReport({ ...baseTicket, carrierName: '12345' }, validCarriers, validWarehouses)).toBe(false);
-        });
+            expect(isTicketValidForInventoryReport(ticketWithUnknownCarrier, validWarehouses)).toBe(true);
+            expect(getStandardCarrierDisplay(ticketWithUnknownCarrier.carrierName, validCarriers)).toBe('');
 
-        it('rejects ticket when carrierName is not in the valid carriers catalog', () => {
-            const ticket = {
-                id: 'T3',
-                soPhieu: 'P003',
-                maLenh: 'ML3',
-                flowType: 'IMPORT',
-                warehouseId: 'KHO 1',
-                vehiclePlate: '77C-12345',
-                carrierName: 'Nhà xe lạ chưa đăng ký',
-                originWarehouseName: 'Kho Bảo',
-                reportDate: '2026-10-20',
-                netWeight: 30
+            const ticketWithValidCarrier = {
+                ...ticketWithoutCarrier,
+                carrierName: 'Vận Tải A'
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport(ticket, validCarriers, validWarehouses)).toBe(false);
+            expect(isTicketValidForInventoryReport(ticketWithValidCarrier, validWarehouses)).toBe(true);
+            expect(getStandardCarrierDisplay(ticketWithValidCarrier.carrierName, validCarriers)).toBe('Vận Tải A');
         });
 
-        it('rejects IMPORT ticket when originWarehouseName is missing or invalid', () => {
+        it('rejects IMPORT ticket when originWarehouseName is missing or invalid in warehouse catalog', () => {
             const ticket = {
                 id: 'T4',
                 soPhieu: 'P004',
@@ -120,16 +104,16 @@ describe('WarehouseInventoryService', () => {
                 reportDate: '2026-10-20',
                 netWeight: 30
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport(ticket, validCarriers, validWarehouses)).toBe(false);
+            expect(isTicketValidForInventoryReport(ticket, validWarehouses)).toBe(false);
 
             const ticketUnknownWh = {
                 ...ticket,
                 originWarehouseName: 'Kho Chưa Tồn Tại'
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport(ticketUnknownWh, validCarriers, validWarehouses)).toBe(false);
+            expect(isTicketValidForInventoryReport(ticketUnknownWh, validWarehouses)).toBe(false);
         });
 
-        it('validates EXPORT tickets based on port warehouseId and carrier', () => {
+        it('validates EXPORT tickets based on port warehouseId', () => {
             const exportTicket = {
                 id: 'T5',
                 soPhieu: 'P005',
@@ -141,10 +125,12 @@ describe('WarehouseInventoryService', () => {
                 reportDate: '2026-10-20',
                 netWeight: 32
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport(exportTicket, validCarriers, validWarehouses)).toBe(true);
+            expect(isTicketValidForInventoryReport(exportTicket, validWarehouses)).toBe(true);
+
+            expect(isTicketValidForInventoryReport({ ...exportTicket, warehouseId: 'KHO 99' as any }, validWarehouses)).toBe(false);
         });
 
-        it('validates DIRECT tickets based on originWarehouseName and carrier', () => {
+        it('validates DIRECT tickets based on originWarehouseName', () => {
             const directTicket = {
                 id: 'T6',
                 soPhieu: 'P006',
@@ -156,12 +142,12 @@ describe('WarehouseInventoryService', () => {
                 reportDate: '2026-10-20',
                 netWeight: 28
             } as WarehouseInventoryTicket;
-            expect(isTicketValidForInventoryReport(directTicket, validCarriers, validWarehouses)).toBe(true);
+            expect(isTicketValidForInventoryReport(directTicket, validWarehouses)).toBe(true);
 
-            expect(isTicketValidForInventoryReport({ ...directTicket, originWarehouseName: '-' } as WarehouseInventoryTicket, validCarriers, validWarehouses)).toBe(false);
+            expect(isTicketValidForInventoryReport({ ...directTicket, originWarehouseName: '-' } as WarehouseInventoryTicket, validWarehouses)).toBe(false);
         });
 
-        it('reapplyVehicleCarriersAndWarehouses fills missing carrier and place names', async () => {
+        it('reapplyVehicleCarriersAndWarehouses fills known carrier, blanks uncataloged carrier, and fills place info', async () => {
             await WarehouseInventoryService.saveVehiclesBulk([
                 { vehiclePlate: '51C12345', displayPlate: '51C-123.45', carrierName: 'VẬN TẢI TIẾN THÀNH' }
             ]);
@@ -177,6 +163,18 @@ describe('WarehouseInventoryService', () => {
                     sourceOrRemark: 'BINH DINH',
                     reportDate: '2026-10-20',
                     netWeight: 25
+                } as WarehouseInventoryTicket,
+                {
+                    id: 'T_REAPPLY_2',
+                    soPhieu: 'P_RE2',
+                    maLenh: 'ML_RE2',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 1',
+                    vehiclePlate: '99A-99999',
+                    carrierName: 'Nhà Xe Chưa Khai Báo',
+                    sourceOrRemark: 'GREEN WOOD',
+                    reportDate: '2026-10-20',
+                    netWeight: 20
                 } as WarehouseInventoryTicket
             ]);
 
@@ -184,11 +182,18 @@ describe('WarehouseInventoryService', () => {
             expect(res.updatedCount).toBeGreaterThanOrEqual(1);
 
             const all = await WarehouseInventoryService.getAllTickets();
-            const reloaded = all.find(t => t.id === 'T_REAPPLY_1');
-            expect(reloaded).toBeDefined();
-            expect(reloaded?.carrierName).toBe('VẬN TẢI TIẾN THÀNH');
-            expect(reloaded?.originWarehouseName).toBe('Kho Bình Định');
-            expect(reloaded?.originArea).toBe('Xã Trừ Văn Thố');
+            const reloaded1 = all.find(t => t.id === 'T_REAPPLY_1');
+            expect(reloaded1).toBeDefined();
+            expect(reloaded1?.carrierName).toBe('VẬN TẢI TIẾN THÀNH');
+            expect(reloaded1?.originWarehouseName).toBe('Kho Bình Định');
+            expect(reloaded1?.originArea).toBe('Xã Trừ Văn Thố');
+
+            const reloaded2 = all.find(t => t.id === 'T_REAPPLY_2');
+            expect(reloaded2).toBeDefined();
+            // Nhà xe chưa có trong danh mục xe -> cột nhà xe bị khuyết ('')
+            expect(reloaded2?.carrierName).toBe('');
+            // Vẫn ghi nhận vào báo cáo vì tên kho hợp lệ
+            expect(isTicketValidForInventoryReport(reloaded2!, validWarehouses)).toBe(true);
         });
     });
 

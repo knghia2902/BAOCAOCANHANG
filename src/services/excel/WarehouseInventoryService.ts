@@ -455,27 +455,39 @@ export function lookupPlaceInfo(
 }
 
 /**
- * Kiểm tra xem phiếu cân có hợp lệ theo Danh mục Nhà xe và Danh mục Kho hàng hay không.
- * Nếu tên kho hoặc nhà xe không có trong danh mục (hoặc bị trống / không hợp lệ),
+ * Chuẩn hóa giá trị hiển thị cột Nhà xe:
+ * Nếu nhà xe thuộc Danh mục xe (validCarriers), trả về tên nhà xe.
+ * Nếu chưa có hoặc không nằm trong danh mục, trả về chuỗi rỗng / khuyết ('').
+ */
+export function getStandardCarrierDisplay(
+    carrierName: string | undefined | null,
+    validCarriers?: Set<string>
+): string {
+    if (!carrierName) return '';
+    const norm = stripAccents(carrierName).toUpperCase().trim();
+    if (!norm || norm === '-' || norm === '0' || /^\d+(\.\d+)?$/.test(norm)) {
+        return '';
+    }
+    if (validCarriers && validCarriers.size > 0) {
+        return validCarriers.has(norm) ? carrierName : '';
+    }
+    return carrierName;
+}
+
+/**
+ * Kiểm tra xem phiếu cân có hợp lệ theo Danh mục Kho hàng để ghi nhận vào báo cáo hay không.
+ * Nếu tên kho không có trong danh mục kho hàng (hoặc bị trống / không hợp lệ),
  * hệ thống sẽ không ghi nhận vào báo cáo tồn kho.
+ * Lưu ý: Phiếu chưa có Nhà xe trong danh mục VẪN được ghi nhận vào báo cáo,
+ * nhưng cột Nhà xe sẽ bị khuyết (để trống).
  */
 export function isTicketValidForInventoryReport(
     ticket: WarehouseInventoryTicket,
-    validCarriers?: Set<string>,
     validWarehouses?: Set<string>
 ): boolean {
     if (!ticket) return false;
 
-    // 1. Kiểm tra Nhà xe (bắt buộc phải có và thuộc danh mục xe)
-    const rawCarrier = ticket.carrierName ? stripAccents(ticket.carrierName).toUpperCase().trim() : '';
-    if (!rawCarrier || rawCarrier === '-' || rawCarrier === '0' || /^\d+(\.\d+)?$/.test(rawCarrier)) {
-        return false;
-    }
-    if (validCarriers && validCarriers.size > 0 && !validCarriers.has(rawCarrier)) {
-        return false;
-    }
-
-    // 2. Kiểm tra Tên kho & Khu vực theo luồng dữ liệu (flowType)
+    // Kiểm tra Tên kho & Khu vực theo luồng dữ liệu (flowType)
     if (ticket.flowType === 'IMPORT') {
         // Kho nhận tại cảng (KHO 1..4) phải hợp lệ
         const whId = ticket.warehouseId ? stripAccents(ticket.warehouseId).toUpperCase().trim() : '';
@@ -2440,11 +2452,20 @@ export const WarehouseInventoryService = {
 
         for (const t of tickets) {
             let changed = false;
-            // 1. Re-lookup carrier
+            // 1. Re-lookup carrier from vehicle catalog
             const lookedUpCarrier = lookupCarrierName(t.vehiclePlate, vehicleMap);
-            if (lookedUpCarrier && lookedUpCarrier !== t.carrierName) {
-                t.carrierName = lookedUpCarrier;
-                changed = true;
+            if (lookedUpCarrier) {
+                if (lookedUpCarrier !== t.carrierName) {
+                    t.carrierName = lookedUpCarrier;
+                    changed = true;
+                }
+            } else if (t.carrierName) {
+                // If not registered in vehicle catalog and carrier is not in validCarriers, clear it (bị khuyết)
+                const normCarrier = stripAccents(t.carrierName).toUpperCase().trim();
+                if (validCarriers.size > 0 && !validCarriers.has(normCarrier)) {
+                    t.carrierName = '';
+                    changed = true;
+                }
             }
 
             // 2. Re-lookup place info if needed (for IMPORT or DIRECT)
@@ -2470,7 +2491,7 @@ export const WarehouseInventoryService = {
             await this.saveTicketsBulk(updated);
         }
 
-        const validCount = tickets.filter(t => isTicketValidForInventoryReport(t, validCarriers, validWarehouses)).length;
+        const validCount = tickets.filter(t => isTicketValidForInventoryReport(t, validWarehouses)).length;
 
         return {
             updatedCount: updated.length,
@@ -3401,7 +3422,12 @@ export const WarehouseInventoryService = {
                 this.getValidCarriers(),
                 this.getValidWarehouses()
             ]);
-            allTickets = rawTickets.filter(t => isTicketValidForInventoryReport(t, validCarriers, validWarehouses));
+            allTickets = rawTickets
+                .filter(t => isTicketValidForInventoryReport(t, validWarehouses))
+                .map(t => ({
+                    ...t,
+                    carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers)
+                }));
         } else {
             allTickets = await this.getAllTickets();
         }
@@ -3485,7 +3511,12 @@ export const WarehouseInventoryService = {
                 this.getValidCarriers(),
                 this.getValidWarehouses()
             ]);
-            allTickets = rawTickets.filter(t => isTicketValidForInventoryReport(t, validCarriers, validWarehouses));
+            allTickets = rawTickets
+                .filter(t => isTicketValidForInventoryReport(t, validWarehouses))
+                .map(t => ({
+                    ...t,
+                    carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers)
+                }));
         } else {
             allTickets = await this.getAllTickets();
         }
