@@ -1,5 +1,6 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
+import { SettingsService } from '@/services/storage/SettingsService';
 
 export interface VehicleRecord {
     id?: number;
@@ -65,15 +66,10 @@ export class VehicleService {
             }
         } catch (_) {}
 
-        // 3. Fallback to content.settings
+        // 3. Fallback to content.settings (cached)
         try {
-            const { data: contentData } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-
-            const remote = contentData?.settings?.allocator_vehicles;
+            const settings = await SettingsService.getSettings();
+            const remote = settings?.allocator_vehicles;
             if (Array.isArray(remote)) {
                 return remote;
             }

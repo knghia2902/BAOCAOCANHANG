@@ -7,6 +7,7 @@ import { authStore, hasDetailPermission } from '@/stores/auth';
 import { LogService } from '@/services/storage/LogService';
 import { AllocatorService } from '@/services/excel/AllocatorService';
 import { VehicleService } from '@/services/excel/VehicleService';
+import { SettingsService } from '@/services/storage/SettingsService';
 import { WeighbridgeService, normalizeMainPlate, isSameScaleTicket, deduplicateBargeTrucks } from '@/services/excel/WeighbridgeService';
 import {
     WarehouseInventoryService,
@@ -596,40 +597,34 @@ async function loadInitialData() {
         if (localHistory && Array.isArray(localHistory)) existingTrips.value = localHistory;
         if (localVehicles && Array.isArray(localVehicles)) vehiclesList.value = localVehicles;
 
-        // 2. Sync from Supabase
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
+        // 2. Sync from Supabase in parallel
+        const [settingsRes, tripsRes, vehiclesRes] = await Promise.allSettled([
+            SettingsService.getSettings(),
+            AllocatorService.getAllTrips(),
+            VehicleService.getVehicles()
+        ]);
 
-        if (!error && data?.settings) {
+        if (settingsRes.status === 'fulfilled' && settingsRes.value) {
             isSyncingFromChannel = true;
-            const remoteTickets = data.settings.allocator_tickets;
+            const remoteTickets = settingsRes.value.allocator_tickets;
             if (Array.isArray(remoteTickets)) {
                 const { uniqueTrucks: dedupedRemote } = deduplicateBargeTrucks(remoteTickets as CSVRecord[]);
                 csvRecords.value = dedupedRemote;
                 await dbContext.set('allocator_tickets', dedupedRemote);
             }
-
-            try {
-                const allTrips = await AllocatorService.getAllTrips();
-                if (allTrips && allTrips.length > 0) {
-                    existingTrips.value = allTrips as SplitTrip[];
-                    await dbContext.set('allocator_history_trips', allTrips);
-                }
-            } catch (_) {}
-
-            try {
-                const remoteVehicles = await VehicleService.getVehicles();
-                if (Array.isArray(remoteVehicles) && remoteVehicles.length > 0) {
-                    vehiclesList.value = remoteVehicles;
-                    await dbContext.set('allocator_vehicles', remoteVehicles);
-                }
-            } catch (_) {}
-
-            syncStatus.value = 'synced';
         }
+
+        if (tripsRes.status === 'fulfilled' && tripsRes.value && tripsRes.value.length > 0) {
+            existingTrips.value = tripsRes.value as SplitTrip[];
+            await dbContext.set('allocator_history_trips', tripsRes.value);
+        }
+
+        if (vehiclesRes.status === 'fulfilled' && vehiclesRes.value && vehiclesRes.value.length > 0) {
+            vehiclesList.value = vehiclesRes.value;
+            await dbContext.set('allocator_vehicles', vehiclesRes.value);
+        }
+
+        syncStatus.value = 'synced';
     } catch (e) {
         console.warn('Lỗi tải dữ liệu ban đầu:', e);
     } finally {

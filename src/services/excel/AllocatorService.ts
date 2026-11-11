@@ -57,9 +57,20 @@ export interface AllocatorTripItem {
 export class AllocatorService {
     public static readonly TABLE_NAME = 'weighbridge_tracking';
 
+    /** Bộ đệm bộ nhớ và cờ ghi nhớ */
+    private static tripsCache: AllocatorTripItem[] | null = null;
+    private static tripsCacheTime = 0;
+    private static tripsInFlight: Promise<AllocatorTripItem[]> | null = null;
+    private static readonly TRIPS_CACHE_TTL = 30_000;
+
     /** Cờ ghi nhớ khi bảng chưa có cột file_source (chưa chạy migration 20261108) */
     private static fileSourceColumnMissing = false;
     private static scaleHeadSynced = false;
+
+    public static invalidateCache() {
+        AllocatorService.tripsCache = null;
+        AllocatorService.tripsCacheTime = 0;
+    }
 
     /**
      * Nhận diện Đầu cân từ định dạng Số phiếu:
@@ -258,38 +269,62 @@ export class AllocatorService {
     }
 
     /**
-     * Lấy toàn bộ lịch sử các chuyến xe (kèm callback tiến độ tải)
+     * Lấy toàn bộ lịch sử các chuyến xe (kèm callback tiến độ tải và bộ đệm in-memory)
      */
-    static async getAllTrips(onProgress?: (loaded: number) => void): Promise<AllocatorTripItem[]> {
-        const allRows: AllocatorTripRow[] = [];
-        let from = 0;
-        const pageSize = 1000;
-
-        while (true) {
-            const { data, error } = await supabase
-                .from(AllocatorService.TABLE_NAME)
-                .select('*')
-                .order('date1_obj', { ascending: false })
-                .range(from, from + pageSize - 1);
-
-            if (error) {
-                if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
-                    console.warn(`[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase.`);
-                    return [];
-                }
-                console.error('Lỗi khi tải toàn bộ lịch sử:', error);
-                throw error;
-            }
-
-            if (!data || data.length === 0) break;
-            allRows.push(...(data as AllocatorTripRow[]));
-            from += data.length;
-            if (onProgress) onProgress(allRows.length);
-            if (data.length < pageSize) break;
+    static async getAllTrips(onProgress?: (loaded: number) => void, forceRefresh = false): Promise<AllocatorTripItem[]> {
+        const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+        if (!isTest && !forceRefresh && AllocatorService.tripsCache && (Date.now() - AllocatorService.tripsCacheTime < AllocatorService.TRIPS_CACHE_TTL)) {
+            if (onProgress) onProgress(AllocatorService.tripsCache.length);
+            return AllocatorService.tripsCache;
+        }
+        if (!isTest && AllocatorService.tripsInFlight) {
+            return AllocatorService.tripsInFlight;
         }
 
-        void this.syncScaleHeadByTicketNo();
-        return allRows.map(this.rowToTrip);
+        const fetchPromise = (async () => {
+            const allRows: AllocatorTripRow[] = [];
+            let from = 0;
+            const pageSize = 1000;
+
+            while (true) {
+                const { data, error } = await supabase
+                    .from(AllocatorService.TABLE_NAME)
+                    .select('*')
+                    .order('date1_obj', { ascending: false })
+                    .range(from, from + pageSize - 1);
+
+                if (error) {
+                    if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+                        console.warn(`[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase.`);
+                        return [];
+                    }
+                    console.error('Lỗi khi tải toàn bộ lịch sử:', error);
+                    throw error;
+                }
+
+                if (!data || data.length === 0) break;
+                allRows.push(...(data as AllocatorTripRow[]));
+                from += data.length;
+                if (onProgress) onProgress(allRows.length);
+                if (data.length < pageSize) break;
+            }
+
+            void this.syncScaleHeadByTicketNo();
+            const result = allRows.map(this.rowToTrip);
+            if (!isTest) {
+                AllocatorService.tripsCache = result;
+                AllocatorService.tripsCacheTime = Date.now();
+            }
+            return result;
+        })();
+
+        if (!isTest) {
+            AllocatorService.tripsInFlight = fetchPromise.finally(() => {
+                AllocatorService.tripsInFlight = null;
+            });
+            return AllocatorService.tripsInFlight;
+        }
+        return fetchPromise;
     }
 
     /**
@@ -386,6 +421,9 @@ export class AllocatorService {
         }
 
         const insertedItems = insertedRows.map(r => this.rowToTrip(r));
+        if (insertedCount > 0) {
+            AllocatorService.invalidateCache();
+        }
         return { count: insertedCount, data: insertedItems, error: null };
     }
 
@@ -409,6 +447,7 @@ export class AllocatorService {
             console.error('Lỗi khi cập nhật mã lệnh:', error);
             return false;
         }
+        AllocatorService.invalidateCache();
         return true;
     }
 
@@ -432,6 +471,7 @@ export class AllocatorService {
             console.error('Lỗi khi xóa bản ghi:', error);
             return false;
         }
+        AllocatorService.invalidateCache();
         return true;
     }
 }

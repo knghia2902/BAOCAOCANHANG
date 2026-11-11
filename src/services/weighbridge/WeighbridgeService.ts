@@ -1,5 +1,6 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
+import { SettingsService } from '@/services/storage/SettingsService';
 
 export interface Vessel {
     id: number;
@@ -538,9 +539,26 @@ async function getLocalVessels(): Promise<Vessel[]> {
 
 async function saveLocalVessels(vessels: Vessel[]) {
     await dbContext.set('wb_vessels', vessels);
+    if (!isTestEnv) {
+        vesselsMemoryCache = vessels;
+        vesselsCacheTimestamp = Date.now();
+    }
+}
+
+let vesselsMemoryCache: Vessel[] | null = null;
+let vesselsCacheTimestamp = 0;
+let vesselsInFlightPromise: Promise<Vessel[]> | null = null;
+const VESSELS_CACHE_TTL = 30_000;
+const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+export function invalidateVesselsCache() {
+    vesselsMemoryCache = null;
+    vesselsCacheTimestamp = 0;
 }
 
 export const WeighbridgeService = {
+    invalidateVesselsCache,
+
     /**
      * Get Master Data (customers and cargo goods)
      */
@@ -548,14 +566,10 @@ export const WeighbridgeService = {
         try {
             const cached = await dbContext.get<WeighbridgeMasterData>('weighbridge_master_data');
             
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
+            const settings = await SettingsService.getSettings();
                 
-            if (!error && data?.settings?.weighbridge_master_data) {
-                const remote = data.settings.weighbridge_master_data as WeighbridgeMasterData;
+            if (settings?.weighbridge_master_data) {
+                const remote = settings.weighbridge_master_data as WeighbridgeMasterData;
                 await dbContext.set('weighbridge_master_data', remote);
                 return remote;
             }
@@ -597,6 +611,7 @@ export const WeighbridgeService = {
                     .from('content')
                     .update({ settings: newSettings })
                     .eq('id', 'main');
+                SettingsService.invalidateCache();
             }
             return true;
         } catch (e) {
@@ -612,14 +627,10 @@ export const WeighbridgeService = {
         try {
             const cached = await dbContext.get<WeighbridgeStandardTemplate>('weighbridge_standard_template');
             
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
+            const settings = await SettingsService.getSettings();
 
-            if (!error && data?.settings?.weighbridge_standard_template) {
-                const remote = data.settings.weighbridge_standard_template as WeighbridgeStandardTemplate;
+            if (settings?.weighbridge_standard_template) {
+                const remote = settings.weighbridge_standard_template as WeighbridgeStandardTemplate;
                 await dbContext.set('weighbridge_standard_template', remote);
                 return remote;
             }
@@ -695,6 +706,7 @@ export const WeighbridgeService = {
                     .from('content')
                     .update({ settings: newSettings })
                     .eq('id', 'main');
+                SettingsService.invalidateCache();
             }
             return true;
         } catch (e) {
@@ -706,25 +718,37 @@ export const WeighbridgeService = {
     /**
      * Fetch all vessels along with their barges
      */
-    async getVessels(): Promise<Vessel[]> {
-        const local = await getLocalVessels();
-        let localStatusMap: Record<string, 'in_progress' | 'done'> = {};
-        let localPinnedMap: Record<string, boolean> = {};
-        try {
-            localStatusMap = await dbContext.get<Record<string, 'in_progress' | 'done'>>('weighbridge_vessel_statuses') || {};
-            localPinnedMap = await dbContext.get<Record<string, boolean>>('weighbridge_vessel_pinned') || {};
-        } catch (_) {}
+    async getVessels(forceRefresh = false): Promise<Vessel[]> {
+        if (!isTestEnv && !forceRefresh && vesselsMemoryCache && (Date.now() - vesselsCacheTimestamp < VESSELS_CACHE_TTL)) {
+            return vesselsMemoryCache;
+        }
+        if (!isTestEnv && vesselsInFlightPromise) {
+            return vesselsInFlightPromise;
+        }
 
-        try {
-            const { data, error } = await supabase
-                .from('weighbridge_vessels')
-                .select('*, barges:weighbridge_barges(*)')
-                .order('created_at', { ascending: true });
+        const fetchPromise = (async () => {
+            const [local, localStatusMapRaw, localPinnedMapRaw] = await Promise.all([
+                getLocalVessels(),
+                dbContext.get<Record<string, 'in_progress' | 'done'>>('weighbridge_vessel_statuses').catch(() => null),
+                dbContext.get<Record<string, boolean>>('weighbridge_vessel_pinned').catch(() => null)
+            ]);
+            const localStatusMap = localStatusMapRaw || {};
+            const localPinnedMap = localPinnedMapRaw || {};
 
-            if (error) {
-                console.warn('Supabase fetch failed, loading local vessels:', error);
-                return local;
-            }
+            try {
+                const { data, error } = await supabase
+                    .from('weighbridge_vessels')
+                    .select('*, barges:weighbridge_barges(*)')
+                    .order('created_at', { ascending: true });
+
+                if (error) {
+                    console.warn('Supabase fetch failed, loading local vessels:', error);
+                    if (!isTestEnv) {
+                        vesselsMemoryCache = local;
+                        vesselsCacheTimestamp = Date.now();
+                    }
+                    return local;
+                }
 
             const formatted = (data || []).map((vessel: any) => {
                 const localVessel = local.find(v => String(v.id) === String(vessel.id));
@@ -817,12 +841,29 @@ export const WeighbridgeService = {
 
             // Cache locally
             await saveLocalVessels(formatted);
+            if (!isTestEnv) {
+                vesselsMemoryCache = formatted;
+                vesselsCacheTimestamp = Date.now();
+            }
             return formatted;
         } catch (e) {
             console.warn('Network offline or error fetching vessels, loading local vessels:', e);
-            return await getLocalVessels();
+            const fallback = await getLocalVessels();
+            if (!isTestEnv) {
+                vesselsMemoryCache = fallback;
+                vesselsCacheTimestamp = Date.now();
+            }
+            return fallback;
+        } finally {
+            vesselsInFlightPromise = null;
         }
-    },
+    })();
+
+    if (!isTestEnv) {
+        vesselsInFlightPromise = fetchPromise;
+    }
+    return fetchPromise;
+},
 
     /**
      * Create a new vessel with optional master data fields and pinned status

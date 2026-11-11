@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase';
+import { SettingsService } from '@/services/storage/SettingsService';
 
 export interface RolePermissionConfig {
     tools: string[];
@@ -67,13 +68,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissionConfig> = {
 export const PermissionService = {
     async loadStaffTools(): Promise<string[]> {
         try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (error || !data?.settings) return ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
-            return data.settings.staff_tools || ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
+            const settings = await SettingsService.getSettings();
+            if (!settings) return ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
+            return settings.staff_tools || ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
         } catch (e) {
             console.error('Error loading staff tools config', e);
             return ['converter', 'merger', 'weighbridge', 'allocator', 'ocr'];
@@ -97,6 +94,9 @@ export const PermissionService = {
                 .from('content')
                 .update({ settings: newSettings })
                 .eq('id', 'main');
+            if (!error) {
+                SettingsService.invalidateCache();
+            }
             return !error;
         } catch (e) {
             console.error('Error saving staff tools config', e);
@@ -106,13 +106,9 @@ export const PermissionService = {
 
     async loadRolePermissions(): Promise<Record<string, RolePermissionConfig>> {
         try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (error || !data?.settings) return DEFAULT_ROLE_PERMISSIONS;
-            return data.settings.role_permissions || DEFAULT_ROLE_PERMISSIONS;
+            const settings = await SettingsService.getSettings();
+            if (!settings) return DEFAULT_ROLE_PERMISSIONS;
+            return settings.role_permissions || DEFAULT_ROLE_PERMISSIONS;
         } catch (e) {
             console.error('Error loading role permissions config', e);
             return DEFAULT_ROLE_PERMISSIONS;
@@ -136,6 +132,9 @@ export const PermissionService = {
                 .from('content')
                 .update({ settings: newSettings })
                 .eq('id', 'main');
+            if (!error) {
+                SettingsService.invalidateCache();
+            }
             return !error;
         } catch (e) {
             console.error('Error saving role permissions config', e);

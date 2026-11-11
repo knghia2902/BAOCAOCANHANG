@@ -45,6 +45,7 @@ describe('WeighbridgeService - Vessel Status Lifecycle', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStore.clear();
+        WeighbridgeService.invalidateVesselsCache();
     });
 
     it('T1: transforms vessels without status into status: in_progress', async () => {

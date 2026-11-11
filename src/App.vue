@@ -152,8 +152,7 @@ onUnmounted(() => {
             <span class="material-symbols-outlined text-base">home</span>
             Home
         </router-link>
-        <router-link to="/workspace" class="flex items-center gap-1.5 text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">
-            <span class="material-symbols-outlined text-base text-primary">account_tree</span>
+        <router-link to="/workspace" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">
             Workspace
         </router-link>
         <router-link to="/documents" class="text-sm font-bold text-[#1e293b]/80 hover:text-primary transition-colors border-b-2 border-transparent hover:border-primary" active-class="text-primary border-primary">Docs</router-link>

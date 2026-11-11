@@ -86,10 +86,22 @@ const calculateNextOrderNo = (): string => {
 
 const loadVessels = async () => {
     try {
-        loading.value = true;
+        loading.value = vessels.value.length === 0;
+        // Hiển thị ngay từ IndexedDB nếu có để tránh giật lag UI
+        try {
+            const local = await dbContext.get<Vessel[]>('wb_vessels');
+            if (local && Array.isArray(local) && local.length > 0 && vessels.value.length === 0) {
+                vessels.value = sortVesselsList(local);
+                if (!selectedVesselId.value) {
+                    selectedVesselId.value = vessels.value[0]?.id ?? null;
+                }
+                loading.value = false;
+            }
+        } catch (_) {}
+
         const data = await WeighbridgeService.getVessels();
         vessels.value = sortVesselsList(data || []);
-        if (vessels.value.length > 0 && !selectedVesselId.value) {
+        if (vessels.value.length > 0 && (!selectedVesselId.value || !vessels.value.some(v => v.id === selectedVesselId.value))) {
             selectedVesselId.value = vessels.value[0]?.id ?? null;
         }
     } catch (e) {

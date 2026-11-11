@@ -3,25 +3,31 @@ import { contentStore } from '@/stores/content';
 import { UserService } from './auth/UserService';
 import { PermissionService, DEFAULT_ROLE_PERMISSIONS } from './auth/PermissionService';
 import { MessageService } from './cms/MessageService';
+import { SettingsService } from './storage/SettingsService';
 
 export const ContentService = {
     // CMS Portfolio
     async loadAll() {
         try {
-            const { data: contentData } = await supabase
-                .from('content')
-                .select('*')
-                .eq('id', 'main')
-                .single();
+            const [contentRes, projectsRes, toolsRes, msgRes] = await Promise.all([
+                supabase.from('content').select('*').eq('id', 'main').single(),
+                supabase.from('projects').select('*').order('created_at', { ascending: false }),
+                supabase.from('tools').select('*').order('created_at', { ascending: true }),
+                supabase.from('messages').select('*').order('date', { ascending: false })
+            ]);
 
+            const contentData = contentRes.data;
             if (contentData) {
                 if (contentData.hero) contentStore.hero = { ...contentStore.hero, ...contentData.hero };
                 if (contentData.visibility) contentStore.visibility = { ...contentStore.visibility, ...contentData.visibility };
                 if (contentData.stats) contentStore.stats = { ...contentStore.stats, ...contentData.stats };
                 if (contentData.about) contentStore.about = { ...contentStore.about, ...contentData.about };
+                if (contentData.settings) {
+                    SettingsService.setSettingsCache(contentData.settings);
+                }
             }
 
-            const { data: projectsData } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+            const projectsData = projectsRes.data;
             if (projectsData) {
                 contentStore.projects = projectsData.map((p: any) => ({
                     id: p.id,
@@ -32,7 +38,7 @@ export const ContentService = {
                 }));
             }
 
-            const { data: toolsData } = await supabase.from('tools').select('*').order('created_at', { ascending: true });
+            const toolsData = toolsRes.data;
             if (toolsData) {
                 contentStore.toolkit = toolsData.map((t: any) => ({
                     icon: t.icon,
@@ -41,7 +47,7 @@ export const ContentService = {
                 }));
             }
 
-            const { data: msgData } = await supabase.from('messages').select('*').order('date', { ascending: false });
+            const msgData = msgRes.data;
             if (msgData) {
                 contentStore.messages = msgData;
             }
@@ -49,6 +55,9 @@ export const ContentService = {
             console.error('Error loading content data', e);
         }
     },
+
+    getSettings: SettingsService.getSettings,
+    invalidateSettingsCache: SettingsService.invalidateCache,
 
     async saveAll() {
         try {
@@ -63,6 +72,9 @@ export const ContentService = {
                 })
                 .eq('id', 'main');
 
+            if (!error) {
+                ContentService.invalidateSettingsCache();
+            }
             return !error;
         } catch (e) {
             console.error('Error saving content data', e);
