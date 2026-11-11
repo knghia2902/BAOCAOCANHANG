@@ -200,4 +200,74 @@ describe('WeighbridgeService - Vessel Status Lifecycle', () => {
         const loaded = await WeighbridgeService.getGlobalTicketTemplate();
         expect(loaded.ticketTitle).toBe('PHIẾU CÂN XE CHUẨN');
     });
+
+    it('T10: toggleVesselPinned toggles is_pinned in local cache, IndexedDB and calls Supabase', async () => {
+        localStore.set('wb_vessels', [
+            { id: 1001, name: 'TAU PIN TEST', is_pinned: false, barges: [] }
+        ]);
+
+        const mockBuilder: any = (supabase.from as any)('weighbridge_vessels');
+        mockBuilder.update.mockReturnValue(mockBuilder);
+        mockBuilder.eq.mockResolvedValueOnce({ data: null, error: null });
+
+        const pinned = await WeighbridgeService.toggleVesselPinned(1001);
+        expect(pinned).toBe(true);
+        expect(mockBuilder.update).toHaveBeenCalledWith({ is_pinned: true });
+        expect(mockBuilder.eq).toHaveBeenCalledWith('id', 1001);
+
+        const cached = localStore.get('wb_vessels');
+        expect(cached[0].is_pinned).toBe(true);
+
+        const idbMap = localStore.get('weighbridge_vessel_pinned');
+        expect(idbMap['1001']).toBe(true);
+
+        // Toggle back to false
+        mockBuilder.eq.mockResolvedValueOnce({ data: null, error: null });
+        const unpinned = await WeighbridgeService.toggleVesselPinned(1001);
+        expect(unpinned).toBe(false);
+        const updatedCached = localStore.get('wb_vessels');
+        expect(updatedCached[0].is_pinned).toBe(false);
+    });
+
+    it('T11: getVessels restores is_pinned status from IndexedDB when missing in remote response', async () => {
+        localStore.set('weighbridge_vessel_pinned', { '1101': true });
+
+        const mockVesselsFromDb = [
+            { id: 1101, name: 'TAU DAC BIET', barges: [] },
+            { id: 1102, name: 'TAU THUONG', barges: [] }
+        ];
+
+        const mockBuilder: any = (supabase.from as any)('weighbridge_vessels');
+        mockBuilder.order.mockResolvedValueOnce({ data: mockVesselsFromDb, error: null });
+
+        const vessels = await WeighbridgeService.getVessels();
+        expect(vessels[0].is_pinned).toBe(true);
+        expect(vessels[1].is_pinned).toBe(false);
+    });
+
+    it('T12: createBarge automatically increments orderNo sequentially when orderNo is empty', async () => {
+        localStore.set('wb_vessels', [
+            {
+                id: 1201,
+                name: 'TAU 1201',
+                barges: [
+                    { id: 1, name: 'SL 1', config: { orderNo: '5' } },
+                    { id: 2, name: 'SL 2', config: { orderNo: '9' } }
+                ]
+            }
+        ]);
+
+        const mockBuilder: any = (supabase.from as any)('weighbridge_barges');
+        mockBuilder.insert.mockReturnValue(mockBuilder);
+        mockBuilder.select.mockReturnValue(mockBuilder);
+        mockBuilder.single.mockResolvedValueOnce({
+            data: { id: 9999, vessel_id: 1201, name: 'SL 3', order_no: '10' },
+            error: null
+        });
+
+        // Pass empty customOrderNo ''
+        const barge = await WeighbridgeService.createBarge(1201, 'SL 3', '');
+        expect(barge).not.toBeNull();
+        expect(barge?.config.orderNo).toBe('10');
+    });
 });

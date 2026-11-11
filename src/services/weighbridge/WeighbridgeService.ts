@@ -10,6 +10,7 @@ export interface Vessel {
     customer?: string; // Tên khách hàng / Chủ hàng
     cargo_type?: string; // Loại hàng hóa
     cargo_code?: string; // Mã hàng hóa
+    is_pinned?: boolean; // Ghim tàu đặc biệt lên đầu
 }
 
 export interface MasterCargoItem {
@@ -708,8 +709,10 @@ export const WeighbridgeService = {
     async getVessels(): Promise<Vessel[]> {
         const local = await getLocalVessels();
         let localStatusMap: Record<string, 'in_progress' | 'done'> = {};
+        let localPinnedMap: Record<string, boolean> = {};
         try {
             localStatusMap = await dbContext.get<Record<string, 'in_progress' | 'done'>>('weighbridge_vessel_statuses') || {};
+            localPinnedMap = await dbContext.get<Record<string, boolean>>('weighbridge_vessel_pinned') || {};
         } catch (_) {}
 
         try {
@@ -797,12 +800,17 @@ export const WeighbridgeService = {
                     || localVessel?.status
                     || 'in_progress';
 
+                const resolvedPinned = typeof vessel.is_pinned === 'boolean'
+                    ? vessel.is_pinned
+                    : (localPinnedMap[String(vessel.id)] ?? localVessel?.is_pinned ?? false);
+
                 return {
                     ...vessel,
                     status: resolvedStatus,
                     customer: resolvedCustomer,
                     cargo_type: resolvedCargoType,
                     cargo_code: resolvedCargoCode,
+                    is_pinned: resolvedPinned,
                     barges
                 };
             });
@@ -817,9 +825,9 @@ export const WeighbridgeService = {
     },
 
     /**
-     * Create a new vessel with optional master data fields
+     * Create a new vessel with optional master data fields and pinned status
      */
-    async createVessel(name: string, customer?: string, cargo_type?: string, cargo_code?: string): Promise<Vessel | null> {
+    async createVessel(name: string, customer?: string, cargo_type?: string, cargo_code?: string, is_pinned?: boolean): Promise<Vessel | null> {
         const newVessel: Vessel = {
             id: Date.now(),
             name: name.trim().toUpperCase(),
@@ -827,6 +835,7 @@ export const WeighbridgeService = {
             customer: customer?.trim() || '',
             cargo_type: cargo_type?.trim() || '',
             cargo_code: cargo_code?.trim() || '',
+            is_pinned: Boolean(is_pinned),
             barges: []
         };
         try {
@@ -838,7 +847,8 @@ export const WeighbridgeService = {
                     status: 'in_progress',
                     customer: newVessel.customer,
                     cargo_type: newVessel.cargo_type,
-                    cargo_code: newVessel.cargo_code
+                    cargo_code: newVessel.cargo_code,
+                    is_pinned: newVessel.is_pinned
                 }])
                 .select()
                 .single();
@@ -854,6 +864,14 @@ export const WeighbridgeService = {
                 error = retry.error;
             }
 
+            if (newVessel.is_pinned) {
+                try {
+                    const pinnedMap = (await dbContext.get<Record<string, boolean>>('weighbridge_vessel_pinned')) || {};
+                    pinnedMap[String(newVessel.id)] = true;
+                    await dbContext.set('weighbridge_vessel_pinned', pinnedMap);
+                } catch (_) {}
+            }
+
             if (error) {
                 console.warn('Supabase create vessel failed, saving locally:', error);
                 const local = await getLocalVessels();
@@ -867,6 +885,7 @@ export const WeighbridgeService = {
                 customer: data?.customer || newVessel.customer,
                 cargo_type: data?.cargo_type || newVessel.cargo_type,
                 cargo_code: data?.cargo_code || newVessel.cargo_code,
+                is_pinned: typeof data?.is_pinned === 'boolean' ? data.is_pinned : newVessel.is_pinned,
                 barges: [] 
             };
             const local = await getLocalVessels();
@@ -918,10 +937,44 @@ export const WeighbridgeService = {
     },
 
     /**
-     * Update vessel name and fixed cargo info
+     * Toggle or set vessel pinned status ('is_pinned')
      */
-    async updateVessel(id: number, updatesOrName: string | { name?: string; customer?: string; cargo_type?: string; cargo_code?: string }): Promise<boolean> {
-        const payload: { name?: string; customer?: string; cargo_type?: string; cargo_code?: string } = 
+    async toggleVesselPinned(id: number, isPinned?: boolean): Promise<boolean> {
+        const local = await getLocalVessels();
+        const vessel = local.find(v => String(v.id) === String(id));
+        const newPinned = isPinned !== undefined ? isPinned : !(vessel?.is_pinned);
+        if (vessel) {
+            vessel.is_pinned = newPinned;
+            await saveLocalVessels(local);
+        }
+
+        try {
+            const pinnedMap = (await dbContext.get<Record<string, boolean>>('weighbridge_vessel_pinned')) || {};
+            pinnedMap[String(id)] = newPinned;
+            await dbContext.set('weighbridge_vessel_pinned', pinnedMap);
+        } catch (_) {}
+
+        try {
+            const { error } = await supabase
+                .from('weighbridge_vessels')
+                .update({ is_pinned: newPinned })
+                .eq('id', id);
+
+            if (error) {
+                console.warn('Supabase weighbridge_vessels.is_pinned update skipped/failed:', error.message || error);
+            }
+        } catch (e) {
+            console.warn('Supabase offline or update failed:', e);
+        }
+
+        return newPinned;
+    },
+
+    /**
+     * Update vessel name, fixed cargo info and pinned state
+     */
+    async updateVessel(id: number, updatesOrName: string | { name?: string; customer?: string; cargo_type?: string; cargo_code?: string; is_pinned?: boolean }): Promise<boolean> {
+        const payload: { name?: string; customer?: string; cargo_type?: string; cargo_code?: string; is_pinned?: boolean } = 
             typeof updatesOrName === 'string' ? { name: updatesOrName.trim().toUpperCase() } : { ...updatesOrName };
             
         if (payload.name) payload.name = payload.name.trim().toUpperCase();
@@ -933,6 +986,7 @@ export const WeighbridgeService = {
             if (payload.customer !== undefined) vessel.customer = payload.customer;
             if (payload.cargo_type !== undefined) vessel.cargo_type = payload.cargo_type;
             if (payload.cargo_code !== undefined) vessel.cargo_code = payload.cargo_code;
+            if (payload.is_pinned !== undefined) vessel.is_pinned = payload.is_pinned;
 
             // Enforce on child barges locally
             if (vessel.barges) {
@@ -945,6 +999,14 @@ export const WeighbridgeService = {
                 }
             }
             await saveLocalVessels(local);
+        }
+
+        if (payload.is_pinned !== undefined) {
+            try {
+                const pinnedMap = (await dbContext.get<Record<string, boolean>>('weighbridge_vessel_pinned')) || {};
+                pinnedMap[String(id)] = payload.is_pinned;
+                await dbContext.set('weighbridge_vessel_pinned', pinnedMap);
+            } catch (_) {}
         }
 
         try {
@@ -1013,8 +1075,8 @@ export const WeighbridgeService = {
         const local = await getLocalVessels();
 
         let nextOrderNo = '';
-        if (customOrderNo !== undefined) {
-            nextOrderNo = customOrderNo;
+        if (customOrderNo !== undefined && customOrderNo.trim() !== '') {
+            nextOrderNo = customOrderNo.trim();
         } else {
             // Calculate next orderNo sequentially based on max orderNo across all barges
             let maxNum = 0;

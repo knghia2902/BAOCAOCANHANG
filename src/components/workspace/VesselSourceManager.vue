@@ -43,7 +43,8 @@ const vesselForm = ref({
     name: '',
     customer: '',
     cargo_type: '',
-    cargo_code: ''
+    cargo_code: '',
+    is_pinned: false
 });
 
 const bargeForm = ref({
@@ -52,12 +53,42 @@ const bargeForm = ref({
     orderNo: ''
 });
 
+// Sắp xếp: Tàu được ghim (is_pinned) luôn lên đầu, trong cùng nhóm xếp theo id giảm dần
+const sortVesselsList = (list: Vessel[]): Vessel[] => {
+    return [...list].sort((a, b) => {
+        const pinA = a.is_pinned ? 1 : 0;
+        const pinB = b.is_pinned ? 1 : 0;
+        if (pinA !== pinB) return pinB - pinA;
+        return Number(b.id || 0) - Number(a.id || 0);
+    });
+};
+
+// Tự động tính số thứ tự lệnh tiếp theo cho sà lan mới dựa trên số lệnh lớn nhất hiện có
+const calculateNextOrderNo = (): string => {
+    let maxNum = 0;
+    for (const vessel of vessels.value) {
+        if (vessel.barges) {
+            for (const barge of vessel.barges) {
+                const orderStr = barge.config?.orderNo || '';
+                const match = orderStr.match(/(\d+)$/);
+                if (match) {
+                    const num = parseInt(match[1] || '', 10);
+                    if (num > maxNum) maxNum = num;
+                } else {
+                    const num = parseInt(orderStr, 10);
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                }
+            }
+        }
+    }
+    return String(maxNum + 1);
+};
+
 const loadVessels = async () => {
     try {
         loading.value = true;
         const data = await WeighbridgeService.getVessels();
-        // Sắp xếp tàu mới tạo lên đầu danh sách để dễ nhìn thấy ngay sau khi lưu
-        vessels.value = [...(data || [])].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+        vessels.value = sortVesselsList(data || []);
         if (vessels.value.length > 0 && !selectedVesselId.value) {
             selectedVesselId.value = vessels.value[0]?.id ?? null;
         }
@@ -251,7 +282,8 @@ const openAddVesselModal = async () => {
         name: '',
         customer: '',
         cargo_type: '',
-        cargo_code: ''
+        cargo_code: '',
+        is_pinned: false
     };
     vesselCustomGoods.value = masterGoods.value.length === 0;
     vesselCustomCustomer.value = masterCustomers.value.length === 0;
@@ -268,7 +300,8 @@ const openEditVesselModal = async (vessel: Vessel) => {
         name: vessel.name,
         customer,
         cargo_type: cargoType,
-        cargo_code: vessel.cargo_code || ''
+        cargo_code: vessel.cargo_code || '',
+        is_pinned: Boolean(vessel.is_pinned)
     };
     vesselCustomGoods.value =
         masterGoods.value.length === 0 ||
@@ -277,6 +310,22 @@ const openEditVesselModal = async (vessel: Vessel) => {
         masterCustomers.value.length === 0 ||
         (!!customer && !masterCustomers.value.some(c => c.toUpperCase() === customer.toUpperCase()));
     showVesselModal.value = true;
+};
+
+const handleTogglePinVessel = async (vessel: Vessel) => {
+    try {
+        const newPinned = await WeighbridgeService.toggleVesselPinned(vessel.id, !vessel.is_pinned);
+        vessel.is_pinned = newPinned;
+        vessels.value = sortVesselsList(vessels.value);
+        if (newPinned) {
+            addToast(`Đã ghim tàu đặc biệt "${vessel.name}" lên đầu danh sách`, 'success');
+        } else {
+            addToast(`Đã bỏ ghim tàu "${vessel.name}"`, 'info');
+        }
+    } catch (e) {
+        console.error('Lỗi khi ghim tàu:', e);
+        addToast('Không thể thay đổi trạng thái ghim tàu', 'error');
+    }
 };
 
 const handleSaveVessel = async () => {
@@ -290,6 +339,7 @@ const handleSaveVessel = async () => {
     const cleanCustomer = vesselForm.value.customer.trim().toUpperCase();
     const cleanCargoType = vesselForm.value.cargo_type.trim().toUpperCase();
     const cleanCargoCode = vesselForm.value.cargo_code.trim().toUpperCase();
+    const isPinned = Boolean(vesselForm.value.is_pinned);
 
     isSavingVessel.value = true;
     try {
@@ -299,7 +349,8 @@ const handleSaveVessel = async () => {
                 name: nameUpper,
                 customer: cleanCustomer,
                 cargo_type: cleanCargoType,
-                cargo_code: cleanCargoCode
+                cargo_code: cleanCargoCode,
+                is_pinned: isPinned
             });
 
             const idx = vessels.value.findIndex(v => v.id === targetId);
@@ -309,19 +360,22 @@ const handleSaveVessel = async () => {
                     name: nameUpper,
                     customer: cleanCustomer,
                     cargo_type: cleanCargoType,
-                    cargo_code: cleanCargoCode
+                    cargo_code: cleanCargoCode,
+                    is_pinned: isPinned
                 };
             }
+            vessels.value = sortVesselsList(vessels.value);
             addToast(`Đã cập nhật thông tin tàu ${nameUpper}`, 'success');
         } else {
             const created = await WeighbridgeService.createVessel(
                 nameUpper,
                 cleanCustomer,
                 cleanCargoType,
-                cleanCargoCode
+                cleanCargoCode,
+                isPinned
             );
             if (created) {
-                vessels.value.unshift(created);
+                vessels.value = sortVesselsList([created, ...vessels.value]);
                 selectedVesselId.value = created.id;
                 searchQuery.value = '';
             }
@@ -356,10 +410,11 @@ const handleDeleteVessel = async (vessel: Vessel) => {
 const openAddBargeModal = () => {
     if (!selectedVessel.value) return;
     editingBarge.value = null;
+    const nextOrder = calculateNextOrderNo();
     bargeForm.value = {
         id: 0,
         name: '',
-        orderNo: ''
+        orderNo: nextOrder
     };
     showBargeModal.value = true;
 };
@@ -384,7 +439,10 @@ const handleSaveBarge = async () => {
     if (isSavingBarge.value) return;
 
     const bargeNameUpper = bargeForm.value.name.trim().toUpperCase();
-    const cleanOrderNo = bargeForm.value.orderNo.trim().toUpperCase();
+    let cleanOrderNo = bargeForm.value.orderNo.trim().toUpperCase();
+    if (!cleanOrderNo && !editingBarge.value) {
+        cleanOrderNo = calculateNextOrderNo();
+    }
     const vesselGoods = (selectedVessel.value.cargo_type || '').trim().toUpperCase();
     const vesselGoodsCode = (selectedVessel.value.cargo_code || '').trim().toUpperCase();
     const vesselOwner = (selectedVessel.value.customer || '').trim().toUpperCase();
@@ -418,7 +476,7 @@ const handleSaveBarge = async () => {
                     locked: false
                 });
             }
-            addToast(`Đã thêm sà lan ${bargeNameUpper}`, 'success');
+            addToast(`Đã thêm sà lan ${bargeNameUpper} (Mã lệnh: ${cleanOrderNo})`, 'success');
         }
         showBargeModal.value = false;
         await loadVessels();
@@ -517,29 +575,53 @@ onMounted(async () => {
                             'px-3.5 py-2.5 rounded-2xl border transition-all cursor-pointer group',
                             selectedVesselId === vessel.id
                                 ? 'bg-primary/[0.06] border-primary shadow-xs'
-                                : 'bg-white border-gray-100 hover:border-primary/30 hover:bg-gray-50/70'
+                                : (vessel.is_pinned
+                                    ? 'bg-amber-50/25 border-amber-200/80 hover:border-amber-300 hover:bg-amber-50/50'
+                                    : 'bg-white border-gray-100 hover:border-primary/30 hover:bg-gray-50/70')
                         ]"
                     >
-                        <!-- Dòng 1: Tên tàu + Số sà lan + Nút Sửa/Xóa gọn ngay bên phải -->
+                        <!-- Dòng 1: Tên tàu + Badge Ghim + Số sà lan + Nút Ghim/Sửa/Xóa gọn ngay bên phải -->
                         <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 min-w-0">
+                            <div class="flex items-center gap-1.5 min-w-0">
                                 <span
                                     :class="[
                                         'material-symbols-outlined text-base shrink-0',
-                                        selectedVesselId === vessel.id ? 'text-primary' : 'text-gray-400'
+                                        vessel.is_pinned
+                                            ? 'text-amber-500'
+                                            : (selectedVesselId === vessel.id ? 'text-primary' : 'text-gray-400')
                                     ]"
                                 >
-                                    directions_boat
+                                    {{ vessel.is_pinned ? 'push_pin' : 'directions_boat' }}
                                 </span>
                                 <h3 class="text-xs font-display font-black text-[#1e293b] truncate group-hover:text-primary transition-colors">
                                     {{ vessel.name }}
                                 </h3>
+                                <span
+                                    v-if="vessel.is_pinned"
+                                    class="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold flex items-center gap-0.5 shrink-0"
+                                    title="Tàu đặc biệt được ghim lên đầu"
+                                >
+                                    Đặc biệt
+                                </span>
                             </div>
 
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-bold">
                                     {{ (vessel.barges || []).length }} sà lan
                                 </span>
+                                <button
+                                    type="button"
+                                    @click.stop="handleTogglePinVessel(vessel)"
+                                    :class="[
+                                        'size-7 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer',
+                                        vessel.is_pinned
+                                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-700 shadow-xs'
+                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600'
+                                    ]"
+                                    :title="vessel.is_pinned ? 'Bỏ ghim tàu đặc biệt' : 'Ghim tàu đặc biệt lên đầu'"
+                                >
+                                    <span class="material-symbols-outlined text-xs">push_pin</span>
+                                </button>
                                 <button
                                     type="button"
                                     @click.stop="openEditVesselModal(vessel)"
@@ -588,6 +670,14 @@ onMounted(async () => {
                                 <h3 class="text-sm font-display font-black text-[#1e293b] truncate">
                                     {{ selectedVessel.name }}
                                 </h3>
+                                <span
+                                    v-if="selectedVessel.is_pinned"
+                                    class="h-7 px-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-[8px] text-xs font-bold flex items-center gap-1 shrink-0"
+                                    title="Tàu đặc biệt được ghim"
+                                >
+                                    <span class="material-symbols-outlined text-xs text-amber-600">push_pin</span>
+                                    Đặc biệt
+                                </span>
                                 <span class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center shrink-0">
                                     {{ filteredBarges.length }} sà lan
                                 </span>
@@ -605,6 +695,21 @@ onMounted(async () => {
                                         class="h-7 pl-8 pr-3 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary w-44"
                                     />
                                 </div>
+
+                                <button
+                                    type="button"
+                                    @click="handleTogglePinVessel(selectedVessel)"
+                                    :class="[
+                                        'h-7 px-2.5 rounded-[8px] border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer',
+                                        selectedVessel.is_pinned
+                                            ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    ]"
+                                    :title="selectedVessel.is_pinned ? 'Bỏ ghim tàu đặc biệt' : 'Ghim tàu đặc biệt lên đầu'"
+                                >
+                                    <span class="material-symbols-outlined text-xs text-amber-600">push_pin</span>
+                                    <span>{{ selectedVessel.is_pinned ? 'Đã ghim' : 'Ghim tàu' }}</span>
+                                </button>
 
                                 <button
                                     type="button"
@@ -825,6 +930,21 @@ onMounted(async () => {
                             <option value="__NEW__">➕ Nhập khách hàng mới (chưa có trong Danh mục)...</option>
                         </select>
                     </div>
+
+                    <!-- Ghim nguồn tàu đặc biệt -->
+                    <div class="flex items-center justify-between p-3 bg-amber-50/60 border border-amber-200/70 rounded-2xl">
+                        <div class="flex items-center gap-2.5">
+                            <span class="material-symbols-outlined text-amber-600 text-lg">push_pin</span>
+                            <div>
+                                <div class="text-xs font-bold text-slate-800">Ghim nguồn tàu đặc biệt</div>
+                                <div class="text-[11px] text-slate-500 font-semibold">Tàu được ghim sẽ luôn ưu tiên hiển thị ở đầu danh sách</div>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" v-model="vesselForm.is_pinned" class="sr-only peer" />
+                            <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-3 border-t border-primary/5">
@@ -879,11 +999,17 @@ onMounted(async () => {
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">Mã lệnh (Order No)</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700">Mã lệnh (Order No)</label>
+                            <span class="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 flex items-center gap-0.5">
+                                <span class="material-symbols-outlined text-xs">auto_awesome</span>
+                                Tự động gán số tiếp theo
+                            </span>
+                        </div>
                         <input
                             v-model="bargeForm.orderNo"
                             type="text"
-                            placeholder="Để trống sẽ tự động gán số thứ tự tiếp theo"
+                            placeholder="Số lệnh tiếp theo tự động gán..."
                             class="w-full h-10 px-3.5 bg-[#f1f5f9] border-none rounded-2xl text-xs font-mono font-bold text-[#1e293b] focus:ring-2 focus:ring-primary/20 outline-none uppercase"
                         />
                     </div>
