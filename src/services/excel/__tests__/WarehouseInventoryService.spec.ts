@@ -48,7 +48,8 @@ import {
     isEastwoodTicket,
     isTicketValidForInventoryReport,
     getStandardCarrierDisplay,
-    getStandardWarehouseDisplay
+    getStandardWarehouseDisplay,
+    getStandardAreaDisplay
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
@@ -92,11 +93,31 @@ describe('WarehouseInventoryService', () => {
             expect(getStandardCarrierDisplay(ticketWithValidCarrier.carrierName, validCarriers)).toBe('Vận Tải A');
         });
 
-        it('normalizes warehouse display based on warehouse catalog', () => {
+        it('normalizes warehouse display based on warehouse catalog and accepts ticket without excluding it', () => {
             expect(getStandardWarehouseDisplay('-', validWarehouses)).toBe('');
             expect(getStandardWarehouseDisplay('Kho Chưa Tồn Tại', validWarehouses)).toBe('');
             expect(getStandardWarehouseDisplay('Kho Bảo', validWarehouses)).toBe('Kho Bảo');
             expect(getStandardWarehouseDisplay('KHO 4', validWarehouses)).toBe('KHO 4');
+
+            const ticketMissingOrigin = {
+                id: 'T_NO_WH',
+                soPhieu: 'P002',
+                flowType: 'IMPORT',
+                warehouseId: 'KHO 1',
+                vehiclePlate: '77C-99999',
+                carrierName: 'Vận Tải A',
+                originWarehouseName: 'Kho Lạ Chưa Khai Báo',
+                originArea: 'Khu Vực Lạ',
+                reportDate: '2026-10-20',
+                netWeight: 35
+            } as WarehouseInventoryTicket;
+
+            // Báo cáo vẫn ghi nhận đầy đủ chuyến đó (không bị loại)
+            expect(isTicketValidForInventoryReport(ticketMissingOrigin, validWarehouses)).toBe(true);
+            // Cột Tên kho để trống khi không có trong danh mục
+            expect(getStandardWarehouseDisplay(ticketMissingOrigin.originWarehouseName, validWarehouses)).toBe('');
+            // Cột Khu vực để trống khi Tên kho không hợp lệ
+            expect(getStandardAreaDisplay(ticketMissingOrigin.originArea, ticketMissingOrigin.originWarehouseName, validWarehouses)).toBe('');
         });
 
         it('reapplyVehicleCarriersAndWarehouses fills known carrier, blanks uncataloged carrier, and fills place info', async () => {

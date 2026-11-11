@@ -8,7 +8,6 @@ import {
     getTicketCustomerGroup,
     sanitizeCustomerName,
     isBachKhoaTicket,
-    isTicketValidForInventoryReport,
     getStandardCarrierDisplay,
     getStandardWarehouseDisplay,
     getStandardAreaDisplay,
@@ -281,7 +280,7 @@ const missingWarehouseCount = computed(() => {
 });
 
 // Danh sách chuyến khuyết thông tin (nhà xe hoặc nơi xuất)
-const unstandardizedTickets = computed(() => {
+const unstandardizedTickets = computed<WarehouseInventoryTicket[]>(() => {
     return allTickets.value.filter(t => {
         const rawCarrier = t.carrierName ? stripAccents(t.carrierName).toUpperCase().trim() : '';
         const isCarrierMissing = !rawCarrier || rawCarrier === '-' || rawCarrier === '0' || (validCarriers.value.size > 0 && !validCarriers.value.has(rawCarrier));
@@ -293,9 +292,6 @@ const unstandardizedTickets = computed(() => {
         return isCarrierMissing || isWarehouseMissing;
     });
 });
-
-// Giữ lại alias cho excludedTickets nếu có template cũ gọi (luôn rỗng vì không loại chuyến nào)
-const excludedTickets = computed(() => []);
 
 async function handleRestandardizeData() {
     restandardizing.value = true;
@@ -1436,30 +1432,39 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </button>
                         </div>
 
-                        <!-- Verified & Excluded Badges -->
-                        <div class="h-7 px-2.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5" title="Số lượng phiếu hợp lệ theo danh mục Kho hàng được ghi nhận vào báo cáo">
+                        <!-- Verified & Missing Info Badges -->
+                        <div class="h-7 px-2.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5" title="Toàn bộ các chuyến cân được ghi nhận đầy đủ vào báo cáo">
                             <span class="material-symbols-outlined text-[13px]">verified</span>
-                            <span>{{ validTickets.length }} xe trong báo cáo</span>
+                            <span>{{ allTickets.length }} chuyến trong báo cáo</span>
                         </div>
 
                         <div
                             v-if="missingCarrierCount > 0"
                             class="h-7 px-2.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center gap-1.5"
-                            title="Số lượng xe trong báo cáo chưa có Nhà xe trong Danh mục xe (cột Nhà xe bị khuyết)"
+                            title="Số lượng xe chưa có Nhà xe trong Danh mục xe (cột Nhà xe được để trống)"
                         >
                             <span class="material-symbols-outlined text-[13px] text-amber-500">no_accounts</span>
                             <span>{{ missingCarrierCount }} xe khuyết nhà xe</span>
                         </div>
 
+                        <div
+                            v-if="missingWarehouseCount > 0"
+                            class="h-7 px-2.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center gap-1.5"
+                            title="Số lượng chuyến chưa có Tên kho trong Danh mục kho hàng (cột Tên kho được để trống)"
+                        >
+                            <span class="material-symbols-outlined text-[13px] text-slate-500">store</span>
+                            <span>{{ missingWarehouseCount }} chuyến khuyết nơi xuất</span>
+                        </div>
+
                         <button
-                            v-if="excludedTickets.length > 0"
+                            v-if="unstandardizedTickets.length > 0"
                             type="button"
                             @click="showExcludedModal = true"
-                            class="h-7 px-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
-                            title="Bấm để xem danh sách các xe bị loại khỏi báo cáo do Tên kho chưa có trong danh mục"
+                            class="h-7 px-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                            title="Bấm để xem danh sách các chuyến đang để trống Nhà xe hoặc Nơi xuất"
                         >
-                            <span class="material-symbols-outlined text-[13px]">warning</span>
-                            <span>{{ excludedTickets.length }} xe sai Tên kho (bị loại)</span>
+                            <span class="material-symbols-outlined text-[13px] text-slate-500">info</span>
+                            <span>{{ unstandardizedTickets.length }} chuyến khuyết TT</span>
                         </button>
                     </div>
 
@@ -3146,24 +3151,24 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
             </div>
         </div>
 
-        <!-- Modal: Danh Sách Xe Chưa Chuẩn Hóa (Bị Loại Khỏi Báo Cáo Tồn Kho) -->
+        <!-- Modal Danh Sách Chuyến Khuyết Thông Tin (Nhà xe / Nơi xuất) -->
         <div
             v-if="showExcludedModal"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4"
         >
             <div
-                class="bg-white rounded-[2rem] p-6 max-w-4xl w-full flex flex-col gap-4 shadow-2xl border border-rose-200/50 max-h-[90vh] overflow-hidden"
+                class="bg-white rounded-[2rem] p-6 max-w-4xl w-full flex flex-col gap-4 shadow-2xl border border-slate-200 max-h-[90vh] overflow-hidden"
             >
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
                     <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-rose-500 text-2xl">warning</span>
+                        <span class="material-symbols-outlined text-amber-500 text-2xl">info</span>
                         <div>
                             <h3 class="text-base font-display font-black text-[#1e293b]">
-                                Danh Sách Xe Bị Loại Khỏi Báo Cáo
+                                Danh Sách Chuyến Khuyết Thông Tin
                             </h3>
                             <p class="text-xs text-slate-500 font-semibold">
-                                Các xe dưới đây có Nơi xuất / Tên kho chưa có trong Danh mục kho hàng nên không được ghi nhận vào Báo cáo tồn kho.
+                                Các chuyến dưới đây vẫn được ghi nhận đầy đủ vào báo cáo tồn kho. Cột Nhà xe hoặc Nơi xuất chưa có trong danh mục sẽ được để trống.
                             </p>
                         </div>
                     </div>
@@ -3177,17 +3182,17 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 </div>
 
                 <!-- Summary Bar -->
-                <div class="flex items-center justify-between bg-rose-50/70 border border-rose-200/80 rounded-2xl px-4 py-2.5 text-xs shrink-0">
-                    <div class="flex items-center gap-2 font-bold text-rose-800">
-                        <span class="material-symbols-outlined text-base text-rose-600">info</span>
-                        <span>Tổng số xe bị loại: <span class="font-mono font-black text-rose-900 text-sm">{{ excludedTickets.length }}</span> xe (sai Tên kho)</span>
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs shrink-0">
+                    <div class="flex items-center gap-2 font-bold text-slate-800">
+                        <span class="material-symbols-outlined text-base text-primary">fact_check</span>
+                        <span>Tổng số: <span class="font-mono font-black text-primary text-sm">{{ unstandardizedTickets.length }}</span> chuyến để trống thông tin</span>
                     </div>
-                    <div class="text-[11px] text-rose-700 font-semibold">
-                        Lưu ý: Xe thiếu Nhà xe vẫn được ghi nhận vào báo cáo (cột Nhà xe bị khuyết). Chỉ xe chưa chuẩn hóa Tên kho mới bị loại.
+                    <div class="text-[11px] text-slate-500 font-semibold">
+                        Ghi nhận 100% vào báo cáo • Cột chưa có trong danh mục được để trống
                     </div>
                 </div>
 
-                <!-- Table of Excluded Tickets -->
+                <!-- Table of Missing Info Tickets -->
                 <div class="overflow-y-auto flex-1 rounded-2xl border border-slate-200 min-h-0">
                     <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
                         <thead class="bg-slate-50 sticky top-0 z-10 text-[11px] font-black uppercase text-slate-500 tracking-wider border-b border-slate-200">
@@ -3200,43 +3205,37 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <th class="px-3 py-2.5 text-center">Kho cảng</th>
                                 <th class="px-3 py-2.5 text-center">Ngày cân</th>
                                 <th class="px-3 py-2.5 text-right">Lượng hàng (tấn)</th>
-                                <th class="px-3 py-2.5">Lý do chưa ghi nhận</th>
+                                <th class="px-3 py-2.5">Tình trạng hiển thị</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr
-                                v-for="(t, idx) in excludedTickets"
+                                v-for="(t, idx) in unstandardizedTickets"
                                 :key="t.id || idx"
-                                class="hover:bg-rose-50/40 transition-colors"
+                                class="hover:bg-slate-50/80 transition-colors"
                             >
                                 <td class="px-3 py-2 text-center text-slate-400 font-mono font-bold">{{ idx + 1 }}</td>
                                 <td class="px-3 py-2 font-mono font-black text-primary">{{ t.vehiclePlate }}</td>
                                 <td class="px-3 py-2">
                                     <span
-                                        v-if="t.carrierName && t.carrierName !== '-' && t.carrierName !== '0'"
+                                        v-if="t.carrierName && t.carrierName !== '-' && t.carrierName !== '0' && (!validCarriers.size || validCarriers.has(stripAccents(t.carrierName).toUpperCase().trim()))"
                                         class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200"
                                     >
                                         {{ t.carrierName }}
                                     </span>
                                     <span v-else class="text-slate-400 italic text-xs">
-                                        (Khuyết)
+                                        (Để trống)
                                     </span>
                                 </td>
                                 <td class="px-3 py-2">
                                     <span
-                                        v-if="t.originWarehouseName && t.originWarehouseName !== '-'"
+                                        v-if="t.originWarehouseName && t.originWarehouseName !== '-' && (!validWarehouses.size || validWarehouses.has(stripAccents(t.originWarehouseName).toUpperCase().trim()))"
                                         class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200"
                                     >
                                         {{ t.originWarehouseName }}
                                     </span>
-                                    <span
-                                        v-else-if="t.sourceOrRemark"
-                                        class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200"
-                                    >
-                                        {{ t.sourceOrRemark }} (Chưa có trong danh mục kho)
-                                    </span>
-                                    <span v-else class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs border border-rose-200">
-                                        Thiếu Tên kho
+                                    <span v-else class="text-slate-400 italic text-xs">
+                                        (Để trống)
                                     </span>
                                 </td>
                                 <td class="px-3 py-2 text-center font-bold text-slate-600">
@@ -3256,9 +3255,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <td class="px-3 py-2 text-right font-mono font-black text-slate-800">
                                     {{ t.netWeight ? Number(t.netWeight).toFixed(3) : '--' }}
                                 </td>
-                                <td class="px-3 py-2 text-rose-600 font-semibold text-[11px]">
-                                    <span>
-                                        • Tên nơi xuất "{{ t.originWarehouseName || t.sourceOrRemark || 'Trống' }}" chưa có trong Danh mục kho hàng
+                                <td class="px-3 py-2 font-medium text-[11px] text-slate-600">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="size-1.5 rounded-full bg-amber-400"></span>
+                                        <span>Ghi nhận báo cáo (cột khuyết để trống)</span>
                                     </span>
                                 </td>
                             </tr>
