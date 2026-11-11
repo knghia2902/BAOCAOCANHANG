@@ -592,7 +592,7 @@ onMounted(async () => {
                                     : 'bg-white border-gray-100 hover:border-primary/30 hover:bg-gray-50/70')
                         ]"
                     >
-                        <!-- Dòng 1: Tên tàu + Badge Ghim + Số sà lan + Nút Ghim/Sửa/Xóa gọn ngay bên phải -->
+                        <!-- Dòng 1: Tên tàu + Số sà lan + Nút Ghim/Sửa/Xóa gọn ngay bên phải -->
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <span
@@ -608,13 +608,6 @@ onMounted(async () => {
                                 <h3 class="text-xs font-display font-black text-[#1e293b] truncate group-hover:text-primary transition-colors">
                                     {{ vessel.name }}
                                 </h3>
-                                <span
-                                    v-if="vessel.is_pinned"
-                                    class="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold flex items-center gap-0.5 shrink-0"
-                                    title="Tàu đặc biệt được ghim lên đầu"
-                                >
-                                    Đặc biệt
-                                </span>
                             </div>
 
                             <div class="flex items-center gap-1.5 shrink-0">
@@ -682,14 +675,6 @@ onMounted(async () => {
                                 <h3 class="text-sm font-display font-black text-[#1e293b] truncate">
                                     {{ selectedVessel.name }}
                                 </h3>
-                                <span
-                                    v-if="selectedVessel.is_pinned"
-                                    class="h-7 px-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-[8px] text-xs font-bold flex items-center gap-1 shrink-0"
-                                    title="Tàu đặc biệt được ghim"
-                                >
-                                    <span class="material-symbols-outlined text-xs text-amber-600">push_pin</span>
-                                    Đặc biệt
-                                </span>
                                 <span class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center shrink-0">
                                     {{ filteredBarges.length }} sà lan
                                 </span>
@@ -943,20 +928,6 @@ onMounted(async () => {
                         </select>
                     </div>
 
-                    <!-- Ghim nguồn tàu đặc biệt -->
-                    <div class="flex items-center justify-between p-3 bg-amber-50/60 border border-amber-200/70 rounded-2xl">
-                        <div class="flex items-center gap-2.5">
-                            <span class="material-symbols-outlined text-amber-600 text-lg">push_pin</span>
-                            <div>
-                                <div class="text-xs font-bold text-slate-800">Ghim nguồn tàu đặc biệt</div>
-                                <div class="text-[11px] text-slate-500 font-semibold">Tàu được ghim sẽ luôn ưu tiên hiển thị ở đầu danh sách</div>
-                            </div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                            <input type="checkbox" v-model="vesselForm.is_pinned" class="sr-only peer" />
-                            <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                        </label>
-                    </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-3 border-t border-primary/5">
