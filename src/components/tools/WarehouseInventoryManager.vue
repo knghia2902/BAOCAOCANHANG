@@ -727,11 +727,8 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
         ? ['KHO 1', 'KHO 2', 'KHO 3']
         : [isBK ? 'KHO 4 - BK' : (overrideWarehouseId || activeWarehouseConfigKey.value)];
 
-    const getBlockColWidths = (whId: string): number[] => {
-        const hasDirect = !isCombined && (whId === 'KHO 4' || whId === 'KHO 4 - BK') && showDirectColumnInSingleFinal.value;
-        return hasDirect
-            ? [135, 130, 130, 135, 125, 125]
-            : [135, 130, 130, 135, 125];
+    const getBlockColWidths = (_whId: string): number[] => {
+        return [135, 130, 130, 135, 125];
     };
 
     const getRecentRows = (whId: string): WarehouseFinalRow[] => {
@@ -789,7 +786,6 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
         const cfg = configs.value[whId];
         const calc = (finalTablesByWarehouse.value as any)[whId];
         const recentRows = getRecentRows(whId);
-        const hasDirect = !isCombined && (whId === 'KHO 4' || whId === 'KHO 4 - BK') && showDirectColumnInSingleFinal.value;
 
         let curY = padY;
 
@@ -851,22 +847,13 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
         curY += rowBlankH;
 
         // 8. Table Header Row (Sky-blue #84d0f0 with black borders)
-        const headers: Array<string[]> = hasDirect
-            ? [
-                ['Ngày', 'Date'],
-                [`NHẬP ${whId}`],
-                [`XUẤT ${whId}`],
-                ['Tồn cuối', 'Stock'],
-                ['Xá thẳng', 'Direct'],
-                ['Ghi chú', 'Remarks']
-            ]
-            : [
-                ['Ngày', 'Date'],
-                [`NHẬP ${whId}`],
-                [`XUẤT ${whId}`],
-                ['Tồn cuối', 'Stock'],
-                ['Ghi chú', 'Remarks']
-            ];
+        const headers: Array<string[]> = [
+            ['Ngày', 'Date'],
+            [`NHẬP ${whId}`],
+            [`XUẤT ${whId}`],
+            ['Tồn cuối', 'Stock'],
+            ['Ghi chú', 'Remarks']
+        ];
 
         let hx = startX;
         headers.forEach((lines, i) => {
@@ -890,29 +877,20 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
         curY += headerH;
 
         // 9. Data Rows (last 3 days up to report date)
-        const aligns: Array<'center' | 'right' | 'left'> = hasDirect
-            ? ['center', 'right', 'right', 'center', 'right', 'left']
-            : ['center', 'right', 'right', 'center', 'left'];
+        const aligns: Array<'center' | 'right' | 'right' | 'center' | 'left'> = [
+            'center', 'right', 'right', 'center', 'left'
+        ];
 
         for (let rIdx = 0; rIdx < maxDataRows; rIdx++) {
             const r = recentRows[rIdx];
             const cells = r
-                ? hasDirect
-                    ? [
-                        r.displayDate,
-                        r.importTons !== 0 ? formatKg(r.importTons) : '-',
-                        r.exportTons !== 0 ? formatKg(r.exportTons) : '-',
-                        r.remainingStockTons !== 0 ? formatKg(r.remainingStockTons) : '0',
-                        r.directTons !== 0 ? formatKg(r.directTons) : '-',
-                        r.remark || ''
-                    ]
-                    : [
-                        r.displayDate,
-                        r.importTons !== 0 ? formatKg(r.importTons) : '-',
-                        r.exportTons !== 0 ? formatKg(r.exportTons) : '-',
-                        r.remainingStockTons !== 0 ? formatKg(r.remainingStockTons) : '0',
-                        r.remark || ''
-                    ]
+                ? [
+                    r.displayDate,
+                    r.importTons !== 0 ? formatKg(r.importTons) : '-',
+                    r.exportTons !== 0 ? formatKg(r.exportTons) : '-',
+                    r.remainingStockTons !== 0 ? formatKg(r.remainingStockTons) : '0',
+                    r.remark || ''
+                ]
                 : colWidths.map(() => '');
 
             let dx = startX;
@@ -942,22 +920,13 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
 
         // 11. Total Row: Tổng cộng (Total)
         const totalImpTons = calc.totalImportTons + (calc.openingStockBeforeFilter > 0 ? calc.openingStockBeforeFilter : 0);
-        const totalCells = hasDirect
-            ? [
-                'Tổng cộng (Total)',
-                totalImpTons !== 0 ? formatKg(totalImpTons) : '-',
-                calc.totalExportTons !== 0 ? formatKg(calc.totalExportTons) : '-',
-                '',
-                calc.totalDirectTons !== 0 ? formatKg(calc.totalDirectTons) : '',
-                ''
-            ]
-            : [
-                'Tổng cộng (Total)',
-                totalImpTons !== 0 ? formatKg(totalImpTons) : '-',
-                calc.totalExportTons !== 0 ? formatKg(calc.totalExportTons) : '-',
-                '',
-                ''
-            ];
+        const totalCells = [
+            'Tổng cộng (Total)',
+            totalImpTons !== 0 ? formatKg(totalImpTons) : '-',
+            calc.totalExportTons !== 0 ? formatKg(calc.totalExportTons) : '-',
+            '',
+            ''
+        ];
 
         let tx = startX;
         totalCells.forEach((txt, i) => {

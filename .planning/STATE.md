@@ -116,6 +116,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 261025-edt | Thêm nút Edit ở mỗi phiếu cân và Modal chỉnh sửa chi tiết trong Tồn Kho 4 Kho | 2026-10-25 | [261025-edt-them-nut-edit-o-moi-phieu-can](./quick/261025-edt-them-nut-edit-o-moi-phieu-can/) |
 | 261025-tu5 | Chuẩn hóa mẫu phiếu cân toàn cảng và đồng bộ thông tin Nguồn tàu | 2026-10-25 | [261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b](./quick/261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b/) |
 | 261101-tnn | Kiểm tra và sửa lỗi lặp dữ liệu phiếu cân khi đồng bộ từ Báo cáo cân hàng qua Báo cáo tổng quan | 2026-11-01 | [261101-tnn-kiem-tra-lai-co-che-dong-bo-phieu-can-tu](./quick/261101-tnn-kiem-tra-lai-co-che-dong-bo-phieu-can-tu/) |
+| 261111-xth | Ẩn cột Xá thẳng trong Ảnh chụp nhanh Final gửi Zalo của Báo Cáo Tồn Kho | 2026-11-11 | [261111-an-cot-xa-thang-anh-zalo-final](./quick/261111-an-cot-xa-thang-anh-zalo-final/) |
 
 ## Session Continuity
 
