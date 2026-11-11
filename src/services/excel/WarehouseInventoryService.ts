@@ -60,7 +60,7 @@ function compareTicketsOrder(a: WarehouseInventoryTicket, b: WarehouseInventoryT
     return (a.soPhieu || '').localeCompare(b.soPhieu || '');
 }
 
-function stripAccents(str: string): string {
+export function stripAccents(str: string): string {
     return (str || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -475,48 +475,54 @@ export function getStandardCarrierDisplay(
 }
 
 /**
- * Kiểm tra xem phiếu cân có hợp lệ theo Danh mục Kho hàng để ghi nhận vào báo cáo hay không.
- * Nếu tên kho không có trong danh mục kho hàng (hoặc bị trống / không hợp lệ),
- * hệ thống sẽ không ghi nhận vào báo cáo tồn kho.
- * Lưu ý: Phiếu chưa có Nhà xe trong danh mục VẪN được ghi nhận vào báo cáo,
- * nhưng cột Nhà xe sẽ bị khuyết (để trống).
+ * Chuẩn hóa giá trị hiển thị cột Nơi xuất / Tên kho:
+ * Nếu tên kho thuộc Danh mục kho hàng (validWarehouses), trả về tên kho.
+ * Nếu chưa có hoặc không nằm trong danh mục, trả về chuỗi rỗng / khuyết ('').
+ */
+export function getStandardWarehouseDisplay(
+    warehouseName: string | undefined | null,
+    validWarehouses?: Set<string>
+): string {
+    if (!warehouseName) return '';
+    const norm = stripAccents(warehouseName).toUpperCase().trim();
+    if (!norm || norm === '-' || norm === '0' || /^\d+(\.\d+)?$/.test(norm)) {
+        return '';
+    }
+    if (validWarehouses && validWarehouses.size > 0) {
+        return validWarehouses.has(norm) ? warehouseName : '';
+    }
+    return warehouseName;
+}
+
+/**
+ * Chuẩn hóa giá trị hiển thị cột Khu vực:
+ * Nếu Tên kho hợp lệ theo danh mục, hiển thị tên khu vực.
+ * Nếu Tên kho chưa có hoặc để trống, khu vực cũng để trống ('').
+ */
+export function getStandardAreaDisplay(
+    areaName: string | undefined | null,
+    originWarehouseName?: string | undefined | null,
+    validWarehouses?: Set<string>
+): string {
+    if (!areaName || areaName === '-') return '';
+    if (originWarehouseName) {
+        const stdWh = getStandardWarehouseDisplay(originWarehouseName, validWarehouses);
+        if (!stdWh) return '';
+    }
+    return areaName;
+}
+
+/**
+ * Kiểm tra xem phiếu cân có được ghi nhận vào báo cáo tồn kho hay không.
+ * Theo yêu cầu: Cả Nhà xe và Nơi xuất/Tên kho đều KHÔNG bắt buộc.
+ * Báo cáo ghi nhận đầy đủ 100% các chuyến cân, những thông tin nào
+ * chưa có trong danh mục sẽ được để trống (khuyết).
  */
 export function isTicketValidForInventoryReport(
     ticket: WarehouseInventoryTicket,
-    validWarehouses?: Set<string>
+    _validWarehouses?: Set<string>
 ): boolean {
-    if (!ticket) return false;
-
-    // Kiểm tra Tên kho & Khu vực theo luồng dữ liệu (flowType)
-    if (ticket.flowType === 'IMPORT') {
-        // Kho nhận tại cảng (KHO 1..4) phải hợp lệ
-        const whId = ticket.warehouseId ? stripAccents(ticket.warehouseId).toUpperCase().trim() : '';
-        if (!whId || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(whId))) {
-            return false;
-        }
-        // Tên kho xuất / kho vệ tinh phải hợp lệ
-        const originWh = ticket.originWarehouseName ? stripAccents(ticket.originWarehouseName).toUpperCase().trim() : '';
-        if (!originWh || originWh === '-' || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(originWh))) {
-            return false;
-        }
-        return true;
-    } else if (ticket.flowType === 'EXPORT') {
-        // Kho xuất tại cảng (KHO 1..4) phải hợp lệ
-        const whId = ticket.warehouseId ? stripAccents(ticket.warehouseId).toUpperCase().trim() : '';
-        if (!whId || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(whId))) {
-            return false;
-        }
-        return true;
-    } else if (ticket.flowType === 'DIRECT') {
-        // Tên kho xuất (kho vệ tinh đi thẳng ra tàu/xà lan) phải hợp lệ
-        const originWh = ticket.originWarehouseName ? stripAccents(ticket.originWarehouseName).toUpperCase().trim() : '';
-        if (!originWh || originWh === '-' || (validWarehouses && validWarehouses.size > 0 && !validWarehouses.has(originWh))) {
-            return false;
-        }
-        return true;
-    }
-
-    return false;
+    return !!ticket;
 }
 
 export function lookupCarrierName(plate: string, vehicleMap: Record<string, WarehouseVehicleMap>): string {
@@ -2482,6 +2488,20 @@ export const WarehouseInventoryService = {
                 }
             }
 
+            // 3. Chuẩn hóa Tên kho nơi xuất & Khu vực: nếu chưa có trong danh mục hoặc là '-' thì để trống ('')
+            if (t.originWarehouseName) {
+                const normWh = stripAccents(t.originWarehouseName).toUpperCase().trim();
+                if (normWh === '-' || (validWarehouses.size > 0 && !validWarehouses.has(normWh))) {
+                    t.originWarehouseName = '';
+                    t.originArea = '';
+                    changed = true;
+                }
+            }
+            if (t.originArea === '-') {
+                t.originArea = '';
+                changed = true;
+            }
+
             if (changed) {
                 updated.push(t);
             }
@@ -2491,11 +2511,9 @@ export const WarehouseInventoryService = {
             await this.saveTicketsBulk(updated);
         }
 
-        const validCount = tickets.filter(t => isTicketValidForInventoryReport(t, validWarehouses)).length;
-
         return {
             updatedCount: updated.length,
-            validCount,
+            validCount: tickets.length,
             totalCount: tickets.length
         };
     },
@@ -3422,12 +3440,12 @@ export const WarehouseInventoryService = {
                 this.getValidCarriers(),
                 this.getValidWarehouses()
             ]);
-            allTickets = rawTickets
-                .filter(t => isTicketValidForInventoryReport(t, validWarehouses))
-                .map(t => ({
-                    ...t,
-                    carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers)
-                }));
+            allTickets = rawTickets.map(t => ({
+                ...t,
+                carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers),
+                originWarehouseName: getStandardWarehouseDisplay(t.originWarehouseName, validWarehouses),
+                originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses)
+            }));
         } else {
             allTickets = await this.getAllTickets();
         }
@@ -3511,12 +3529,12 @@ export const WarehouseInventoryService = {
                 this.getValidCarriers(),
                 this.getValidWarehouses()
             ]);
-            allTickets = rawTickets
-                .filter(t => isTicketValidForInventoryReport(t, validWarehouses))
-                .map(t => ({
-                    ...t,
-                    carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers)
-                }));
+            allTickets = rawTickets.map(t => ({
+                ...t,
+                carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers),
+                originWarehouseName: getStandardWarehouseDisplay(t.originWarehouseName, validWarehouses),
+                originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses)
+            }));
         } else {
             allTickets = await this.getAllTickets();
         }
@@ -5107,7 +5125,12 @@ export const WarehouseInventoryService = {
             { width: 14.1 }, { width: 17.9 }, { width: 15.4 }, { width: 17.2 }, { width: 28.9 },
             { width: 23.4 }, { width: 20.9 }, { width: 24.4 }, { width: 20 }
         ];
-    }
+    },
+
+    getStandardCarrierDisplay,
+    getStandardWarehouseDisplay,
+    getStandardAreaDisplay,
+    isTicketValidForInventoryReport
 };
 
 export default WarehouseInventoryService;

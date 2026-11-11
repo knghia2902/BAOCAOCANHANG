@@ -9,7 +9,10 @@ import {
     sanitizeCustomerName,
     isBachKhoaTicket,
     isTicketValidForInventoryReport,
-    getStandardCarrierDisplay
+    getStandardCarrierDisplay,
+    getStandardWarehouseDisplay,
+    getStandardAreaDisplay,
+    stripAccents
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -255,27 +258,44 @@ async function loadAllData() {
     }
 }
 
-// Danh sách phiếu hợp lệ theo Danh mục Kho hàng để ghi nhận vào báo cáo
+// Báo cáo tồn kho ghi nhận đầy đủ 100% các chuyến cân
 const validTickets = computed(() => {
-    return allTickets.value.filter(t =>
-        isTicketValidForInventoryReport(t, validWarehouses.value)
-    );
+    return allTickets.value;
 });
 
-// Danh sách phiếu chưa chuẩn hóa kho (bị loại khỏi báo cáo)
-const excludedTickets = computed(() => {
-    return allTickets.value.filter(t =>
-        !isTicketValidForInventoryReport(t, validWarehouses.value)
-    );
-});
-
-// Số lượng xe trong báo cáo nhưng chưa có Nhà xe trong Danh mục xe (cột nhà xe bị khuyết)
+// Số lượng xe trong báo cáo chưa có Nhà xe trong Danh mục xe (cột nhà xe để trống)
 const missingCarrierCount = computed(() => {
-    return validTickets.value.filter(t => {
-        const raw = t.carrierName ? t.carrierName.trim().toUpperCase() : '';
+    return allTickets.value.filter(t => {
+        const raw = t.carrierName ? stripAccents(t.carrierName).toUpperCase().trim() : '';
         return !raw || raw === '-' || raw === '0' || (validCarriers.value.size > 0 && !validCarriers.value.has(raw));
     }).length;
 });
+
+// Số lượng chuyến chưa có Tên kho trong Danh mục kho hàng (cột Tên kho để trống)
+const missingWarehouseCount = computed(() => {
+    return allTickets.value.filter(t => {
+        if (t.flowType === 'EXPORT') return false; // Luồng xuất không có cột nơi xuất
+        const raw = t.originWarehouseName ? stripAccents(t.originWarehouseName).toUpperCase().trim() : '';
+        return !raw || raw === '-' || raw === '0' || (validWarehouses.value.size > 0 && !validWarehouses.value.has(raw));
+    }).length;
+});
+
+// Danh sách chuyến khuyết thông tin (nhà xe hoặc nơi xuất)
+const unstandardizedTickets = computed(() => {
+    return allTickets.value.filter(t => {
+        const rawCarrier = t.carrierName ? stripAccents(t.carrierName).toUpperCase().trim() : '';
+        const isCarrierMissing = !rawCarrier || rawCarrier === '-' || rawCarrier === '0' || (validCarriers.value.size > 0 && !validCarriers.value.has(rawCarrier));
+
+        const isExport = t.flowType === 'EXPORT';
+        const rawWh = t.originWarehouseName ? stripAccents(t.originWarehouseName).toUpperCase().trim() : '';
+        const isWarehouseMissing = !isExport && (!rawWh || rawWh === '-' || rawWh === '0' || (validWarehouses.value.size > 0 && !validWarehouses.value.has(rawWh)));
+
+        return isCarrierMissing || isWarehouseMissing;
+    });
+});
+
+// Giữ lại alias cho excludedTickets nếu có template cũ gọi (luôn rỗng vì không loại chuyến nào)
+const excludedTickets = computed(() => []);
 
 async function handleRestandardizeData() {
     restandardizing.value = true;
@@ -750,9 +770,11 @@ async function handleExportExcel() {
     exportingExcel.value = true;
     try {
         const opts = {
-            tickets: validTickets.value.map(t => ({
+            tickets: allTickets.value.map(t => ({
                 ...t,
-                carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers.value)
+                carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers.value),
+                originWarehouseName: getStandardWarehouseDisplay(t.originWarehouseName, validWarehouses.value),
+                originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses.value)
             })),
             fromDate: filterFromDate.value || undefined,
             toDate: filterToDate.value || undefined
