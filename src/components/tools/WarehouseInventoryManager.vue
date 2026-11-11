@@ -11,7 +11,8 @@ import {
     getStandardCarrierDisplay,
     getStandardWarehouseDisplay,
     getStandardAreaDisplay,
-    stripAccents
+    stripAccents,
+    lookupCarrierName
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -248,6 +249,22 @@ async function loadAllData() {
         vehiclesMap.value = loadedVehicles;
         validCarriers.value = loadedCarriers;
         validWarehouses.value = loadedWarehouses;
+
+        // Tự động đối soát và điền Nhà xe từ Danh mục xe cho các phiếu chưa có hoặc khuyết nhà xe
+        let hasTicketCarrierUpdates = false;
+        allTickets.value.forEach(t => {
+            const rawCarrier = t.carrierName ? t.carrierName.trim() : '';
+            if (!rawCarrier || rawCarrier === '-' || rawCarrier === '0') {
+                const lookedUp = lookupCarrierName(t.vehiclePlate, vehiclesMap.value);
+                if (lookedUp) {
+                    t.carrierName = lookedUp;
+                    hasTicketCarrierUpdates = true;
+                }
+            }
+        });
+        if (hasTicketCarrierUpdates) {
+            WarehouseInventoryService.saveTicketsBulk(allTickets.value).catch(console.warn);
+        }
     } catch (err: any) {
         console.error('Lỗi tải dữ liệu tồn kho:', err);
         addToast('Không thể tải dữ liệu tồn kho: ' + (err?.message || err), 'error');

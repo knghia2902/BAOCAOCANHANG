@@ -65,12 +65,17 @@ export function stripAccents(str: string): string {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D');
+        .replace(/Đ/g, 'D')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 export function normalizePlateKey(plate: string): string {
     if (!plate) return '';
-    const mainPart = String(plate).split('/')[0] || String(plate);
+    let mainPart = String(plate).split('/')[0] || '';
+    if (mainPart.includes(' - ')) {
+        mainPart = mainPart.split(' - ')[0] || mainPart;
+    }
     return mainPart.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 }
 
@@ -526,16 +531,25 @@ export function isTicketValidForInventoryReport(
 }
 
 export function lookupCarrierName(plate: string, vehicleMap: Record<string, WarehouseVehicleMap>): string {
-    if (!plate) return '';
+    if (!plate || !vehicleMap) return '';
     const norm = normalizePlateKey(plate);
-    if (!norm) return '';
-    if (vehicleMap[norm]) {
+    if (norm && vehicleMap[norm]?.carrierName) {
         return vehicleMap[norm].carrierName;
     }
     // Check if full plate with trailer was stored
     const fullNorm = String(plate).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    if (vehicleMap[fullNorm]) {
+    if (fullNorm && vehicleMap[fullNorm]?.carrierName) {
         return vehicleMap[fullNorm].carrierName;
+    }
+    // Check each part separated by slash, underscore, or space-dash-space (e.g. "TRACTOR / TRAILER" or "TRACTOR - TRAILER")
+    const parts = String(plate)
+        .split(/[\/\_]|(?:\s+[-–—]\s+)/)
+        .map(p => normalizePlateKey(p))
+        .filter(Boolean);
+    for (const part of parts) {
+        if (vehicleMap[part]?.carrierName) {
+            return vehicleMap[part].carrierName;
+        }
     }
     return '';
 }
@@ -1871,7 +1885,93 @@ export const WarehouseInventoryService = {
     },
 
     async getVehicles(): Promise<Record<string, WarehouseVehicleMap>> {
-        const local = (await dbContext.get<Record<string, WarehouseVehicleMap>>(LOCAL_VEHICLES_KEY)) || {};
+        const map: Record<string, WarehouseVehicleMap> = {};
+
+        // 1. Nạp từ VehicleService (bảng weighbridge_vehicles và cache allocator_vehicles)
+        // Đây là Danh mục xe chính xác được người dùng quản lý tại menu sơ đồ cây (VehicleManager.vue)
+        try {
+            const wbVehicles = await VehicleService.getVehicles();
+            if (Array.isArray(wbVehicles)) {
+                for (const v of wbVehicles) {
+                    if (!v) continue;
+                    const cName = (v.carrierName || '').trim();
+                    if (!cName) continue;
+
+                    const key = normalizePlateKey(v.plateNumber);
+                    if (key) {
+                        map[key] = {
+                            vehiclePlate: key,
+                            displayPlate: v.plateNumber,
+                            carrierName: cName
+                        };
+                    }
+                    if (v.moocNumber) {
+                        const mKey = normalizePlateKey(v.moocNumber);
+                        if (mKey && !map[mKey]) {
+                            map[mKey] = {
+                                vehiclePlate: mKey,
+                                displayPlate: v.moocNumber,
+                                carrierName: cName
+                            };
+                        }
+                    }
+                    if (v.plateNumber && v.moocNumber) {
+                        const combinedKey = normalizePlateKey(`${v.plateNumber}/${v.moocNumber}`);
+                        if (combinedKey && !map[combinedKey]) {
+                            map[combinedKey] = {
+                                vehiclePlate: combinedKey,
+                                displayPlate: `${v.plateNumber}/${v.moocNumber}`,
+                                carrierName: cName
+                            };
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[WarehouseInventoryService] Failed to load vehicles from VehicleService:', e);
+        }
+
+        // 2. Nạp thêm từ IndexedDB allocator_vehicles (dự phòng ngoại tuyến tức thời)
+        try {
+            const directAllocator = await dbContext.get<any[]>('allocator_vehicles');
+            if (Array.isArray(directAllocator)) {
+                for (const v of directAllocator) {
+                    if (!v) continue;
+                    const cName = (v.carrierName || '').trim();
+                    if (!cName) continue;
+                    const key = normalizePlateKey(v.plateNumber);
+                    if (key && !map[key]) {
+                        map[key] = {
+                            vehiclePlate: key,
+                            displayPlate: v.plateNumber,
+                            carrierName: cName
+                        };
+                    }
+                    if (v.moocNumber) {
+                        const mKey = normalizePlateKey(v.moocNumber);
+                        if (mKey && !map[mKey]) {
+                            map[mKey] = {
+                                vehiclePlate: mKey,
+                                displayPlate: v.moocNumber,
+                                carrierName: cName
+                            };
+                        }
+                    }
+                }
+            }
+        } catch (_) {}
+
+        // 3. Nạp từ local IndexedDB LOCAL_VEHICLES_KEY ('warehouse_vehicles')
+        try {
+            const local = (await dbContext.get<Record<string, WarehouseVehicleMap>>(LOCAL_VEHICLES_KEY)) || {};
+            for (const [k, v] of Object.entries(local)) {
+                if (k && v && v.carrierName && !map[k]) {
+                    map[k] = v;
+                }
+            }
+        } catch (_) {}
+
+        // 4. Nạp từ bảng warehouse_vehicles trên Supabase (nếu có)
         if (!dedicatedTablesMissing) {
             try {
                 const { data, error } = await supabase
@@ -1880,33 +1980,38 @@ export const WarehouseInventoryService = {
                 if (error && isTableMissingError(error)) {
                     dedicatedTablesMissing = true;
                 } else if (!error && Array.isArray(data) && data.length > 0) {
-                    const map: Record<string, WarehouseVehicleMap> = { ...local };
                     for (const r of data) {
                         const key = normalizePlateKey(r.vehicle_plate || r.display_plate);
-                        if (key) {
+                        if (key && r.carrier_name && !map[key]) {
                             map[key] = {
                                 vehiclePlate: key,
                                 displayPlate: r.display_plate || r.vehicle_plate,
-                                carrierName: r.carrier_name || ''
+                                carrierName: r.carrier_name
                             };
                         }
                     }
-                    await dbContext.set(LOCAL_VEHICLES_KEY, map);
-                    return map;
                 }
             } catch (err) {
                 console.warn('Fallback to local warehouse_vehicles:', err);
             }
         }
 
-        if (dedicatedTablesMissing && Object.keys(local).length === 0) {
+        if (dedicatedTablesMissing && Object.keys(map).length === 0) {
             const fb = await loadFallbackStateFromContentSettings();
             if (fb?.vehicles) {
-                await dbContext.set(LOCAL_VEHICLES_KEY, fb.vehicles);
-                return fb.vehicles;
+                for (const [k, v] of Object.entries(fb.vehicles)) {
+                    if (k && v && !map[k]) {
+                        map[k] = v as WarehouseVehicleMap;
+                    }
+                }
             }
         }
-        return local;
+
+        try {
+            await dbContext.set(LOCAL_VEHICLES_KEY, map);
+        } catch (_) {}
+
+        return map;
     },
 
     async saveVehiclesBulk(vehicles: WarehouseVehicleMap[]): Promise<number> {

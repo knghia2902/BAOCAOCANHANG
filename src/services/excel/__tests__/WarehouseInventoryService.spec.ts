@@ -49,7 +49,9 @@ import {
     isTicketValidForInventoryReport,
     getStandardCarrierDisplay,
     getStandardWarehouseDisplay,
-    getStandardAreaDisplay
+    getStandardAreaDisplay,
+    normalizePlateKey,
+    lookupCarrierName
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
@@ -118,6 +120,27 @@ describe('WarehouseInventoryService', () => {
             expect(getStandardWarehouseDisplay(ticketMissingOrigin.originWarehouseName, validWarehouses)).toBe('');
             // Cột Khu vực để trống khi Tên kho không hợp lệ
             expect(getStandardAreaDisplay(ticketMissingOrigin.originArea, ticketMissingOrigin.originWarehouseName, validWarehouses)).toBe('');
+        });
+
+        it('correctly matches and looks up carrier for plate with space/dot/trailer like 50E 83794', () => {
+            expect(normalizePlateKey('50E 83794')).toBe('50E83794');
+            expect(normalizePlateKey('50E-837.94')).toBe('50E83794');
+            expect(normalizePlateKey('50E-83794')).toBe('50E83794');
+            expect(normalizePlateKey('50E 83794 / 51R 12345')).toBe('50E83794');
+            expect(normalizePlateKey('50E-837.94 - 51R-123.45')).toBe('50E83794');
+
+            const vehicleMap = {
+                '50E83794': {
+                    vehiclePlate: '50E83794',
+                    displayPlate: '50E 83794',
+                    carrierName: 'VẬN TẢI THÀNH CÔNG'
+                }
+            };
+
+            expect(lookupCarrierName('50E 83794', vehicleMap)).toBe('VẬN TẢI THÀNH CÔNG');
+            expect(lookupCarrierName('50E-837.94', vehicleMap)).toBe('VẬN TẢI THÀNH CÔNG');
+            expect(lookupCarrierName('50E 83794 / 51R 12345', vehicleMap)).toBe('VẬN TẢI THÀNH CÔNG');
+            expect(lookupCarrierName('51R-123.45 / 50E 83794', vehicleMap)).toBe('VẬN TẢI THÀNH CÔNG');
         });
 
         it('reapplyVehicleCarriersAndWarehouses fills known carrier, blanks uncataloged carrier, and fills place info', async () => {
