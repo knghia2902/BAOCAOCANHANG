@@ -513,7 +513,7 @@ export class WeighbridgeOtherService {
                 note: t.note || null
             }));
 
-            const chunkSize = 100;
+            const chunkSize = 500;
             for (let i = 0; i < dbRows.length; i += chunkSize) {
                 const chunk = dbRows.slice(i, i + chunkSize);
                 const { error } = await supabase
@@ -533,7 +533,7 @@ export class WeighbridgeOtherService {
     }
 
     /**
-     * Save container tickets using bulk upsert with chunk size 100
+     * Save container tickets using bulk upsert with chunk size 500
      */
     async saveContainerTickets(tickets: ContainerTicket[]): Promise<{ success: boolean; error?: any }> {
         const local = (await dbContext.get<ContainerTicket[]>('wb_container_tickets')) || [];
@@ -565,7 +565,7 @@ export class WeighbridgeOtherService {
                 note: t.note || null
             }));
 
-            const chunkSize = 100;
+            const chunkSize = 500;
             for (let i = 0; i < dbRows.length; i += chunkSize) {
                 const chunk = dbRows.slice(i, i + chunkSize);
                 const { error } = await supabase

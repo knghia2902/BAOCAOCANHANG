@@ -6,7 +6,7 @@ import { authStore, logout, updateStoreProfile } from '../stores/auth';
 import { ContentService } from '../services/ContentService';
 import { StorageService } from '../services/storage/StorageService';
 import { authService, sha256 } from '../services/storage/AuthService';
-import { supabase } from '../supabase';
+import { SettingsService } from '../services/storage/SettingsService';
 import { LogService } from '../services/storage/LogService';
 
 
@@ -134,8 +134,7 @@ const handleHeroImageUpload = async (e: Event) => {
                 updateStoreProfile(authStore.displayName || '', url);
             }
             
-            const { data: currentSettings } = await supabase.from('content').select('settings').eq('id', 'main').single();
-            const settings = currentSettings?.settings || {};
+            const settings = await SettingsService.getSettings();
             if (currentUser === settings.username) {
                 contentStore.hero.image = url;
                 contentStore.hero.avatar = url;
@@ -939,10 +938,12 @@ watch(currentTab, (val) => {
 });
 
 onMounted(async () => {
-    await ContentService.loadAll();
-    await loadAccounts();
-    await loadStaffToolsConfig();
-    await loadRolePermissionsConfig();
+    await Promise.all([
+        ContentService.loadAll(),
+        loadAccounts(),
+        loadStaffToolsConfig(),
+        loadRolePermissionsConfig()
+    ]);
 });
 </script>
 

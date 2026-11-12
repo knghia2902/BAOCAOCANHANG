@@ -5,59 +5,88 @@ import { PermissionService, DEFAULT_ROLE_PERMISSIONS } from './auth/PermissionSe
 import { MessageService } from './cms/MessageService';
 import { SettingsService } from './storage/SettingsService';
 
+let loadAllPromise: Promise<void> | null = null;
+let lastLoadAllTime = 0;
+const LOAD_ALL_TTL = 30_000;
+
 export const ContentService = {
     // CMS Portfolio
-    async loadAll() {
-        try {
-            const [contentRes, projectsRes, toolsRes, msgRes] = await Promise.all([
-                supabase.from('content').select('*').eq('id', 'main').single(),
-                supabase.from('projects').select('*').order('created_at', { ascending: false }),
-                supabase.from('tools').select('*').order('created_at', { ascending: true }),
-                supabase.from('messages').select('*').order('date', { ascending: false })
-            ]);
-
-            const contentData = contentRes.data;
-            if (contentData) {
-                if (contentData.hero) contentStore.hero = { ...contentStore.hero, ...contentData.hero };
-                if (contentData.visibility) contentStore.visibility = { ...contentStore.visibility, ...contentData.visibility };
-                if (contentData.stats) contentStore.stats = { ...contentStore.stats, ...contentData.stats };
-                if (contentData.about) contentStore.about = { ...contentStore.about, ...contentData.about };
-                if (contentData.settings) {
-                    SettingsService.setSettingsCache(contentData.settings);
-                }
-            }
-
-            const projectsData = projectsRes.data;
-            if (projectsData) {
-                contentStore.projects = projectsData.map((p: any) => ({
-                    id: p.id,
-                    title: p.title,
-                    description: p.description,
-                    tag: p.tag,
-                    image: p.image
-                }));
-            }
-
-            const toolsData = toolsRes.data;
-            if (toolsData) {
-                contentStore.toolkit = toolsData.map((t: any) => ({
-                    icon: t.icon,
-                    label: t.label,
-                    tool: t.tool
-                }));
-            }
-
-            const msgData = msgRes.data;
-            if (msgData) {
-                contentStore.messages = msgData;
-            }
-        } catch (e) {
-            console.error('Error loading content data', e);
+    async loadAll(forceRefresh = false) {
+        const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+        if (!isTest && !forceRefresh && lastLoadAllTime > 0 && (Date.now() - lastLoadAllTime < LOAD_ALL_TTL)) {
+            return;
         }
+        if (!isTest && loadAllPromise) {
+            return loadAllPromise;
+        }
+
+        const runLoad = (async () => {
+            try {
+                const [contentRes, projectsRes, toolsRes, msgRes] = await Promise.all([
+                    supabase.from('content').select('*').eq('id', 'main').single(),
+                    supabase.from('projects').select('*').order('created_at', { ascending: false }),
+                    supabase.from('tools').select('*').order('created_at', { ascending: true }),
+                    supabase.from('messages').select('*').order('date', { ascending: false })
+                ]);
+
+                const contentData = contentRes.data;
+                if (contentData) {
+                    if (contentData.hero) contentStore.hero = { ...contentStore.hero, ...contentData.hero };
+                    if (contentData.visibility) contentStore.visibility = { ...contentStore.visibility, ...contentData.visibility };
+                    if (contentData.stats) contentStore.stats = { ...contentStore.stats, ...contentData.stats };
+                    if (contentData.about) contentStore.about = { ...contentStore.about, ...contentData.about };
+                    if (contentData.settings) {
+                        SettingsService.setSettingsCache(contentData.settings);
+                    }
+                }
+
+                const projectsData = projectsRes.data;
+                if (projectsData) {
+                    contentStore.projects = projectsData.map((p: any) => ({
+                        id: p.id,
+                        title: p.title,
+                        description: p.description,
+                        tag: p.tag,
+                        image: p.image
+                    }));
+                }
+
+                const toolsData = toolsRes.data;
+                if (toolsData) {
+                    contentStore.toolkit = toolsData.map((t: any) => ({
+                        icon: t.icon,
+                        label: t.label,
+                        tool: t.tool
+                    }));
+                }
+
+                const msgData = msgRes.data;
+                if (msgData) {
+                    contentStore.messages = msgData;
+                }
+                if (!isTest) {
+                    lastLoadAllTime = Date.now();
+                }
+            } catch (e) {
+                console.error('Error loading content data', e);
+            }
+        })();
+
+        if (!isTest) {
+            loadAllPromise = runLoad.finally(() => {
+                loadAllPromise = null;
+            });
+            return loadAllPromise;
+        }
+        return runLoad;
     },
 
     getSettings: SettingsService.getSettings,
-    invalidateSettingsCache: SettingsService.invalidateCache,
+    updateSettings: SettingsService.updateSettings,
+    invalidateSettingsCache() {
+        lastLoadAllTime = 0;
+        SettingsService.invalidateCache();
+    },
 
     async saveAll() {
         try {

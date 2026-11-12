@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, type Component } from 'vue';
+import { ref, computed, watch, onMounted, defineAsyncComponent, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { authStore } from '@/stores/auth';
 import WorkspaceTreeSidebar from '@/components/workspace/WorkspaceTreeSidebar.vue';
 
-// Existing tools components
-import WarehouseInventoryManager from '@/components/tools/WarehouseInventoryManager.vue';
-import WeighbridgePrinter from '@/components/tools/WeighbridgePrinter.vue';
-import SingleBargeAllocator from '@/components/tools/SingleBargeAllocator.vue';
-import BargeProfileManager from '@/components/tools/BargeProfileManager.vue';
-import BargeMinutes from '@/components/tools/BargeMinutes.vue';
-import VehicleManager from '@/components/tools/VehicleManager.vue';
-import GoodsManager from '@/components/tools/GoodsManager.vue';
-
-// Workspace specific components
-import VesselSourceManager from '@/components/workspace/VesselSourceManager.vue';
+// Default active tab loaded eagerly for instant initial render
 import WeighbridgeDataImporter from '@/components/workspace/WeighbridgeDataImporter.vue';
-import MasterCategoryManager from '@/components/workspace/MasterCategoryManager.vue';
+
+// Secondary workspace & tool tabs loaded lazily on demand
+const WarehouseInventoryManager = defineAsyncComponent(() => import('@/components/tools/WarehouseInventoryManager.vue'));
+const WeighbridgePrinter = defineAsyncComponent(() => import('@/components/tools/WeighbridgePrinter.vue'));
+const SingleBargeAllocator = defineAsyncComponent(() => import('@/components/tools/SingleBargeAllocator.vue'));
+const BargeProfileManager = defineAsyncComponent(() => import('@/components/tools/BargeProfileManager.vue'));
+const BargeMinutes = defineAsyncComponent(() => import('@/components/tools/BargeMinutes.vue'));
+const VehicleManager = defineAsyncComponent(() => import('@/components/tools/VehicleManager.vue'));
+const GoodsManager = defineAsyncComponent(() => import('@/components/tools/GoodsManager.vue'));
+const VesselSourceManager = defineAsyncComponent(() => import('@/components/workspace/VesselSourceManager.vue'));
+const MasterCategoryManager = defineAsyncComponent(() => import('@/components/workspace/MasterCategoryManager.vue'));
 
 const route = useRoute();
 const router = useRouter();

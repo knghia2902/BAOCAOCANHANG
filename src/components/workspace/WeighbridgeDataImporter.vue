@@ -231,6 +231,20 @@ function normalizePlate(plate: string | null | undefined): string {
     return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+// Precomputed O(1) lookup map from normalized plate to preferred vehicle record
+const vehiclesByPlateMap = computed(() => {
+    const map = new Map<string, any>();
+    for (const v of vehiclesList.value) {
+        const key = normalizePlate(v.plateNumber);
+        if (!key) continue;
+        const existing = map.get(key);
+        if (!existing || (!existing.moocNumber?.trim() && v.moocNumber?.trim())) {
+            map.set(key, v);
+        }
+    }
+    return map;
+});
+
 function formatPlate(plate: string | null | undefined): string {
     if (!plate) return '';
     const clean = String(plate).trim().toUpperCase().replace(/\s+/g, '');
@@ -251,8 +265,7 @@ function formatPlate(plate: string | null | undefined): string {
     }
 
     const normalized = normalizePlate(mainPlate);
-    const matches = vehiclesList.value.filter(v => normalizePlate(v.plateNumber) === normalized);
-    const vehicle = matches.find(v => v.moocNumber && v.moocNumber.trim() !== '') || matches[0];
+    const vehicle = vehiclesByPlateMap.value.get(normalized);
     const targetMooc = vehicle && vehicle.moocNumber ? vehicle.moocNumber : existingMooc;
 
     if (targetMooc) {
@@ -482,15 +495,6 @@ let isSavingSupabase = false;
 async function doExecuteSaveTicketsToSupabase() {
     syncStatus.value = 'saving';
     try {
-        const { data: current, error: fetchError } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-
-        if (fetchError) throw fetchError;
-        const currentSettings = current?.settings || {};
-
         const cleanTickets = (csvRecords.value || []).map(r => ({
             id: r.id,
             ticketNo: r.ticketNo,
@@ -515,18 +519,11 @@ async function doExecuteSaveTicketsToSupabase() {
             fileSource: r.fileSource || ''
         }));
 
-        const updatedSettings: any = {
-            ...currentSettings,
-            allocator_tickets: cleanTickets
-        };
-        delete updatedSettings.allocator_generated_trips;
-
-        const { error: updateError } = await supabase
-            .from('content')
-            .update({ settings: updatedSettings })
-            .eq('id', 'main');
-
-        if (updateError) throw updateError;
+        const ok = await SettingsService.updateSettings({
+            allocator_tickets: cleanTickets,
+            allocator_generated_trips: undefined
+        });
+        if (!ok) throw new Error('Failed to update settings via SettingsService');
         syncStatus.value = 'synced';
     } catch (e) {
         console.error('Lỗi khi lưu dữ liệu lên Supabase:', e);
@@ -555,31 +552,40 @@ function saveTicketsToSupabase(): Promise<void> {
     });
 }
 
-// Auto-save watch on csvRecords & existingTrips
+let importerCsvRecordsIdbTimer: ReturnType<typeof setTimeout> | null = null;
+let importerExistingTripsIdbTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Auto-save watch on csvRecords & existingTrips (debounced 300ms)
 watch(
     csvRecords,
-    async (newVal) => {
+    (newVal) => {
         if (isSyncingFromChannel || isInitLoading.value) return;
-        try {
-            await dbContext.set('allocator_tickets', newVal);
-            syncChannel.postMessage({ type: 'tickets' });
-        } catch (e) {
-            console.error('Lỗi khi lưu allocator_tickets vào IndexedDB:', e);
-        }
+        if (importerCsvRecordsIdbTimer) clearTimeout(importerCsvRecordsIdbTimer);
+        importerCsvRecordsIdbTimer = setTimeout(async () => {
+            try {
+                await dbContext.set('allocator_tickets', newVal);
+                syncChannel.postMessage({ type: 'tickets' });
+            } catch (e) {
+                console.error('Lỗi khi lưu allocator_tickets vào IndexedDB:', e);
+            }
+        }, 300);
     },
     { deep: true }
 );
 
 watch(
     existingTrips,
-    async (newVal) => {
+    (newVal) => {
         if (isSyncingFromChannel || isInitLoading.value) return;
-        try {
-            await dbContext.set('allocator_history_trips', newVal);
-            syncChannel.postMessage({ type: 'history' });
-        } catch (e) {
-            console.error('Lỗi khi lưu allocator_history_trips vào IndexedDB:', e);
-        }
+        if (importerExistingTripsIdbTimer) clearTimeout(importerExistingTripsIdbTimer);
+        importerExistingTripsIdbTimer = setTimeout(async () => {
+            try {
+                await dbContext.set('allocator_history_trips', newVal);
+                syncChannel.postMessage({ type: 'history' });
+            } catch (e) {
+                console.error('Lỗi khi lưu allocator_history_trips vào IndexedDB:', e);
+            }
+        }, 300);
     },
     { deep: true }
 );
@@ -656,12 +662,11 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
     else loadingMulti.value = true;
 
     try {
-        const vehicleMap = await WarehouseInventoryService.getVehicles();
-        const configs = await WarehouseInventoryService.getConfigs();
-        let vessels: any[] = [];
-        try {
-            vessels = await WeighbridgeService.getVessels();
-        } catch (_) {}
+        const [vehicleMap, configs, vessels] = await Promise.all([
+            WarehouseInventoryService.getVehicles(),
+            WarehouseInventoryService.getConfigs(),
+            WeighbridgeService.getVessels().catch(() => [] as any[])
+        ]);
 
         const allRawRows: { row: RawWeighbridgeRow; tag: 'FILE_1' | 'FILE_2' }[] = [];
 

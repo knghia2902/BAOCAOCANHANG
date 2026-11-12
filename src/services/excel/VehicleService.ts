@@ -15,6 +15,16 @@ export interface VehicleRecord {
 export class VehicleService {
     static readonly TABLE_NAME = 'weighbridge_vehicles';
     static readonly INDEXED_KEY = 'allocator_vehicles';
+    private static vehiclesCache: VehicleRecord[] | null = null;
+    private static vehiclesCacheTime = 0;
+    private static vehiclesInFlight: Promise<VehicleRecord[]> | null = null;
+    private static readonly CACHE_TTL = 30_000;
+
+    static invalidateCache() {
+        VehicleService.vehiclesCache = null;
+        VehicleService.vehiclesCacheTime = 0;
+        VehicleService.vehiclesInFlight = null;
+    }
 
     static normalizePlate(plate: string | null | undefined): string {
         if (!plate) return '';
@@ -24,60 +34,91 @@ export class VehicleService {
     /**
      * Fetch all vehicles from weighbridge_vehicles (falls back to IndexedDB/settings if table not ready)
      */
-    static async getVehicles(): Promise<VehicleRecord[]> {
-        try {
-            // 1. Query dedicated table
-            const { data, error } = await supabase
-                .from(VehicleService.TABLE_NAME)
-                .select('*')
-                .order('plate_number', { ascending: true });
-
-            if (!error && data && data.length > 0) {
-                const list: VehicleRecord[] = data.map((row: any) => ({
-                    id: row.id,
-                    plateNumber: row.plate_number || '',
-                    moocNumber: row.mooc_number || '',
-                    carrierName: row.carrier_name || '',
-                    notes: row.notes || '',
-                    created_at: row.created_at,
-                    updated_at: row.updated_at
-                }));
-
-                // Cache to IndexedDB
-                try {
-                    await dbContext.set(VehicleService.INDEXED_KEY, list);
-                } catch (e) {
-                    console.warn('[VehicleService] Failed to cache vehicles to IndexedDB:', e);
-                }
-
-                return list;
-            }
-
-            if (error) {
-                console.warn('[VehicleService] Query failed, using local cache:', error.message);
-            }
-        } catch (e) {
-            console.warn('[VehicleService] Error fetching vehicles from remote:', e);
+    static async getVehicles(forceRefresh = false): Promise<VehicleRecord[]> {
+        const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+        if (!isTest && !forceRefresh && VehicleService.vehiclesCache && (Date.now() - VehicleService.vehiclesCacheTime < VehicleService.CACHE_TTL)) {
+            return VehicleService.vehiclesCache;
+        }
+        if (!isTest && !forceRefresh && VehicleService.vehiclesInFlight) {
+            return VehicleService.vehiclesInFlight;
         }
 
-        // 2. Fallback to IndexedDB
-        try {
-            const cached = await dbContext.get<VehicleRecord[]>(VehicleService.INDEXED_KEY);
-            if (cached && Array.isArray(cached) && cached.length > 0) {
-                return cached;
-            }
-        } catch (_) {}
+        const fetchPromise = (async (): Promise<VehicleRecord[]> => {
+            try {
+                // 1. Query dedicated table
+                const { data, error } = await supabase
+                    .from(VehicleService.TABLE_NAME)
+                    .select('*')
+                    .order('plate_number', { ascending: true });
 
-        // 3. Fallback to content.settings (cached)
-        try {
-            const settings = await SettingsService.getSettings();
-            const remote = settings?.allocator_vehicles;
-            if (Array.isArray(remote)) {
-                return remote;
-            }
-        } catch (_) {}
+                if (!error && data && data.length > 0) {
+                    const list: VehicleRecord[] = data.map((row: any) => ({
+                        id: row.id,
+                        plateNumber: row.plate_number || '',
+                        moocNumber: row.mooc_number || '',
+                        carrierName: row.carrier_name || '',
+                        notes: row.notes || '',
+                        created_at: row.created_at,
+                        updated_at: row.updated_at
+                    }));
 
-        return [];
+                    if (!isTest) {
+                        VehicleService.vehiclesCache = list;
+                        VehicleService.vehiclesCacheTime = Date.now();
+                    }
+
+                    // Cache to IndexedDB
+                    try {
+                        await dbContext.set(VehicleService.INDEXED_KEY, list);
+                    } catch (e) {
+                        console.warn('[VehicleService] Failed to cache vehicles to IndexedDB:', e);
+                    }
+
+                    return list;
+                }
+
+                if (error) {
+                    console.warn('[VehicleService] Query failed, using local cache:', error.message);
+                }
+            } catch (e) {
+                console.warn('[VehicleService] Error fetching vehicles from remote:', e);
+            }
+
+            // 2. Fallback to IndexedDB
+            try {
+                const cached = await dbContext.get<VehicleRecord[]>(VehicleService.INDEXED_KEY);
+                if (cached && Array.isArray(cached) && cached.length > 0) {
+                    if (!isTest) {
+                        VehicleService.vehiclesCache = cached;
+                        VehicleService.vehiclesCacheTime = Date.now();
+                    }
+                    return cached;
+                }
+            } catch (_) {}
+
+            // 3. Fallback to content.settings (cached)
+            try {
+                const settings = await SettingsService.getSettings();
+                const remote = settings?.allocator_vehicles;
+                if (Array.isArray(remote)) {
+                    if (!isTest) {
+                        VehicleService.vehiclesCache = remote;
+                        VehicleService.vehiclesCacheTime = Date.now();
+                    }
+                    return remote;
+                }
+            } catch (_) {}
+
+            return [];
+        })();
+
+        if (!isTest && !forceRefresh) {
+            VehicleService.vehiclesInFlight = fetchPromise.finally(() => {
+                VehicleService.vehiclesInFlight = null;
+            });
+            return VehicleService.vehiclesInFlight;
+        }
+        return fetchPromise;
     }
 
     /**
@@ -116,6 +157,7 @@ export class VehicleService {
             }
 
             if (!error && data) {
+                VehicleService.invalidateCache();
                 const record: VehicleRecord = {
                     id: data.id,
                     plateNumber: data.plate_number,
@@ -167,6 +209,9 @@ export class VehicleService {
                 error = retry.error;
             }
 
+            if (!error) {
+                VehicleService.invalidateCache();
+            }
             return !error;
         } catch (e) {
             console.error('[VehicleService] Error updating vehicle:', e);
@@ -184,6 +229,9 @@ export class VehicleService {
                 .delete()
                 .eq('plate_number', plateNumber.trim().toUpperCase());
 
+            if (!error) {
+                VehicleService.invalidateCache();
+            }
             return !error;
         } catch (e) {
             console.error('[VehicleService] Error deleting vehicle:', e);
@@ -201,6 +249,7 @@ export class VehicleService {
                 .delete()
                 .neq('id', 0);
 
+            VehicleService.invalidateCache();
             await dbContext.set(VehicleService.INDEXED_KEY, []);
             return !error;
         } catch (e) {
@@ -235,8 +284,9 @@ export class VehicleService {
                 .upsert(rows, { onConflict: 'plate_number' });
 
             if (!error) {
+                VehicleService.invalidateCache();
                 // Update cache
-                const all = await VehicleService.getVehicles();
+                const all = await VehicleService.getVehicles(true);
                 await dbContext.set(VehicleService.INDEXED_KEY, all);
                 return { count: rows.length, error: null };
             }

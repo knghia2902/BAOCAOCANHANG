@@ -309,7 +309,9 @@ export class AllocatorService {
                 if (data.length < pageSize) break;
             }
 
-            void this.syncScaleHeadByTicketNo();
+            if (allRows.some((r) => !r.file_source)) {
+                void this.syncScaleHeadByTicketNo();
+            }
             const result = allRows.map(this.rowToTrip);
             if (!isTest) {
                 AllocatorService.tripsCache = result;

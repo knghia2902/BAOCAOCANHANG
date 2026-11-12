@@ -234,8 +234,15 @@ async function scrollTablesToBottom() {
     });
 }
 
-async function loadAllData() {
-    loading.value = true;
+let isDataLoading = false;
+let hasInitialLoaded = false;
+
+async function loadAllData(silent = false) {
+    if (isDataLoading) return;
+    isDataLoading = true;
+    if (!silent) {
+        loading.value = true;
+    }
     try {
         const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses] = await Promise.all([
             WarehouseInventoryService.getConfigs(),
@@ -249,6 +256,7 @@ async function loadAllData() {
         vehiclesMap.value = loadedVehicles;
         validCarriers.value = loadedCarriers;
         validWarehouses.value = loadedWarehouses;
+        hasInitialLoaded = true;
 
         // Tự động đối soát và điền Nhà xe từ Danh mục xe cho các phiếu chưa có hoặc khuyết nhà xe
         const ticketsWithUpdatedCarrier: WarehouseInventoryTicket[] = [];
@@ -269,6 +277,7 @@ async function loadAllData() {
         console.error('Lỗi tải dữ liệu tồn kho:', err);
         addToast('Không thể tải dữ liệu tồn kho: ' + (err?.message || err), 'error');
     } finally {
+        isDataLoading = false;
         loading.value = false;
         void scrollTablesToBottom();
     }
@@ -328,17 +337,26 @@ async function handleRestandardizeData() {
 }
 
 onMounted(() => {
-    loadAllData();
+    void loadAllData(false);
 });
 
 onActivated(() => {
-    loadAllData();
+    if (hasInitialLoaded) {
+        void loadAllData(true);
+    } else {
+        void loadAllData(false);
+    }
     void scrollTablesToBottom();
 });
 
+// Client-side pagination for detail tables (IMPORT / EXPORT / DIRECT)
+const detailCurrentPage = ref(1);
+const detailPageSize = 100;
+
 watch(
-    [selectedWarehouseMode, activeSheetTab, isVisualMapOpen, detailFilterDate, filterFromDate, filterToDate],
+    [selectedWarehouseMode, activeSheetTab, isVisualMapOpen, detailFilterDate, detailSearchQuery, filterFromDate, filterToDate],
     () => {
+        detailCurrentPage.value = 1;
         void scrollTablesToBottom();
     }
 );
@@ -427,6 +445,20 @@ const filteredDetailTickets = computed(() => {
     }
 
     return list;
+});
+
+const detailTotalPages = computed(() => {
+    return Math.max(1, Math.ceil(filteredDetailTickets.value.length / detailPageSize));
+});
+
+const detailPageStartIndex = computed(() => {
+    const safePage = Math.min(detailCurrentPage.value, detailTotalPages.value);
+    return (safePage - 1) * detailPageSize;
+});
+
+const paginatedDetailTickets = computed(() => {
+    const start = detailPageStartIndex.value;
+    return filteredDetailTickets.value.slice(start, start + detailPageSize);
 });
 
 const detailTotalTons = computed(() => {
@@ -1792,6 +1824,27 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </label>
 
                             <template v-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT'">
+                                <div v-if="detailTotalPages > 1" class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-[8px] px-1.5 h-7 shrink-0 text-xs font-bold text-slate-600">
+                                    <button
+                                        type="button"
+                                        :disabled="detailCurrentPage <= 1"
+                                        @click="detailCurrentPage = Math.max(1, detailCurrentPage - 1)"
+                                        class="px-1.5 py-0.5 rounded hover:bg-slate-200/70 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                        title="Trang trước"
+                                    >
+                                        ‹
+                                    </button>
+                                    <span class="px-1 font-mono text-xs">Trang {{ detailCurrentPage }}/{{ detailTotalPages }}</span>
+                                    <button
+                                        type="button"
+                                        :disabled="detailCurrentPage >= detailTotalPages"
+                                        @click="detailCurrentPage = Math.min(detailTotalPages, detailCurrentPage + 1)"
+                                        class="px-1.5 py-0.5 rounded hover:bg-slate-200/70 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                        title="Trang sau"
+                                    >
+                                        ›
+                                    </button>
+                                </div>
                                 <div class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center shrink-0">
                                     {{ filteredDetailTickets.length }} chuyến • {{ formatKg(detailTotalTons) }} kg ({{ formatTons(detailTotalTons) }} Tấn)
                                 </div>
@@ -2062,11 +2115,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr
-                            v-for="(t, idx) in filteredDetailTickets"
+                            v-for="(t, idx) in paginatedDetailTickets"
                             :key="t.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="py-2 px-2 text-center text-slate-400">{{ idx + 1 }}</td>
+                            <td class="py-2 px-2 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
                             <td class="py-2 px-2 text-center font-mono">{{ formatIsoToDmy(t.reportDate) }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-600">{{ t.soPhieu }}</td>
                             <td class="py-2 px-2 font-mono font-black">{{ t.vehiclePlate }}</td>
@@ -2196,11 +2249,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr
-                            v-for="(t, idx) in filteredDetailTickets"
+                            v-for="(t, idx) in paginatedDetailTickets"
                             :key="t.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="py-2 px-2 text-center text-slate-400">{{ idx + 1 }}</td>
+                            <td class="py-2 px-2 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
                             <td class="py-2 px-2 text-center font-mono">{{ formatIsoToDmy(t.reportDate) }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-600">{{ t.soPhieu }}</td>
                             <td class="py-2 px-2 font-mono font-black">{{ t.vehiclePlate }}</td>
@@ -2334,11 +2387,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr
-                                v-for="(t, idx) in filteredDetailTickets"
+                                v-for="(t, idx) in paginatedDetailTickets"
                                 :key="t.id"
                                 class="hover:bg-gray-50 transition-colors"
                             >
-                                <td class="py-2 px-2 text-center text-slate-400">{{ idx + 1 }}</td>
+                                <td class="py-2 px-2 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
                                 <td class="py-2 px-2 text-center font-mono">{{ formatIsoToDmy(t.reportDate) }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-600">{{ t.soPhieu }}</td>
                                 <td class="py-2 px-2 font-mono font-black">{{ t.vehiclePlate }}</td>
@@ -2432,11 +2485,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr
-                                v-for="(t, idx) in filteredDetailTickets"
+                                v-for="(t, idx) in paginatedDetailTickets"
                                 :key="t.id"
                                 class="hover:bg-gray-50 transition-colors"
                             >
-                                <td class="py-2 px-2 text-center text-slate-400">{{ idx + 1 }}</td>
+                                <td class="py-2 px-2 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
                                 <td class="py-2 px-2 text-center font-mono">{{ formatIsoToDmy(t.reportDate) }}</td>
                                 <td class="py-2 px-2 text-center font-mono text-slate-600">{{ t.soPhieu }}</td>
                                 <td class="py-2 px-2 font-mono font-black">{{ t.vehiclePlate }}</td>
@@ -2542,11 +2595,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr
-                            v-for="(t, idx) in filteredDetailTickets"
+                            v-for="(t, idx) in paginatedDetailTickets"
                             :key="t.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="py-2 px-2 text-center text-slate-400">{{ idx + 1 }}</td>
+                            <td class="py-2 px-2 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-600">{{ t.soPhieu }}</td>
                             <td class="py-2 px-2 font-mono font-black">{{ t.vehiclePlate }}</td>
                             <td class="py-2 px-2 text-center font-mono">{{ formatIsoToDmy(t.reportDate) }}</td>
@@ -2685,11 +2738,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr
-                            v-for="(t, idx) in filteredDetailTickets"
+                            v-for="(t, idx) in paginatedDetailTickets"
                             :key="t.id"
                             class="hover:bg-gray-50 transition-colors"
                         >
-                            <td class="py-2 px-2 text-center text-slate-400">{{ idx + 1 }}</td>
+                            <td class="py-2 px-2 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
                             <td class="py-2 px-2 text-center font-mono">{{ formatIsoToDmy(t.reportDate) }}</td>
                             <td class="py-2 px-2 text-center font-mono text-slate-600">{{ t.soPhieu }}</td>
                             <td class="py-2 px-2 font-mono font-black">{{ t.vehiclePlate }}</td>

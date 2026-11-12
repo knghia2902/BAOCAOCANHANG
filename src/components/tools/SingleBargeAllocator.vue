@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { supabase } from '@/supabase';
+import { SettingsService } from '@/services/storage/SettingsService';
 import { authStore, hasDetailPermission } from '@/stores/auth';
 import { LogService } from '@/services/storage/LogService';
 import { WeighbridgeService } from '@/services/weighbridge/WeighbridgeService';
@@ -572,6 +573,20 @@ function normalizePlate(plate: string | null | undefined): string {
     return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+// Precomputed O(1) lookup map from normalized plate to preferred vehicle record
+const vehiclesByPlateMap = computed(() => {
+    const map = new Map<string, any>();
+    for (const v of vehiclesList.value) {
+        const key = normalizePlate(v.plateNumber);
+        if (!key) continue;
+        const existing = map.get(key);
+        if (!existing || (!existing.moocNumber?.trim() && v.moocNumber?.trim())) {
+            map.set(key, v);
+        }
+    }
+    return map;
+});
+
 // Format plate numbers to standard display: e.g. "61H-16907"
 function formatPlate(plate: string | null | undefined): string {
     if (!plate) return '';
@@ -594,10 +609,9 @@ function formatPlate(plate: string | null | undefined): string {
         }
     }
     
-    // Look up mooc in vehiclesList
+    // O(1) lookup in vehiclesByPlateMap
     const normalized = normalizePlate(mainPlate);
-    const matches = vehiclesList.value.filter(v => normalizePlate(v.plateNumber) === normalized);
-    const vehicle = matches.find(v => v.moocNumber && v.moocNumber.trim() !== '') || matches[0];
+    const vehicle = vehiclesByPlateMap.value.get(normalized);
     
     const targetMooc = (vehicle && vehicle.moocNumber) ? vehicle.moocNumber : existingMooc;
     
@@ -1387,18 +1401,19 @@ const syncStatus = ref<'synced' | 'saving' | 'error'>('synced');
 async function loadTicketsFromSupabase() {
     isInitLoading.value = true;
     try {
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        if (error) throw error;
+        const [settings, dbTrips] = await Promise.all([
+            SettingsService.getSettings(),
+            AllocationTrackingService.getTrips().catch((err) => {
+                console.warn('Lỗi khi nạp dữ liệu từ weighbridge_allocation_tracking:', err);
+                return null;
+            })
+        ]);
         
-        if (data?.settings) {
+        if (settings) {
             isSyncingFromChannel = true; // disable watch writes during supabase load
 
             // 1. Overwrite tickets
-            const remoteTickets = data.settings.split_allocator_tickets;
+            const remoteTickets = settings.split_allocator_tickets;
             if (Array.isArray(remoteTickets)) {
                 if (JSON.stringify(csvRecords.value) !== JSON.stringify(remoteTickets)) {
                     csvRecords.value = remoteTickets;
@@ -1412,26 +1427,21 @@ async function loadTicketsFromSupabase() {
             }
 
             // 2. Overwrite history trips from dedicated table weighbridge_allocation_tracking
-            try {
-                const dbTrips = await AllocationTrackingService.getTrips();
-                if (dbTrips && dbTrips.length > 0) {
-                    const hydrated = hydrateTrips(dbTrips);
+            if (dbTrips && dbTrips.length > 0) {
+                const hydrated = hydrateTrips(dbTrips);
+                existingTrips.value = hydrated;
+                await dbContext.set('split_allocator_history_trips', hydrated);
+            } else {
+                const remoteHistory = settings.split_allocator_history_trips;
+                if (Array.isArray(remoteHistory) && remoteHistory.length > 0) {
+                    const hydrated = hydrateTrips(remoteHistory);
                     existingTrips.value = hydrated;
                     await dbContext.set('split_allocator_history_trips', hydrated);
-                } else {
-                    const remoteHistory = data.settings.split_allocator_history_trips;
-                    if (Array.isArray(remoteHistory) && remoteHistory.length > 0) {
-                        const hydrated = hydrateTrips(remoteHistory);
-                        existingTrips.value = hydrated;
-                        await dbContext.set('split_allocator_history_trips', hydrated);
-                    }
                 }
-            } catch (err) {
-                console.warn('Lỗi khi nạp dữ liệu từ weighbridge_allocation_tracking:', err);
             }
 
             // 3. Overwrite vehicles list
-            const remoteVehicles = data.settings.allocator_vehicles;
+            const remoteVehicles = settings.allocator_vehicles;
             if (Array.isArray(remoteVehicles)) {
                 if (JSON.stringify(vehiclesList.value) !== JSON.stringify(remoteVehicles)) {
                     vehiclesList.value = remoteVehicles;
@@ -1440,7 +1450,7 @@ async function loadTicketsFromSupabase() {
             }
 
             // 4. Overwrite generated trips
-            const remoteGenerated = data.settings.split_allocator_generated_trips;
+            const remoteGenerated = settings.split_allocator_generated_trips;
             if (Array.isArray(remoteGenerated)) {
                 const hydrated = hydrateTrips(remoteGenerated);
                 if (JSON.stringify(generatedTrips.value) !== JSON.stringify(hydrated)) {
@@ -1468,16 +1478,6 @@ let isSavingSupabase = false;
 async function doExecuteSaveTicketsToSupabase() {
     syncStatus.value = 'saving';
     try {
-        const { data: current, error: fetchError } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        
-        if (fetchError) throw fetchError;
-        
-        const currentSettings = current?.settings || {};
-
         // Clean tickets to minimal serializable payload
         const cleanTickets = (csvRecords.value || []).map(r => ({
             id: r.id,
@@ -1523,18 +1523,11 @@ async function doExecuteSaveTicketsToSupabase() {
             notes: g.notes || ''
         }));
 
-        const updatedSettings = {
-            ...currentSettings,
+        const ok = await SettingsService.updateSettings({
             split_allocator_tickets: cleanTickets,
             split_allocator_generated_trips: cleanGenerated
-        };
-
-        const { error: updateError } = await supabase
-            .from('content')
-            .update({ settings: updatedSettings })
-            .eq('id', 'main');
-
-        if (updateError) throw updateError;
+        });
+        if (!ok) throw new Error('Failed to update settings via SettingsService');
         
         syncStatus.value = 'synced';
     } catch (e) {
@@ -1819,10 +1812,11 @@ const filteredAllBarges = computed(() => {
 const refreshGlobalBargesSummary = async () => {
     loadingGlobalSummary.value = true;
     try {
-        const summaries: BargeSummary[] = [];
-        for (const vessel of vessels.value) {
-            for (const barge of (vessel.barges || [])) {
-                // Read allocator history for this barge
+        const bargeEntries = vessels.value.flatMap(vessel =>
+            (vessel.barges || []).map(barge => ({ vessel, barge }))
+        );
+        const summaries = await Promise.all(
+            bargeEntries.map(async ({ vessel, barge }) => {
                 const trips = await dbContext.get<SplitTrip[]>('allocator_history_trips_' + barge.id) || [];
                 let totalWeight = 0;
                 let minDate: any = null;
@@ -1830,7 +1824,6 @@ const refreshGlobalBargesSummary = async () => {
                 
                 trips.forEach(t => {
                     totalWeight += (t.weightNet || (t.weightTons * 1000) || 0);
-                    // Parse date
                     const d1 = t.date1Obj ? new Date(t.date1Obj) : null;
                     if (d1 && !isNaN(d1.getTime())) {
                         if (!minDate || d1 < minDate) minDate = d1;
@@ -1838,7 +1831,7 @@ const refreshGlobalBargesSummary = async () => {
                     }
                 });
                 
-                summaries.push({
+                return {
                     id: barge.id,
                     name: barge.name,
                     vesselId: vessel.id,
@@ -1848,9 +1841,9 @@ const refreshGlobalBargesSummary = async () => {
                     dateStart: minDate ? formatDateTimeStr(minDate.toISOString()) : null,
                     dateEnd: maxDate ? formatDateTimeStr(maxDate.toISOString()) : null,
                     locked: barge.config?.locked || false
-                });
-            }
-        }
+                };
+            })
+        );
         allBargesSummary.value = summaries;
     } catch (e) {
         console.error('Lỗi khi tải báo cáo tổng hợp sà lan:', e);
@@ -2375,65 +2368,64 @@ void openAddBargeDialog;
 // Loaded and synchronization logic
 onMounted(async () => {
     try {
-        await loadVessels();
+        isInitLoading.value = true;
+        const [
+            ,
+            savedLimit,
+            savedCurbMin,
+            savedCurbMax,
+            savedDist,
+            savedSpacing,
+            savedInterval,
+            savedPrefix,
+            savedSuffix,
+            savedStart,
+            savedPadding,
+            savedUseAuto,
+            savedVehicles,
+            savedTickets,
+            savedHistory,
+            savedGenerated
+        ] = await Promise.all([
+            loadVessels(),
+            dbContext.get<number>('allocator_standard_limit'),
+            dbContext.get<number>('allocator_curb_min'),
+            dbContext.get<number>('allocator_curb_max'),
+            dbContext.get<any>('allocator_dist_strategy'),
+            dbContext.get<any>('allocator_spacing_strategy'),
+            dbContext.get<number>('allocator_time_interval'),
+            dbContext.get<string>('allocator_ticket_prefix'),
+            dbContext.get<string>('allocator_ticket_suffix'),
+            dbContext.get<number>('allocator_ticket_start'),
+            dbContext.get<number>('allocator_ticket_padding'),
+            dbContext.get<boolean>('allocator_use_auto_ticket'),
+            dbContext.get<any[]>('allocator_vehicles'),
+            dbContext.get<CSVRecord[]>('split_allocator_tickets'),
+            dbContext.get<SplitTrip[]>('split_allocator_history_trips'),
+            dbContext.get<SplitTrip[]>('split_allocator_generated_trips')
+        ]);
 
-        const savedLimit = await dbContext.get<number>('allocator_standard_limit');
         if (savedLimit !== undefined && savedLimit !== null) {
             standardTTTPLimit.value = savedLimit;
         }
-
-        const savedCurbMin = await dbContext.get<number>('allocator_curb_min');
-        if (savedCurbMin !== undefined && savedCurbMin !== null) {
-            standardCurbMin.value = savedCurbMin;
-        } else {
-            standardCurbMin.value = 1.5;
-        }
-
-        const savedCurbMax = await dbContext.get<number>('allocator_curb_max');
-        if (savedCurbMax !== undefined && savedCurbMax !== null) {
-            standardCurbMax.value = savedCurbMax;
-        } else {
-            standardCurbMax.value = 3.0;
-        }
-
-        const savedDist = await dbContext.get<any>('allocator_dist_strategy');
+        standardCurbMin.value = (savedCurbMin !== undefined && savedCurbMin !== null) ? savedCurbMin : 1.5;
+        standardCurbMax.value = (savedCurbMax !== undefined && savedCurbMax !== null) ? savedCurbMax : 3.0;
         if (savedDist) distStrategy.value = savedDist;
-
-        const savedSpacing = await dbContext.get<any>('allocator_spacing_strategy');
         if (savedSpacing) spacingStrategy.value = savedSpacing;
-
-        const savedInterval = await dbContext.get<number>('allocator_time_interval');
         if (savedInterval) timeIntervalMinutes.value = savedInterval;
-
-        const savedPrefix = await dbContext.get<string>('allocator_ticket_prefix');
         if (savedPrefix !== undefined && savedPrefix !== null) ticketPrefix.value = savedPrefix;
-
-        const savedSuffix = await dbContext.get<string>('allocator_ticket_suffix');
         if (savedSuffix !== undefined && savedSuffix !== null) ticketSuffix.value = savedSuffix;
-
-        const savedStart = await dbContext.get<number>('allocator_ticket_start');
         if (savedStart !== undefined && savedStart !== null) ticketStart.value = savedStart;
-
-        const savedPadding = await dbContext.get<number>('allocator_ticket_padding');
         if (savedPadding !== undefined && savedPadding !== null) ticketPadding.value = savedPadding;
-
-        const savedUseAuto = await dbContext.get<boolean>('allocator_use_auto_ticket');
         if (savedUseAuto !== undefined && savedUseAuto !== null) useAutoTicketNo.value = savedUseAuto;
-
-        const savedVehicles = await dbContext.get<any[]>('allocator_vehicles');
         if (savedVehicles && Array.isArray(savedVehicles)) {
             vehiclesList.value = savedVehicles;
         }
 
-        isInitLoading.value = true;
         try {
-            let savedTickets = await dbContext.get<CSVRecord[]>('split_allocator_tickets') || [];
-            let savedHistory = await dbContext.get<SplitTrip[]>('split_allocator_history_trips') || [];
-            let savedGenerated = await dbContext.get<SplitTrip[]>('split_allocator_generated_trips') || [];
-
-            csvRecords.value = savedTickets;
-            existingTrips.value = hydrateTrips(savedHistory);
-            generatedTrips.value = hydrateTrips(savedGenerated);
+            csvRecords.value = savedTickets || [];
+            existingTrips.value = hydrateTrips(savedHistory || []);
+            generatedTrips.value = hydrateTrips(savedGenerated || []);
 
             // Load latest data from Supabase in the background
             await loadTicketsFromSupabase();
@@ -2442,39 +2434,54 @@ onMounted(async () => {
         }
     } catch (e) {
         console.error('Lỗi khi nạp cấu hình:', e);
+        isInitLoading.value = false;
     }
 });
 
-// Auto-save tickets on change (isolated to split allocator)
-watch(csvRecords, async (newVal) => {
+let csvRecordsIdbTimer: ReturnType<typeof setTimeout> | null = null;
+let existingTripsIdbTimer: ReturnType<typeof setTimeout> | null = null;
+let generatedTripsIdbTimer: ReturnType<typeof setTimeout> | null = null;
+let regenerateTripsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Auto-save tickets on change (debounced 300ms, isolated to split allocator)
+watch(csvRecords, (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
-    try {
-        await dbContext.set('split_allocator_tickets', newVal);
-        syncChannel.postMessage({ type: 'tickets' });
-    } catch (e) {
-        console.error('Lỗi khi lưu danh sách phiếu cân vào IndexedDB:', e);
-    }
+    if (csvRecordsIdbTimer) clearTimeout(csvRecordsIdbTimer);
+    csvRecordsIdbTimer = setTimeout(async () => {
+        try {
+            await dbContext.set('split_allocator_tickets', newVal);
+            syncChannel.postMessage({ type: 'tickets' });
+        } catch (e) {
+            console.error('Lỗi khi lưu danh sách phiếu cân vào IndexedDB:', e);
+        }
+    }, 300);
 }, { deep: true });
 
-// Auto-save history on change (isolated to split allocator)
-watch(existingTrips, async (newVal) => {
+// Auto-save history on change (debounced 300ms, isolated to split allocator)
+watch(existingTrips, (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
-    try {
-        await dbContext.set('split_allocator_history_trips', newVal);
-        syncChannel.postMessage({ type: 'history' });
-    } catch (e) {
-        console.error('Lỗi khi lưu lịch sử chuyến xe vào IndexedDB:', e);
-    }
+    if (existingTripsIdbTimer) clearTimeout(existingTripsIdbTimer);
+    existingTripsIdbTimer = setTimeout(async () => {
+        try {
+            await dbContext.set('split_allocator_history_trips', newVal);
+            syncChannel.postMessage({ type: 'history' });
+        } catch (e) {
+            console.error('Lỗi khi lưu lịch sử chuyến xe vào IndexedDB:', e);
+        }
+    }, 300);
 }, { deep: true });
 
-// Auto-save generated trips on change (isolated to split allocator)
-watch(generatedTrips, async (newVal) => {
+// Auto-save generated trips on change (debounced 300ms, isolated to split allocator)
+watch(generatedTrips, (newVal) => {
     if (isSyncingFromChannel || isInitLoading.value) return;
-    try {
-        await dbContext.set('split_allocator_generated_trips', newVal);
-    } catch (e) {
-        console.error('Lỗi khi lưu danh sách phân bổ vào IndexedDB:', e);
-    }
+    if (generatedTripsIdbTimer) clearTimeout(generatedTripsIdbTimer);
+    generatedTripsIdbTimer = setTimeout(async () => {
+        try {
+            await dbContext.set('split_allocator_generated_trips', newVal);
+        } catch (e) {
+            console.error('Lỗi khi lưu danh sách phân bổ vào IndexedDB:', e);
+        }
+    }, 300);
 }, { deep: true });
 
 // Get the capacity info for a vehicle (uses standard limit)
@@ -2810,7 +2817,7 @@ function regenerateAllocatedTrips() {
     saveTicketsToSupabase();
 }
 
-// Watch dependencies to automatically regenerate
+// Watch dependencies to automatically regenerate (debounced 300ms to prevent UI freeze on keystrokes)
 watch(
     [
         csvRecords, 
@@ -2825,7 +2832,10 @@ watch(
         ticketSuffix
     ], 
     () => {
-        regenerateAllocatedTrips();
+        if (regenerateTripsDebounceTimer) clearTimeout(regenerateTripsDebounceTimer);
+        regenerateTripsDebounceTimer = setTimeout(() => {
+            regenerateAllocatedTrips();
+        }, 300);
     }, 
     { deep: true }
 );
@@ -2890,29 +2900,32 @@ const totalSplitWeightTons = computed(() => {
     return generatedTrips.value.reduce((acc, t) => acc + (typeof t.weightTons === 'number' ? t.weightTons : (Number(t.weightNet) / 1000 || 0)), 0);
 });
 
-// Computed: Check if current generated trips are already saved to history
+// Precomputed O(1) lookup sets for existingTrips
+const existingTripsCompositeKeys = computed(() => {
+    const compositeSet = new Set<string>();
+    const ticketNoSet = new Set<string>();
+    for (const et of existingTrips.value) {
+        if (et.ticketNo) {
+            ticketNoSet.add(et.ticketNo);
+        }
+        const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
+        compositeSet.add(`${normalizePlate(et.plateNumber)}|${et.weightNet}|${etDateStr}`);
+    }
+    return { compositeSet, ticketNoSet };
+});
+
+// Computed: Check if current generated trips are already saved to history in O(G)
 const isAlreadySaved = computed(() => {
     if (generatedTrips.value.length === 0) return false;
+    const { compositeSet, ticketNoSet } = existingTripsCompositeKeys.value;
+    if (compositeSet.size === 0 && ticketNoSet.size === 0) return false;
     return generatedTrips.value.every(gt => {
-        return existingTrips.value.some(et => {
-            // Nếu dùng số phiếu tự động, ta kiểm tra thêm biển số, trọng lượng và ngày giờ để tránh trùng lặp giả do số phiếu bị lặp
-            if (useAutoTicketNo.value) {
-                const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-                const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-                return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
-                       gt.weightNet === et.weightNet &&
-                       gtDateStr === etDateStr;
-            }
-            
-            if (gt.ticketNo && et.ticketNo && gt.ticketNo === et.ticketNo) {
-                return true;
-            }
-            const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
-            const etDateStr = formatExcelDateTimeCombined(et.date1Obj);
-            return normalizePlate(gt.plateNumber) === normalizePlate(et.plateNumber) &&
-                   gt.weightNet === et.weightNet &&
-                   gtDateStr === etDateStr;
-        });
+        if (!useAutoTicketNo.value && gt.ticketNo && ticketNoSet.has(gt.ticketNo)) {
+            return true;
+        }
+        const gtDateStr = formatExcelDateTimeCombined(gt.date1Obj);
+        const key = `${normalizePlate(gt.plateNumber)}|${gt.weightNet}|${gtDateStr}`;
+        return compositeSet.has(key);
     });
 });
 

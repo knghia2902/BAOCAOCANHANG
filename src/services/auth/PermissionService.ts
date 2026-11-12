@@ -1,4 +1,3 @@
-import { supabase } from '@/supabase';
 import { SettingsService } from '@/services/storage/SettingsService';
 
 export interface RolePermissionConfig {
@@ -79,25 +78,7 @@ export const PermissionService = {
 
     async saveStaffTools(tools: string[]): Promise<boolean> {
         try {
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (fetchError || !current?.settings) return false;
-            
-            const newSettings = {
-                ...current.settings,
-                staff_tools: tools
-            };
-            const { error } = await supabase
-                .from('content')
-                .update({ settings: newSettings })
-                .eq('id', 'main');
-            if (!error) {
-                SettingsService.invalidateCache();
-            }
-            return !error;
+            return await SettingsService.updateSettings({ staff_tools: tools });
         } catch (e) {
             console.error('Error saving staff tools config', e);
             return false;
@@ -117,25 +98,7 @@ export const PermissionService = {
 
     async saveRolePermissions(rolePermissions: Record<string, RolePermissionConfig>): Promise<boolean> {
         try {
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (fetchError || !current?.settings) return false;
-            
-            const newSettings = {
-                ...current.settings,
-                role_permissions: rolePermissions
-            };
-            const { error } = await supabase
-                .from('content')
-                .update({ settings: newSettings })
-                .eq('id', 'main');
-            if (!error) {
-                SettingsService.invalidateCache();
-            }
-            return !error;
+            return await SettingsService.updateSettings({ role_permissions: rolePermissions });
         } catch (e) {
             console.error('Error saving role permissions config', e);
             return false;

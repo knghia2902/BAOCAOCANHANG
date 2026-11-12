@@ -30,7 +30,10 @@ vi.mock('@/supabase', () => {
         order: vi.fn(() => mockBuilder),
         insert: vi.fn(() => mockBuilder),
         update: vi.fn(() => mockBuilder),
+        delete: vi.fn(() => mockBuilder),
         eq: vi.fn(() => mockBuilder),
+        in: vi.fn(() => mockBuilder),
+        range: vi.fn(() => mockBuilder),
         single: vi.fn().mockResolvedValue({ data: null, error: null })
     };
 
@@ -270,5 +273,83 @@ describe('WeighbridgeService - Vessel Status Lifecycle', () => {
         const barge = await WeighbridgeService.createBarge(1201, 'SL 3', '');
         expect(barge).not.toBeNull();
         expect(barge?.config.orderNo).toBe('10');
+    });
+
+    it('T13: getTrucksByBargeIds batch-fetches and groups trucks across multiple barges', async () => {
+        const mockBuilder: any = (supabase.from as any)('weighbridge_trucks');
+        mockBuilder.range.mockResolvedValueOnce({
+            data: [
+                { id: 1, barge_id: 10, ticket_no: '000001/1126', plate_number: '61C-11111', weight_1: 45000, weight_2: 15000, weight_net: 30000, date_in: '2026-11-12T08:00', date_out: '2026-11-12T08:10' },
+                { id: 2, barge_id: 20, ticket_no: '000002/1126', plate_number: '61C-22222', weight_1: 40000, weight_2: 14000, weight_net: 26000, date_in: '2026-11-12T08:05', date_out: '2026-11-12T08:15' }
+            ],
+            error: null
+        });
+
+        const grouped = await WeighbridgeService.getTrucksByBargeIds([10, 20, 30]);
+        expect(mockBuilder.in).toHaveBeenCalledWith('barge_id', [10, 20, 30]);
+        expect(grouped[10]).toHaveLength(1);
+        expect(grouped[10]?.[0]?.plateNumber).toBe('61C-11111');
+        expect(grouped[20]).toHaveLength(1);
+        expect(grouped[20]?.[0]?.weightNet).toBe(26000);
+        expect(grouped[30]).toEqual([]);
+        expect(localStore.get('wb_trucks_10')).toHaveLength(1);
+        expect(localStore.get('wb_trucks_20')).toHaveLength(1);
+    });
+
+    it('T14: getTrucksByBargeIds paginates across multiple 1000-row pages without truncating', async () => {
+        const page1 = Array.from({ length: 1000 }, (_, i) => ({
+            id: i + 1,
+            barge_id: 10,
+            ticket_no: `P1-${i + 1}`,
+            plate_number: `61C-${String(10000 + i)}`,
+            weight_1: 30000,
+            weight_2: 10000,
+            weight_net: 20000,
+            date_in: '2026-11-12T08:00',
+            date_out: '2026-11-12T08:10'
+        }));
+        const page2 = [
+            {
+                id: 1001,
+                barge_id: 20,
+                ticket_no: 'P2-1',
+                plate_number: '61C-99999',
+                weight_1: 32000,
+                weight_2: 10000,
+                weight_net: 22000,
+                date_in: '2026-11-12T09:00',
+                date_out: '2026-11-12T09:10'
+            }
+        ];
+
+        const mockBuilder: any = (supabase.from as any)('weighbridge_trucks');
+        mockBuilder.range
+            .mockResolvedValueOnce({ data: page1, error: null })
+            .mockResolvedValueOnce({ data: page2, error: null });
+
+        const grouped = await WeighbridgeService.getTrucksByBargeIds([10, 20]);
+        expect(mockBuilder.range).toHaveBeenNthCalledWith(1, 0, 999);
+        expect(mockBuilder.range).toHaveBeenNthCalledWith(2, 1000, 1999);
+        expect(grouped[10]).toHaveLength(1000);
+        expect(grouped[20]).toHaveLength(1);
+        expect(grouped[20]?.[0]?.ticketNo).toBe('P2-1');
+    });
+
+    it('T15: getTrucksByBargeIds falls back to IndexedDB in parallel when Supabase fails', async () => {
+        localStore.set('wb_trucks_10', [
+            { id: 1, barge_id: 10, ticketNo: 'LOC-1', plateNumber: '61C-11111', weight1: 30000, weight2: 10000, weightNet: 20000 }
+        ]);
+        localStore.set('wb_trucks_20', [
+            { id: 2, barge_id: 20, ticketNo: 'LOC-2', plateNumber: '61C-22222', weight1: 35000, weight2: 10000, weightNet: 25000 }
+        ]);
+
+        const mockBuilder: any = (supabase.from as any)('weighbridge_trucks');
+        mockBuilder.range.mockResolvedValueOnce({ data: null, error: { message: 'Network offline' } });
+
+        const grouped = await WeighbridgeService.getTrucksByBargeIds([10, 20]);
+        expect(grouped[10]).toHaveLength(1);
+        expect(grouped[10]?.[0]?.ticketNo).toBe('LOC-1');
+        expect(grouped[20]).toHaveLength(1);
+        expect(grouped[20]?.[0]?.ticketNo).toBe('LOC-2');
     });
 });

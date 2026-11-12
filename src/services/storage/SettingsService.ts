@@ -44,9 +44,37 @@ export const SettingsService = {
     },
 
     /**
+     * Cập nhật một phần settings (merge với cache hiện tại hoặc tải mới nếu chưa có cache) chỉ với 1 RTT
+     */
+    async updateSettings(patch: Record<string, any>): Promise<boolean> {
+        try {
+            const current = (settingsCache && (Date.now() - settingsCache.timestamp < SETTINGS_TTL))
+                ? settingsCache.data
+                : (await SettingsService.getSettings());
+            const newSettings = {
+                ...(current || {}),
+                ...patch
+            };
+            const { error } = await supabase
+                .from('content')
+                .update({ settings: newSettings })
+                .eq('id', 'main');
+            if (!error) {
+                SettingsService.setSettingsCache(newSettings);
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.error('[SettingsService] Error updating settings:', e);
+            return false;
+        }
+    },
+
+    /**
      * Xóa cache khi có cập nhật settings
      */
     invalidateCache() {
         settingsCache = null;
+        settingsPromise = null;
     }
 };

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
-import { supabase } from '@/supabase';
+import { SettingsService } from '@/services/storage/SettingsService';
 import { LogService } from '@/services/storage/LogService';
 import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
 import { WeighbridgeService, type MasterCargoItem } from '@/services/excel/WeighbridgeService';
@@ -99,14 +99,10 @@ async function loadUnifiedGoods() {
             }
         }
 
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
+        const settings = await SettingsService.getSettings();
 
-        if (!error && data?.settings) {
-            const remoteGoods = data.settings.allocator_goods;
+        if (settings) {
+            const remoteGoods = settings.allocator_goods;
             if (Array.isArray(remoteGoods)) {
                 for (const n of remoteGoods) {
                     const key = String(n || '').trim().toUpperCase();
@@ -115,7 +111,7 @@ async function loadUnifiedGoods() {
                     }
                 }
             }
-            const remoteMaster = data.settings.weighbridge_master_data;
+            const remoteMaster = settings.weighbridge_master_data;
             if (remoteMaster?.goods && Array.isArray(remoteMaster.goods)) {
                 for (const g of remoteMaster.goods) {
                     if (g && g.name) {
@@ -168,30 +164,15 @@ const saveToStorage = async () => {
         const namesList = goodsItems.value.map(g => g.name);
         await dbContext.set('allocator_goods', namesList);
 
-        // Update WeighbridgeService MasterData
+        // Update WeighbridgeService MasterData & allocator_goods via SettingsService
         const wbMaster = await WeighbridgeService.getMasterData();
         wbMaster.goods = [...goodsItems.value];
         await WeighbridgeService.saveMasterData(wbMaster);
 
-        // Also update allocator_goods in Supabase settings
-        const { data: current, error: fetchError } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-
-        if (!fetchError) {
-            const currentSettings = current?.settings || {};
-            const updatedSettings = {
-                ...currentSettings,
-                allocator_goods: namesList,
-                weighbridge_master_data: wbMaster
-            };
-            await supabase
-                .from('content')
-                .update({ settings: updatedSettings })
-                .eq('id', 'main');
-        }
+        await SettingsService.updateSettings({
+            allocator_goods: namesList,
+            weighbridge_master_data: wbMaster
+        });
 
         syncStatus.value = 'synced';
         syncChannel.postMessage({ type: 'goods' });

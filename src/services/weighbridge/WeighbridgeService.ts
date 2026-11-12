@@ -451,11 +451,65 @@ export function deduplicateBargeTrucks<T extends Record<string, any>>(trucks: T[
         return norm.length >= 16 && !norm.endsWith('T00:00');
     };
 
+    const byTicketCode = new Map<string, number[]>();
+    const byPlateKey = new Map<string, number[]>();
+
+    const indexTruckAt = (t: Record<string, any>, idx: number) => {
+        const t1 = normalizeTicketCode(t.ticketNo);
+        const t2 = normalizeTicketCode(t.sourceTicketNo);
+        if (t1) {
+            const arr = byTicketCode.get(t1) || [];
+            if (!arr.includes(idx)) arr.push(idx);
+            byTicketCode.set(t1, arr);
+        }
+        if (t2 && t2 !== t1) {
+            const arr = byTicketCode.get(t2) || [];
+            if (!arr.includes(idx)) arr.push(idx);
+            byTicketCode.set(t2, arr);
+        }
+        const pKey = normalizeMainPlate(t.plateNumber || t.soXe);
+        if (pKey) {
+            const arr = byPlateKey.get(pKey) || [];
+            if (!arr.includes(idx)) arr.push(idx);
+            byPlateKey.set(pKey, arr);
+        }
+    };
+
+    const findDuplicateIndex = (item: Record<string, any>): number => {
+        const candidateSet = new Set<number>();
+        const t1 = normalizeTicketCode(item.ticketNo);
+        const t2 = normalizeTicketCode(item.sourceTicketNo);
+        if (t1) {
+            const c = byTicketCode.get(t1);
+            if (c) for (const idx of c) candidateSet.add(idx);
+        }
+        if (t2) {
+            const c = byTicketCode.get(t2);
+            if (c) for (const idx of c) candidateSet.add(idx);
+        }
+        const pKey = normalizeMainPlate(item.plateNumber || item.soXe);
+        if (pKey) {
+            const c = byPlateKey.get(pKey);
+            if (c) for (const idx of c) candidateSet.add(idx);
+        }
+        if (candidateSet.size === 0) return -1;
+        const candidates = Array.from(candidateSet).sort((a, b) => a - b);
+        for (const idx of candidates) {
+            if (isSameScaleTicket(uniqueTrucks[idx]!, item)) {
+                return idx;
+            }
+        }
+        return -1;
+    };
+
     for (const item of trucks) {
         if (!item) continue;
-        const dupIdx = uniqueTrucks.findIndex(existing => isSameScaleTicket(existing, item));
+        const dupIdx = findDuplicateIndex(item);
         if (dupIdx === -1) {
-            uniqueTrucks.push({ ...item });
+            const newIdx = uniqueTrucks.length;
+            const copy = { ...item };
+            uniqueTrucks.push(copy);
+            indexTruckAt(copy, newIdx);
             continue;
         }
 
@@ -516,6 +570,7 @@ export function deduplicateBargeTrucks<T extends Record<string, any>>(trucks: T[
         }
 
         uniqueTrucks[dupIdx] = merged as T;
+        indexTruckAt(merged, dupIdx);
 
         const removedId = secondary.id;
         if (removedId !== undefined && removedId !== null && removedId !== merged.id && !removedIds.includes(removedId)) {
@@ -550,15 +605,32 @@ let vesselsMemoryCache: Vessel[] | null = null;
 let vesselsCacheTimestamp = 0;
 let vesselsInFlightPromise: Promise<Vessel[]> | null = null;
 const VESSELS_CACHE_TTL = 30_000;
+
+const trucksMemoryCache = new Map<number, { data: Truck[]; timestamp: number }>();
+const trucksInFlightMap = new Map<number, Promise<Truck[]>>();
+const TRUCKS_CACHE_TTL = 30_000;
+
 const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+export function invalidateTrucksCache(bargeId?: number) {
+    if (bargeId !== undefined) {
+        trucksMemoryCache.delete(Number(bargeId));
+        trucksInFlightMap.delete(Number(bargeId));
+    } else {
+        trucksMemoryCache.clear();
+        trucksInFlightMap.clear();
+    }
+}
 
 export function invalidateVesselsCache() {
     vesselsMemoryCache = null;
     vesselsCacheTimestamp = 0;
+    invalidateTrucksCache();
 }
 
 export const WeighbridgeService = {
     invalidateVesselsCache,
+    invalidateTrucksCache,
 
     /**
      * Get Master Data (customers and cargo goods)
@@ -597,23 +669,7 @@ export const WeighbridgeService = {
                 DemoSandboxService.setLocalItem('weighbridge_master_data', JSON.stringify(masterData));
             } catch (_) {}
 
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-
-            if (!fetchError && current?.settings) {
-                const newSettings = {
-                    ...current.settings,
-                    weighbridge_master_data: masterData
-                };
-                await supabase
-                    .from('content')
-                    .update({ settings: newSettings })
-                    .eq('id', 'main');
-                SettingsService.invalidateCache();
-            }
+            await SettingsService.updateSettings({ weighbridge_master_data: masterData });
             return true;
         } catch (e) {
             console.error('Error saving master data:', e);
@@ -692,23 +748,7 @@ export const WeighbridgeService = {
                 }));
             } catch (_) {}
 
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-
-            if (!fetchError && current?.settings) {
-                const newSettings = {
-                    ...current.settings,
-                    weighbridge_standard_template: template
-                };
-                await supabase
-                    .from('content')
-                    .update({ settings: newSettings })
-                    .eq('id', 'main');
-                SettingsService.invalidateCache();
-            }
+            await SettingsService.updateSettings({ weighbridge_standard_template: template });
             return true;
         } catch (e) {
             console.error('Error saving global ticket template:', e);
@@ -1086,9 +1126,10 @@ export const WeighbridgeService = {
         const vessel = local.find(v => v.id === id);
         if (vessel) {
             if (vessel.barges) {
-                for (const barge of vessel.barges) {
-                    await dbContext.delete(`wb_trucks_${barge.id}`);
-                }
+                await Promise.all(vessel.barges.map(barge => {
+                    invalidateTrucksCache(barge.id);
+                    return dbContext.delete(`wb_trucks_${barge.id}`);
+                }));
             }
             const updated = local.filter(v => v.id !== id);
             await saveLocalVessels(updated);
@@ -1256,36 +1297,38 @@ export const WeighbridgeService = {
      */
     async updateBargeConfig(id: number, config: BargeConfig): Promise<boolean> {
         const local = await getLocalVessels();
-        
-        // 1. Fetch current config from Supabase to perform a safe merge
-        let remoteConfig: BargeConfig = {} as BargeConfig;
-        try {
-            const { data, error } = await supabase
-                .from('weighbridge_barges')
-                .select('config')
-                .eq('id', id)
-                .single();
-            if (!error && data && data.config) {
-                remoteConfig = data.config;
-            }
-        } catch (e) {
-            console.warn('Failed to fetch remote config for merge:', e);
-        }
-        
-        // 2. Perform merge
-        const finalConfig = { ...remoteConfig, ...config, updatedAt: Date.now() };
-        
-        // 3. Update local cache
-        let found = false;
+        let localBarge: Barge | undefined;
         for (const vessel of local) {
-            const barge = vessel.barges?.find(b => b.id === id);
-            if (barge) {
-                barge.config = finalConfig;
-                found = true;
+            const foundBarge = vessel.barges?.find(b => b.id === id);
+            if (foundBarge) {
+                localBarge = foundBarge;
                 break;
             }
         }
-        if (found) {
+        
+        // 1. Use local config if already loaded, otherwise fetch from Supabase for a safe merge
+        let baseConfig: BargeConfig = (localBarge?.config || {}) as BargeConfig;
+        if (!localBarge?.config || Object.keys(localBarge.config).length === 0) {
+            try {
+                const { data, error } = await supabase
+                    .from('weighbridge_barges')
+                    .select('config')
+                    .eq('id', id)
+                    .single();
+                if (!error && data && data.config) {
+                    baseConfig = data.config;
+                }
+            } catch (e) {
+                console.warn('Failed to fetch remote config for merge:', e);
+            }
+        }
+        
+        // 2. Perform merge
+        const finalConfig = { ...baseConfig, ...config, updatedAt: Date.now() };
+        
+        // 3. Update local cache
+        if (localBarge) {
+            localBarge.config = finalConfig;
             await saveLocalVessels(local);
         }
 
@@ -1372,6 +1415,7 @@ export const WeighbridgeService = {
             await saveLocalVessels(local);
             await dbContext.delete(`wb_trucks_${id}`);
         }
+        invalidateTrucksCache(id);
 
         try {
             const { error } = await supabase
@@ -1455,80 +1499,274 @@ export const WeighbridgeService = {
     },
 
     /**
-     * Get all trucks for a specific barge
+     * Get all trucks for a specific barge (with 30s in-memory cache & in-flight deduplication)
      */
-    async getTrucks(bargeId: number): Promise<Truck[]> {
+    async getTrucks(bargeId: number, forceRefresh = false): Promise<Truck[]> {
+        const numericBargeId = Number(bargeId);
+        if (!isTestEnv && !forceRefresh) {
+            const cached = trucksMemoryCache.get(numericBargeId);
+            if (cached && (Date.now() - cached.timestamp < TRUCKS_CACHE_TTL)) {
+                return cached.data;
+            }
+            const inFlight = trucksInFlightMap.get(numericBargeId);
+            if (inFlight) {
+                return inFlight;
+            }
+        }
+
         const getLocalTrucks = async (): Promise<Truck[]> => {
             const rawLocal = (await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)) || [];
             const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(rawLocal);
             if (removedIds.length > 0) {
                 await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
             }
+            if (!isTestEnv) {
+                trucksMemoryCache.set(numericBargeId, { data: uniqueTrucks, timestamp: Date.now() });
+            }
             return uniqueTrucks;
         };
 
-        try {
-            const cachedLocal = (await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)) || [];
-            const localById = new Map<any, Truck>();
-            for (const lt of cachedLocal) {
-                if (lt && lt.id !== undefined && lt.id !== null) {
-                    localById.set(lt.id, lt);
+        const fetchPromise = (async (): Promise<Truck[]> => {
+            try {
+                const cachedLocal = (await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)) || [];
+                const localById = new Map<any, Truck>();
+                for (const lt of cachedLocal) {
+                    if (lt && lt.id !== undefined && lt.id !== null) {
+                        localById.set(lt.id, lt);
+                    }
                 }
-            }
 
-            const { data, error } = await supabase
-                .from('weighbridge_trucks')
-                .select('*')
-                .eq('barge_id', bargeId)
-                .order('created_at', { ascending: true });
+                const { data, error } = await supabase
+                    .from('weighbridge_trucks')
+                    .select('*')
+                    .eq('barge_id', bargeId)
+                    .order('created_at', { ascending: true });
 
-            if (error) {
-                console.warn('Supabase fetch trucks failed, loading locally:', error);
+                if (error) {
+                    console.warn('Supabase fetch trucks failed, loading locally:', error);
+                    return await getLocalTrucks();
+                }
+
+                const formatted: Truck[] = (data || []).map((t: any) => {
+                    const prev = localById.get(t.id);
+                    return {
+                        id: t.id,
+                        barge_id: t.barge_id,
+                        ticketNo: t.ticket_no,
+                        sourceTicketNo: prev?.sourceTicketNo || '',
+                        plateNumber: t.plate_number,
+                        driver: t.driver || '',
+                        weight1: Number(t.weight_1),
+                        weight2: Number(t.weight_2),
+                        weightNet: Number(t.weight_net),
+                        dateIn: t.date_in || '',
+                        dateOut: t.date_out || '',
+                        note: t.note || '',
+                        created_at: t.created_at,
+                        ...(prev?.yard ? { yard: prev.yard } : {})
+                    };
+                });
+
+                const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(formatted);
+                await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
+                if (!isTestEnv) {
+                    trucksMemoryCache.set(numericBargeId, { data: uniqueTrucks, timestamp: Date.now() });
+                }
+
+                if (removedIds.length > 0) {
+                    try {
+                        const { error: delError } = await supabase
+                            .from('weighbridge_trucks')
+                            .delete()
+                            .eq('barge_id', bargeId)
+                            .in('id', removedIds);
+                        if (delError) {
+                            console.warn('Supabase cleanup duplicate trucks failed:', delError);
+                        }
+                    } catch (cleanupErr) {
+                        console.warn('Supabase offline during duplicate trucks cleanup:', cleanupErr);
+                    }
+                }
+
+                return uniqueTrucks;
+            } catch (e) {
+                console.warn('Supabase offline, loading trucks locally:', e);
                 return await getLocalTrucks();
             }
+        })();
 
-            const formatted: Truck[] = (data || []).map((t: any) => {
-                const prev = localById.get(t.id);
-                return {
-                    id: t.id,
-                    barge_id: t.barge_id,
-                    ticketNo: t.ticket_no,
-                    sourceTicketNo: prev?.sourceTicketNo || '',
-                    plateNumber: t.plate_number,
-                    driver: t.driver || '',
-                    weight1: Number(t.weight_1),
-                    weight2: Number(t.weight_2),
-                    weightNet: Number(t.weight_net),
-                    dateIn: t.date_in || '',
-                    dateOut: t.date_out || '',
-                    note: t.note || '',
-                    created_at: t.created_at,
-                    ...(prev?.yard ? { yard: prev.yard } : {})
-                };
-            });
+        if (!isTestEnv && !forceRefresh) {
+            trucksInFlightMap.set(numericBargeId, fetchPromise.finally(() => {
+                trucksInFlightMap.delete(numericBargeId);
+            }));
+            return trucksInFlightMap.get(numericBargeId)!;
+        }
+        return fetchPromise;
+    },
 
-            const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(formatted);
-            await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
+    /**
+     * Batch fetch trucks for multiple barges in a single query (`in('barge_id', bargeIds)`)
+     * Eliminates N+1 queries across WeighbridgePrinter, CargoAllocator, BargeStatsReport, etc.
+     */
+    async getTrucksByBargeIds(bargeIds: number[], forceRefresh = false): Promise<Record<number, Truck[]>> {
+        const result: Record<number, Truck[]> = {};
+        if (!Array.isArray(bargeIds) || bargeIds.length === 0) return result;
 
-            if (removedIds.length > 0) {
-                try {
-                    const { error: delError } = await supabase
-                        .from('weighbridge_trucks')
-                        .delete()
-                        .eq('barge_id', bargeId)
-                        .in('id', removedIds);
-                    if (delError) {
-                        console.warn('Supabase cleanup duplicate trucks failed:', delError);
+        const uniqueIds = Array.from(new Set(bargeIds.map(Number).filter(id => !isNaN(id) && id > 0)));
+        if (uniqueIds.length === 0) return result;
+
+        const missingIds: number[] = [];
+        const now = Date.now();
+
+        for (const bId of uniqueIds) {
+            if (!isTestEnv && !forceRefresh) {
+                const cached = trucksMemoryCache.get(bId);
+                if (cached && (now - cached.timestamp < TRUCKS_CACHE_TTL)) {
+                    result[bId] = cached.data;
+                    continue;
+                }
+            }
+            missingIds.push(bId);
+        }
+
+        if (missingIds.length === 0) {
+            return result;
+        }
+
+        if (missingIds.length === 1) {
+            const bId = missingIds[0]!;
+            result[bId] = await this.getTrucks(bId, forceRefresh);
+            return result;
+        }
+
+        // Load local cached trucks for all missingIds in parallel
+        const localEntries = await Promise.all(
+            missingIds.map(async (bId) => {
+                const list = (await dbContext.get<Truck[]>(`wb_trucks_${bId}`)) || [];
+                const mapById = new Map<any, Truck>();
+                for (const lt of list) {
+                    if (lt && lt.id !== undefined && lt.id !== null) {
+                        mapById.set(lt.id, lt);
                     }
-                } catch (cleanupErr) {
-                    console.warn('Supabase offline during duplicate trucks cleanup:', cleanupErr);
+                }
+                return { bId, list, mapById };
+            })
+        );
+        const localMapByBarge = new Map<number, { list: Truck[]; mapById: Map<any, Truck> }>();
+        for (const entry of localEntries) {
+            localMapByBarge.set(entry.bId, entry);
+        }
+
+        const fallbackToLocal = async () => {
+            await Promise.all(
+                missingIds.map(async (bId) => {
+                    const rawLocal = localMapByBarge.get(bId)?.list || [];
+                    const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(rawLocal);
+                    if (removedIds.length > 0) {
+                        await dbContext.set(`wb_trucks_${bId}`, uniqueTrucks);
+                    }
+                    if (!isTestEnv) {
+                        trucksMemoryCache.set(bId, { data: uniqueTrucks, timestamp: Date.now() });
+                    }
+                    result[bId] = uniqueTrucks;
+                })
+            );
+            return result;
+        };
+
+        try {
+            const allRows: any[] = [];
+            const idChunkSize = 200;
+            const pageSize = 1000;
+            for (let i = 0; i < missingIds.length; i += idChunkSize) {
+                const idChunk = missingIds.slice(i, i + idChunkSize);
+                let from = 0;
+                while (true) {
+                    const { data, error } = await supabase
+                        .from('weighbridge_trucks')
+                        .select('*')
+                        .in('barge_id', idChunk)
+                        .order('created_at', { ascending: true })
+                        .order('id', { ascending: true })
+                        .range(from, from + pageSize - 1);
+
+                    if (error) {
+                        console.warn('Supabase batch fetch trucks failed, loading locally:', error);
+                        return await fallbackToLocal();
+                    }
+                    if (!data || data.length === 0) {
+                        break;
+                    }
+                    allRows.push(...data);
+                    if (data.length < pageSize) {
+                        break;
+                    }
+                    from += data.length;
                 }
             }
 
-            return uniqueTrucks;
+            const groupedRaw = new Map<number, any[]>();
+            for (const bId of missingIds) {
+                groupedRaw.set(bId, []);
+            }
+            for (const row of allRows) {
+                const bId = Number(row.barge_id);
+                const list = groupedRaw.get(bId);
+                if (list) {
+                    list.push(row);
+                }
+            }
+
+            const idsToRemoveFromRemote: any[] = [];
+            await Promise.all(
+                missingIds.map(async (bId) => {
+                    const rows = groupedRaw.get(bId) || [];
+                    const localById = localMapByBarge.get(bId)?.mapById || new Map<any, Truck>();
+                    const formatted: Truck[] = rows.map((t: any) => {
+                        const prev = localById.get(t.id);
+                        return {
+                            id: t.id,
+                            barge_id: t.barge_id,
+                            ticketNo: t.ticket_no,
+                            sourceTicketNo: prev?.sourceTicketNo || '',
+                            plateNumber: t.plate_number,
+                            driver: t.driver || '',
+                            weight1: Number(t.weight_1),
+                            weight2: Number(t.weight_2),
+                            weightNet: Number(t.weight_net),
+                            dateIn: t.date_in || '',
+                            dateOut: t.date_out || '',
+                            note: t.note || '',
+                            created_at: t.created_at,
+                            ...(prev?.yard ? { yard: prev.yard } : {})
+                        };
+                    });
+
+                    const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(formatted);
+                    await dbContext.set(`wb_trucks_${bId}`, uniqueTrucks);
+                    if (!isTestEnv) {
+                        trucksMemoryCache.set(bId, { data: uniqueTrucks, timestamp: Date.now() });
+                    }
+                    result[bId] = uniqueTrucks;
+                    if (removedIds.length > 0) {
+                        idsToRemoveFromRemote.push(...removedIds);
+                    }
+                })
+            );
+
+            if (idsToRemoveFromRemote.length > 0) {
+                try {
+                    await supabase
+                        .from('weighbridge_trucks')
+                        .delete()
+                        .in('id', idsToRemoveFromRemote);
+                } catch (_) {}
+            }
+
+            return result;
         } catch (e) {
-            console.warn('Supabase offline, loading trucks locally:', e);
-            return await getLocalTrucks();
+            console.warn('Supabase offline during batch fetch trucks, loading locally:', e);
+            return await fallbackToLocal();
         }
     },
 
@@ -1536,6 +1774,7 @@ export const WeighbridgeService = {
      * Delete all trucks for a barge (used when overwriting)
      */
     async deleteAllTrucksForBarge(bargeId: number): Promise<boolean> {
+        invalidateTrucksCache(bargeId);
         await dbContext.delete(`wb_trucks_${bargeId}`);
         try {
             const { error } = await supabase
@@ -1558,6 +1797,9 @@ export const WeighbridgeService = {
     async saveTrucks(bargeId: number, trucks: any[]): Promise<boolean> {
         const { uniqueTrucks, removedIds } = deduplicateBargeTrucks(trucks);
         await dbContext.set(`wb_trucks_${bargeId}`, uniqueTrucks);
+        if (!isTestEnv) {
+            trucksMemoryCache.set(Number(bargeId), { data: uniqueTrucks, timestamp: Date.now() });
+        }
 
         try {
             if (removedIds.length > 0) {
@@ -1587,7 +1829,7 @@ export const WeighbridgeService = {
                 note: t.note || null
             }));
 
-            const chunkSize = 100;
+            const chunkSize = 500;
             for (let i = 0; i < dbTrucks.length; i += chunkSize) {
                 const chunk = dbTrucks.slice(i, i + chunkSize);
                 const { error } = await supabase
@@ -1617,6 +1859,9 @@ export const WeighbridgeService = {
             localTrucks.push({ ...truck, barge_id: bargeId });
         }
         await dbContext.set(`wb_trucks_${bargeId}`, localTrucks);
+        if (!isTestEnv) {
+            trucksMemoryCache.set(Number(bargeId), { data: localTrucks, timestamp: Date.now() });
+        }
 
         try {
             const dbTruck = {
@@ -1651,6 +1896,7 @@ export const WeighbridgeService = {
      * Delete a single truck
      */
     async deleteTruck(id: number): Promise<boolean> {
+        invalidateTrucksCache();
         const localVessels = await getLocalVessels();
         const bargeIds: number[] = [];
         for (const vessel of localVessels) {
@@ -1659,8 +1905,13 @@ export const WeighbridgeService = {
             }
         }
         
-        for (const bargeId of bargeIds) {
-            const localTrucks = await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`);
+        const allLocalLists = await Promise.all(
+            bargeIds.map(async (bargeId) => ({
+                bargeId,
+                localTrucks: await dbContext.get<Truck[]>(`wb_trucks_${bargeId}`)
+            }))
+        );
+        for (const { bargeId, localTrucks } of allLocalLists) {
             if (localTrucks) {
                 const initialLength = localTrucks.length;
                 const updated = localTrucks.filter(t => t.id !== id);
@@ -1692,6 +1943,9 @@ export const WeighbridgeService = {
      */
     async clearBargeTrucks(bargeId: number): Promise<boolean> {
         await dbContext.set(`wb_trucks_${bargeId}`, []);
+        if (!isTestEnv) {
+            trucksMemoryCache.set(Number(bargeId), { data: [], timestamp: Date.now() });
+        }
 
         try {
             const { error } = await supabase

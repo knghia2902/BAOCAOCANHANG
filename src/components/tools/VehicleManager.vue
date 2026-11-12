@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
-import { supabase } from '@/supabase';
+import { SettingsService } from '@/services/storage/SettingsService';
 import { LogService } from '@/services/storage/LogService';
 import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
 
@@ -167,24 +167,10 @@ async function saveVehiclesToSupabase() {
     try {
         const { error } = await VehicleService.bulkUpsertVehicles(vehicles.value);
         if (error) {
-            // Fallback to content.settings if table not created
-            const { data: current, error: fetchError } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (!fetchError) {
-                const currentSettings = current?.settings || {};
-                await supabase
-                    .from('content')
-                    .update({
-                        settings: {
-                            ...currentSettings,
-                            allocator_vehicles: vehicles.value
-                        }
-                    })
-                    .eq('id', 'main');
-            }
+            // Fallback to content.settings via SettingsService if table not created
+            await SettingsService.updateSettings({
+                allocator_vehicles: vehicles.value
+            });
         }
         syncStatus.value = 'synced';
     } catch (e) {

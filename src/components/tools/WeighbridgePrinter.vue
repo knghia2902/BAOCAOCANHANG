@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { authStore, canCreate, canUpdate, canDelete, hasDetailPermission } from '@/stores/auth';
-import { supabase } from '@/supabase';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
+import { SettingsService } from '@/services/storage/SettingsService';
 import { DemoSandboxService } from '@/services/storage/DemoSandboxService';
 import { WeighbridgeService, isSameScaleTicket, deduplicateBargeTrucks, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
 import { LogService } from '@/services/storage/LogService';
@@ -54,17 +54,11 @@ async function loadGlobalGoods() {
             globalGoodsList.value = saved;
         }
         
-        // Fetch from Supabase
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        if (error) throw error;
-        
-        if (data?.settings && Array.isArray(data.settings.allocator_goods)) {
-            globalGoodsList.value = data.settings.allocator_goods;
-            await dbContext.set('allocator_goods', data.settings.allocator_goods);
+        // Fetch via cached SettingsService
+        const settings = await SettingsService.getSettings();
+        if (settings && Array.isArray(settings.allocator_goods)) {
+            globalGoodsList.value = settings.allocator_goods;
+            await dbContext.set('allocator_goods', settings.allocator_goods);
         }
     } catch (e) {
         console.warn('Lỗi khi tải danh mục hàng hóa toàn cục:', e);
@@ -974,6 +968,18 @@ interface BargeSummary {
 const vesselBargesSummary = ref<BargeSummary[]>([]);
 const loadingVesselSummary = ref(false);
 
+// Helper function to batch-load trucks for multiple barges in a single query
+const fetchTrucksForBargeIds = async (bargeIds: number[]): Promise<Record<number, Truck[]>> => {
+    if (bargeIds.length === 0) return {};
+    if (typeof (WeighbridgeService as any).getTrucksByBargeIds === 'function') {
+        return await (WeighbridgeService as any).getTrucksByBargeIds(bargeIds);
+    }
+    const entries = await Promise.all(
+        bargeIds.map(async (id) => [id, await WeighbridgeService.getTrucks(id)] as const)
+    );
+    return Object.fromEntries(entries);
+};
+
 // Helper function to load/update vessel summary data
 const refreshVesselSummary = async () => {
     if (!activeVesselId.value) {
@@ -988,8 +994,10 @@ const refreshVesselSummary = async () => {
     
     loadingVesselSummary.value = true;
     try {
-        const summaries = await Promise.all(vessel.barges.map(async (barge) => {
-            const list = await WeighbridgeService.getTrucks(barge.id);
+        const bargeIds = vessel.barges.map(b => b.id);
+        const trucksByBarge = await fetchTrucksForBargeIds(bargeIds);
+        const summaries = vessel.barges.map((barge) => {
+            const list = trucksByBarge[barge.id] || [];
             let totalWeight = 0;
             let minDate = '';
             let maxDate = '';
@@ -1013,7 +1021,7 @@ const refreshVesselSummary = async () => {
                 dateEnd: maxDate,
                 locked: barge.config?.locked || false
             };
-        }));
+        });
         
         vesselBargesSummary.value = summaries;
     } catch (e) {
@@ -1026,36 +1034,35 @@ const refreshVesselSummary = async () => {
 const refreshGlobalBargesSummary = async () => {
     loadingGlobalSummary.value = true;
     try {
-        const allBargePromises = vessels.value.flatMap(v => {
-            return (v.barges || []).map(async (b) => {
-                const trks = await WeighbridgeService.getTrucks(b.id);
-                let totalWeight = 0;
-                let minDate = '';
-                let maxDate = '';
-                
-                trks.forEach(t => {
-                    totalWeight += (t.weightNet || 0);
-                    if (t.dateIn) {
-                        if (!minDate || t.dateIn < minDate) minDate = t.dateIn;
-                    }
-                    if (t.dateOut) {
-                        if (!maxDate || t.dateOut > maxDate) maxDate = t.dateOut;
-                    }
-                });
-                
-                return {
-                    id: b.id,
-                    name: b.name,
-                    truckCount: trks.length,
-                    totalWeight,
-                    dateStart: minDate,
-                    dateEnd: maxDate,
-                    locked: b.config?.locked || false
-                };
+        const allBarges = vessels.value.flatMap(v => v.barges || []);
+        const trucksByBarge = await fetchTrucksForBargeIds(allBarges.map(b => b.id));
+        const results = allBarges.map((b) => {
+            const trks = trucksByBarge[b.id] || [];
+            let totalWeight = 0;
+            let minDate = '';
+            let maxDate = '';
+            
+            trks.forEach(t => {
+                totalWeight += (t.weightNet || 0);
+                if (t.dateIn) {
+                    if (!minDate || t.dateIn < minDate) minDate = t.dateIn;
+                }
+                if (t.dateOut) {
+                    if (!maxDate || t.dateOut > maxDate) maxDate = t.dateOut;
+                }
             });
+            
+            return {
+                id: b.id,
+                name: b.name,
+                truckCount: trks.length,
+                totalWeight,
+                dateStart: minDate,
+                dateEnd: maxDate,
+                locked: b.config?.locked || false
+            };
         });
         
-        const results = await Promise.all(allBargePromises);
         globalBargesSummary.value = results;
     } catch (e) {
         console.error('Error loading global summary:', e);
@@ -1564,15 +1571,16 @@ const openSettlementModal = async () => {
     loadingSettlementData.value = true;
     try {
         const bargesList = vessel.barges || [];
+        const trucksByBarge = await fetchTrucksForBargeIds(bargesList.map(b => b.id));
         const loadedBarges: Barge[] = [];
         const allTrks: any[] = [];
-        await Promise.all(bargesList.map(async (b) => {
-            const trks = await WeighbridgeService.getTrucks(b.id);
+        bargesList.forEach((b) => {
+            const trks = trucksByBarge[b.id] || [];
             loadedBarges.push({ ...b, trucks: trks });
             trks.forEach(t => {
                 allTrks.push({ ...t, bargeName: b.name });
             });
-        }));
+        });
         loadedBarges.sort((a, b) => a.name.localeCompare(b.name));
         settlementBargesData.value = loadedBarges;
         settlementTicketsData.value = allTrks;
@@ -2621,24 +2629,14 @@ watch(cfgForm, () => {
     saveBargeConfig();
 }, { deep: true });
 
-// Watch activeVesselId to automatically load vessel summary when switching vessels/barges
-watch(activeVesselId, async (newVesselId) => {
-    if (newVesselId) {
+// Watch [activeVesselId, activeBargeId] together to prevent duplicate summary calls when switching vessels/barges
+watch([activeVesselId, activeBargeId], async ([newVesselId, newBargeId]) => {
+    if (newBargeId !== null) return;
+    if (newVesselId !== null) {
         await refreshVesselSummary();
     } else {
         vesselBargesSummary.value = [];
         await refreshGlobalBargesSummary();
-    }
-});
-
-// Watch activeBargeId: if we return to the vessel summary view (activeBargeId becomes null)
-watch(activeBargeId, async (newBargeId) => {
-    if (newBargeId === null) {
-        if (activeVesselId.value !== null) {
-            await refreshVesselSummary();
-        } else {
-            await refreshGlobalBargesSummary();
-        }
     }
 });
 
@@ -3454,14 +3452,9 @@ async function autoSyncAllBarges(isManual = false, preferLocalIdb = false) {
         }
         if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
             try {
-                const { data, error: fetchError } = await supabase
-                    .from('content')
-                    .select('settings')
-                    .eq('id', 'main')
-                    .single();
-                    
-                if (!fetchError && data?.settings) {
-                    allocatorTrips = data.settings.allocator_tickets || [];
+                const settings = await SettingsService.getSettings();
+                if (settings) {
+                    allocatorTrips = settings.allocator_tickets || [];
                     await dbContext.set('allocator_tickets', allocatorTrips);
                 } else {
                     allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
@@ -3503,18 +3496,24 @@ async function autoSyncAllBarges(isManual = false, preferLocalIdb = false) {
 
         let hasUpdates = false;
         let matchedBargeCount = 0;
-        
+
+        // Pre-collect all candidate barges and batch-fetch their trucks in 1 query
+        const candidateBarges: Array<{ barge: Barge; matchedTrips: any[] }> = [];
         for (const vessel of vessels.value) {
             if (!vessel.barges) continue;
             for (const barge of vessel.barges) {
                 if (barge.config?.locked) continue;
                 const bargeOrderNo = barge.config?.orderNo ? String(barge.config.orderNo).trim() : '';
                 if (!bargeOrderNo) continue;
-
-                // Filter trips for this barge
                 const matchedTrips = allocatorTrips.filter((t: any) => isBargeMatch(t, barge));
                 if (matchedTrips.length === 0) continue;
+                candidateBarges.push({ barge, matchedTrips });
+            }
+        }
 
+        const preloadedTrucksByBarge = await fetchTrucksForBargeIds(candidateBarges.map(c => c.barge.id));
+
+        for (const { barge, matchedTrips } of candidateBarges) {
                 matchedBargeCount++;
 
                 // Map to Truck type
@@ -3581,7 +3580,7 @@ async function autoSyncAllBarges(isManual = false, preferLocalIdb = false) {
                     };
                 });
 
-                const rawCurrentTrucks = await WeighbridgeService.getTrucks(barge.id);
+                const rawCurrentTrucks = preloadedTrucksByBarge[barge.id] || await WeighbridgeService.getTrucks(barge.id);
                 const { uniqueTrucks: currentTrucks, removedIds: existingDupIds } = deduplicateBargeTrucks(rawCurrentTrucks);
                 let hasMetadataUpdate = existingDupIds.length > 0;
 
@@ -3651,7 +3650,6 @@ async function autoSyncAllBarges(isManual = false, preferLocalIdb = false) {
                         cfgForm.ticketSeed = barge.config.ticketSeed;
                     }
                 }
-            }
         }
         if (hasUpdates) {
             const successMsg = 'Đã đồng bộ danh sách xe qua Phần mềm in phiếu cân thành công! 🚢';
@@ -3709,15 +3707,11 @@ const syncFromAllocatorActiveBarge = async () => {
     isAllocatorSyncRunning = true;
     loading.value = true;
     try {
-        const { data, error: fetchError } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
+        const settings = await SettingsService.getSettings();
 
         let allocatorTrips: any[] = [];
-        if (!fetchError && data?.settings) {
-            allocatorTrips = data.settings.allocator_tickets || [];
+        if (settings) {
+            allocatorTrips = settings.allocator_tickets || [];
             await dbContext.set('allocator_tickets', allocatorTrips);
         } else {
             allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];

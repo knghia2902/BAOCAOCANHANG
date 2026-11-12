@@ -97,6 +97,8 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 20. Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng | v1.2 | 3/3 | Complete | 2026-10-21 |
 | 21. Sơ đồ trực quan Kho cảng Nguyên Ngọc | v1.2 | 2/2 | Complete | 2026-10-26 |
 | 22. Sơ đồ cây điều hướng & Workspace hợp nhất | v1.2 | 3/3 | Complete    | 2026-11-05 |
+| 23. Quyết toán Lô hàng, DNTT & Lưu sà lan | v1.2 | 3/3 | Complete    | 2026-11-11 |
+| 24. Tối ưu hóa Tốc độ Truy vấn Web & Hiệu năng (GSD + GitNexus) | v1.2 | 1/2 | In Progress (Wave 1 Complete) | - |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -276,3 +278,16 @@ Plans:
 - [x] 23-01: Thiết kế cấu trúc dữ liệu Ma trận Biểu giá Hợp đồng 7 bậc giá dầu, dịch vụ tính toán lưu sà lan (`BargeDemurrageService.ts`), và logic bóc tách số liệu cân theo nghiệp vụ (`EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `TRUCK`).
 - [x] 23-02: Xây dựng giao diện Quyết toán Lô hàng & Lập Đề nghị thanh toán (`ShipmentSettlementModal.vue` / Tab Quyết toán): bảng kê lưu sà lan cho phép nhập Ngày đến / Ngày rời phao, bộ chọn bậc giá dầu, trình chọn dịch vụ gắn kèm số Hợp đồng/Phụ lục, tính tổng tiền, thuế VAT 8% và dịch số tiền thành chữ song ngữ.
 - [x] 23-03: Triển khai trình xuất file Excel Quyết toán lô hàng chuẩn mẫu cảng trọn gói 8 sheet (`DNTT 1`, `DNTT 2`, `Giá dầu`, `BK SALAN`, `EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `LƯU SÀ LAN`, `TRUCK `) giữ nguyên công thức và định dạng in ấn.
+
+### Phase 24: Tối ưu hóa Tốc độ Truy vấn Web & Hiệu năng (GSD + GitNexus)
+
+**Goal:** Tối ưu hóa toàn diện tốc độ truy vấn Supabase, IndexedDB và tốc độ tải/render giao diện dựa trên kiểm toán GitNexus + GSD theo 2 đợt (Wave 1: Nhóm 1 High Impact + Nhóm 2 Medium Impact; Wave 2: Nhóm 3 Low Impact — Composite DB Indexes, Auth Fast-Path & Serialization).
+**Requirements**: PERF-HIGH-01, PERF-HIGH-02, PERF-HIGH-03, PERF-HIGH-04, PERF-MED-01, PERF-MED-02, PERF-MED-03, PERF-LOW-01, PERF-LOW-02, PERF-LOW-03
+**Depends on:** Phase 22, Phase 23
+**Plans:** 2 plans
+
+Plans:
+
+- [x] 24-01 (Wave 1 — Complete 2026-11-12): Thực thi Nhóm 1 (HIGH-1..4: Batch `getTrucksByBargeIds` + Memory Cache loại bỏ N+1 queries, `defineAsyncComponent` cho UnifiedWorkspaceView & UtilitiesView, In-Memory Cache + `Promise.all` + `Map` O(1) cho `WarehouseInventoryService` & `VehicleService`, hợp nhất `SettingsService.updateSettings` 1-RTT) và Nhóm 2 (MED-1..3: `Promise.all` IndexedDB + Debounce deep watchers + O(1) lookups cho Allocator/Importer, tăng `chunkSize=500` & lọc điều kiện `syncScaleHeadByTicketNo`, phân trang 100 dòng/trang cho bảng chi tiết Tồn kho 4 kho). Verified: `npm test` 20/20 files (107/107 tests) PASS, `npm run build` PASS 0 errors.
+- [ ] 24-02 (Wave 2 — Queued): Thực thi Nhóm 3 (LOW-1..3: Migration bổ sung Composite Indexes trên PostgreSQL/Supabase cho `warehouse_inventory_tickets`, `weighbridge_allocation_tracking`, `weighbridge_trucks`; tối ưu `AuthService.login()` fast-path cho username nội bộ; tối ưu bất đồng bộ `DBContext` & tra cứu `Map` O(1) trong `DemoSandboxService`).
+

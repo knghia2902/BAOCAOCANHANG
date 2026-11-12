@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: Dedicated Single-Barge Allocator Tool
-current_phase: 7
-current_phase_name: advanced filtering & excel export
-status: planning
-stopped_at: Completed quick task 261021-imy (Mặc định thu gọn các tàu ở sidebar trái trong Báo Cáo Tổng Quan)
-last_updated: "2026-11-07T03:28:47.894Z"
-last_activity: 2026-11-07
-last_activity_desc: Phase 22 complete, transitioned to Phase 7
+milestone_name: Enterprise Workspace & Web Query Performance Optimization
+current_phase: 24
+current_phase_name: Tối ưu hóa Tốc độ Truy vấn Web & Hiệu năng (GSD + GitNexus)
+status: wave-1-complete
+stopped_at: Completed Phase 24 Wave 1 (24-01-PLAN.md); Wave 2 (24-02-PLAN.md) queued
+last_updated: "2026-11-12T06:23:30.000Z"
+last_activity: 2026-11-12
+last_activity_desc: Phase 24 Wave 1 (Nhóm 1 HIGH-1..4 + Nhóm 2 MED-1..3) verified & complete; Wave 2 (Nhóm 3 LOW-1..3) queued
 progress:
-  total_phases: 17
-  completed_phases: 15
-  total_plans: 31
-  completed_plans: 29
+  total_phases: 19
+  completed_phases: 17
+  total_plans: 36
+  completed_plans: 33
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-20)
 
 **Core value:** Enable serverless browser-only PDF/OCR processing and format conversions.
-**Current focus:** Phase 20 — Quản lý & Báo cáo Tồn Kho 4 Kho Hàng Sáng
+**Current focus:** Phase 24 — Tối ưu hóa Tốc độ Truy vấn Web & Hiệu năng (GSD + GitNexus)
 
 ## Current Position
 
-Phase: 7 — advanced filtering & excel export
-Plans: 3/3 completed (20-01, 20-02, 20-03)
-Status: Ready to plan
-Last activity: 2026-11-07 — Phase 22 complete, transitioned to Phase 7
+Phase: 24 — Tối ưu hóa Tốc độ Truy vấn Web & Hiệu năng (GSD + GitNexus)
+Plans: 1/2 completed (24-01 Wave 1 complete, 24-02 Wave 2 queued)
+Status: Wave 1 complete & verified (107/107 tests, build PASS); ready for Wave 2
+Last activity: 2026-11-12 — Phase 24 Wave 1 verified & GitNexus re-indexed (5,238 nodes | 12,419 edges | 173 flows)
 
 ## Performance Metrics
 

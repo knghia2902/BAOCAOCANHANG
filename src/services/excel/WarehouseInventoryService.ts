@@ -1,5 +1,6 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
+import { SettingsService } from '@/services/storage/SettingsService';
 import { WeighbridgeService, type Vessel, normalizeMainPlate, isSameScaleTicket } from '@/services/weighbridge/WeighbridgeService';
 import { VehicleService } from '@/services/excel/VehicleService';
 import type {
@@ -902,10 +903,33 @@ export function computeWarehouseFinalTable(
 
     const allRows: WarehouseFinalRow[] = [];
 
+    const importsByDate = new Map<string, WarehouseInventoryTicket[]>();
+    const exportsByDate = new Map<string, WarehouseInventoryTicket[]>();
+    const directsByDate = new Map<string, WarehouseInventoryTicket[]>();
+
+    for (const t of whTickets) {
+        if (!t.reportDate) continue;
+        if (t.flowType === 'IMPORT') {
+            const arr = importsByDate.get(t.reportDate);
+            if (arr) arr.push(t);
+            else importsByDate.set(t.reportDate, [t]);
+        } else if (t.flowType === 'EXPORT') {
+            const arr = exportsByDate.get(t.reportDate);
+            if (arr) arr.push(t);
+            else exportsByDate.set(t.reportDate, [t]);
+        }
+    }
+    for (const t of directTickets) {
+        if (!t.reportDate) continue;
+        const arr = directsByDate.get(t.reportDate);
+        if (arr) arr.push(t);
+        else directsByDate.set(t.reportDate, [t]);
+    }
+
     for (const d of sortedDates) {
-        const dayImports = whTickets.filter(t => t.flowType === 'IMPORT' && t.reportDate === d);
-        const dayExports = whTickets.filter(t => t.flowType === 'EXPORT' && t.reportDate === d);
-        const dayDirects = directTickets.filter(t => t.reportDate === d);
+        const dayImports = importsByDate.get(d) || [];
+        const dayExports = exportsByDate.get(d) || [];
+        const dayDirects = directsByDate.get(d) || [];
 
         const importTons = round2(dayImports.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
         const exportTons = round2(dayExports.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
@@ -1135,17 +1159,77 @@ function isRealTicketSerial(soPhieu: string | undefined | null, vehiclePlate?: s
     return true;
 }
 
+interface TicketLookupIndex {
+    byId: Map<string, WarehouseInventoryTicket>;
+    bySoPhieu: Map<string, WarehouseInventoryTicket[]>;
+    byFallbackKey: Map<string, WarehouseInventoryTicket[]>;
+}
+
+function getTicketFallbackKey(t: WarehouseInventoryTicket): string {
+    return `${t.flowType}|${t.warehouseId || ''}|${t.reportDate}|${normalizePlateKey(t.vehiclePlate)}`;
+}
+
+function addTicketToIndex(index: TicketLookupIndex, t: WarehouseInventoryTicket) {
+    index.byId.set(t.id, t);
+    if (isRealTicketSerial(t.soPhieu, t.vehiclePlate)) {
+        const sp = t.soPhieu.trim().toUpperCase();
+        const arr = index.bySoPhieu.get(sp);
+        if (arr) arr.push(t);
+        else index.bySoPhieu.set(sp, [t]);
+    } else if (t.vehiclePlate && t.vehiclePlate !== 'XE_CLEAR') {
+        const fKey = getTicketFallbackKey(t);
+        const arr = index.byFallbackKey.get(fKey);
+        if (arr) arr.push(t);
+        else index.byFallbackKey.set(fKey, [t]);
+    }
+}
+
+function removeTicketFromIndex(index: TicketLookupIndex, t: WarehouseInventoryTicket) {
+    index.byId.delete(t.id);
+    if (isRealTicketSerial(t.soPhieu, t.vehiclePlate)) {
+        const sp = t.soPhieu.trim().toUpperCase();
+        const arr = index.bySoPhieu.get(sp);
+        if (arr) {
+            const idx = arr.findIndex(x => x.id === t.id);
+            if (idx !== -1) arr.splice(idx, 1);
+        }
+    } else if (t.vehiclePlate && t.vehiclePlate !== 'XE_CLEAR') {
+        const fKey = getTicketFallbackKey(t);
+        const arr = index.byFallbackKey.get(fKey);
+        if (arr) {
+            const idx = arr.findIndex(x => x.id === t.id);
+            if (idx !== -1) arr.splice(idx, 1);
+        }
+    }
+}
+
+function createTicketLookupIndex(tickets: Iterable<WarehouseInventoryTicket>): TicketLookupIndex {
+    const index: TicketLookupIndex = {
+        byId: new Map(),
+        bySoPhieu: new Map(),
+        byFallbackKey: new Map()
+    };
+    for (const t of tickets) {
+        addTicketToIndex(index, t);
+    }
+    return index;
+}
+
 function findMatchingExistingTicket(
-    map: Map<string, WarehouseInventoryTicket>,
+    mapOrIndex: Map<string, WarehouseInventoryTicket> | TicketLookupIndex,
     incoming: WarehouseInventoryTicket
 ): WarehouseInventoryTicket | undefined {
-    const exact = map.get(incoming.id);
+    const isIndexed = 'byId' in mapOrIndex;
+    const byId = isIndexed ? mapOrIndex.byId : mapOrIndex;
+
+    const exact = byId.get(incoming.id);
     if (exact) return exact;
 
     if (isRealTicketSerial(incoming.soPhieu, incoming.vehiclePlate)) {
         const incSp = incoming.soPhieu.trim().toUpperCase();
         const incPlate = normalizePlateKey(incoming.vehiclePlate);
-        for (const existingT of map.values()) {
+        const candidates = isIndexed ? (mapOrIndex.bySoPhieu.get(incSp) || []) : byId.values();
+        for (const existingT of candidates) {
             if (
                 isRealTicketSerial(existingT.soPhieu, existingT.vehiclePlate) &&
                 existingT.soPhieu.trim().toUpperCase() === incSp
@@ -1163,7 +1247,10 @@ function findMatchingExistingTicket(
     ) {
         const incPlate = normalizePlateKey(incoming.vehiclePlate);
         const incNet = round2(incoming.netWeight);
-        for (const existingT of map.values()) {
+        const candidates = isIndexed
+            ? (mapOrIndex.byFallbackKey.get(getTicketFallbackKey(incoming)) || [])
+            : byId.values();
+        for (const existingT of candidates) {
             if (
                 !isRealTicketSerial(existingT.soPhieu, existingT.vehiclePlate) &&
                 existingT.vehiclePlate !== 'XE_CLEAR' &&
@@ -1290,26 +1377,14 @@ async function syncFallbackStateToContentSettings() {
             dbContext.get<any>(LOCAL_VEHICLES_KEY),
             dbContext.get<any>(LOCAL_TICKETS_KEY)
         ]);
-        const { data: current } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        if (current) {
-            const updatedSettings = {
-                ...(current.settings || {}),
-                warehouse_inventory_state: {
-                    configs: configs || {},
-                    vehicles: vehicles || {},
-                    tickets: tickets || [],
-                    updatedAt: new Date().toISOString()
-                }
-            };
-            await supabase
-                .from('content')
-                .update({ settings: updatedSettings })
-                .eq('id', 'main');
-        }
+        await SettingsService.updateSettings({
+            warehouse_inventory_state: {
+                configs: configs || {},
+                vehicles: vehicles || {},
+                tickets: tickets || [],
+                updatedAt: new Date().toISOString()
+            }
+        });
     } catch (_) {}
 }
 
@@ -1319,13 +1394,9 @@ async function loadFallbackStateFromContentSettings(): Promise<{
     tickets?: WarehouseInventoryTicket[];
 } | null> {
     try {
-        const { data, error } = await supabase
-            .from('content')
-            .select('settings')
-            .eq('id', 'main')
-            .single();
-        if (!error && data?.settings?.warehouse_inventory_state) {
-            return data.settings.warehouse_inventory_state;
+        const settings = await SettingsService.getSettings();
+        if (settings?.warehouse_inventory_state) {
+            return settings.warehouse_inventory_state;
         }
     } catch (_) {}
     return null;
@@ -1632,6 +1703,32 @@ export function getDefaultVisualMapState(): WarehouseVisualMapState {
     };
 }
 
+const INVENTORY_CACHE_TTL = 30_000;
+const isInventoryTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+let visualMapMemoryCache: { data: WarehouseVisualMapState; timestamp: number } | null = null;
+let visualMapInFlight: Promise<WarehouseVisualMapState> | null = null;
+
+let configsMemoryCache: { data: Record<ExtendedWarehouseId, WarehouseConfig>; timestamp: number } | null = null;
+let configsInFlight: Promise<Record<ExtendedWarehouseId, WarehouseConfig>> | null = null;
+
+let vehiclesMemoryCache: { data: Record<string, WarehouseVehicleMap>; timestamp: number } | null = null;
+let vehiclesInFlight: Promise<Record<string, WarehouseVehicleMap>> | null = null;
+
+let ticketsMemoryCache: { data: WarehouseInventoryTicket[]; timestamp: number } | null = null;
+let ticketsInFlight: Promise<WarehouseInventoryTicket[]> | null = null;
+
+export function invalidateInventoryCaches() {
+    visualMapMemoryCache = null;
+    visualMapInFlight = null;
+    configsMemoryCache = null;
+    configsInFlight = null;
+    vehiclesMemoryCache = null;
+    vehiclesInFlight = null;
+    ticketsMemoryCache = null;
+    ticketsInFlight = null;
+}
+
 export const WarehouseInventoryService = {
     normalizeWarehouseId,
     normalizePlateKey,
@@ -1651,73 +1748,87 @@ export const WarehouseInventoryService = {
     isEastwoodTicket,
     getTicketCustomerGroup,
     getDefaultConfigs,
+    invalidateInventoryCaches,
 
     clearPlaceMapCache() {
         cachedCustomPlaceMap = null;
+        invalidateInventoryCaches();
     },
 
-    async getVisualMapState(): Promise<WarehouseVisualMapState> {
-        const defaults = getDefaultVisualMapState();
-        const local = await dbContext.get<WarehouseVisualMapState>(LOCAL_VISUAL_MAP_KEY);
-        let remote: WarehouseVisualMapState | null = null;
+    async getVisualMapState(forceRefresh = false): Promise<WarehouseVisualMapState> {
+        if (!isInventoryTestEnv && !forceRefresh && visualMapMemoryCache && (Date.now() - visualMapMemoryCache.timestamp < INVENTORY_CACHE_TTL)) {
+            return visualMapMemoryCache.data;
+        }
+        if (!isInventoryTestEnv && !forceRefresh && visualMapInFlight) {
+            return visualMapInFlight;
+        }
 
-        try {
-            const { data, error } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (!error && data?.settings?.warehouse_visual_map) {
-                remote = data.settings.warehouse_visual_map as WarehouseVisualMapState;
+        const fetchPromise = (async (): Promise<WarehouseVisualMapState> => {
+            const defaults = getDefaultVisualMapState();
+            const [local, settings] = await Promise.all([
+                dbContext.get<WarehouseVisualMapState>(LOCAL_VISUAL_MAP_KEY),
+                SettingsService.getSettings().catch(() => null)
+            ]);
+            const remote: WarehouseVisualMapState | null = settings?.warehouse_visual_map || null;
+
+            const source = remote || local;
+            if (!source) return defaults;
+
+            const merged: WarehouseVisualMapState = {
+                title: source.title || defaults.title,
+                updatedAtLabel: source.updatedAtLabel || defaults.updatedAtLabel,
+                containerYard: {
+                    ...defaults.containerYard,
+                    ...(source.containerYard || {})
+                },
+                warehouses: {
+                    'KHO 1': {
+                        ...defaults.warehouses['KHO 1'],
+                        ...(source.warehouses?.['KHO 1'] || {}),
+                        polygons: Array.isArray(source.warehouses?.['KHO 1']?.polygons) && source.warehouses['KHO 1'].polygons.length > 0
+                            ? source.warehouses['KHO 1'].polygons
+                            : defaults.warehouses['KHO 1'].polygons
+                    },
+                    'KHO 2': {
+                        ...defaults.warehouses['KHO 2'],
+                        ...(source.warehouses?.['KHO 2'] || {}),
+                        polygons: Array.isArray(source.warehouses?.['KHO 2']?.polygons) && source.warehouses['KHO 2'].polygons.length > 0
+                            ? source.warehouses['KHO 2'].polygons
+                            : defaults.warehouses['KHO 2'].polygons
+                    },
+                    'KHO 3': {
+                        ...defaults.warehouses['KHO 3'],
+                        ...(source.warehouses?.['KHO 3'] || {}),
+                        polygons: Array.isArray(source.warehouses?.['KHO 3']?.polygons) && source.warehouses['KHO 3'].polygons.length > 0
+                            ? source.warehouses['KHO 3'].polygons
+                            : defaults.warehouses['KHO 3'].polygons
+                    },
+                    'KHO 4': {
+                        ...defaults.warehouses['KHO 4'],
+                        ...(source.warehouses?.['KHO 4'] || {}),
+                        polygons: Array.isArray(source.warehouses?.['KHO 4']?.polygons) && source.warehouses['KHO 4'].polygons.length > 0
+                            ? source.warehouses['KHO 4'].polygons
+                            : defaults.warehouses['KHO 4'].polygons
+                    }
+                },
+                updatedAt: source.updatedAt,
+                updatedBy: source.updatedBy
+            };
+
+            await dbContext.set(LOCAL_VISUAL_MAP_KEY, merged);
+            if (!isInventoryTestEnv) {
+                visualMapMemoryCache = { data: merged, timestamp: Date.now() };
             }
-        } catch (_) {}
+            return merged;
+        })();
 
-        const source = remote || local;
-        if (!source) return defaults;
-
-        const merged: WarehouseVisualMapState = {
-            title: source.title || defaults.title,
-            updatedAtLabel: source.updatedAtLabel || defaults.updatedAtLabel,
-            containerYard: {
-                ...defaults.containerYard,
-                ...(source.containerYard || {})
-            },
-            warehouses: {
-                'KHO 1': {
-                    ...defaults.warehouses['KHO 1'],
-                    ...(source.warehouses?.['KHO 1'] || {}),
-                    polygons: Array.isArray(source.warehouses?.['KHO 1']?.polygons) && source.warehouses['KHO 1'].polygons.length > 0
-                        ? source.warehouses['KHO 1'].polygons
-                        : defaults.warehouses['KHO 1'].polygons
-                },
-                'KHO 2': {
-                    ...defaults.warehouses['KHO 2'],
-                    ...(source.warehouses?.['KHO 2'] || {}),
-                    polygons: Array.isArray(source.warehouses?.['KHO 2']?.polygons) && source.warehouses['KHO 2'].polygons.length > 0
-                        ? source.warehouses['KHO 2'].polygons
-                        : defaults.warehouses['KHO 2'].polygons
-                },
-                'KHO 3': {
-                    ...defaults.warehouses['KHO 3'],
-                    ...(source.warehouses?.['KHO 3'] || {}),
-                    polygons: Array.isArray(source.warehouses?.['KHO 3']?.polygons) && source.warehouses['KHO 3'].polygons.length > 0
-                        ? source.warehouses['KHO 3'].polygons
-                        : defaults.warehouses['KHO 3'].polygons
-                },
-                'KHO 4': {
-                    ...defaults.warehouses['KHO 4'],
-                    ...(source.warehouses?.['KHO 4'] || {}),
-                    polygons: Array.isArray(source.warehouses?.['KHO 4']?.polygons) && source.warehouses['KHO 4'].polygons.length > 0
-                        ? source.warehouses['KHO 4'].polygons
-                        : defaults.warehouses['KHO 4'].polygons
-                }
-            },
-            updatedAt: source.updatedAt,
-            updatedBy: source.updatedBy
-        };
-
-        await dbContext.set(LOCAL_VISUAL_MAP_KEY, merged);
-        return merged;
+        if (!isInventoryTestEnv && !forceRefresh) {
+            visualMapInFlight = fetchPromise.finally(() => {
+                visualMapInFlight = null;
+            });
+            return visualMapInFlight;
+        }
+        return fetchPromise;
     },
 
     async saveVisualMapState(state: WarehouseVisualMapState): Promise<boolean> {
@@ -1726,121 +1837,126 @@ export const WarehouseInventoryService = {
             updatedAt: new Date().toISOString()
         };
         await dbContext.set(LOCAL_VISUAL_MAP_KEY, payload);
+        if (!isInventoryTestEnv) {
+            visualMapMemoryCache = { data: payload, timestamp: Date.now() };
+        }
 
         try {
-            const { data: current } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (current) {
-                const updatedSettings = {
-                    ...(current.settings || {}),
-                    warehouse_visual_map: payload
-                };
-                const { error } = await supabase
-                    .from('content')
-                    .update({ settings: updatedSettings })
-                    .eq('id', 'main');
-                if (error) {
-                    console.warn('Supabase saveVisualMapState warning:', error.message);
-                }
-            }
+            await SettingsService.updateSettings({ warehouse_visual_map: payload });
         } catch (err) {
             console.warn('Supabase saveVisualMapState fallback to local:', err);
         }
         return true;
     },
 
-    async getConfigs(): Promise<Record<ExtendedWarehouseId, WarehouseConfig>> {
-        const defaults = getDefaultConfigs();
-        const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
-        let merged: Record<ExtendedWarehouseId, WarehouseConfig> = {
-            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
-            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
-            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
-            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) },
-            'KHO 4 - BK': { ...defaults['KHO 4 - BK'], ...(local['KHO 4 - BK'] || {}) }
-        };
+    async getConfigs(forceRefresh = false): Promise<Record<ExtendedWarehouseId, WarehouseConfig>> {
+        if (!isInventoryTestEnv && !forceRefresh && configsMemoryCache && (Date.now() - configsMemoryCache.timestamp < INVENTORY_CACHE_TTL)) {
+            return configsMemoryCache.data;
+        }
+        if (!isInventoryTestEnv && !forceRefresh && configsInFlight) {
+            return configsInFlight;
+        }
 
-        if (!dedicatedTablesMissing) {
-            try {
-                const { data, error } = await supabase
-                    .from('warehouse_configs')
-                    .select('*');
-                if (error && isTableMissingError(error)) {
-                    dedicatedTablesMissing = true;
-                } else if (!error && Array.isArray(data) && (data.length > 0 || import.meta.env?.MODE !== 'test')) {
-                    // Supabase Cloud là nguồn chuẩn: không giữ config cục bộ cũ nếu trên Cloud không còn
-                    merged = getDefaultConfigs();
-                    for (const row of data) {
-                        const rawWhId = String(row.warehouse_id || '').trim();
-                        if (rawWhId === 'KHO 4 - BK' || rawWhId === 'KHO 4 (BK)') {
-                            merged['KHO 4 - BK'] = {
-                                warehouseId: 'KHO 4 - BK',
-                                initialStock: Number(row.initial_stock) || 0,
-                                initialDate: row.initial_date || '',
-                                currentCustomer: row.current_customer || 'BÁCH KHOA',
-                                dailyRemarks: row.daily_remarks || {},
-                                updatedAt: row.updated_at
-                            };
-                        } else {
-                            const whId = normalizeWarehouseId(row.warehouse_id);
-                            if (whId) {
-                                merged[whId] = {
-                                    warehouseId: whId,
+        const fetchPromise = (async (): Promise<Record<ExtendedWarehouseId, WarehouseConfig>> => {
+            const defaults = getDefaultConfigs();
+            const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
+            let merged: Record<ExtendedWarehouseId, WarehouseConfig> = {
+                'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
+                'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
+                'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
+                'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) },
+                'KHO 4 - BK': { ...defaults['KHO 4 - BK'], ...(local['KHO 4 - BK'] || {}) }
+            };
+
+            if (!dedicatedTablesMissing) {
+                try {
+                    const { data, error } = await supabase
+                        .from('warehouse_configs')
+                        .select('*');
+                    if (error && isTableMissingError(error)) {
+                        dedicatedTablesMissing = true;
+                    } else if (!error && Array.isArray(data) && (data.length > 0 || import.meta.env?.MODE !== 'test')) {
+                        // Supabase Cloud là nguồn chuẩn: không giữ config cục bộ cũ nếu trên Cloud không còn
+                        merged = getDefaultConfigs();
+                        for (const row of data) {
+                            const rawWhId = String(row.warehouse_id || '').trim();
+                            if (rawWhId === 'KHO 4 - BK' || rawWhId === 'KHO 4 (BK)') {
+                                merged['KHO 4 - BK'] = {
+                                    warehouseId: 'KHO 4 - BK',
                                     initialStock: Number(row.initial_stock) || 0,
                                     initialDate: row.initial_date || '',
-                                    currentCustomer: row.current_customer || merged[whId].currentCustomer,
+                                    currentCustomer: row.current_customer || 'BÁCH KHOA',
                                     dailyRemarks: row.daily_remarks || {},
                                     updatedAt: row.updated_at
                                 };
+                            } else {
+                                const whId = normalizeWarehouseId(row.warehouse_id);
+                                if (whId) {
+                                    merged[whId] = {
+                                        warehouseId: whId,
+                                        initialStock: Number(row.initial_stock) || 0,
+                                        initialDate: row.initial_date || '',
+                                        currentCustomer: row.current_customer || merged[whId].currentCustomer,
+                                        dailyRemarks: row.daily_remarks || {},
+                                        updatedAt: row.updated_at
+                                    };
+                                }
                             }
+                        }
+                        await dbContext.set(LOCAL_CONFIGS_KEY, merged);
+                    }
+                } catch (err) {
+                    console.warn('Fallback to local warehouse_configs:', err);
+                }
+            }
+
+            if (dedicatedTablesMissing) {
+                const fb = await loadFallbackStateFromContentSettings();
+                if (fb?.configs) {
+                    const fbConfigs = fb.configs as Record<string, any>;
+                    for (const whKey of ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'KHO 4 - BK'] as ExtendedWarehouseId[]) {
+                        if (fbConfigs[whKey]) {
+                            merged[whKey] = { ...merged[whKey], ...fbConfigs[whKey] };
                         }
                     }
                     await dbContext.set(LOCAL_CONFIGS_KEY, merged);
                 }
-            } catch (err) {
-                console.warn('Fallback to local warehouse_configs:', err);
             }
-        }
 
-        if (dedicatedTablesMissing) {
-            const fb = await loadFallbackStateFromContentSettings();
-            if (fb?.configs) {
-                const fbConfigs = fb.configs as Record<string, any>;
-                for (const whKey of ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'KHO 4 - BK'] as ExtendedWarehouseId[]) {
-                    if (fbConfigs[whKey]) {
-                        merged[whKey] = { ...merged[whKey], ...fbConfigs[whKey] };
+            // Sanitize customer names and dailyRemarks to eliminate date strings or Excel date serial artifacts
+            merged['KHO 4'].currentCustomer = sanitizeCustomerName(merged['KHO 4'].currentCustomer, 'EASTWOOD');
+            merged['KHO 4 - BK'].currentCustomer = sanitizeCustomerName(merged['KHO 4 - BK'].currentCustomer, 'BÁCH KHOA');
+            merged['KHO 1'].currentCustomer = sanitizeCustomerName(merged['KHO 1'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+            merged['KHO 2'].currentCustomer = sanitizeCustomerName(merged['KHO 2'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+            merged['KHO 3'].currentCustomer = sanitizeCustomerName(merged['KHO 3'].currentCustomer, 'GỖ BÌNH ĐỊNH');
+
+            const cleanedConfigsToSave: WarehouseConfig[] = [];
+            for (const whKey of ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'KHO 4 - BK'] as ExtendedWarehouseId[]) {
+                if (merged[whKey]) {
+                    const { cleaned, hadInvalid } = sanitizeDailyRemarks(merged[whKey].dailyRemarks);
+                    if (hadInvalid) {
+                        merged[whKey].dailyRemarks = cleaned;
+                        cleanedConfigsToSave.push(merged[whKey]);
                     }
                 }
-                await dbContext.set(LOCAL_CONFIGS_KEY, merged);
             }
-        }
-
-        // Sanitize customer names and dailyRemarks to eliminate date strings or Excel date serial artifacts
-        merged['KHO 4'].currentCustomer = sanitizeCustomerName(merged['KHO 4'].currentCustomer, 'EASTWOOD');
-        merged['KHO 4 - BK'].currentCustomer = sanitizeCustomerName(merged['KHO 4 - BK'].currentCustomer, 'BÁCH KHOA');
-        merged['KHO 1'].currentCustomer = sanitizeCustomerName(merged['KHO 1'].currentCustomer, 'GỖ BÌNH ĐỊNH');
-        merged['KHO 2'].currentCustomer = sanitizeCustomerName(merged['KHO 2'].currentCustomer, 'GỖ BÌNH ĐỊNH');
-        merged['KHO 3'].currentCustomer = sanitizeCustomerName(merged['KHO 3'].currentCustomer, 'GỖ BÌNH ĐỊNH');
-
-        let anyCleaned = false;
-        for (const whKey of ['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4', 'KHO 4 - BK'] as ExtendedWarehouseId[]) {
-            if (merged[whKey]) {
-                const { cleaned, hadInvalid } = sanitizeDailyRemarks(merged[whKey].dailyRemarks);
-                if (hadInvalid) {
-                    merged[whKey].dailyRemarks = cleaned;
-                    anyCleaned = true;
-                    await this.saveConfig(merged[whKey]);
-                }
+            if (cleanedConfigsToSave.length > 0) {
+                await this.saveConfigsBulk(cleanedConfigsToSave);
             }
-        }
-        if (anyCleaned) {
-            await dbContext.set(LOCAL_CONFIGS_KEY, merged);
-        }
 
-        return merged;
+            if (!isInventoryTestEnv) {
+                configsMemoryCache = { data: merged, timestamp: Date.now() };
+            }
+            return merged;
+        })();
+
+        if (!isInventoryTestEnv && !forceRefresh) {
+            configsInFlight = fetchPromise.finally(() => {
+                configsInFlight = null;
+            });
+            return configsInFlight;
+        }
+        return fetchPromise;
     },
 
     async saveConfig(config: WarehouseConfig): Promise<boolean> {
@@ -1859,6 +1975,9 @@ export const WarehouseInventoryService = {
             updatedAt: new Date().toISOString()
         };
         await dbContext.set(LOCAL_CONFIGS_KEY, current);
+        if (!isInventoryTestEnv) {
+            configsMemoryCache = { data: current, timestamp: Date.now() };
+        }
 
         if (!dedicatedTablesMissing) {
             try {
@@ -1890,13 +2009,100 @@ export const WarehouseInventoryService = {
         return true;
     },
 
-    async getVehicles(): Promise<Record<string, WarehouseVehicleMap>> {
-        const map: Record<string, WarehouseVehicleMap> = {};
+    async saveConfigsBulk(configsList: WarehouseConfig[]): Promise<boolean> {
+        if (!configsList || configsList.length === 0) return true;
 
-        // 1. Nạp từ VehicleService (bảng weighbridge_vehicles và cache allocator_vehicles)
-        // Đây là Danh mục xe chính xác được người dùng quản lý tại menu sơ đồ cây (VehicleManager.vue)
-        try {
-            const wbVehicles = await VehicleService.getVehicles();
+        const defaults = getDefaultConfigs();
+        const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
+        const current: Record<ExtendedWarehouseId, WarehouseConfig> = {
+            'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
+            'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
+            'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
+            'KHO 4': { ...defaults['KHO 4'], ...(local['KHO 4'] || {}) },
+            'KHO 4 - BK': { ...defaults['KHO 4 - BK'], ...(local['KHO 4 - BK'] || {}) }
+        };
+
+        const nowIso = new Date().toISOString();
+        const dedupedRows = new Map<string, any>();
+
+        for (const config of configsList) {
+            if (!config || !config.warehouseId) continue;
+            const whKey = config.warehouseId as ExtendedWarehouseId;
+            current[whKey] = {
+                ...config,
+                updatedAt: nowIso
+            };
+            dedupedRows.set(config.warehouseId, {
+                warehouse_id: config.warehouseId,
+                initial_stock: Number(config.initialStock) || 0,
+                initial_date: config.initialDate || '',
+                current_customer: config.currentCustomer || '',
+                daily_remarks: config.dailyRemarks || {},
+                updated_at: nowIso
+            });
+        }
+
+        await dbContext.set(LOCAL_CONFIGS_KEY, current);
+        if (!isInventoryTestEnv) {
+            configsMemoryCache = { data: current, timestamp: Date.now() };
+        }
+
+        const dbRows = Array.from(dedupedRows.values());
+        if (dbRows.length > 0 && !dedicatedTablesMissing) {
+            try {
+                const { error } = await supabase
+                    .from('warehouse_configs')
+                    .upsert(dbRows, { onConflict: 'warehouse_id' });
+                if (error) {
+                    if (isTableMissingError(error)) {
+                        dedicatedTablesMissing = true;
+                    } else {
+                        console.warn('Supabase saveConfigsBulk warning (stored locally):', error.message);
+                    }
+                }
+            } catch (err) {
+                console.warn('Supabase saveConfigsBulk fallback:', err);
+            }
+        }
+
+        if (dedicatedTablesMissing) {
+            await syncFallbackStateToContentSettings();
+        }
+        return true;
+    },
+
+    async getVehicles(forceRefresh = false): Promise<Record<string, WarehouseVehicleMap>> {
+        if (!isInventoryTestEnv && !forceRefresh && vehiclesMemoryCache && (Date.now() - vehiclesMemoryCache.timestamp < INVENTORY_CACHE_TTL)) {
+            return vehiclesMemoryCache.data;
+        }
+        if (!isInventoryTestEnv && !forceRefresh && vehiclesInFlight) {
+            return vehiclesInFlight;
+        }
+
+        const fetchPromise = (async (): Promise<Record<string, WarehouseVehicleMap>> => {
+            const map: Record<string, WarehouseVehicleMap> = {};
+
+            // Load all 4 vehicle sources in parallel and merge in strict priority order:
+            // 1. VehicleService.getVehicles()
+            // 2. IndexedDB allocator_vehicles
+            // 3. IndexedDB warehouse_vehicles
+            // 4. Remote warehouse_vehicles
+            const [wbVehicles, directAllocator, local, remoteRes] = await Promise.all([
+                VehicleService.getVehicles(forceRefresh).catch((e) => {
+                    console.warn('[WarehouseInventoryService] Failed to load vehicles from VehicleService:', e);
+                    return [] as any[];
+                }),
+                dbContext.get<any[]>('allocator_vehicles').catch(() => [] as any[]),
+                dbContext.get<Record<string, WarehouseVehicleMap>>(LOCAL_VEHICLES_KEY).catch(() => ({} as Record<string, WarehouseVehicleMap>)),
+                !dedicatedTablesMissing
+                    ? Promise.resolve(supabase.from('warehouse_vehicles').select('*')).catch((err) => {
+                        console.warn('Fallback to local warehouse_vehicles:', err);
+                        return { data: null, error: null };
+                    })
+                    : Promise.resolve({ data: null, error: null })
+            ]);
+
+            // 1. Nạp từ VehicleService
             if (Array.isArray(wbVehicles)) {
                 for (const v of wbVehicles) {
                     if (!v) continue;
@@ -1933,13 +2139,8 @@ export const WarehouseInventoryService = {
                     }
                 }
             }
-        } catch (e) {
-            console.warn('[WarehouseInventoryService] Failed to load vehicles from VehicleService:', e);
-        }
 
-        // 2. Nạp thêm từ IndexedDB allocator_vehicles (dự phòng ngoại tuyến tức thời)
-        try {
-            const directAllocator = await dbContext.get<any[]>('allocator_vehicles');
+            // 2. Nạp thêm từ IndexedDB allocator_vehicles
             if (Array.isArray(directAllocator)) {
                 for (const v of directAllocator) {
                     if (!v) continue;
@@ -1965,24 +2166,19 @@ export const WarehouseInventoryService = {
                     }
                 }
             }
-        } catch (_) {}
 
-        // 3. Nạp từ local IndexedDB LOCAL_VEHICLES_KEY ('warehouse_vehicles')
-        try {
-            const local = (await dbContext.get<Record<string, WarehouseVehicleMap>>(LOCAL_VEHICLES_KEY)) || {};
-            for (const [k, v] of Object.entries(local)) {
-                if (k && v && v.carrierName && !map[k]) {
-                    map[k] = v;
+            // 3. Nạp từ local IndexedDB LOCAL_VEHICLES_KEY
+            if (local && typeof local === 'object') {
+                for (const [k, v] of Object.entries(local)) {
+                    if (k && v && v.carrierName && !map[k]) {
+                        map[k] = v;
+                    }
                 }
             }
-        } catch (_) {}
 
-        // 4. Nạp từ bảng warehouse_vehicles trên Supabase (nếu có)
-        if (!dedicatedTablesMissing) {
-            try {
-                const { data, error } = await supabase
-                    .from('warehouse_vehicles')
-                    .select('*');
+            // 4. Nạp từ bảng warehouse_vehicles trên Supabase
+            if (remoteRes) {
+                const { data, error } = remoteRes as any;
                 if (error && isTableMissingError(error)) {
                     dedicatedTablesMissing = true;
                 } else if (!error && Array.isArray(data) && data.length > 0) {
@@ -1997,27 +2193,36 @@ export const WarehouseInventoryService = {
                         }
                     }
                 }
-            } catch (err) {
-                console.warn('Fallback to local warehouse_vehicles:', err);
             }
-        }
 
-        if (dedicatedTablesMissing && Object.keys(map).length === 0) {
-            const fb = await loadFallbackStateFromContentSettings();
-            if (fb?.vehicles) {
-                for (const [k, v] of Object.entries(fb.vehicles)) {
-                    if (k && v && !map[k]) {
-                        map[k] = v as WarehouseVehicleMap;
+            if (dedicatedTablesMissing && Object.keys(map).length === 0) {
+                const fb = await loadFallbackStateFromContentSettings();
+                if (fb?.vehicles) {
+                    for (const [k, v] of Object.entries(fb.vehicles)) {
+                        if (k && v && !map[k]) {
+                            map[k] = v as WarehouseVehicleMap;
+                        }
                     }
                 }
             }
+
+            try {
+                await dbContext.set(LOCAL_VEHICLES_KEY, map);
+            } catch (_) {}
+
+            if (!isInventoryTestEnv) {
+                vehiclesMemoryCache = { data: map, timestamp: Date.now() };
+            }
+            return map;
+        })();
+
+        if (!isInventoryTestEnv && !forceRefresh) {
+            vehiclesInFlight = fetchPromise.finally(() => {
+                vehiclesInFlight = null;
+            });
+            return vehiclesInFlight;
         }
-
-        try {
-            await dbContext.set(LOCAL_VEHICLES_KEY, map);
-        } catch (_) {}
-
-        return map;
+        return fetchPromise;
     },
 
     async saveVehiclesBulk(vehicles: WarehouseVehicleMap[]): Promise<number> {
@@ -2042,6 +2247,7 @@ export const WarehouseInventoryService = {
         }
 
         await dbContext.set(LOCAL_VEHICLES_KEY, current);
+        vehiclesMemoryCache = null;
 
         if (dbRows.length > 0 && !dedicatedTablesMissing) {
             try {
@@ -2070,6 +2276,7 @@ export const WarehouseInventoryService = {
         const current = (await dbContext.get<Record<string, WarehouseVehicleMap>>(LOCAL_VEHICLES_KEY)) || {};
         delete current[key];
         await dbContext.set(LOCAL_VEHICLES_KEY, current);
+        vehiclesMemoryCache = null;
         if (!dedicatedTablesMissing) {
             try {
                 await supabase.from('warehouse_vehicles').delete().eq('vehicle_plate', key);
@@ -2080,106 +2287,125 @@ export const WarehouseInventoryService = {
         return true;
     },
 
-    async getAllTickets(): Promise<WarehouseInventoryTicket[]> {
-        const localRaw = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
-        const local = localRaw.map(sanitizeLoadedTicketWeights);
-        let finalTickets: WarehouseInventoryTicket[] = [];
-        let resolvedFromRemoteOrFb = false;
+    async getAllTickets(forceRefresh = false): Promise<WarehouseInventoryTicket[]> {
+        if (!isInventoryTestEnv && !forceRefresh && ticketsMemoryCache && (Date.now() - ticketsMemoryCache.timestamp < INVENTORY_CACHE_TTL)) {
+            return ticketsMemoryCache.data;
+        }
+        if (!isInventoryTestEnv && !forceRefresh && ticketsInFlight) {
+            return ticketsInFlight;
+        }
 
-        if (!dedicatedTablesMissing) {
-            try {
-                const allRemote: WarehouseInventoryTicket[] = [];
-                const pageSize = 1000;
-                let from = 0;
-                let hasError = false;
+        const fetchPromise = (async (): Promise<WarehouseInventoryTicket[]> => {
+            const localRaw = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
+            const local = localRaw.map(sanitizeLoadedTicketWeights);
+            let finalTickets: WarehouseInventoryTicket[] = [];
+            let resolvedFromRemoteOrFb = false;
 
-                while (true) {
-                    const { data, error } = await supabase
-                        .from('warehouse_inventory_tickets')
-                        .select('*')
-                        .order('report_date', { ascending: true })
-                        .order('weigh_out_time', { ascending: true })
-                        .range(from, from + pageSize - 1);
+            if (!dedicatedTablesMissing) {
+                try {
+                    const allRemote: WarehouseInventoryTicket[] = [];
+                    const pageSize = 1000;
+                    let from = 0;
+                    let hasError = false;
 
-                    if (error) {
-                        if (isTableMissingError(error)) {
-                            dedicatedTablesMissing = true;
+                    while (true) {
+                        const { data, error } = await supabase
+                            .from('warehouse_inventory_tickets')
+                            .select('*')
+                            .order('report_date', { ascending: true })
+                            .order('weigh_out_time', { ascending: true })
+                            .range(from, from + pageSize - 1);
+
+                        if (error) {
+                            if (isTableMissingError(error)) {
+                                dedicatedTablesMissing = true;
+                            }
+                            hasError = true;
+                            break;
                         }
-                        hasError = true;
-                        break;
+                        if (!data || data.length === 0) break;
+                        allRemote.push(...data.map(mapDbTicketToModel));
+                        if (data.length < pageSize) break;
+                        from += pageSize;
                     }
-                    if (!data || data.length === 0) break;
-                    allRemote.push(...data.map(mapDbTicketToModel));
-                    if (data.length < pageSize) break;
-                    from += pageSize;
+
+                    if (!hasError && (allRemote.length > 0 || import.meta.env?.MODE !== 'test')) {
+                        // Supabase Cloud là nguồn dữ liệu chuẩn duy nhất:
+                        // Không tự ý lấy hoặc trộn lại các phiếu cũ nằm trong IndexedDB cục bộ trên máy tính khi dữ liệu không tồn tại trên Cloud
+                        const localLookupIndex = createTicketLookupIndex(local);
+
+                        const remoteMap = new Map<string, WarehouseInventoryTicket>();
+                        for (const t of allRemote) {
+                            const existingLocal = findMatchingExistingTicket(localLookupIndex, t);
+                            if (existingLocal) {
+                                if (existingLocal.originWarehouseName && !t.originWarehouseName) {
+                                    t.originWarehouseName = existingLocal.originWarehouseName;
+                                }
+                                if (existingLocal.originArea && !t.originArea) {
+                                    t.originArea = existingLocal.originArea;
+                                }
+                            }
+                            remoteMap.set(t.id, t);
+                        }
+                        finalTickets = Array.from(remoteMap.values()).sort(compareTicketsOrder);
+                        resolvedFromRemoteOrFb = true;
+                    }
+                } catch (err) {
+                    console.warn('Fallback to local warehouse_inventory_tickets:', err);
                 }
+            }
 
-                if (!hasError && (allRemote.length > 0 || import.meta.env?.MODE !== 'test')) {
-                    // Supabase Cloud là nguồn dữ liệu chuẩn duy nhất:
-                    // Không tự ý lấy hoặc trộn lại các phiếu cũ nằm trong IndexedDB cục bộ trên máy tính khi dữ liệu không tồn tại trên Cloud
-                    const localLookupMap = new Map<string, WarehouseInventoryTicket>();
-                    for (const t of local) localLookupMap.set(t.id, t);
-
-                    const remoteMap = new Map<string, WarehouseInventoryTicket>();
-                    for (const t of allRemote) {
-                        const existingLocal = findMatchingExistingTicket(localLookupMap, t);
-                        if (existingLocal) {
-                            if (existingLocal.originWarehouseName && !t.originWarehouseName) {
-                                t.originWarehouseName = existingLocal.originWarehouseName;
-                            }
-                            if (existingLocal.originArea && !t.originArea) {
-                                t.originArea = existingLocal.originArea;
-                            }
-                        }
-                        remoteMap.set(t.id, t);
-                    }
-                    finalTickets = Array.from(remoteMap.values()).sort(compareTicketsOrder);
+            if (!resolvedFromRemoteOrFb && dedicatedTablesMissing && local.length === 0) {
+                const fb = await loadFallbackStateFromContentSettings();
+                if (fb?.tickets && Array.isArray(fb.tickets) && fb.tickets.length > 0) {
+                    finalTickets = fb.tickets.map(sanitizeLoadedTicketWeights).sort(compareTicketsOrder);
                     resolvedFromRemoteOrFb = true;
                 }
-            } catch (err) {
-                console.warn('Fallback to local warehouse_inventory_tickets:', err);
             }
-        }
 
-        if (!resolvedFromRemoteOrFb && dedicatedTablesMissing && local.length === 0) {
-            const fb = await loadFallbackStateFromContentSettings();
-            if (fb?.tickets && Array.isArray(fb.tickets) && fb.tickets.length > 0) {
-                finalTickets = fb.tickets.map(sanitizeLoadedTicketWeights).sort(compareTicketsOrder);
-                resolvedFromRemoteOrFb = true;
+            if (!resolvedFromRemoteOrFb) {
+                finalTickets = local.sort(compareTicketsOrder);
             }
-        }
 
-        if (!resolvedFromRemoteOrFb) {
-            finalTickets = local.sort(compareTicketsOrder);
-        }
-
-        // Auto-resolve missing vesselName for EXPORT and DIRECT tickets using Mã lệnh / Sà lan from Báo Cáo Tổng Quan
-        const needsVesselLookup = finalTickets.some(
-            t => (t.flowType === 'EXPORT' || t.flowType === 'DIRECT') && !t.vesselName && (t.maLenh || t.bargeInfo)
-        );
-        if (needsVesselLookup) {
-            try {
-                const vessels = await WeighbridgeService.getVessels();
-                if (vessels && vessels.length > 0) {
-                    const newlyResolved: WarehouseInventoryTicket[] = [];
-                    for (const t of finalTickets) {
-                        if ((t.flowType === 'EXPORT' || t.flowType === 'DIRECT') && !t.vesselName && (t.maLenh || t.bargeInfo)) {
-                            const vName = resolveVesselNameFromBarge(t.bargeInfo || '', t.maLenh || '', vessels);
-                            if (vName) {
-                                t.vesselName = vName;
-                                newlyResolved.push(t);
+            // Auto-resolve missing vesselName for EXPORT and DIRECT tickets using Mã lệnh / Sà lan from Báo Cáo Tổng Quan
+            const needsVesselLookup = finalTickets.some(
+                t => (t.flowType === 'EXPORT' || t.flowType === 'DIRECT') && !t.vesselName && (t.maLenh || t.bargeInfo)
+            );
+            if (needsVesselLookup) {
+                try {
+                    const vessels = await WeighbridgeService.getVessels();
+                    if (vessels && vessels.length > 0) {
+                        const newlyResolved: WarehouseInventoryTicket[] = [];
+                        for (const t of finalTickets) {
+                            if ((t.flowType === 'EXPORT' || t.flowType === 'DIRECT') && !t.vesselName && (t.maLenh || t.bargeInfo)) {
+                                const vName = resolveVesselNameFromBarge(t.bargeInfo || '', t.maLenh || '', vessels);
+                                if (vName) {
+                                    t.vesselName = vName;
+                                    newlyResolved.push(t);
+                                }
                             }
                         }
+                        if (newlyResolved.length > 0) {
+                            await this.saveTicketsBulk(newlyResolved);
+                        }
                     }
-                    if (newlyResolved.length > 0) {
-                        await this.saveTicketsBulk(newlyResolved);
-                    }
-                }
-            } catch (_) {}
-        }
+                } catch (_) {}
+            }
 
-        await dbContext.set(LOCAL_TICKETS_KEY, finalTickets);
-        return finalTickets;
+            await dbContext.set(LOCAL_TICKETS_KEY, finalTickets);
+            if (!isInventoryTestEnv) {
+                ticketsMemoryCache = { data: finalTickets, timestamp: Date.now() };
+            }
+            return finalTickets;
+        })();
+
+        if (!isInventoryTestEnv && !forceRefresh) {
+            ticketsInFlight = fetchPromise.finally(() => {
+                ticketsInFlight = null;
+            });
+            return ticketsInFlight;
+        }
+        return fetchPromise;
     },
 
     async saveTicketsBulk(
@@ -2198,8 +2424,8 @@ export const WarehouseInventoryService = {
             return { totalProcessed: 0, newCount: 0, duplicateCount: 0 };
         }
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
-        const map = new Map<string, WarehouseInventoryTicket>();
-        for (const t of current) map.set(t.id, t);
+        const lookupIndex = createTicketLookupIndex(current);
+        const map = lookupIndex.byId;
         const obsoleteIdsToDelete: string[] = [];
         const ticketsToUpsertMap = new Map<string, WarehouseInventoryTicket>();
         let newCount = 0;
@@ -2207,7 +2433,7 @@ export const WarehouseInventoryService = {
         const preserveExisting = Boolean(options?.preserveExistingFields);
 
         for (const t of tickets) {
-            const existingT = findMatchingExistingTicket(map, t);
+            const existingT = findMatchingExistingTicket(lookupIndex, t);
             let finalId = t.id;
             let finalTicket: WarehouseInventoryTicket = t;
 
@@ -2223,7 +2449,7 @@ export const WarehouseInventoryService = {
 
                 if (existingT.id !== t.id) {
                     if (flowOrWhChanged || upgradedFromMissingTime) {
-                        map.delete(existingT.id);
+                        removeTicketFromIndex(lookupIndex, existingT);
                         ticketsToUpsertMap.delete(existingT.id);
                         obsoleteIdsToDelete.push(existingT.id);
                         finalId = t.id;
@@ -2261,17 +2487,23 @@ export const WarehouseInventoryService = {
                         id: finalId
                     };
                 }
+                if (existingT.id === finalId) {
+                    removeTicketFromIndex(lookupIndex, existingT);
+                }
             } else {
                 newCount++;
             }
 
-            map.set(finalId, finalTicket);
+            addTicketToIndex(lookupIndex, finalTicket);
             ticketsToUpsertMap.set(finalId, finalTicket);
         }
 
         const merged = Array.from(map.values()).sort(compareTicketsOrder);
 
         await dbContext.set(LOCAL_TICKETS_KEY, merged);
+        if (!isInventoryTestEnv) {
+            ticketsMemoryCache = { data: merged, timestamp: Date.now() };
+        }
 
         if (!dedicatedTablesMissing) {
             try {
@@ -2321,6 +2553,9 @@ export const WarehouseInventoryService = {
         const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
         const filtered = current.filter(t => t.id !== ticketId);
         await dbContext.set(LOCAL_TICKETS_KEY, filtered);
+        if (!isInventoryTestEnv) {
+            ticketsMemoryCache = { data: filtered, timestamp: Date.now() };
+        }
         try {
             await supabase.from('warehouse_inventory_tickets').delete().eq('id', ticketId);
         } catch (_) {}
@@ -2330,11 +2565,12 @@ export const WarehouseInventoryService = {
     async clearWarehouseTickets(
         target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
     ): Promise<boolean> {
+        ticketsMemoryCache = null;
         const configs = await this.getConfigs();
 
         const deleteIdsInChunks = async (ids: string[]) => {
             if (!ids || ids.length === 0 || dedicatedTablesMissing) return;
-            const chunkSize = 100;
+            const chunkSize = 500;
             for (let i = 0; i < ids.length; i += chunkSize) {
                 const chunk = ids.slice(i, i + chunkSize);
                 try {
@@ -2356,18 +2592,20 @@ export const WarehouseInventoryService = {
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().neq('id', '___NON_EXISTENT___');
             } catch (_) {}
+            const configsToReset: WarehouseConfig[] = [];
             for (const whId of ALL_WAREHOUSES) {
                 configs[whId].dailyRemarks = {};
                 configs[whId].initialStock = 0;
                 configs[whId].initialDate = '';
-                await this.saveConfig(configs[whId]);
+                configsToReset.push(configs[whId]);
             }
             if (configs['KHO 4 - BK']) {
                 configs['KHO 4 - BK'].dailyRemarks = {};
                 configs['KHO 4 - BK'].initialStock = 0;
                 configs['KHO 4 - BK'].initialDate = '';
-                await this.saveConfig(configs['KHO 4 - BK']);
+                configsToReset.push(configs['KHO 4 - BK']);
             }
+            await this.saveConfigsBulk(configsToReset);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
@@ -2424,12 +2662,13 @@ export const WarehouseInventoryService = {
                 await supabase.from('warehouse_inventory_tickets').delete().in('warehouse_id', ['KHO 1', 'KHO 2', 'KHO 3']);
             } catch (_) {}
             await deleteIdsInChunks(idsToDelete);
-            for (const whId of ['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[]) {
+            const kho123Configs = (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[]).map((whId) => {
                 configs[whId].dailyRemarks = {};
                 configs[whId].initialStock = 0;
                 configs[whId].initialDate = '';
-                await this.saveConfig(configs[whId]);
-            }
+                return configs[whId];
+            });
+            await this.saveConfigsBulk(kho123Configs);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
@@ -2561,17 +2800,6 @@ export const WarehouseInventoryService = {
                 }
             }
         } catch (_) {}
-        try {
-            const wbVehicles = await VehicleService.getVehicles();
-            for (const v of wbVehicles) {
-                if (v && v.carrierName) {
-                    const norm = stripAccents(v.carrierName).toUpperCase().trim();
-                    if (norm && norm !== '-' && norm !== '0' && !/^\d+(\.\d+)?$/.test(norm)) {
-                        valid.add(norm);
-                    }
-                }
-            }
-        } catch (_) {}
         return valid;
     },
 
@@ -2664,9 +2892,38 @@ export const WarehouseInventoryService = {
             return { syncedTicketsCount: 0, matchedBargesCount: 0 };
         }
 
-        // 1. Merge into allocator_tickets (stored in kg)
+        // 1. Merge into allocator_tickets (stored in kg) using O(1) lookup indexes
         const existingAllocatorTickets = (await dbContext.get<any[]>('allocator_tickets')) || [];
         let syncedCount = 0;
+
+        const byTicketNo = new Map<string, number[]>();
+        const byPlate = new Map<string, number[]>();
+
+        const indexAllocatorItem = (item: any, idx: number) => {
+            if (!item) return;
+            const t1 = String(item.ticketNo || '').trim().toUpperCase();
+            const t2 = String(item.sourceTicketNo || '').trim().toUpperCase();
+            if (t1) {
+                const arr = byTicketNo.get(t1) || [];
+                if (!arr.includes(idx)) arr.push(idx);
+                byTicketNo.set(t1, arr);
+            }
+            if (t2 && t2 !== t1) {
+                const arr = byTicketNo.get(t2) || [];
+                if (!arr.includes(idx)) arr.push(idx);
+                byTicketNo.set(t2, arr);
+            }
+            const pKey = normalizeMainPlate(item.plateNumber);
+            if (pKey) {
+                const arr = byPlate.get(pKey) || [];
+                if (!arr.includes(idx)) arr.push(idx);
+                byPlate.set(pKey, arr);
+            }
+        };
+
+        for (let i = 0; i < existingAllocatorTickets.length; i++) {
+            indexAllocatorItem(existingAllocatorTickets[i], i);
+        }
 
         for (const r of rowsToSync) {
             const ticketNo = String(r.soPhieu || '').trim();
@@ -2701,16 +2958,38 @@ export const WarehouseInventoryService = {
                 date2Obj: dOutIso ? `${dOutIso}T${timeOutStr || '00:00:00'}` : null
             };
 
-            const existsIdx = existingAllocatorTickets.findIndex(x =>
-                (ticketNo && (x.ticketNo === ticketNo || x.sourceTicketNo === ticketNo)) ||
-                isSameScaleTicket(x, candidateForMatch) ||
-                (
-                    normalizeMainPlate(x.plateNumber) === normalizeMainPlate(plateNumber) &&
-                    Math.abs(Number(x.weightNet || 0) - Number(weightNet || 0)) <= 0.01 &&
-                    x.dateInStr === dateInStr &&
-                    ((timeInStr && x.timeInStr === timeInStr) || (timeOutStr && x.timeOutStr === timeOutStr) || (!timeInStr && !timeOutStr))
-                )
-            );
+            const candidateIdxSet = new Set<number>();
+            if (ticketNo) {
+                const tKey = ticketNo.toUpperCase();
+                const c = byTicketNo.get(tKey);
+                if (c) for (const idx of c) candidateIdxSet.add(idx);
+            }
+            const pKey = normalizeMainPlate(plateNumber);
+            if (pKey) {
+                const c = byPlate.get(pKey);
+                if (c) for (const idx of c) candidateIdxSet.add(idx);
+            }
+
+            let existsIdx = -1;
+            if (candidateIdxSet.size > 0) {
+                const candidates = Array.from(candidateIdxSet).sort((a, b) => a - b);
+                for (const idx of candidates) {
+                    const x = existingAllocatorTickets[idx];
+                    if (
+                        (ticketNo && (x.ticketNo === ticketNo || x.sourceTicketNo === ticketNo)) ||
+                        isSameScaleTicket(x, candidateForMatch) ||
+                        (
+                            normalizeMainPlate(x.plateNumber) === pKey &&
+                            Math.abs(Number(x.weightNet || 0) - Number(weightNet || 0)) <= 0.01 &&
+                            x.dateInStr === dateInStr &&
+                            ((timeInStr && x.timeInStr === timeInStr) || (timeOutStr && x.timeOutStr === timeOutStr) || (!timeInStr && !timeOutStr))
+                        )
+                    ) {
+                        existsIdx = idx;
+                        break;
+                    }
+                }
+            }
 
             const recordPayload = {
                 id: existsIdx !== -1 ? existingAllocatorTickets[existsIdx].id : `ticket_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -2736,32 +3015,21 @@ export const WarehouseInventoryService = {
             };
 
             if (existsIdx === -1) {
+                const newIdx = existingAllocatorTickets.length;
                 existingAllocatorTickets.push(recordPayload);
+                indexAllocatorItem(recordPayload, newIdx);
                 syncedCount++;
             } else {
                 existingAllocatorTickets[existsIdx] = recordPayload;
+                indexAllocatorItem(recordPayload, existsIdx);
             }
         }
 
         await dbContext.set('allocator_tickets', existingAllocatorTickets);
 
-        // Save to Supabase content.settings.allocator_tickets
+        // Save to Supabase content.settings.allocator_tickets via 1-RTT SettingsService
         try {
-            const { data: current } = await supabase
-                .from('content')
-                .select('settings')
-                .eq('id', 'main')
-                .single();
-            if (current) {
-                const updatedSettings = {
-                    ...(current.settings || {}),
-                    allocator_tickets: existingAllocatorTickets
-                };
-                await supabase
-                    .from('content')
-                    .update({ settings: updatedSettings })
-                    .eq('id', 'main');
-            }
+            await SettingsService.updateSettings({ allocator_tickets: existingAllocatorTickets });
         } catch (err) {
             console.warn('Sync allocator_tickets to Supabase warning:', err);
         }
@@ -2797,12 +3065,11 @@ export const WarehouseInventoryService = {
             errors: []
         };
 
-        const vehicleMap = await this.getVehicles();
-        const configs = await this.getConfigs();
-        let vessels: Vessel[] = [];
-        try {
-            vessels = await WeighbridgeService.getVessels();
-        } catch (_) {}
+        const [vehicleMap, configs, vessels] = await Promise.all([
+            this.getVehicles(),
+            this.getConfigs(),
+            WeighbridgeService.getVessels().catch(() => [] as Vessel[])
+        ]);
 
         const allRawRows: RawWeighbridgeRow[] = [];
         const cc2RawRows: RawWeighbridgeRow[] = [];
@@ -2895,13 +3162,17 @@ export const WarehouseInventoryService = {
             summary.duplicateCount = 0;
         }
 
+        const configsToSave: WarehouseConfig[] = [];
         for (const whId of updatedWhSet) {
             if (configs[whId]) {
-                await this.saveConfig(configs[whId]!);
+                configsToSave.push(configs[whId]!);
             }
         }
         if (updatedWhSet.has('KHO 4') && configs['KHO 4 - BK']) {
-            await this.saveConfig(configs['KHO 4 - BK']);
+            configsToSave.push(configs['KHO 4 - BK']);
+        }
+        if (configsToSave.length > 0) {
+            await this.saveConfigsBulk(configsToSave);
         }
         summary.warehousesUpdated = Array.from(updatedWhSet);
 
@@ -3523,10 +3794,11 @@ export const WarehouseInventoryService = {
                 summary.duplicateCount = 0;
             }
 
-            for (const whId of updatedWhSet) {
-                if (configs[whId]) {
-                    await this.saveConfig(configs[whId]!);
-                }
+            const configsToSave = Array.from(updatedWhSet)
+                .filter(whId => Boolean(configs[whId]))
+                .map(whId => configs[whId]!);
+            if (configsToSave.length > 0) {
+                await this.saveConfigsBulk(configsToSave);
             }
             summary.warehousesUpdated = Array.from(updatedWhSet);
         } catch (err: any) {
@@ -3562,14 +3834,18 @@ export const WarehouseInventoryService = {
         const directSheetName = 'XÁ THẲNG';
 
         let allTickets: WarehouseInventoryTicket[];
+        let configs: Record<ExtendedWarehouseId, WarehouseConfig>;
         if (options?.tickets) {
             allTickets = options.tickets;
+            configs = await this.getConfigs();
         } else if (options?.filterByCatalog) {
-            const rawTickets = await this.getAllTickets();
-            const [validCarriers, validWarehouses] = await Promise.all([
+            const [rawTickets, validCarriers, validWarehouses, loadedConfigs] = await Promise.all([
+                this.getAllTickets(),
                 this.getValidCarriers(),
-                this.getValidWarehouses()
+                this.getValidWarehouses(),
+                this.getConfigs()
             ]);
+            configs = loadedConfigs;
             allTickets = rawTickets.map(t => ({
                 ...t,
                 carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers),
@@ -3577,9 +3853,11 @@ export const WarehouseInventoryService = {
                 originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses)
             }));
         } else {
-            allTickets = await this.getAllTickets();
+            [allTickets, configs] = await Promise.all([
+                this.getAllTickets(),
+                this.getConfigs()
+            ]);
         }
-        const configs = await this.getConfigs();
         const config = (configs[warehouseId] || (isBK ? configs['KHO 4 - BK'] : configs['KHO 4']))!;
 
         const whImports = allTickets.filter(t => {
@@ -3651,14 +3929,18 @@ export const WarehouseInventoryService = {
         const workbook = new ExcelJS.Workbook();
 
         let allTickets: WarehouseInventoryTicket[];
+        let configs: Record<ExtendedWarehouseId, WarehouseConfig>;
         if (options?.tickets) {
             allTickets = options.tickets;
+            configs = await this.getConfigs();
         } else if (options?.filterByCatalog) {
-            const rawTickets = await this.getAllTickets();
-            const [validCarriers, validWarehouses] = await Promise.all([
+            const [rawTickets, validCarriers, validWarehouses, loadedConfigs] = await Promise.all([
+                this.getAllTickets(),
                 this.getValidCarriers(),
-                this.getValidWarehouses()
+                this.getValidWarehouses(),
+                this.getConfigs()
             ]);
+            configs = loadedConfigs;
             allTickets = rawTickets.map(t => ({
                 ...t,
                 carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers),
@@ -3666,9 +3948,11 @@ export const WarehouseInventoryService = {
                 originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses)
             }));
         } else {
-            allTickets = await this.getAllTickets();
+            [allTickets, configs] = await Promise.all([
+                this.getAllTickets(),
+                this.getConfigs()
+            ]);
         }
-        const configs = await this.getConfigs();
 
         const calcOpts = { ...options, allConfigs: configs };
         const cfg1 = configs['KHO 1']!;
