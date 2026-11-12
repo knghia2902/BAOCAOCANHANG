@@ -1479,4 +1479,228 @@ describe('WarehouseInventoryService', () => {
             }
         });
     });
+
+    describe('Eastwood (KHO 4) vs Bach Khoa (KHO 4 - BK) isolation', () => {
+        it('keeps Eastwood KHO 4 tickets and config intact when importing a Bách Khoa historical Excel workbook', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+
+            // Seed existing Eastwood (KHO 4) config and ticket
+            await WarehouseInventoryService.saveConfig({
+                warehouseId: 'KHO 4',
+                initialStock: 1500,
+                initialDate: '2026-03-01',
+                currentCustomer: 'EASTWOOD',
+                dailyRemarks: { '2026-03-14': 'EW remark' }
+            });
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'IMPORT_KHO 4_EW001_2026-03-14_10',
+                    soPhieu: 'EW001',
+                    maLenh: '',
+                    reportDate: '2026-03-14',
+                    weighInDate: '2026-03-14',
+                    weighInTime: '08:00:00',
+                    weighOutDate: '2026-03-14',
+                    weighOutTime: '08:15:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'CÔNG TY CP EASTWOOD ENERGY',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: '50H11111',
+                    carrierName: 'NGUYÊN NGỌC',
+                    grossWeight: 50,
+                    tareWeight: 15,
+                    netWeight: 35,
+                    factoryWeight: null,
+                    bargeInfo: '',
+                    vesselName: '',
+                    sourceOrRemark: 'EW Source',
+                    rawNote: ''
+                }
+            ]);
+
+            // Build a Bách Khoa historical Excel workbook WITHOUT explicit Customer column on IMPORT rows
+            const ExcelJS = await import('exceljs');
+            const wb = new ExcelJS.Workbook();
+            const wsImp = wb.addWorksheet('IMPORT KHO 4');
+            wsImp.getRow(3).values = ['', 'Khách hàng:', 'BÁCH KHOA'];
+            wsImp.getRow(6).values = ['STT', 'Số phiếu', 'Ngày', 'Giờ ra', 'Biển số', 'KL Tổng', 'KL Bì', 'KL Hàng', 'Nhà xe', 'Nơi nhận'];
+            wsImp.getRow(7).values = [1, 'BK001', '2026-03-15', '09:00:00', '50H22222', 45000, 15000, 30000, 'BK TRANS', 'BK Source'];
+
+            const wsFinal = wb.addWorksheet('FINAL');
+            wsFinal.getRow(7).values = ['Ngày', 'Trọng lượng nhập', 'Trọng lượng xuất', 'Tồn cuối', 'Xá thẳng', 'Ghi chú'];
+            wsFinal.getRow(8).values = ['Tồn đầu', 0, 0, 500000, 0, ''];
+            wsFinal.getRow(9).values = ['2026-03-15', 30000, 0, 530000, 0, 'BK daily note'];
+
+            const buf = await wb.xlsx.writeBuffer();
+            const file = new File([buf], 'WL_KHO4_BK_20260315.xlsx', {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+
+            const summary = await WarehouseInventoryService.importHistoricalExcelWorkbook(file, 'KHO 4 - BK');
+
+            expect(summary.warehousesUpdated).toEqual(['KHO 4 - BK']);
+            expect(summary.importFlowCount).toBe(1);
+
+            const tickets = await WarehouseInventoryService.getAllTickets(true);
+            const ewTickets = tickets.filter(t => t.soPhieu === 'EW001');
+            const bkTickets = tickets.filter(t => t.soPhieu === 'BK001');
+            expect(ewTickets).toHaveLength(1);
+            expect(ewTickets[0]?.customerName).toBe('CÔNG TY CP EASTWOOD ENERGY');
+            expect(bkTickets).toHaveLength(1);
+            expect(bkTickets[0]?.warehouseId).toBe('KHO 4');
+            expect(bkTickets[0]?.customerName).toBe('BÁCH KHOA');
+
+            const configs = await WarehouseInventoryService.getConfigs(true);
+            expect(configs['KHO 4']?.currentCustomer).toBe('EASTWOOD');
+            expect(configs['KHO 4']?.initialStock).toBe(1500);
+            expect(configs['KHO 4']?.initialDate).toBe('2026-03-01');
+            expect(configs['KHO 4']?.dailyRemarks['2026-03-14']).toBe('EW remark');
+
+            expect(configs['KHO 4 - BK']?.currentCustomer).toBe('BÁCH KHOA');
+            expect(configs['KHO 4 - BK']?.initialStock).toBe(500);
+            expect(configs['KHO 4 - BK']?.dailyRemarks['2026-03-15']).toBe('BK daily note');
+        });
+
+        it('does not deduplicate Eastwood and Bách Khoa tickets sharing soPhieu or fallback key, and preserves customerName when incoming is empty', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+
+            await WarehouseInventoryService.saveTicketsBulk([
+                {
+                    id: 'IMPORT_KHO 4_SHARED01_2026-03-14_08:00:00',
+                    soPhieu: 'SHARED01',
+                    maLenh: '',
+                    reportDate: '2026-03-14',
+                    weighInDate: '2026-03-14',
+                    weighInTime: '08:00:00',
+                    weighOutDate: '2026-03-14',
+                    weighOutTime: '08:00:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'CÔNG TY CP EASTWOOD ENERGY',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: '50H99999',
+                    carrierName: 'XE A',
+                    grossWeight: 50,
+                    tareWeight: 15,
+                    netWeight: 35,
+                    factoryWeight: null,
+                    bargeInfo: '',
+                    vesselName: '',
+                    sourceOrRemark: ''
+                },
+                {
+                    id: 'IMPORT_KHO 4_50H88888_2026-03-14_1',
+                    soPhieu: '',
+                    maLenh: '',
+                    reportDate: '2026-03-14',
+                    weighInDate: '2026-03-14',
+                    weighInTime: '09:00:00',
+                    weighOutDate: '2026-03-14',
+                    weighOutTime: '09:00:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: '50H88888',
+                    carrierName: 'XE B',
+                    grossWeight: 48,
+                    tareWeight: 15,
+                    netWeight: 33,
+                    factoryWeight: null,
+                    bargeInfo: '',
+                    vesselName: '',
+                    sourceOrRemark: ''
+                }
+            ]);
+
+            const stats = await WarehouseInventoryService.saveTicketsBulkWithStats(
+                [
+                    // Same soPhieu & plate as Eastwood ticket, but Bách Khoa customer -> must NOT merge
+                    {
+                        id: 'IMPORT_KHO 4_SHARED01_2026-03-14_08:05:00_BK',
+                        soPhieu: 'SHARED01',
+                        maLenh: '',
+                        reportDate: '2026-03-14',
+                        weighInDate: '2026-03-14',
+                        weighInTime: '08:05:00',
+                        weighOutDate: '2026-03-14',
+                        weighOutTime: '08:05:00',
+                        flowType: 'IMPORT',
+                        warehouseId: 'KHO 4',
+                        customerName: 'BÁCH KHOA',
+                        cargoType: 'Viên nén gỗ',
+                        vehiclePlate: '50H99999',
+                        carrierName: 'XE A',
+                        grossWeight: 50,
+                        tareWeight: 15,
+                        netWeight: 35,
+                        factoryWeight: null,
+                        bargeInfo: '',
+                        vesselName: '',
+                        sourceOrRemark: ''
+                    },
+                    // Same fallback key (no soPhieu, same date, plate, netWeight) as Eastwood, but Bách Khoa -> must NOT merge
+                    {
+                        id: 'IMPORT_KHO 4_50H88888_2026-03-14_2_BK',
+                        soPhieu: '',
+                        maLenh: '',
+                        reportDate: '2026-03-14',
+                        weighInDate: '2026-03-14',
+                        weighInTime: '09:00:00',
+                        weighOutDate: '2026-03-14',
+                        weighOutTime: '09:00:00',
+                        flowType: 'IMPORT',
+                        warehouseId: 'KHO 4',
+                        customerName: 'BÁCH KHOA',
+                        cargoType: 'Viên nén gỗ',
+                        vehiclePlate: '50H88888',
+                        carrierName: 'XE B',
+                        grossWeight: 48,
+                        tareWeight: 15,
+                        netWeight: 33,
+                        factoryWeight: null,
+                        bargeInfo: '',
+                        vesselName: '',
+                        sourceOrRemark: ''
+                    },
+                    // Legitimate duplicate of Eastwood SHARED01 with empty customerName -> must merge AND preserve Eastwood customerName
+                    {
+                        id: 'IMPORT_KHO 4_SHARED01_2026-03-14_DUP',
+                        soPhieu: 'SHARED01',
+                        maLenh: '',
+                        reportDate: '2026-03-14',
+                        weighInDate: '2026-03-14',
+                        weighInTime: '',
+                        weighOutDate: '2026-03-14',
+                        weighOutTime: '',
+                        flowType: 'IMPORT',
+                        warehouseId: 'KHO 4',
+                        customerName: '',
+                        cargoType: 'Viên nén gỗ',
+                        vehiclePlate: '50H99999',
+                        carrierName: '',
+                        grossWeight: 50,
+                        tareWeight: 15,
+                        netWeight: 35,
+                        factoryWeight: null,
+                        bargeInfo: '',
+                        vesselName: '',
+                        sourceOrRemark: ''
+                    }
+                ],
+                { preserveExistingFields: true }
+            );
+
+            expect(stats.newCount).toBe(2);
+            expect(stats.duplicateCount).toBe(1);
+
+            const all = await WarehouseInventoryService.getAllTickets(true);
+            expect(all).toHaveLength(4);
+            const ewShared = all.find(t => t.id === 'IMPORT_KHO 4_SHARED01_2026-03-14_08:00:00');
+            expect(ewShared?.customerName).toBe('CÔNG TY CP EASTWOOD ENERGY');
+            const bkShared = all.find(t => t.id === 'IMPORT_KHO 4_SHARED01_2026-03-14_08:05:00_BK');
+            expect(bkShared?.customerName).toBe('BÁCH KHOA');
+        });
+    });
 });

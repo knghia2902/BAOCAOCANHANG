@@ -199,7 +199,7 @@ export interface WarehouseImportSummary {
     syncedToAllocatorCount: number;
     matchedBargesCount: number;
     vehiclesLearnedCount: number;
-    warehousesUpdated: WarehouseId[];
+    warehousesUpdated: ExtendedWarehouseId[];
     errors: string[];
 }
 

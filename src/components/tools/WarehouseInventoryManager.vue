@@ -608,11 +608,11 @@ async function handleHistoryExcelSelected(e: Event) {
     try {
         const summary = await WarehouseInventoryService.importHistoricalExcelWorkbook(
             file,
-            activeSingleWarehouseId.value
+            activeWarehouseConfigKey.value
         );
         await loadAllData();
 
-        if (summary.warehousesUpdated.length >= 2) {
+        if (summary.warehousesUpdated.some(w => w === 'KHO 1' || w === 'KHO 2' || w === 'KHO 3') && summary.warehousesUpdated.length >= 2) {
             selectedWarehouseMode.value = 'COMBINED_123';
         } else if (summary.warehousesUpdated.length === 1) {
             selectedWarehouseMode.value = summary.warehousesUpdated[0]!;

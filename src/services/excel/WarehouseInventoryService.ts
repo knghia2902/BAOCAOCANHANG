@@ -1166,7 +1166,8 @@ interface TicketLookupIndex {
 }
 
 function getTicketFallbackKey(t: WarehouseInventoryTicket): string {
-    return `${t.flowType}|${t.warehouseId || ''}|${t.reportDate}|${normalizePlateKey(t.vehiclePlate)}`;
+    const custBucket = isBachKhoaTicket(t) ? 'BK' : 'STD';
+    return `${t.flowType}|${t.warehouseId || ''}|${custBucket}|${t.reportDate}|${normalizePlateKey(t.vehiclePlate)}`;
 }
 
 function addTicketToIndex(index: TicketLookupIndex, t: WarehouseInventoryTicket) {
@@ -1232,7 +1233,8 @@ function findMatchingExistingTicket(
         for (const existingT of candidates) {
             if (
                 isRealTicketSerial(existingT.soPhieu, existingT.vehiclePlate) &&
-                existingT.soPhieu.trim().toUpperCase() === incSp
+                existingT.soPhieu.trim().toUpperCase() === incSp &&
+                isBachKhoaTicket(existingT) === isBachKhoaTicket(incoming)
             ) {
                 const exPlate = normalizePlateKey(existingT.vehiclePlate);
                 const sameOrContainedPlate =
@@ -1264,6 +1266,7 @@ function findMatchingExistingTicket(
             if (
                 !isRealTicketSerial(existingT.soPhieu, existingT.vehiclePlate) &&
                 existingT.vehiclePlate !== 'XE_CLEAR' &&
+                isBachKhoaTicket(existingT) === isBachKhoaTicket(incoming) &&
                 existingT.flowType === incoming.flowType &&
                 existingT.warehouseId === incoming.warehouseId &&
                 existingT.reportDate === incoming.reportDate &&
@@ -2525,6 +2528,7 @@ export const WarehouseInventoryService = {
                         ...existingT,
                         ...t,
                         id: finalId,
+                        customerName: t.customerName || existingT.customerName,
                         weighInDate: t.weighInDate || existingT.weighInDate,
                         weighInTime: t.weighInTime || existingT.weighInTime,
                         weighOutDate: t.weighOutDate || existingT.weighOutDate,
@@ -3277,7 +3281,7 @@ export const WarehouseInventoryService = {
      */
     async importHistoricalExcelWorkbook(
         file: File,
-        defaultWarehouseOverride?: WarehouseId
+        defaultWarehouseOverride?: ExtendedWarehouseId
     ): Promise<WarehouseImportSummary> {
         const summary: WarehouseImportSummary = {
             importedCount: 0,
@@ -3315,17 +3319,33 @@ export const WarehouseInventoryService = {
                 return val ?? '';
             };
 
-            const defaultWh = normalizeWarehouseId(file.name) || defaultWarehouseOverride || 'KHO 4';
-            const updatedWhSet = new Set<WarehouseId>();
+            const isBkOverride = defaultWarehouseOverride === 'KHO 4 - BK';
+            const baseOverrideWh: WarehouseId | undefined = isBkOverride
+                ? 'KHO 4'
+                : (defaultWarehouseOverride as WarehouseId | undefined);
+            const defaultWh: WarehouseId = normalizeWarehouseId(file.name) || baseOverrideWh || 'KHO 4';
+            const updatedWhSet = new Set<ExtendedWarehouseId>();
             const configs = await this.getConfigs();
 
             // Detect default customer from filename
             const fileNameClean = stripAccents(file.name).toUpperCase();
-            const inferredFileCustomer = fileNameClean.includes('EW') || fileNameClean.includes('EASTWOOD')
-                ? 'EASTWOOD'
-                : fileNameClean.includes('GBD') || fileNameClean.includes('BINH DINH')
-                    ? 'GỖ BÌNH ĐỊNH'
-                    : '';
+            const inferredFileCustomer =
+                /(?:^|[^A-Z0-9])(BK|BACH\s*KHOA|BACHKHOA)(?:[^A-Z0-9]|$)/.test(fileNameClean)
+                    ? 'BÁCH KHOA'
+                    : /(?:^|[^A-Z0-9])(EW|EASTWOOD)(?:[^A-Z0-9]|$)/.test(fileNameClean)
+                        ? 'EASTWOOD'
+                        : /(?:^|[^A-Z0-9])(GBD|BINH\s*DINH)(?:[^A-Z0-9]|$)/.test(fileNameClean)
+                            ? 'GỖ BÌNH ĐỊNH'
+                            : isBkOverride
+                                ? 'BÁCH KHOA'
+                                : '';
+
+            const resolveConfigKey = (wh: WarehouseId, customer?: string): ExtendedWarehouseId => {
+                if (wh === 'KHO 4' && (isBachKhoaCustomer(customer) || (!customer && isBkOverride))) {
+                    return 'KHO 4 - BK';
+                }
+                return wh;
+            };
 
             // 1. Parse `Data` sheet (Vehicle -> Carrier lookup + Destination lookup)
             // Template files have Row 3 header: Col 2 = STT, Col 3 = SỐ XE, Col 4 = CÔNG TY
@@ -3403,6 +3423,7 @@ export const WarehouseInventoryService = {
 
             const vehicleMap = await this.getVehicles();
             const allTickets: WarehouseInventoryTicket[] = [];
+            let detectedWorkbookCustomer = inferredFileCustomer;
             let sheetLevelCustomer = inferredFileCustomer;
 
             // 2. Parse IMPORT, EXPORT, and XÁ THẲNG sheets
@@ -3422,7 +3443,7 @@ export const WarehouseInventoryService = {
                     ? null
                     : (normalizeWarehouseId(sheet.name) || defaultWh);
 
-                if (sheetWh) updatedWhSet.add(sheetWh);
+                sheetLevelCustomer = inferredFileCustomer || detectedWorkbookCustomer;
 
                 // Extract customer from rows 1..14 if present (e.g. "Khách hàng\n(Customer):" -> "BÁCH KHOA" or "EASTWOOD")
                 for (let r = 1; r <= Math.min(14, sheet.rowCount); r++) {
@@ -3434,8 +3455,10 @@ export const WarehouseInventoryService = {
                                 const nextVal = sanitizeCustomerName(getCellPrimitive(row.getCell(cNext)), '');
                                 if (nextVal && !stripAccents(nextVal).toUpperCase().includes(' LOAI HANG')) {
                                     sheetLevelCustomer = nextVal;
-                                    if (sheetWh && configs[sheetWh]) {
-                                        configs[sheetWh].currentCustomer = nextVal;
+                                    detectedWorkbookCustomer = nextVal;
+                                    const sheetCfgKey = sheetWh ? resolveConfigKey(sheetWh, nextVal) : null;
+                                    if (sheetCfgKey && configs[sheetCfgKey]) {
+                                        configs[sheetCfgKey].currentCustomer = nextVal;
                                     }
                                     break;
                                 }
@@ -3443,6 +3466,8 @@ export const WarehouseInventoryService = {
                         }
                     }
                 }
+
+                if (sheetWh) updatedWhSet.add(resolveConfigKey(sheetWh, sheetLevelCustomer));
 
                 // Find header row (containing STT, NGÀY, SỐ PHIẾU, SỐ XE; can be row 6, 7, 12, 13, or 15)
                 let headerRowNum = 6;
@@ -3582,6 +3607,11 @@ export const WarehouseInventoryService = {
                         const factoryWeight = fw > 0 ? fw : null;
 
                         // Note: In historical Excel sheets, the NGÀY column is ALREADY the 6:00 AM shift-adjusted reportDate!
+                        const importCfgKey = resolveConfigKey(sheetWh, sheetLevelCustomer);
+                        const importCustomer =
+                            sheetLevelCustomer ||
+                            configs[importCfgKey]?.currentCustomer ||
+                            (importCfgKey === 'KHO 4 - BK' ? 'BÁCH KHOA' : '');
                         const id = `IMPORT_${sheetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
                         allTickets.push({
                             id,
@@ -3594,7 +3624,7 @@ export const WarehouseInventoryService = {
                             weighOutTime: weighOutTimeAny,
                             flowType: 'IMPORT',
                             warehouseId: sheetWh,
-                            customerName: sheetLevelCustomer || configs[sheetWh]?.currentCustomer || '',
+                            customerName: importCustomer,
                             cargoType: 'Viên nén gỗ',
                             vehiclePlate: rawPlateVal,
                             carrierName,
@@ -3620,12 +3650,23 @@ export const WarehouseInventoryService = {
                         const vesselName = String(cellAt(row, colVessel) || '').trim() || (sheetWh !== 'KHO 4' ? exportRemark : '');
                         const weighOutTime = weighOutTimeAny;
                         const custVal = colCust > 0 ? sanitizeCustomerName(cellAt(row, colCust), '') : '';
-                        const customerName = custVal || sheetLevelCustomer || configs[sheetWh]?.currentCustomer || '';
+                        const exportCfgKey = resolveConfigKey(sheetWh, custVal || sheetLevelCustomer);
+                        const customerName =
+                            custVal ||
+                            sheetLevelCustomer ||
+                            configs[exportCfgKey]?.currentCustomer ||
+                            (exportCfgKey === 'KHO 4 - BK' ? 'BÁCH KHOA' : '');
                         const inOutVal = String(cellAt(row, colInOut) || 'Xuất').trim();
                         const whLabel = String(cellAt(row, colWarehouse) || cellAt(row, colPlace) || sheetWh).trim();
 
-                        if (customerName && configs[sheetWh] && sanitizeCustomerName(customerName, '')) {
-                            configs[sheetWh].currentCustomer = sanitizeCustomerName(customerName, configs[sheetWh].currentCustomer);
+                        if (customerName && configs[exportCfgKey] && sanitizeCustomerName(customerName, '')) {
+                            configs[exportCfgKey].currentCustomer = sanitizeCustomerName(
+                                customerName,
+                                configs[exportCfgKey].currentCustomer
+                            );
+                        }
+                        if (exportCfgKey === 'KHO 4 - BK') {
+                            updatedWhSet.add('KHO 4 - BK');
                         }
 
                         const id = `EXPORT_${sheetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
@@ -3667,7 +3708,18 @@ export const WarehouseInventoryService = {
                         const directRemark = colRemark2 >= 1
                             ? String(cellAt(row, colRemark2) || '').trim()
                             : (colRemark1 >= 1 && colPlace !== colRemark1 && colBarge !== colRemark1 ? String(cellAt(row, colRemark1) || '').trim() : '');
-                        const isKho4File = updatedWhSet.has('KHO 4') || defaultWh === 'KHO 4' || sheetLevelCustomer === 'EASTWOOD' || fileNameClean.includes('EW') || fileNameClean.includes('KHO 4');
+                        const isBkDirect =
+                            isBachKhoaCustomer(sheetLevelCustomer) ||
+                            isBachKhoaCustomer(detectedWorkbookCustomer) ||
+                            isBkOverride ||
+                            updatedWhSet.has('KHO 4 - BK');
+                        const isKho4File =
+                            updatedWhSet.has('KHO 4') ||
+                            isBkDirect ||
+                            defaultWh === 'KHO 4' ||
+                            isEastwoodCustomer(sheetLevelCustomer) ||
+                            fileNameClean.includes('EW') ||
+                            fileNameClean.includes('KHO 4');
                         const vesselName = String(cellAt(row, colVessel) || '').trim() || (!isKho4File ? directRemark : '');
                         const weighOutTime = weighOutTimeAny;
                         const sourceOrRemark = String(cellAt(row, colPlace >= 1 ? colPlace : colRemark1) || '').trim();
@@ -3680,9 +3732,16 @@ export const WarehouseInventoryService = {
                         }
 
                         const targetWh: WarehouseId = isKho4File ? 'KHO 4' : 'KHO 1';
+                        const directCfgKey: ExtendedWarehouseId = isKho4File && isBkDirect ? 'KHO 4 - BK' : targetWh;
                         const directCust = isKho4File
-                            ? sanitizeCustomerName(sheetLevelCustomer, configs['KHO 4']?.currentCustomer || 'EASTWOOD')
-                            : sanitizeCustomerName(sheetLevelCustomer, configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH');
+                            ? sanitizeCustomerName(
+                                  sheetLevelCustomer || detectedWorkbookCustomer,
+                                  configs[directCfgKey]?.currentCustomer || (isBkDirect ? 'BÁCH KHOA' : 'EASTWOOD')
+                              )
+                            : sanitizeCustomerName(
+                                  sheetLevelCustomer || detectedWorkbookCustomer,
+                                  configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH'
+                              );
 
                         const id = `DIRECT_${targetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
                         allTickets.push({
@@ -3781,12 +3840,14 @@ export const WarehouseInventoryService = {
                     }
                 } else {
                     const fWh = normalizeWarehouseId(finalSheet.name) || defaultWh;
-                    updatedWhSet.add(fWh);
-                    const fCfg = configs[fWh]!;
+                    const finalCust = sheetLevelCustomer || detectedWorkbookCustomer;
+                    const fCfgKey = resolveConfigKey(fWh, finalCust);
+                    updatedWhSet.add(fCfgKey);
+                    const fCfg = configs[fCfgKey]!;
                     fCfg.dailyRemarks = {};
                     fCfg.initialStock = 0;
                     fCfg.initialDate = '';
-                    if (sheetLevelCustomer) fCfg.currentCustomer = sheetLevelCustomer;
+                    if (finalCust) fCfg.currentCustomer = finalCust;
 
                     // Detect columns in Single-Warehouse FINAL:
                     // Native template: Col 1=Ngày, Col 2=Trọng lượng nhập, Col 3=Trọng lượng xuất, Col 4=Tồn cuối, Col 5=Xá thẳng/Ghi chú, Col 6=Ghi chú
@@ -3841,7 +3902,11 @@ export const WarehouseInventoryService = {
                             const isLiteralNumber = typeof impCellRaw === 'number' && impCellRaw > 0;
                             const remClean = stripAccents(rem).toUpperCase();
                             const hasImportTicketsOnDate = allTickets.some(
-                                t => t.warehouseId === fWh && t.flowType === 'IMPORT' && t.reportDate === dIso
+                                t =>
+                                    t.warehouseId === fWh &&
+                                    t.flowType === 'IMPORT' &&
+                                    t.reportDate === dIso &&
+                                    resolveConfigKey(t.warehouseId as WarehouseId, t.customerName) === fCfgKey
                             );
                             if (isLiteralNumber && (!hasImportTicketsOnDate || remClean.includes('TON KHO DEN') || remClean.includes('THEO BAO CAO'))) {
                                 fCfg.initialStock = normalizeWeightToTons(impCellRaw);
@@ -3854,10 +3919,14 @@ export const WarehouseInventoryService = {
 
             // Clear previous tickets for the imported warehouse group before saving fresh historical workbook tickets
             if (allTickets.length > 0) {
-                if (updatedWhSet.has('KHO 4') && updatedWhSet.size === 1) {
+                if (updatedWhSet.has('KHO 4 - BK')) {
+                    await this.clearWarehouseTickets('KHO 4 - BK');
+                }
+                if (updatedWhSet.has('KHO 4')) {
                     await this.clearWarehouseTickets('KHO 4');
                     await this.clearWarehouseTickets('DIRECT_KHO4');
-                } else if (updatedWhSet.has('KHO 1') || updatedWhSet.has('KHO 2') || updatedWhSet.has('KHO 3')) {
+                }
+                if (updatedWhSet.has('KHO 1') || updatedWhSet.has('KHO 2') || updatedWhSet.has('KHO 3')) {
                     await this.clearWarehouseTickets('GROUP_KHO123');
                 }
                 const stats = await this.saveTicketsBulkWithStats(allTickets, { preserveExistingFields: true });
