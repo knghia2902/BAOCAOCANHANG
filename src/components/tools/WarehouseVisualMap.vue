@@ -13,7 +13,8 @@ import type {
     WarehouseId,
     WarehouseConfig,
     WarehouseVisualMapState,
-    WarehouseMapVertex
+    WarehouseMapVertex,
+    WarehouseMapPolygon
 } from '@/types/excel';
 
 const props = defineProps<{
@@ -21,7 +22,7 @@ const props = defineProps<{
     closingStocks: Record<WarehouseId, number>;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
     (e: 'close'): void;
 }>();
 
@@ -113,6 +114,82 @@ function getEffectiveStockTons(whId: WarehouseId): number {
         return Number(zone.overrideStockTons);
     }
     return Number(props.closingStocks[whId]) || 0;
+}
+
+function getEffectiveCapacityTons(whId: WarehouseId): number {
+    const zone = mapState.value.warehouses[whId];
+    if (zone?.capacityTons != null && Number(zone.capacityTons) > 0) {
+        return Number(zone.capacityTons);
+    }
+    return Math.max(500, Math.round((zone?.areaM2 || 1080) * 2.25));
+}
+
+function computePolygonAreaRatio(vertices: WarehouseMapVertex[], totalBays: number): number {
+    if (!vertices || vertices.length < 3) return 0;
+    let area = 0;
+    const b = Math.max(1, totalBays);
+    for (let i = 0; i < vertices.length; i++) {
+        const v1 = vertices[i]!;
+        const v2 = vertices[(i + 1) % vertices.length]!;
+        const x1 = Math.max(0, Math.min(1, v1.xRatio));
+        const y1 = Math.max(0, Math.min(b, v1.bayY)) / b;
+        const x2 = Math.max(0, Math.min(1, v2.xRatio));
+        const y2 = Math.max(0, Math.min(b, v2.bayY)) / b;
+        area += x1 * y2 - x2 * y1;
+    }
+    return Math.abs(area) / 2;
+}
+
+/**
+ * Tự động co giãn đa giác khối hàng theo khối lượng tồn kho thực tế (tăng/giảm theo thời gian thực).
+ * Khi ở chế độ Chỉnh sửa (isEditing), giữ nguyên tọa độ gốc để người dùng kéo thả chính xác.
+ */
+function getDynamicPolygonVertices(whId: WarehouseId, poly: WarehouseMapPolygon): WarehouseMapVertex[] {
+    if (isEditing.value) return poly.vertices;
+
+    const zone = mapState.value.warehouses[whId];
+    if (!zone || !poly.vertices || poly.vertices.length < 3) return poly.vertices;
+
+    const actualTons = getEffectiveStockTons(whId);
+    if (actualTons <= 0) return [];
+
+    const totalBays = Math.max(1, zone.totalBays || 6);
+    let scaleFactor = 1;
+
+    if (zone.baselineStockTons != null && Number(zone.baselineStockTons) > 0) {
+        scaleFactor = actualTons / Number(zone.baselineStockTons);
+    } else {
+        const capacity = getEffectiveCapacityTons(whId);
+        const targetRatio = Math.max(0.02, Math.min(1, actualTons / capacity));
+        const totalDrawnRatio = zone.polygons.reduce(
+            (sum, p) => sum + computePolygonAreaRatio(p.vertices, totalBays),
+            0
+        );
+        const safeDrawn = Math.max(0.05, Math.min(1, totalDrawnRatio));
+        scaleFactor = targetRatio / safeDrawn;
+    }
+
+    // Tìm neo dọc (bám tường trên nếu khối hàng nằm ở nửa trên, hoặc bám đáy nếu ở nửa dưới)
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let sumY = 0;
+    for (const v of poly.vertices) {
+        if (v.bayY < minY) minY = v.bayY;
+        if (v.bayY > maxY) maxY = v.bayY;
+        sumY += v.bayY;
+    }
+    const avgY = sumY / poly.vertices.length;
+    const anchorY = (maxY >= totalBays - 0.5 || avgY >= totalBays / 2) ? maxY : minY;
+
+    // Đảm bảo khi có hàng (> 0T) vẫn hiển thị dải hàng tối thiểu dễ nhìn
+    const spanY = Math.max(0.1, maxY - minY);
+    const minVisibleScale = Math.min(1, 0.25 / spanY);
+    const clampedScale = Math.max(minVisibleScale, scaleFactor);
+
+    return poly.vertices.map(v => ({
+        xRatio: v.xRatio,
+        bayY: Number(Math.max(0, Math.min(totalBays, anchorY + (v.bayY - anchorY) * clampedScale)).toFixed(2))
+    }));
 }
 
 // Convert normalized warehouse vertex (xRatio, bayY) -> SVG pixel (x, y)
@@ -339,6 +416,13 @@ async function handleSaveMapState() {
     }
     saving.value = true;
     try {
+        // Ghi nhận mốc khối lượng tồn kho thực tế tại thời điểm lưu để tự động co giãn khi hàng tăng/giảm sau này
+        for (const whId of ALL_WAREHOUSES) {
+            const z = mapState.value.warehouses[whId];
+            if (z) {
+                z.baselineStockTons = getEffectiveStockTons(whId);
+            }
+        }
         mapState.value.updatedBy = authStore.displayName || authStore.user || 'Admin';
         await WarehouseInventoryService.saveVisualMapState(mapState.value);
         isEditing.value = false;
@@ -361,16 +445,6 @@ onMounted(() => {
         <!-- Top Control Bar -->
         <div class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow flex flex-wrap items-center justify-between gap-3 shrink-0">
             <div class="flex items-center gap-3">
-                <button
-                    type="button"
-                    @click="emit('close')"
-                    class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                    title="Quay lại bảng dữ liệu tồn kho"
-                >
-                    <span class="material-symbols-outlined text-[14px]">arrow_back</span>
-                    <span>Quay lại</span>
-                </button>
-
                 <div class="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-xl">map</span>
                 </div>
@@ -795,19 +869,20 @@ onMounted(() => {
                         :key="poly.id"
                     >
                         <polygon
-                            :points="polygonToPointsAttr(whId, poly.vertices)"
+                            v-if="getDynamicPolygonVertices(whId, poly).length >= 3"
+                            :points="polygonToPointsAttr(whId, getDynamicPolygonVertices(whId, poly))"
                             :fill="poly.color || mapState.warehouses[whId].fillColor"
                             :stroke="isEditing && selectedWarehouseId === whId && selectedPolygonIdx === pIdx ? '#1d4ed8' : 'none'"
                             :stroke-width="isEditing && selectedWarehouseId === whId && selectedPolygonIdx === pIdx ? 1.5 : 0"
                             :stroke-dasharray="isEditing && selectedWarehouseId === whId && selectedPolygonIdx === pIdx ? '4,2' : undefined"
-                            class="transition-opacity"
+                            class="transition-all duration-300"
                             @click.stop="isEditing && selectWarehouseForEdit(whId, pIdx)"
                         />
                         <!-- Dedicated badge for Bách Khoa corner or custom pile label -->
                         <text
-                            v-if="poly.label && poly.label.includes('BÁCH KHOA')"
-                            :x="getPolygonCenterPoint(whId, poly.vertices).x"
-                            :y="getPolygonCenterPoint(whId, poly.vertices).y + 4"
+                            v-if="poly.label && poly.label.includes('BÁCH KHOA') && getDynamicPolygonVertices(whId, poly).length >= 3"
+                            :x="getPolygonCenterPoint(whId, getDynamicPolygonVertices(whId, poly)).x"
+                            :y="getPolygonCenterPoint(whId, getDynamicPolygonVertices(whId, poly)).y + 4"
                             text-anchor="middle"
                             font-family="Cambria, Georgia, serif"
                             font-size="10.5"

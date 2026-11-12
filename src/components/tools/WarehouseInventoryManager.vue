@@ -35,7 +35,7 @@ type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('IMPORT');
-const isVisualMapOpen = ref(false);
+const isVisualMapOpen = ref(true);
 const loading = ref(false);
 const importingHistoryExcel = ref(false);
 const exportingExcel = ref(false);

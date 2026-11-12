@@ -225,6 +225,8 @@ export interface WarehouseZoneMapConfig {
     cargoName: string;
     customCustomerName?: string;
     overrideStockTons?: number | null;
+    capacityTons?: number | null;
+    baselineStockTons?: number | null;
     showConveyor?: boolean;
     conveyorBayY?: number;
     polygons: WarehouseMapPolygon[];
