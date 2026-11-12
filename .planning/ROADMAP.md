@@ -273,6 +273,6 @@ Plans:
 
 Plans:
 
-- [ ] 23-01: Thiết kế cấu trúc dữ liệu Ma trận Biểu giá Hợp đồng 7 bậc giá dầu, dịch vụ tính toán lưu sà lan (`BargeDemurrageService.ts`), và logic bóc tách số liệu cân theo nghiệp vụ (`EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `TRUCK`).
-- [ ] 23-02: Xây dựng giao diện Quyết toán Lô hàng & Lập Đề nghị thanh toán (`ShipmentSettlementModal.vue` / Tab Quyết toán): bảng kê lưu sà lan cho phép nhập Ngày đến / Ngày rời phao, bộ chọn bậc giá dầu, trình chọn dịch vụ gắn kèm số Hợp đồng/Phụ lục, tính tổng tiền, thuế VAT 8% và dịch số tiền thành chữ song ngữ.
-- [ ] 23-03: Triển khai trình xuất file Excel Quyết toán lô hàng chuẩn mẫu cảng trọn gói 8 sheet (`DNTT 1`, `DNTT 2`, `Giá dầu`, `BK SALAN`, `EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `LƯU SÀ LAN`, `TRUCK `) giữ nguyên công thức và định dạng in ấn.
+- [x] 23-01: Thiết kế cấu trúc dữ liệu Ma trận Biểu giá Hợp đồng 7 bậc giá dầu, dịch vụ tính toán lưu sà lan (`BargeDemurrageService.ts`), và logic bóc tách số liệu cân theo nghiệp vụ (`EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `TRUCK`).
+- [x] 23-02: Xây dựng giao diện Quyết toán Lô hàng & Lập Đề nghị thanh toán (`ShipmentSettlementModal.vue` / Tab Quyết toán): bảng kê lưu sà lan cho phép nhập Ngày đến / Ngày rời phao, bộ chọn bậc giá dầu, trình chọn dịch vụ gắn kèm số Hợp đồng/Phụ lục, tính tổng tiền, thuế VAT 8% và dịch số tiền thành chữ song ngữ.
+- [x] 23-03: Triển khai trình xuất file Excel Quyết toán lô hàng chuẩn mẫu cảng trọn gói 8 sheet (`DNTT 1`, `DNTT 2`, `Giá dầu`, `BK SALAN`, `EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `LƯU SÀ LAN`, `TRUCK `) giữ nguyên công thức và định dạng in ấn.

@@ -6,6 +6,7 @@ import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
 import { WeighbridgeService, isSameScaleTicket, deduplicateBargeTrucks, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
 import { LogService } from '@/services/storage/LogService';
+import ShipmentSettlementModal from './settlement/ShipmentSettlementModal.vue';
 const props = withDefaults(defineProps<{
     hideCard?: boolean;
 }>(), {
@@ -1547,6 +1548,39 @@ const selectVessel = async (vesselId: number) => {
 
     if (isSameVessel && isBargeNull) {
         await refreshVesselSummary();
+    }
+};
+
+// Shipment Settlement & Debit Note Modal state
+const isSettlementModalOpen = ref(false);
+const settlementBargesData = ref<Barge[]>([]);
+const settlementTicketsData = ref<any[]>([]);
+const loadingSettlementData = ref(false);
+
+const openSettlementModal = async () => {
+    const vessel = activeVessel.value;
+    if (!vessel) return;
+    loadingSettlementData.value = true;
+    try {
+        const bargesList = vessel.barges || [];
+        const loadedBarges: Barge[] = [];
+        const allTrks: any[] = [];
+        await Promise.all(bargesList.map(async (b) => {
+            const trks = await WeighbridgeService.getTrucks(b.id);
+            loadedBarges.push({ ...b, trucks: trks });
+            trks.forEach(t => {
+                allTrks.push({ ...t, bargeName: b.name });
+            });
+        }));
+        loadedBarges.sort((a, b) => a.name.localeCompare(b.name));
+        settlementBargesData.value = loadedBarges;
+        settlementTicketsData.value = allTrks;
+        isSettlementModalOpen.value = true;
+    } catch (err) {
+        console.error('Lỗi tải dữ liệu quyết toán:', err);
+        showToast('Lỗi tải dữ liệu phiếu cân tàu để quyết toán!', 'error');
+    } finally {
+        loadingSettlementData.value = false;
     }
 };
 
@@ -5360,6 +5394,18 @@ defineExpose({
                                     Mở lại
                                 </button>
 
+                                <button
+                                    v-if="activeVessel"
+                                    @click="openSettlementModal"
+                                    :disabled="loadingSettlementData"
+                                    class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                                    title="Quyết toán lô hàng, tính lưu sà lan và lập Đề nghị thanh toán (DNTT)"
+                                >
+                                    <span v-if="loadingSettlementData" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                                    <span v-else class="material-symbols-outlined text-sm">receipt_long</span>
+                                    Quyết toán &amp; ĐNTT
+                                </button>
+
                                 <button 
                                     v-if="filteredVesselBarges.length > 0"
                                     @click="exportVesselSummaryExcel"
@@ -7213,6 +7259,17 @@ defineExpose({
             </div>
         </div>
     </Transition>
+    </Teleport>
+
+    <!-- Shipment Settlement & Debit Note Modal -->
+    <Teleport to="body">
+        <ShipmentSettlementModal
+            :is-open="isSettlementModalOpen"
+            :vessel="activeVessel"
+            :barges="settlementBargesData"
+            :all-tickets="settlementTicketsData"
+            @close="isSettlementModalOpen = false"
+        />
     </Teleport>
 </template>
 

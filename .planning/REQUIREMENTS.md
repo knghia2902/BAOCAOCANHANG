@@ -99,10 +99,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Shipment Settlement, Debit Note & Barge Demurrage (SETTLE - PHASE-23)
 
-- [ ] **SETTLE-01**: Cung cấp cấu hình Ma trận Biểu giá Hợp đồng (Contract Pricing Matrix) lưu theo Khách hàng / Hợp đồng, hỗ trợ 7 bậc biến động giá dầu Petrolimex DO Vùng 1 cho cả Biểu giá xếp dỡ cảng biển (Kho ra Nhà Bè, Xe sang sà lan Nhà Bè, Gò Gia...) và Biểu cước vận tải xe đường bộ theo từng tuyến kho/nhà máy.
-- [ ] **SETTLE-02**: Bảng kê chi tiết Lưu neo phương tiện (Barge Demurrage): cho phép người dùng nhập trực tiếp Ngày đến cảng & Ngày rời phao cho từng sà lan của tàu, tự động tính số ngày thực tế, số ngày vượt lưu cơ bản (7 ngày), làm tròn cảng biển (nấc 0.5 ngày và 1 ngày), và ra số tiền lưu sà lan.
-- [ ] **SETTLE-03**: Giao diện Lập Đề nghị thanh toán (Debit Note): cho phép chọn chuyến tàu đã hoàn tất giao hàng, chọn mức giá dầu thực hiện (kèm công cụ tính giá dầu trung bình thời gian làm hàng), tích chọn các dịch vụ đưa vào DNTT (kèm số hợp đồng / phụ lục), tự động điền đơn giá và khối lượng từ Weightlist (Xuất kho vs Xe sang sà lan), tính thuế VAT 8% và dịch số tiền thành chữ song ngữ Việt - Anh.
-- [ ] **SETTLE-04**: Trình kết xuất file Excel quyết toán lô hàng chuẩn mẫu trọn gói 8 sheet (`DNTT 1`, `DNTT 2`, `Giá dầu`, `BK SALAN`, `EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `LƯU SÀ LAN`, `TRUCK `) đồng bộ công thức và định dạng theo file mẫu chuẩn cảng.
+- [x] **SETTLE-01**: Cung cấp cấu hình Ma trận Biểu giá Hợp đồng (Contract Pricing Matrix) lưu theo Khách hàng / Hợp đồng, hỗ trợ 7 bậc biến động giá dầu Petrolimex DO Vùng 1 cho cả Biểu giá xếp dỡ cảng biển (Kho ra Nhà Bè, Xe sang sà lan Nhà Bè, Gò Gia...) và Biểu cước vận tải xe đường bộ theo từng tuyến kho/nhà máy.
+- [x] **SETTLE-02**: Bảng kê chi tiết Lưu neo phương tiện (Barge Demurrage): cho phép người dùng nhập trực tiếp Ngày đến cảng & Ngày rời phao cho từng sà lan của tàu, tự động tính số ngày thực tế, số ngày vượt lưu cơ bản (7 ngày), làm tròn cảng biển (nấc 0.5 ngày và 1 ngày), và ra số tiền lưu sà lan.
+- [x] **SETTLE-03**: Giao diện Lập Đề nghị thanh toán (Debit Note): cho phép chọn chuyến tàu đã hoàn tất giao hàng, chọn mức giá dầu thực hiện (kèm công cụ tính giá dầu trung bình thời gian làm hàng), tích chọn các dịch vụ đưa vào DNTT (kèm số hợp đồng / phụ lục), tự động điền đơn giá và khối lượng từ Weightlist (Xuất kho vs Xe sang sà lan), tính thuế VAT 8% và dịch số tiền thành chữ song ngữ Việt - Anh.
+- [x] **SETTLE-04**: Trình kết xuất file Excel quyết toán lô hàng chuẩn mẫu trọn gói 8 sheet (`DNTT 1`, `DNTT 2`, `Giá dầu`, `BK SALAN`, `EXPORT XUẤT KHO`, `WL XUẤT SALAN`, `LƯU SÀ LAN`, `TRUCK `) đồng bộ công thức và định dạng theo file mẫu chuẩn cảng.
 
 ## Future Requirements (v2+)
 
@@ -163,10 +163,10 @@ Which phases cover which requirements.
 | INV-BK-02 | Pending | Pending |
 | INV-BK-03 | Pending | Pending |
 | INV-BK-04 | Pending | Pending |
-| SETTLE-01 | Phase 23 | Pending |
-| SETTLE-02 | Phase 23 | Pending |
-| SETTLE-03 | Phase 23 | Pending |
-| SETTLE-04 | Phase 23 | Pending |
+| SETTLE-01 | Phase 23 | Complete |
+| SETTLE-02 | Phase 23 | Complete |
+| SETTLE-03 | Phase 23 | Complete |
+| SETTLE-04 | Phase 23 | Complete |
 
 **Coverage:**
 - v1.1 / v1.2 / v1.3 requirements: 47 total
