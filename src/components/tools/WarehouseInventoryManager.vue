@@ -37,7 +37,6 @@ const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('IMPORT');
 const isVisualMapOpen = ref(false);
 const loading = ref(false);
-const importingCsv = ref(false);
 const importingHistoryExcel = ref(false);
 const exportingExcel = ref(false);
 const capturingZaloImage = ref(false);
@@ -92,6 +91,7 @@ const expandedCustomer = ref<Record<string, boolean>>({
 const batchVesselName = ref('');
 
 // Config inline editing modal / panel
+const showInfoPopover = ref(false);
 const showConfigModal = ref(false);
 const editingConfigForm = ref<{
     warehouseId: ExtendedWarehouseId;
@@ -190,7 +190,6 @@ const activeCustomerGroup = computed<'KHO_4' | 'KHO_4_BK' | 'KHO_123'>(() => {
 });
 
 // File inputs
-const csvFileInput = ref<HTMLInputElement | null>(null);
 const historyExcelFileInput = ref<HTMLInputElement | null>(null);
 
 const activeSingleWarehouseId = computed<WarehouseId>(() => {
@@ -549,49 +548,6 @@ async function onFactoryKgChange(t: WarehouseInventoryTicket, e: Event) {
     const kg = Number(raw);
     t.factoryWeight = raw === '' || !kg ? null : Math.round(kg) / 1000;
     await handleUpdateTicketField(t);
-}
-
-// Trigger CSV import (supports multiple CSV/Excel files at once)
-function triggerCsvImport() {
-    csvFileInput.value?.click();
-}
-
-async function handleCsvFilesSelected(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-
-    importingCsv.value = true;
-    try {
-        const summary = await WarehouseInventoryService.importWeighbridgeCsvFiles(input.files);
-        await loadAllData();
-
-        if (summary.warehousesUpdated.length > 0 && selectedWarehouseMode.value !== 'COMBINED_123') {
-            if (!summary.warehousesUpdated.includes(activeSingleWarehouseId.value)) {
-                selectedWarehouseMode.value = summary.warehousesUpdated[0]!;
-            }
-        }
-
-        const dupNote = summary.duplicateCount && summary.duplicateCount > 0
-            ? ` [Mới: ${summary.newCount ?? 0}, Trùng đã gộp: ${summary.duplicateCount}]`
-            : '';
-        const msgParts = [
-            `Đã nạp ${summary.importedCount} phiếu vào Tồn kho${dupNote} (Nhập kho: ${summary.importFlowCount}, Xuất kho: ${summary.exportFlowCount}, Đi thẳng: ${summary.directFlowCount})`
-        ];
-        if (summary.syncedToAllocatorCount > 0) {
-            msgParts.push(`Đã đồng bộ ${summary.syncedToAllocatorCount} phiếu vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng`);
-            emit('synced-to-allocator', {
-                syncedTicketsCount: summary.syncedToAllocatorCount,
-                matchedBargesCount: 0
-            });
-        }
-        addToast(msgParts.join(' • '), 'success');
-    } catch (err: any) {
-        console.error('Lỗi nạp file CSV trạm cân:', err);
-        addToast('Lỗi nạp file CSV: ' + (err?.message || err), 'error');
-    } finally {
-        importingCsv.value = false;
-        input.value = '';
-    }
 }
 
 // Trigger Historical Excel Bootstrap
@@ -1144,14 +1100,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
     <div ref="rootContainer" class="w-full h-full flex flex-col gap-3.5 font-display text-[#1e293b] min-h-0 overflow-y-auto md:overflow-hidden pb-4 md:pb-0">
         <!-- Hidden File Inputs -->
         <input
-            ref="csvFileInput"
-            type="file"
-            multiple
-            accept=".csv,.xlsx,.xls"
-            class="hidden"
-            @change="handleCsvFilesSelected"
-        />
-        <input
             ref="historyExcelFileInput"
             type="file"
             accept=".xlsx,.xls"
@@ -1433,16 +1381,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     </div>
                 </div>
 
-                <!-- Quick Help / Information -->
-                <div class="mt-auto p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs text-slate-500 font-semibold flex flex-col gap-1">
-                    <div class="font-bold text-slate-700 flex items-center gap-1">
-                        <span class="material-symbols-outlined text-xs text-primary">info</span>
-                        Quy tắc dữ liệu
-                    </div>
-                    <div>• <b>EASTWOOD</b>: Quản lý độc lập tại Kho 4.</div>
-                    <div>• <b>BÁCH KHOA</b>: Quản lý độc lập tại Kho 4.</div>
-                    <div>• <b>GỖ BÌNH ĐỊNH</b>: Quản lý chung qua 3 Kho 1, 2, 3 và bảng Gộp.</div>
-                </div>
             </aside>
 
             <!-- Main Content Area: Action Bar + Sheet Tabs + Tables -->
@@ -1461,7 +1399,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     class="bg-white rounded-[24px] px-4 py-3 border border-primary/5 soft-shadow shrink-0 flex flex-wrap items-center justify-between gap-3"
                 >
                     <div class="flex items-center gap-2">
-                        <div class="text-xs font-bold text-slate-400 uppercase">Đang xem</div>
                         <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
                             <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : (selectedWarehouseMode === 'KHO 4 - BK' ? 'KHO 4 (BÁCH KHOA)' : activeSingleWarehouseId) }}</span>
                             <span class="text-primary">
@@ -1481,57 +1418,75 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </button>
                         </div>
 
-                        <!-- Verified & Missing Info Badges -->
-                        <div class="h-7 px-2.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5" title="Toàn bộ các chuyến cân được ghi nhận đầy đủ vào báo cáo">
-                            <span class="material-symbols-outlined text-[13px]">verified</span>
-                            <span>{{ allTickets.length }} chuyến trong báo cáo</span>
-                        </div>
+                        <!-- Compact ! Info Dot & Popover -->
+                        <div class="relative inline-flex items-center">
+                            <button
+                                type="button"
+                                @click="showInfoPopover = !showInfoPopover"
+                                :class="[
+                                    'relative size-7 rounded-full flex items-center justify-center border transition-all active:scale-95 cursor-pointer font-display font-black text-xs',
+                                    (missingCarrierCount > 0 || missingWarehouseCount > 0 || unstandardizedTickets.length > 0)
+                                        ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                                        : 'bg-teal-50 text-teal-600 border-teal-200 hover:bg-teal-100'
+                                ]"
+                                title="Xem thông tin thống kê & cảnh báo dữ liệu"
+                            >
+                                <span>!</span>
+                                <span
+                                    v-if="missingCarrierCount > 0 || missingWarehouseCount > 0 || unstandardizedTickets.length > 0"
+                                    class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-amber-500 ring-2 ring-white"
+                                ></span>
+                            </button>
 
-                        <div
-                            v-if="missingCarrierCount > 0"
-                            class="h-7 px-2.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center gap-1.5"
-                            title="Số lượng xe chưa có Nhà xe trong Danh mục xe (cột Nhà xe được để trống)"
-                        >
-                            <span class="material-symbols-outlined text-[13px] text-amber-500">no_accounts</span>
-                            <span>{{ missingCarrierCount }} xe khuyết nhà xe</span>
-                        </div>
+                            <div
+                                v-if="showInfoPopover"
+                                class="fixed inset-0 z-30"
+                                @click="showInfoPopover = false"
+                            ></div>
 
-                        <div
-                            v-if="missingWarehouseCount > 0"
-                            class="h-7 px-2.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center gap-1.5"
-                            title="Số lượng chuyến chưa có Tên kho trong Danh mục kho hàng (cột Tên kho được để trống)"
-                        >
-                            <span class="material-symbols-outlined text-[13px] text-slate-500">store</span>
-                            <span>{{ missingWarehouseCount }} chuyến khuyết nơi xuất</span>
+                            <div
+                                v-if="showInfoPopover"
+                                class="absolute left-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-40 flex flex-col gap-2 text-left"
+                            >
+                                <div class="text-xs font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">
+                                    Thông tin báo cáo
+                                </div>
+                                <div class="px-2.5 py-1.5 bg-teal-50 border border-teal-200 text-teal-700 rounded-xl text-xs font-bold flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                    <span>{{ allTickets.length }} chuyến trong báo cáo</span>
+                                </div>
+                                <div
+                                    v-if="missingCarrierCount > 0"
+                                    class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-2"
+                                >
+                                    <span class="material-symbols-outlined text-sm text-amber-500">no_accounts</span>
+                                    <span>{{ missingCarrierCount }} xe khuyết nhà xe</span>
+                                </div>
+                                <div
+                                    v-if="missingWarehouseCount > 0"
+                                    class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-2"
+                                >
+                                    <span class="material-symbols-outlined text-sm text-slate-500">store</span>
+                                    <span>{{ missingWarehouseCount }} chuyến khuyết nơi xuất</span>
+                                </div>
+                                <button
+                                    v-if="unstandardizedTickets.length > 0"
+                                    type="button"
+                                    @click="showInfoPopover = false; showExcludedModal = true"
+                                    class="px-2.5 py-1.5 bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-all"
+                                >
+                                    <span class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                                        <span>{{ unstandardizedTickets.length }} chuyến khuyết TT</span>
+                                    </span>
+                                    <span class="material-symbols-outlined text-sm text-amber-600">chevron_right</span>
+                                </button>
+                            </div>
                         </div>
-
-                        <button
-                            v-if="unstandardizedTickets.length > 0"
-                            type="button"
-                            @click="showExcludedModal = true"
-                            class="h-7 px-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-[8px] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
-                            title="Bấm để xem danh sách các chuyến đang để trống Nhà xe hoặc Nơi xuất"
-                        >
-                            <span class="material-symbols-outlined text-[13px] text-slate-500">info</span>
-                            <span>{{ unstandardizedTickets.length }} chuyến khuyết TT</span>
-                        </button>
                     </div>
 
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
-                        <button
-                            type="button"
-                            @click="handleRestandardizeData"
-                            :disabled="restandardizing"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Áp dụng lại danh mục Xe và Kho hàng mới nhất vào toàn bộ phiếu cân"
-                        >
-                            <span class="material-symbols-outlined text-[14px]" :class="{ 'animate-spin': restandardizing }">
-                                {{ restandardizing ? 'sync' : 'auto_fix_high' }}
-                            </span>
-                            <span>{{ restandardizing ? 'Đang chuẩn hóa...' : 'Chuẩn hóa lại' }}</span>
-                        </button>
-
                         <button
                             type="button"
                             @click="isVisualMapOpen = true"
@@ -1540,16 +1495,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         >
                             <span class="material-symbols-outlined text-[14px]">map</span>
                             <span>Sơ đồ kho</span>
-                        </button>
-
-                        <button
-                            @click="triggerCsvImport"
-                            :disabled="importingCsv"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Chọn 1 hoặc 2 file CSV/Excel từ trạm cân (Nhập + Xuất)"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
-                            <span>{{ importingCsv ? 'Đang import...' : 'Import' }}</span>
                         </button>
 
                         <button
@@ -1569,7 +1514,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             title="Chụp bảng FINAL độ nét cao vào bộ nhớ tạm để dán vào Zalo"
                         >
                             <span class="material-symbols-outlined text-[14px]">content_copy</span>
-                            <span>{{ capturingZaloImage ? 'Đang tạo ảnh...' : 'Final' }}</span>
+                            <span>{{ capturingZaloImage ? 'Đang tạo ảnh...' : 'Copy' }}</span>
                         </button>
 
                         <button
@@ -1844,9 +1789,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     >
                                         ›
                                     </button>
-                                </div>
-                                <div class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center shrink-0">
-                                    {{ filteredDetailTickets.length }} chuyến • {{ formatKg(detailTotalTons) }} kg ({{ formatTons(detailTotalTons) }} Tấn)
                                 </div>
                                 <input
                                     v-model="detailFilterDate"
