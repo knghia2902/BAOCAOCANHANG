@@ -237,7 +237,7 @@ async function scrollTablesToBottom() {
 let isDataLoading = false;
 let hasInitialLoaded = false;
 
-async function loadAllData(silent = false) {
+async function loadAllData(silent = false, forceRefresh = false) {
     if (isDataLoading) return;
     isDataLoading = true;
     if (!silent) {
@@ -245,8 +245,8 @@ async function loadAllData(silent = false) {
     }
     try {
         const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses] = await Promise.all([
-            WarehouseInventoryService.getConfigs(),
-            WarehouseInventoryService.getAllTickets(),
+            WarehouseInventoryService.getConfigs(forceRefresh),
+            WarehouseInventoryService.getAllTickets(forceRefresh),
             WarehouseInventoryService.getVehicles(),
             WarehouseInventoryService.getValidCarriers(),
             WarehouseInventoryService.getValidWarehouses()
@@ -649,7 +649,7 @@ async function handleClearCurrentWarehouse() {
         } else {
             await WarehouseInventoryService.clearWarehouseTickets(activeSingleWarehouseId.value);
         }
-        await loadAllData();
+        await loadAllData(false, true);
         addToast(`Đã xóa sạch dữ liệu của ${whName}!`, 'success');
     } catch (err: any) {
         addToast('Lỗi khi xóa dữ liệu: ' + (err?.message || err), 'error');
@@ -663,7 +663,7 @@ async function handleClearAllWarehouses() {
     }
     try {
         await WarehouseInventoryService.clearWarehouseTickets('ALL');
-        await loadAllData();
+        await loadAllData(false, true);
         addToast('Đã xóa sạch toàn bộ dữ liệu ở tất cả các kho (Kho 1, 2, 3, 4 và Xá thẳng)!', 'success');
     } catch (err: any) {
         addToast('Lỗi khi xóa dữ liệu: ' + (err?.message || err), 'error');

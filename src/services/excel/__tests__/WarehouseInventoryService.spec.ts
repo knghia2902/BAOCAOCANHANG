@@ -1296,5 +1296,107 @@ describe('WarehouseInventoryService', () => {
                 spy.mockRestore();
             }
         });
+
+        it('clears KHO 4 - BK completely (tickets in <=80 chunks, initialStock, dailyRemarks) so FINAL table is completely empty', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+
+            const bkTickets: WarehouseInventoryTicket[] = Array.from({ length: 120 }, (_, i) => ({
+                id: `BK_BATCH_${i}`,
+                soPhieu: `BK_${i}`,
+                reportDate: '2026-11-10',
+                weighOutDate: '2026-11-10',
+                weighOutTime: '10:00:00',
+                flowType: 'IMPORT',
+                warehouseId: 'KHO 4',
+                customerName: 'BÁCH KHOA',
+                cargoType: 'Viên nén',
+                vehiclePlate: '50H1',
+                carrierName: 'NN',
+                grossWeight: 50,
+                tareWeight: 10,
+                netWeight: 40
+            }));
+            bkTickets.push({
+                id: 'EW_KEEP_1',
+                soPhieu: 'EW_1',
+                reportDate: '2026-11-10',
+                weighOutDate: '2026-11-10',
+                weighOutTime: '10:00:00',
+                flowType: 'IMPORT',
+                warehouseId: 'KHO 4',
+                customerName: 'EASTWOOD',
+                cargoType: 'Viên nén',
+                vehiclePlate: '50H2',
+                carrierName: 'NN',
+                grossWeight: 50,
+                tareWeight: 10,
+                netWeight: 40
+            });
+            await WarehouseInventoryService.saveTicketsBulk(bkTickets);
+            await WarehouseInventoryService.saveConfig({
+                warehouseId: 'KHO 4 - BK',
+                initialStock: 500,
+                initialDate: '2026-11-01',
+                currentCustomer: 'BÁCH KHOA',
+                dailyRemarks: { '2026-11-10': 'Ghi chú cũ' }
+            });
+
+            const deleteChunkSizes: number[] = [];
+            const spy = vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+                if (table === 'warehouse_inventory_tickets') {
+                    const chain: any = {
+                        select: () => chain,
+                        order: () => chain,
+                        range: () => Promise.resolve({ data: [], error: null }),
+                        delete: () => ({
+                            in: (_col: string, ids: string[]) => {
+                                deleteChunkSizes.push(ids.length);
+                                return Promise.resolve({ error: null });
+                            }
+                        })
+                    };
+                    return chain;
+                }
+                const chain: any = {
+                    select: () => chain,
+                    eq: () => chain,
+                    upsert: () => Promise.resolve({ error: null }),
+                    delete: () => ({
+                        eq: () => Promise.resolve({ error: null })
+                    })
+                };
+                return chain;
+            });
+
+            try {
+                await WarehouseInventoryService.clearWarehouseTickets('KHO 4 - BK');
+            } finally {
+                spy.mockRestore();
+            }
+
+            // Chunk size phải <= 80 để không vượt giới hạn độ dài URL của Supabase PostgREST
+            expect(deleteChunkSizes.length).toBeGreaterThanOrEqual(2);
+            expect(Math.max(...deleteChunkSizes)).toBeLessThanOrEqual(80);
+
+            const remainingTickets = await WarehouseInventoryService.getAllTickets();
+            expect(remainingTickets).toHaveLength(1);
+            expect(remainingTickets[0]?.id).toBe('EW_KEEP_1');
+
+            const updatedConfigs = await WarehouseInventoryService.getConfigs();
+            const bkConfig = updatedConfigs['KHO 4 - BK']!;
+            expect(bkConfig.initialStock).toBe(0);
+            expect(bkConfig.initialDate).toBe('');
+            expect(bkConfig.dailyRemarks).toEqual({});
+
+            const finalCalc = computeWarehouseFinalTable('KHO 4 - BK', remainingTickets, bkConfig, {
+                allConfigs: updatedConfigs
+            });
+            expect(finalCalc.rows).toHaveLength(0);
+            expect(finalCalc.openingStockBeforeFilter).toBe(0);
+            expect(finalCalc.totalImportTons).toBe(0);
+            expect(finalCalc.totalExportTons).toBe(0);
+            expect(finalCalc.totalDirectTons).toBe(0);
+            expect(finalCalc.closingStockTons).toBe(0);
+        });
     });
 });

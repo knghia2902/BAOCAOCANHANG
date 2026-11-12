@@ -2566,11 +2566,12 @@ export const WarehouseInventoryService = {
         target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
     ): Promise<boolean> {
         ticketsMemoryCache = null;
-        const configs = await this.getConfigs();
+        configsMemoryCache = null;
+        const configs = await this.getConfigs(true);
 
         const deleteIdsInChunks = async (ids: string[]) => {
             if (!ids || ids.length === 0 || dedicatedTablesMissing) return;
-            const chunkSize = 500;
+            const chunkSize = 80;
             for (let i = 0; i < ids.length; i += chunkSize) {
                 const chunk = ids.slice(i, i + chunkSize);
                 try {
@@ -2612,7 +2613,7 @@ export const WarehouseInventoryService = {
             return true;
         }
 
-        const current = await this.getAllTickets();
+        const current = await this.getAllTickets(true);
 
         if (target === 'DIRECT') {
             const idsToDelete = current.filter(t => t.flowType === 'DIRECT').map(t => t.id);
@@ -2676,8 +2677,10 @@ export const WarehouseInventoryService = {
         }
 
         if (target === 'KHO 4 - BK') {
-            const idsToDelete = current.filter(t => getTicketCustomerGroup(t, configs) === 'KHO_4_BK').map(t => t.id);
-            const remaining = current.filter(t => getTicketCustomerGroup(t, configs) !== 'KHO_4_BK');
+            const isBkMatch = (t: WarehouseInventoryTicket) =>
+                isBachKhoaTicket(t) || getTicketCustomerGroup(t, configs) === 'KHO_4_BK';
+            const idsToDelete = current.filter(isBkMatch).map(t => t.id);
+            const remaining = current.filter(t => !isBkMatch(t));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             await deleteIdsInChunks(idsToDelete);
             if (configs['KHO 4 - BK']) {
@@ -2685,6 +2688,11 @@ export const WarehouseInventoryService = {
                 configs['KHO 4 - BK'].initialStock = 0;
                 configs['KHO 4 - BK'].initialDate = '';
                 await this.saveConfig(configs['KHO 4 - BK']);
+            }
+            if (!dedicatedTablesMissing) {
+                try {
+                    await supabase.from('warehouse_configs').delete().eq('warehouse_id', 'KHO 4 (BK)');
+                } catch (_) {}
             }
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
