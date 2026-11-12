@@ -1111,6 +1111,22 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
         <div class="flex-1 flex flex-col md:flex-row gap-3.5 min-h-0 overflow-hidden">
             <!-- Sidebar: Tree Structure by Customer & Warehouses -->
             <aside class="w-full md:w-64 bg-white rounded-[24px] p-3 border border-primary/5 soft-shadow flex flex-col gap-2 shrink-0 overflow-y-auto">
+                <!-- Sơ đồ kho (nằm trên danh sách khách hàng) -->
+                <button
+                    type="button"
+                    @click="isVisualMapOpen = true"
+                    :class="[
+                        'w-full px-3 py-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] shrink-0',
+                        isVisualMapOpen
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                    ]"
+                    title="Mở Sơ đồ trực quan 4 Kho & Bãi Cont"
+                >
+                    <span class="material-symbols-outlined text-base">map</span>
+                    <span>Sơ đồ kho</span>
+                </button>
+
                 <!-- Tree Group 1: EASTWOOD (Kho 4) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Overview / FINAL Kho 4) -->
@@ -1487,16 +1503,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
-                        <button
-                            type="button"
-                            @click="isVisualMapOpen = true"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
-                            title="Mở Sơ đồ trực quan 4 Kho & Bãi Cont"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">map</span>
-                            <span>Sơ đồ kho</span>
-                        </button>
-
                         <button
                             @click="triggerHistoryExcelImport"
                             :disabled="importingHistoryExcel"
