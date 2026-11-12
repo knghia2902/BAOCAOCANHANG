@@ -26,19 +26,11 @@ export async function sha256(message: string): Promise<string> {
 }
 
 export class AuthService {
-    async login(username: string, password: string): Promise<LoginResult> {
-        const usernameClean = username.trim().toLowerCase();
-        const hashedInputPassword = await sha256(password);
-
+    private async trySupabaseAuthLogin(emailCandidate: string, password: string, usernameFallback: string): Promise<LoginResult | null> {
         try {
-            // 1. Th? ��ng nh?p qua Supabase Auth n?u input l� email ho?c c� t�i kho?n Supabase Auth
-            const emailCandidate = usernameClean.includes('@') 
-                ? usernameClean 
-                : `${usernameClean}@cangnguyenngoc.vn`;
-
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: emailCandidate,
-                password: password
+                password
             });
 
             if (!authError && authData?.user) {
@@ -47,9 +39,9 @@ export class AuthService {
                     success: true,
                     user: {
                         id: authData.user.id,
-                        username: meta.username || usernameClean,
+                        username: meta.username || usernameFallback,
                         role: meta.role || 'staff',
-                        displayName: meta.displayName || meta.name || usernameClean,
+                        displayName: meta.displayName || meta.name || usernameFallback,
                         avatar: meta.avatar || '',
                         isActive: true,
                         email: authData.user.email
@@ -60,8 +52,10 @@ export class AuthService {
         } catch (e) {
             console.warn('Supabase Auth attempt bypassed:', e);
         }
+        return null;
+    }
 
-        // 2. Tra c?u trong b?ng users v?i b?o m?t tr?ng th�i v� hash
+    private async tryPublicUsersLogin(usernameClean: string, password: string, hashedInputPassword: string): Promise<LoginResult | null> {
         try {
             const { data: dbUser, error: userError } = await supabase
                 .from('users')
@@ -71,13 +65,13 @@ export class AuthService {
 
             if (!userError && dbUser) {
                 if (dbUser.is_active === false) {
-                    return { 
-                        success: false, 
-                        error: 'T�i kho?n n�y �? b? kh�a ho?c ng?ng k�ch ho?t!' 
+                    return {
+                        success: false,
+                        error: 'Tài khoản này đã bị khóa hoặc ngừng kích hoạt!'
                     };
                 }
 
-                // Ki?m tra m?t kh?u an to�n
+                // Kiểm tra mật khẩu an toàn
                 const isMatch = dbUser.password_hash === hashedInputPassword || dbUser.password_hash === password;
                 if (isMatch) {
                     return {
@@ -95,18 +89,39 @@ export class AuthService {
                     };
                 }
 
-                return { 
-                    success: false, 
-                    error: 'T�n ��ng nh?p ho?c m?t kh?u kh�ng ��ng!' 
+                return {
+                    success: false,
+                    error: 'Tên đăng nhập hoặc mật khẩu không đúng!'
                 };
             }
         } catch (err) {
-            console.warn('L?i truy v?n b?ng users:', err);
+            console.warn('Lỗi truy vấn bảng users:', err);
+        }
+        return null;
+    }
+
+    async login(username: string, password: string): Promise<LoginResult> {
+        const usernameClean = username.trim().toLowerCase();
+        const hashedInputPassword = await sha256(password);
+
+        // Nếu nhập email -> ưu tiên Supabase Auth; nếu nhập username nội bộ -> tra bảng public.users trước để tránh 1 RTT lỗi 400
+        if (usernameClean.includes('@')) {
+            const authRes = await this.trySupabaseAuthLogin(usernameClean, password, usernameClean);
+            if (authRes) return authRes;
+
+            const dbRes = await this.tryPublicUsersLogin(usernameClean, password, hashedInputPassword);
+            if (dbRes) return dbRes;
+        } else {
+            const dbRes = await this.tryPublicUsersLogin(usernameClean, password, hashedInputPassword);
+            if (dbRes) return dbRes;
+
+            const authRes = await this.trySupabaseAuthLogin(`${usernameClean}@cangnguyenngoc.vn`, password, usernameClean);
+            if (authRes) return authRes;
         }
 
-        return { 
-            success: false, 
-            error: 'T�n ��ng nh?p ho?c m?t kh?u kh�ng ��ng!' 
+        return {
+            success: false,
+            error: 'Tên đăng nhập hoặc mật khẩu không đúng!'
         };
     }
 
@@ -118,37 +133,37 @@ export class AuthService {
                 username = saved?.user;
             } catch (_) {}
         }
-        
+
         const usernameClean = (username || '').trim().toLowerCase();
         if (!usernameClean) {
-            return { success: false, error: 'Kh�ng t?m th?y th�ng tin t�i kho?n' };
+            return { success: false, error: 'Không tìm thấy thông tin tài khoản' };
         }
 
-        // Ki?m tra �? d�i m?t kh?u m?i
+        // Kiểm tra độ dài mật khẩu mới
         if (!newPassword || newPassword.length < 6) {
-            return { success: false, error: 'M?t kh?u m?i ph?i c� �t nh?t 6 k? t?' };
+            return { success: false, error: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
         }
 
-        // N?u c� oldPassword, ki?m tra t�nh h?p l? tr�?c khi cho �?i
+        // Nếu có oldPassword, kiểm tra tính hợp lệ trước khi cho đổi
         if (oldPassword) {
             const verifyLogin = await this.login(usernameClean, oldPassword);
             if (!verifyLogin.success) {
-                return { success: false, error: 'M?t kh?u hi?n t?i kh�ng ch�nh x�c' };
+                return { success: false, error: 'Mật khẩu hiện tại không chính xác' };
             }
         }
 
-        // 1. C?p nh?t Supabase Auth n?u session �ang m?
+        // 1. Cập nhật Supabase Auth nếu session đang mở
         try {
             await supabase.auth.updateUser({ password: newPassword });
         } catch (_) {}
 
-        // 2. C?p nh?t b?ng users
+        // 2. Cập nhật bảng users
         const hashedNewPassword = await sha256(newPassword);
         const { error } = await supabase
             .from('users')
-            .update({ 
-                password_hash: hashedNewPassword, 
-                updated_at: new Date().toISOString() 
+            .update({
+                password_hash: hashedNewPassword,
+                updated_at: new Date().toISOString()
             })
             .eq('username', usernameClean);
 
@@ -156,7 +171,7 @@ export class AuthService {
             return { success: true };
         }
 
-        return { success: false, error: error.message || 'Kh�ng th? c?p nh?t m?t kh?u' };
+        return { success: false, error: error.message || 'Không thể cập nhật mật khẩu' };
     }
 
     async updateProfile(username: string, displayName: string, newPassword?: string, avatar?: string): Promise<boolean> {

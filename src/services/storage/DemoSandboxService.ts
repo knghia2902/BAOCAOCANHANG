@@ -233,24 +233,38 @@ class DemoSandboxManager {
             ...item
         }));
 
+        const keyToIdx = new Map<string, number>();
+        for (let i = 0; i < store.inserted.length; i++) {
+            const existingKeys = extractRowIdentifiers(store.inserted[i], conflictKey);
+            for (const k of existingKeys) {
+                if (!keyToIdx.has(k)) keyToIdx.set(k, i);
+            }
+        }
+
         for (const newRow of withIds) {
             const rowKeys = extractRowIdentifiers(newRow, conflictKey);
+            let existingIdx = -1;
             for (const k of rowKeys) {
                 store.deletedIds.delete(k);
                 const prevPatch = store.updated.get(k) || {};
                 store.updated.set(k, { ...prevPatch, ...newRow });
+                if (existingIdx === -1 && keyToIdx.has(k)) {
+                    existingIdx = keyToIdx.get(k)!;
+                }
             }
 
-            // Nếu đã tồn tại trong store.inserted (theo conflictKey hoặc id/natural key) thì cập nhật tại chỗ tránh nhân đôi
-            const existingIdx = store.inserted.findIndex(existing => {
-                const existingKeys = extractRowIdentifiers(existing, conflictKey);
-                return rowKeys.some(k => existingKeys.includes(k));
-            });
-
+            // Nếu đã tồn tại trong store.inserted (theo conflictKey hoặc id/natural key) thì cập nhật tại chỗ O(1) tránh nhân đôi
             if (existingIdx !== -1) {
                 store.inserted[existingIdx] = { ...store.inserted[existingIdx], ...newRow };
+                for (const k of rowKeys) {
+                    keyToIdx.set(k, existingIdx);
+                }
             } else {
+                const newIdx = store.inserted.length;
                 store.inserted.push(newRow);
+                for (const k of rowKeys) {
+                    keyToIdx.set(k, newIdx);
+                }
             }
         }
 

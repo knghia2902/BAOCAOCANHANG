@@ -174,9 +174,9 @@ export class DBContext {
                     }
                 }
             }
-            for (const k of keysToDelete) {
-                await db.delete(STORE_NAME, k);
-            }
+            await Promise.all(
+                Array.from(keysToDelete).map(k => db.delete(STORE_NAME, k))
+            );
         } catch (_) {}
     }
 
