@@ -1,6 +1,12 @@
 import { reactive, watch } from 'vue';
 import { authService } from '../services/storage/AuthService';
 import { DemoSandboxService } from '../services/storage/DemoSandboxService';
+import { LogService } from '../services/storage/LogService';
+import { ContentService } from '../services/ContentService';
+import { SettingsService } from '../services/storage/SettingsService';
+import { invalidateVesselsCache } from '../services/weighbridge/WeighbridgeService';
+import { AllocatorService } from '../services/excel/AllocatorService';
+import { WarehouseInventoryService } from '../services/excel/WarehouseInventoryService';
 
 interface AuthState {
     isAuthenticated: boolean;
@@ -19,17 +25,81 @@ interface AuthState {
     }>;
 }
 
-import { LogService } from '../services/storage/LogService';
-
 const STORAGE_KEY = 'auth_session';
+
+function invalidateAllSessionCaches() {
+    try {
+        SettingsService.invalidateCache();
+        invalidateVesselsCache();
+        AllocatorService.invalidateCache();
+        WarehouseInventoryService.clearPlaceMapCache();
+    } catch (_) {}
+}
 
 let saved: any = null;
 try {
+    // Nếu phiên demo đã hết hạn (portfolio_login_expiry), DemoSandboxService.isDemoMode() sẽ dọn dẹp auth_session
+    const demoCurrentlyValid = DemoSandboxService.isDemoMode();
     const savedState = localStorage.getItem(STORAGE_KEY);
     saved = savedState ? JSON.parse(savedState) : null;
+    if (saved?.isDemoMode && !demoCurrentlyValid) {
+        saved = null;
+    }
 } catch (e) {
     console.warn('Could not parse saved auth session:', e);
 }
+
+const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
+    admin: { 
+        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], 
+        canCreate: true, 
+        canUpdate: true, 
+        canDelete: true,
+        detailPermissions: {
+            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
+            allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
+            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+            minutes: ['min_create', 'min_export']
+        }
+    },
+    staff: { 
+        tools: ['converter', 'merger', 'ocr'], 
+        canCreate: true, 
+        canUpdate: true, 
+        canDelete: false,
+        detailPermissions: {
+            weighbridge: ['wb_print_export'],
+            allocator: ['al_export'],
+            vehicles: ['veh_barge_profile', 'veh_crew_profile'],
+            minutes: ['min_create', 'min_export']
+        }
+    },
+    operator: { 
+        tools: ['weighbridge', 'allocator', 'vehicles'], 
+        canCreate: true, 
+        canUpdate: true, 
+        canDelete: false,
+        detailPermissions: {
+            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export'],
+            allocator: ['al_barge_manage', 'al_export'],
+            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+            minutes: ['min_create', 'min_export']
+        }
+    },
+    viewer: { 
+        tools: ['weighbridge', 'allocator', 'vehicles'], 
+        canCreate: false, 
+        canUpdate: false, 
+        canDelete: false,
+        detailPermissions: {
+            weighbridge: ['wb_print_export'],
+            allocator: ['al_export'],
+            vehicles: ['veh_barge_profile'],
+            minutes: ['min_export']
+        }
+    }
+};
+
 const initialState: AuthState = {
     isAuthenticated: saved?.isAuthenticated ?? false,
     user: saved?.user ?? null,
@@ -38,70 +108,31 @@ const initialState: AuthState = {
     avatar: saved?.avatar ?? null,
     isFirstLogin: saved?.isFirstLogin ?? false,
     isDemoMode: saved?.isDemoMode ?? false,
-    rolePermissions: saved?.rolePermissions ?? {
-        admin: { 
-            tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], 
-            canCreate: true, 
-            canUpdate: true, 
-            canDelete: true,
-            detailPermissions: {
-                weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
-                allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
-                vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-                minutes: ['min_create', 'min_export']
-            }
-        },
-        staff: { 
-            tools: ['converter', 'merger', 'ocr'], 
-            canCreate: true, 
-            canUpdate: true, 
-            canDelete: false,
-            detailPermissions: {
-                weighbridge: ['wb_print_export'],
-                allocator: ['al_export'],
-                vehicles: ['veh_barge_profile', 'veh_crew_profile'],
-                minutes: ['min_create', 'min_export']
-            }
-        },
-        operator: { 
-            tools: ['weighbridge', 'allocator', 'vehicles'], 
-            canCreate: true, 
-            canUpdate: true, 
-            canDelete: false,
-            detailPermissions: {
-                weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export'],
-                allocator: ['al_barge_manage', 'al_export'],
-                vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-                minutes: ['min_create', 'min_export']
-            }
-        },
-        viewer: { 
-            tools: ['weighbridge', 'allocator', 'vehicles'], 
-            canCreate: false, 
-            canUpdate: false, 
-            canDelete: false,
-            detailPermissions: {
-                weighbridge: ['wb_print_export'],
-                allocator: ['al_export'],
-                vehicles: ['veh_barge_profile'],
-                minutes: ['min_export']
-            }
-        }
-    }
+    rolePermissions: saved?.rolePermissions ?? DEFAULT_ROLE_PERMISSIONS
 };
 
 export const authStore = reactive<AuthState>(initialState);
 
-// Persistence for Session (keep login on refresh)
-watch(authStore, (state) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-});
-
-import { ContentService } from '../services/ContentService';
+// Đồng bộ tức thời (flush: 'sync') để tránh race condition giữa authStore và localStorage.getItem('auth_session')
+watch(
+    authStore,
+    (state) => {
+        try {
+            if (!state.isAuthenticated && !state.user) {
+                localStorage.removeItem(STORAGE_KEY);
+            } else {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            }
+        } catch (_) {}
+    },
+    { flush: 'sync' }
+);
 
 /** Đăng nhập chế độ Thử Nghiệm (Demo Sandbox Mode) */
 export const loginAsDemo = (): { success: boolean } => {
     DemoSandboxService.reset();
+    invalidateAllSessionCaches();
+
     authStore.isAuthenticated = true;
     authStore.user = 'demo';
     authStore.role = 'admin'; // Cấp toàn quyền admin để người test trải nghiệm trọn vẹn
@@ -123,6 +154,11 @@ export const loginAsDemo = (): { success: boolean } => {
             }
         }
     };
+
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(authStore));
+    } catch (_) {}
+
     return { success: true };
 };
 
@@ -131,8 +167,22 @@ export const login = async (username: string, pass: string): Promise<{ success: 
         return loginAsDemo();
     }
 
+    // Đảm bảo thoát hoàn toàn chế độ Demo TRƯỚC KHI gọi authService.login để truy vấn bảng users đi vào Supabase thật
+    if (authStore.isDemoMode || DemoSandboxService.isDemoMode()) {
+        DemoSandboxService.reset();
+        authStore.isDemoMode = false;
+        authStore.isAuthenticated = false;
+        authStore.user = null;
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem('portfolio_user');
+        } catch (_) {}
+        invalidateAllSessionCaches();
+    }
+
     const res = await authService.login(username, pass);
     if (res.success && res.user) {
+        invalidateAllSessionCaches();
         authStore.isDemoMode = false;
         authStore.isAuthenticated = true;
         authStore.user = res.user.username;
@@ -140,14 +190,18 @@ export const login = async (username: string, pass: string): Promise<{ success: 
         authStore.displayName = res.user.displayName || res.user.username;
         authStore.avatar = res.user.avatar || null;
         authStore.isFirstLogin = res.isFirstLogin || false;
-        
+
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(authStore));
+        } catch (_) {}
+
         try {
             const perms = await ContentService.loadRolePermissions();
             authStore.rolePermissions = perms;
         } catch (e) {
             console.error('Failed to load role permissions on login:', e);
         }
-        
+
         // Log login action
         await LogService.logAction('Đăng nhập', 'Đăng nhập thành công vào hệ thống');
         return { success: true };
@@ -156,13 +210,14 @@ export const login = async (username: string, pass: string): Promise<{ success: 
 };
 
 export const logout = async () => {
-    if (authStore.isDemoMode) {
+    const wasDemo = !!authStore.isDemoMode || DemoSandboxService.isDemoMode();
+    const hadRealUser = !!authStore.user && !wasDemo;
+
+    if (wasDemo) {
         DemoSandboxService.reset();
     }
-    if (authStore.user && !authStore.isDemoMode) {
-        LogService.logAction('Đăng xuất', 'Đăng xuất khỏi hệ thống');
-    }
-    await authService.logout();
+
+    // Đặt lại trạng thái authStore và xóa localStorage TRƯỚC khi await để không bị race condition
     authStore.isAuthenticated = false;
     authStore.user = null;
     authStore.role = null;
@@ -170,7 +225,17 @@ export const logout = async () => {
     authStore.avatar = null;
     authStore.isFirstLogin = false;
     authStore.isDemoMode = false;
-    localStorage.removeItem(STORAGE_KEY);
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('portfolio_user');
+    } catch (_) {}
+
+    invalidateAllSessionCaches();
+
+    if (hadRealUser) {
+        LogService.logAction('Đăng xuất', 'Đăng xuất khỏi hệ thống');
+    }
+    await authService.logout();
 };
 
 // Cross-tab logout and session synchronization
@@ -186,6 +251,18 @@ if (typeof window !== 'undefined') {
                     authStore.displayName = null;
                     authStore.avatar = null;
                     authStore.isDemoMode = false;
+                    invalidateAllSessionCaches();
+                } else if (
+                    updated.user !== authStore.user ||
+                    !!updated.isDemoMode !== !!authStore.isDemoMode
+                ) {
+                    authStore.isAuthenticated = !!updated.isAuthenticated;
+                    authStore.user = updated.user ?? null;
+                    authStore.role = updated.role ?? null;
+                    authStore.displayName = updated.displayName ?? null;
+                    authStore.avatar = updated.avatar ?? null;
+                    authStore.isDemoMode = !!updated.isDemoMode;
+                    invalidateAllSessionCaches();
                 }
             } catch (_) {}
         }

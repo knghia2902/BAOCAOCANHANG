@@ -4,6 +4,7 @@ import { authStore, canCreate, canUpdate, canDelete, hasDetailPermission } from 
 import { supabase } from '@/supabase';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
+import { DemoSandboxService } from '@/services/storage/DemoSandboxService';
 import { WeighbridgeService, isSameScaleTicket, deduplicateBargeTrucks, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
 import { LogService } from '@/services/storage/LogService';
 import ShipmentSettlementModal from './settlement/ShipmentSettlementModal.vue';
@@ -1733,8 +1734,8 @@ const saveBargeConfig = () => {
     
     // Save to local backup immediately
     try {
-        localStorage.setItem('weighbridge_default_layout', JSON.stringify(cfgForm.printElements));
-        localStorage.setItem('weighbridge_default_company_details', JSON.stringify({
+        DemoSandboxService.setLocalItem('weighbridge_default_layout', JSON.stringify(cfgForm.printElements));
+        DemoSandboxService.setLocalItem('weighbridge_default_company_details', JSON.stringify({
             companyName: cfgForm.companyName,
             companyAddress: cfgForm.companyAddress,
             companyPhone: cfgForm.companyPhone,
@@ -1785,8 +1786,8 @@ const saveBargeConfigImmediately = async () => {
     try {
         // Save to local backup
         try {
-            localStorage.setItem('weighbridge_default_layout', JSON.stringify(cfgForm.printElements));
-            localStorage.setItem('weighbridge_default_company_details', JSON.stringify({
+            DemoSandboxService.setLocalItem('weighbridge_default_layout', JSON.stringify(cfgForm.printElements));
+            DemoSandboxService.setLocalItem('weighbridge_default_company_details', JSON.stringify({
                 companyName: cfgForm.companyName,
                 companyAddress: cfgForm.companyAddress,
                 companyPhone: cfgForm.companyPhone,
@@ -1885,8 +1886,8 @@ const otherBargesWithConfig = computed(() => {
 
 const saveAsGlobalDefaultLayout = () => {
     try {
-        localStorage.setItem('weighbridge_default_layout', JSON.stringify(cfgForm.printElements));
-        localStorage.setItem('weighbridge_default_company_details', JSON.stringify({
+        DemoSandboxService.setLocalItem('weighbridge_default_layout', JSON.stringify(cfgForm.printElements));
+        DemoSandboxService.setLocalItem('weighbridge_default_company_details', JSON.stringify({
             companyName: cfgForm.companyName,
             companyAddress: cfgForm.companyAddress,
             companyPhone: cfgForm.companyPhone,

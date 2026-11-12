@@ -1652,6 +1652,10 @@ export const WarehouseInventoryService = {
     getTicketCustomerGroup,
     getDefaultConfigs,
 
+    clearPlaceMapCache() {
+        cachedCustomPlaceMap = null;
+    },
+
     async getVisualMapState(): Promise<WarehouseVisualMapState> {
         const defaults = getDefaultVisualMapState();
         const local = await dbContext.get<WarehouseVisualMapState>(LOCAL_VISUAL_MAP_KEY);

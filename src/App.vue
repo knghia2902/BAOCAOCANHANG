@@ -93,6 +93,15 @@ const updateZoom = () => {
 
 watch(() => route.path, updateZoom, { immediate: true });
 
+watch(
+    () => [authStore.user, authStore.isDemoMode] as const,
+    async ([newUser, newDemo], [oldUser, oldDemo]) => {
+        if (newUser !== oldUser || newDemo !== oldDemo) {
+            await ContentService.loadAll();
+        }
+    }
+);
+
 onMounted(async () => {
     // Load all content from Supabase
     await ContentService.loadAll();
@@ -279,7 +288,10 @@ onUnmounted(() => {
     <div class="flex-1 flex flex-col min-h-0">
       <RouterView v-slot="{ Component }">
         <KeepAlive :max="10">
-          <component :is="Component" />
+          <component
+            :is="Component"
+            :key="`${String(route.name || route.path)}-${authStore.user || 'guest'}-${authStore.isDemoMode ? 'demo' : 'prod'}`"
+          />
         </KeepAlive>
       </RouterView>
     </div>

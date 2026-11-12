@@ -221,7 +221,7 @@ watch(
                 <KeepAlive :max="12">
                     <component
                         :is="activeComponent"
-                        :key="activeKey"
+                        :key="`${activeKey}-${authStore.user || 'guest'}-${authStore.isDemoMode ? 'demo' : 'prod'}`"
                         :category-key="activeKey"
                         :hide-card="true"
                         @navigate-to-scale="handleSelectNode('scale-data')"

@@ -1,6 +1,7 @@
 import { supabase } from '@/supabase';
 import { dbContext } from '@/services/storage/DBContext';
 import { SettingsService } from '@/services/storage/SettingsService';
+import { DemoSandboxService } from '@/services/storage/DemoSandboxService';
 
 export interface Vessel {
     id: number;
@@ -593,7 +594,7 @@ export const WeighbridgeService = {
         try {
             await dbContext.set('weighbridge_master_data', masterData);
             try {
-                localStorage.setItem('weighbridge_master_data', JSON.stringify(masterData));
+                DemoSandboxService.setLocalItem('weighbridge_master_data', JSON.stringify(masterData));
             } catch (_) {}
 
             const { data: current, error: fetchError } = await supabase
@@ -642,9 +643,9 @@ export const WeighbridgeService = {
             let savedElements: any = null;
             let savedDetails: any = null;
             try {
-                const strEl = localStorage.getItem('weighbridge_default_layout');
+                const strEl = DemoSandboxService.getLocalItem('weighbridge_default_layout');
                 if (strEl) savedElements = JSON.parse(strEl);
-                const strDet = localStorage.getItem('weighbridge_default_company_details');
+                const strDet = DemoSandboxService.getLocalItem('weighbridge_default_company_details');
                 if (strDet) savedDetails = JSON.parse(strDet);
             } catch (_) {}
 
@@ -681,8 +682,8 @@ export const WeighbridgeService = {
             template.updatedAt = Date.now();
             await dbContext.set('weighbridge_standard_template', template);
             try {
-                localStorage.setItem('weighbridge_default_layout', JSON.stringify(template.printElements));
-                localStorage.setItem('weighbridge_default_company_details', JSON.stringify({
+                DemoSandboxService.setLocalItem('weighbridge_default_layout', JSON.stringify(template.printElements));
+                DemoSandboxService.setLocalItem('weighbridge_default_company_details', JSON.stringify({
                     companyName: template.companyName,
                     companyAddress: template.companyAddress,
                     companyPhone: template.companyPhone,
