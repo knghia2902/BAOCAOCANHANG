@@ -1398,5 +1398,85 @@ describe('WarehouseInventoryService', () => {
             expect(finalCalc.totalDirectTons).toBe(0);
             expect(finalCalc.closingStockTons).toBe(0);
         });
+
+        it('deduplicates tickets sharing the same real soPhieu (e.g. 007120/26A on 2026-10-20 in KHO 3) across different IDs and plate formats', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+
+            const deletedIds: string[] = [];
+            const spy = vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+                if (table === 'warehouse_inventory_tickets') {
+                    const remoteChain: any = {
+                        select: () => remoteChain,
+                        order: () => remoteChain,
+                        range: () =>
+                            Promise.resolve({
+                                data: [
+                                    {
+                                        id: 'IMPORT_KHO 3_007120/26A_2026-10-20_142',
+                                        so_phieu: '007120/26A',
+                                        ma_lenh: '',
+                                        report_date: '2026-10-20',
+                                        weigh_out_date: '2026-10-20',
+                                        weigh_out_time: '00:00:00',
+                                        flow_type: 'IMPORT',
+                                        warehouse_id: 'KHO 3',
+                                        customer_name: 'GỖ BÌNH ĐỊNH',
+                                        cargo_type: 'Viên nén',
+                                        vehicle_plate: '50H-123.45',
+                                        carrier_name: 'NHÀ XE A',
+                                        gross_weight: 45,
+                                        tare_weight: 15,
+                                        net_weight: 30
+                                    },
+                                    {
+                                        id: 'IMPORT_KHO 3_007120/26A_2026-10-20_08:30:00',
+                                        so_phieu: '007120/26A',
+                                        ma_lenh: '',
+                                        report_date: '2026-10-20',
+                                        weigh_out_date: '2026-10-20',
+                                        weigh_out_time: '08:30:00',
+                                        flow_type: 'IMPORT',
+                                        warehouse_id: 'KHO 3',
+                                        customer_name: 'GỖ BÌNH ĐỊNH',
+                                        cargo_type: 'Viên nén',
+                                        vehicle_plate: '50H-123.45 / 51R-678.90',
+                                        carrier_name: '',
+                                        gross_weight: 45,
+                                        tare_weight: 15,
+                                        net_weight: 30
+                                    }
+                                ],
+                                error: null
+                            }),
+                        delete: () => ({
+                            in: (_col: string, ids: string[]) => {
+                                deletedIds.push(...ids);
+                                return Promise.resolve({ error: null });
+                            }
+                        }),
+                        upsert: () => Promise.resolve({ error: null })
+                    };
+                    return remoteChain;
+                }
+                const emptyChain: any = {
+                    select: () => emptyChain,
+                    eq: () => emptyChain,
+                    order: () => emptyChain,
+                    range: () => Promise.resolve({ data: [], error: null }),
+                    single: () => Promise.resolve({ data: { settings: {} }, error: null })
+                };
+                return emptyChain;
+            });
+
+            try {
+                const loaded = await WarehouseInventoryService.getAllTickets(true);
+                expect(loaded).toHaveLength(1);
+                expect(loaded[0]!.soPhieu).toBe('007120/26A');
+                expect(loaded[0]!.carrierName).toBe('NHÀ XE A');
+                expect(deletedIds).toContain('IMPORT_KHO 3_007120/26A_2026-10-20_08:30:00');
+            } finally {
+                spy.mockRestore();
+            }
+        });
     });
 });

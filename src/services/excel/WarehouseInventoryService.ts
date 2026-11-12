@@ -1235,7 +1235,17 @@ function findMatchingExistingTicket(
                 existingT.soPhieu.trim().toUpperCase() === incSp
             ) {
                 const exPlate = normalizePlateKey(existingT.vehiclePlate);
-                if (!exPlate || !incPlate || exPlate === incPlate) {
+                const sameOrContainedPlate =
+                    !exPlate ||
+                    !incPlate ||
+                    exPlate === incPlate ||
+                    exPlate.includes(incPlate) ||
+                    incPlate.includes(exPlate);
+                const sameScaleEvent =
+                    existingT.reportDate === incoming.reportDate &&
+                    existingT.flowType === incoming.flowType &&
+                    Math.abs(round2(existingT.netWeight) - round2(incoming.netWeight)) < 0.05;
+                if (sameOrContainedPlate || sameScaleEvent) {
                     return existingT;
                 }
             }
@@ -2333,8 +2343,9 @@ export const WarehouseInventoryService = {
                         // Supabase Cloud là nguồn dữ liệu chuẩn duy nhất:
                         // Không tự ý lấy hoặc trộn lại các phiếu cũ nằm trong IndexedDB cục bộ trên máy tính khi dữ liệu không tồn tại trên Cloud
                         const localLookupIndex = createTicketLookupIndex(local);
+                        const remoteDedupIndex = createTicketLookupIndex([]);
+                        const duplicateRemoteIdsToDelete: string[] = [];
 
-                        const remoteMap = new Map<string, WarehouseInventoryTicket>();
                         for (const t of allRemote) {
                             const existingLocal = findMatchingExistingTicket(localLookupIndex, t);
                             if (existingLocal) {
@@ -2345,9 +2356,59 @@ export const WarehouseInventoryService = {
                                     t.originArea = existingLocal.originArea;
                                 }
                             }
-                            remoteMap.set(t.id, t);
+
+                            const existingRemote = findMatchingExistingTicket(remoteDedupIndex, t);
+                            if (existingRemote) {
+                                // Tránh nhân đôi phiếu cân cùng số phiếu trên Cloud (ví dụ 1 bản từ Excel _row và 1 bản từ CSV _HH:mm:ss)
+                                const keepIncoming =
+                                    existingRemote.id.endsWith('_00:00:00') &&
+                                    Boolean(t.weighOutTime) &&
+                                    !t.id.endsWith('_00:00:00');
+                                const winnerId = keepIncoming ? t.id : existingRemote.id;
+                                const loserId = keepIncoming ? existingRemote.id : t.id;
+                                const mergedTicket: WarehouseInventoryTicket = {
+                                    ...(keepIncoming ? existingRemote : t),
+                                    ...(keepIncoming ? t : existingRemote),
+                                    id: winnerId,
+                                    weighInDate: (keepIncoming ? t.weighInDate : existingRemote.weighInDate) || existingRemote.weighInDate || t.weighInDate,
+                                    weighInTime: (keepIncoming ? t.weighInTime : existingRemote.weighInTime) || existingRemote.weighInTime || t.weighInTime,
+                                    weighOutDate: (keepIncoming ? t.weighOutDate : existingRemote.weighOutDate) || existingRemote.weighOutDate || t.weighOutDate,
+                                    weighOutTime: (keepIncoming ? t.weighOutTime : existingRemote.weighOutTime) || existingRemote.weighOutTime || t.weighOutTime,
+                                    factoryWeight:
+                                        (t.factoryWeight != null && t.factoryWeight > 0 ? t.factoryWeight : null) ??
+                                        (existingRemote.factoryWeight != null && existingRemote.factoryWeight > 0 ? existingRemote.factoryWeight : null),
+                                    bargeInfo: existingRemote.bargeInfo || t.bargeInfo,
+                                    vesselName: existingRemote.vesselName || t.vesselName,
+                                    carrierName: existingRemote.carrierName || t.carrierName,
+                                    sourceOrRemark: existingRemote.sourceOrRemark || t.sourceOrRemark,
+                                    originWarehouseName: existingRemote.originWarehouseName || t.originWarehouseName,
+                                    originArea: existingRemote.originArea || t.originArea,
+                                    rawNote: existingRemote.rawNote || t.rawNote,
+                                    maLenh: existingRemote.maLenh || t.maLenh
+                                };
+                                removeTicketFromIndex(remoteDedupIndex, existingRemote);
+                                addTicketToIndex(remoteDedupIndex, mergedTicket);
+                                if (loserId !== winnerId) {
+                                    duplicateRemoteIdsToDelete.push(loserId);
+                                }
+                            } else {
+                                addTicketToIndex(remoteDedupIndex, t);
+                            }
                         }
-                        finalTickets = Array.from(remoteMap.values()).sort(compareTicketsOrder);
+
+                        if (duplicateRemoteIdsToDelete.length > 0 && !dedicatedTablesMissing) {
+                            const chunkSize = 80;
+                            for (let i = 0; i < duplicateRemoteIdsToDelete.length; i += chunkSize) {
+                                const chunk = duplicateRemoteIdsToDelete.slice(i, i + chunkSize);
+                                supabase
+                                    .from('warehouse_inventory_tickets')
+                                    .delete()
+                                    .in('id', chunk)
+                                    .then(() => {}, () => {});
+                            }
+                        }
+
+                        finalTickets = Array.from(remoteDedupIndex.byId.values()).sort(compareTicketsOrder);
                         resolvedFromRemoteOrFb = true;
                     }
                 } catch (err) {
@@ -2508,9 +2569,15 @@ export const WarehouseInventoryService = {
         if (!dedicatedTablesMissing) {
             try {
                 if (obsoleteIdsToDelete.length > 0) {
-                    try {
-                        await supabase.from('warehouse_inventory_tickets').delete().in('id', obsoleteIdsToDelete);
-                    } catch (_) {}
+                    const delChunkSize = 80;
+                    for (let i = 0; i < obsoleteIdsToDelete.length; i += delChunkSize) {
+                        try {
+                            await supabase
+                                .from('warehouse_inventory_tickets')
+                                .delete()
+                                .in('id', obsoleteIdsToDelete.slice(i, i + delChunkSize));
+                        } catch (_) {}
+                    }
                 }
                 const dbRows = Array.from(ticketsToUpsertMap.values()).map(mapModelTicketToDb);
                 const chunkSize = 500;
