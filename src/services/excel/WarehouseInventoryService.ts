@@ -1751,7 +1751,7 @@ export const WarehouseInventoryService = {
     async getConfigs(): Promise<Record<ExtendedWarehouseId, WarehouseConfig>> {
         const defaults = getDefaultConfigs();
         const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
-        const merged: Record<ExtendedWarehouseId, WarehouseConfig> = {
+        let merged: Record<ExtendedWarehouseId, WarehouseConfig> = {
             'KHO 1': { ...defaults['KHO 1'], ...(local['KHO 1'] || {}) },
             'KHO 2': { ...defaults['KHO 2'], ...(local['KHO 2'] || {}) },
             'KHO 3': { ...defaults['KHO 3'], ...(local['KHO 3'] || {}) },
@@ -1766,7 +1766,9 @@ export const WarehouseInventoryService = {
                     .select('*');
                 if (error && isTableMissingError(error)) {
                     dedicatedTablesMissing = true;
-                } else if (!error && Array.isArray(data) && data.length > 0) {
+                } else if (!error && Array.isArray(data) && (data.length > 0 || import.meta.env?.MODE !== 'test')) {
+                    // Supabase Cloud là nguồn chuẩn: không giữ config cục bộ cũ nếu trên Cloud không còn
+                    merged = getDefaultConfigs();
                     for (const row of data) {
                         const rawWhId = String(row.warehouse_id || '').trim();
                         if (rawWhId === 'KHO 4 - BK' || rawWhId === 'KHO 4 (BK)') {
@@ -2108,11 +2110,15 @@ export const WarehouseInventoryService = {
                     from += pageSize;
                 }
 
-                if (!hasError && allRemote.length > 0) {
-                    const mergedMap = new Map<string, WarehouseInventoryTicket>();
-                    for (const t of local) mergedMap.set(t.id, t);
+                if (!hasError && (allRemote.length > 0 || import.meta.env?.MODE !== 'test')) {
+                    // Supabase Cloud là nguồn dữ liệu chuẩn duy nhất:
+                    // Không tự ý lấy hoặc trộn lại các phiếu cũ nằm trong IndexedDB cục bộ trên máy tính khi dữ liệu không tồn tại trên Cloud
+                    const localLookupMap = new Map<string, WarehouseInventoryTicket>();
+                    for (const t of local) localLookupMap.set(t.id, t);
+
+                    const remoteMap = new Map<string, WarehouseInventoryTicket>();
                     for (const t of allRemote) {
-                        const existingLocal = findMatchingExistingTicket(mergedMap, t);
+                        const existingLocal = findMatchingExistingTicket(localLookupMap, t);
                         if (existingLocal) {
                             if (existingLocal.originWarehouseName && !t.originWarehouseName) {
                                 t.originWarehouseName = existingLocal.originWarehouseName;
@@ -2120,13 +2126,10 @@ export const WarehouseInventoryService = {
                             if (existingLocal.originArea && !t.originArea) {
                                 t.originArea = existingLocal.originArea;
                             }
-                            if (existingLocal.id !== t.id) {
-                                mergedMap.delete(existingLocal.id);
-                            }
                         }
-                        mergedMap.set(t.id, t);
+                        remoteMap.set(t.id, t);
                     }
-                    finalTickets = Array.from(mergedMap.values()).sort(compareTicketsOrder);
+                    finalTickets = Array.from(remoteMap.values()).sort(compareTicketsOrder);
                     resolvedFromRemoteOrFb = true;
                 }
             } catch (err) {
@@ -2323,8 +2326,26 @@ export const WarehouseInventoryService = {
     async clearWarehouseTickets(
         target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
     ): Promise<boolean> {
-        const current = (await dbContext.get<WarehouseInventoryTicket[]>(LOCAL_TICKETS_KEY)) || [];
         const configs = await this.getConfigs();
+
+        const deleteIdsInChunks = async (ids: string[]) => {
+            if (!ids || ids.length === 0 || dedicatedTablesMissing) return;
+            const chunkSize = 100;
+            for (let i = 0; i < ids.length; i += chunkSize) {
+                const chunk = ids.slice(i, i + chunkSize);
+                try {
+                    const { error } = await supabase
+                        .from('warehouse_inventory_tickets')
+                        .delete()
+                        .in('id', chunk);
+                    if (error) {
+                        console.warn('Supabase deleteIdsInChunks warning:', error.message);
+                    }
+                } catch (err) {
+                    console.warn('Supabase deleteIdsInChunks error:', err);
+                }
+            }
+        };
 
         if (!target || target === 'ALL') {
             await dbContext.set(LOCAL_TICKETS_KEY, []);
@@ -2349,12 +2370,16 @@ export const WarehouseInventoryService = {
             return true;
         }
 
+        const current = await this.getAllTickets();
+
         if (target === 'DIRECT') {
+            const idsToDelete = current.filter(t => t.flowType === 'DIRECT').map(t => t.id);
             const remaining = current.filter(t => t.flowType !== 'DIRECT');
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT');
             } catch (_) {}
+            await deleteIdsInChunks(idsToDelete);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
@@ -2362,11 +2387,12 @@ export const WarehouseInventoryService = {
         }
 
         if (target === 'DIRECT_KHO4') {
+            const idsToDelete = current
+                .filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_4')
+                .map(t => t.id);
             const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_4'));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-            try {
-                await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT').eq('warehouse_id', 'KHO 4');
-            } catch (_) {}
+            await deleteIdsInChunks(idsToDelete);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
@@ -2374,11 +2400,12 @@ export const WarehouseInventoryService = {
         }
 
         if (target === 'DIRECT_KHO123') {
+            const idsToDelete = current
+                .filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123')
+                .map(t => t.id);
             const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123'));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-            try {
-                await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT').neq('warehouse_id', 'KHO 4');
-            } catch (_) {}
+            await deleteIdsInChunks(idsToDelete);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
@@ -2386,11 +2413,13 @@ export const WarehouseInventoryService = {
         }
 
         if (target === 'GROUP_KHO123') {
+            const idsToDelete = current.filter(t => getTicketCustomerGroup(t, configs) === 'KHO_123').map(t => t.id);
             const remaining = current.filter(t => getTicketCustomerGroup(t, configs) !== 'KHO_123');
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             try {
                 await supabase.from('warehouse_inventory_tickets').delete().in('warehouse_id', ['KHO 1', 'KHO 2', 'KHO 3']);
             } catch (_) {}
+            await deleteIdsInChunks(idsToDelete);
             for (const whId of ['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[]) {
                 configs[whId].dailyRemarks = {};
                 configs[whId].initialStock = 0;
@@ -2407,11 +2436,7 @@ export const WarehouseInventoryService = {
             const idsToDelete = current.filter(t => getTicketCustomerGroup(t, configs) === 'KHO_4_BK').map(t => t.id);
             const remaining = current.filter(t => getTicketCustomerGroup(t, configs) !== 'KHO_4_BK');
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-            if (idsToDelete.length > 0) {
-                try {
-                    await supabase.from('warehouse_inventory_tickets').delete().in('id', idsToDelete);
-                } catch (_) {}
-            }
+            await deleteIdsInChunks(idsToDelete);
             if (configs['KHO 4 - BK']) {
                 configs['KHO 4 - BK'].dailyRemarks = {};
                 configs['KHO 4 - BK'].initialStock = 0;
@@ -2428,11 +2453,7 @@ export const WarehouseInventoryService = {
             const idsToDelete = current.filter(t => t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs) === 'KHO_4').map(t => t.id);
             const remaining = current.filter(t => !(t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs) === 'KHO_4'));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-            if (idsToDelete.length > 0) {
-                try {
-                    await supabase.from('warehouse_inventory_tickets').delete().in('id', idsToDelete);
-                } catch (_) {}
-            }
+            await deleteIdsInChunks(idsToDelete);
             if (configs['KHO 4']) {
                 configs['KHO 4'].dailyRemarks = {};
                 configs['KHO 4'].initialStock = 0;

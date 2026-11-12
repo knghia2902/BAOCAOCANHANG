@@ -251,19 +251,19 @@ async function loadAllData() {
         validWarehouses.value = loadedWarehouses;
 
         // Tự động đối soát và điền Nhà xe từ Danh mục xe cho các phiếu chưa có hoặc khuyết nhà xe
-        let hasTicketCarrierUpdates = false;
+        const ticketsWithUpdatedCarrier: WarehouseInventoryTicket[] = [];
         allTickets.value.forEach(t => {
             const rawCarrier = t.carrierName ? t.carrierName.trim() : '';
             if (!rawCarrier || rawCarrier === '-' || rawCarrier === '0') {
                 const lookedUp = lookupCarrierName(t.vehiclePlate, vehiclesMap.value);
                 if (lookedUp) {
                     t.carrierName = lookedUp;
-                    hasTicketCarrierUpdates = true;
+                    ticketsWithUpdatedCarrier.push(t);
                 }
             }
         });
-        if (hasTicketCarrierUpdates) {
-            WarehouseInventoryService.saveTicketsBulk(allTickets.value).catch(console.warn);
+        if (ticketsWithUpdatedCarrier.length > 0) {
+            WarehouseInventoryService.saveTicketsBulk(ticketsWithUpdatedCarrier).catch(console.warn);
         }
     } catch (err: any) {
         console.error('Lỗi tải dữ liệu tồn kho:', err);

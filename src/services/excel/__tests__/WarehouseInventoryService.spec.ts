@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { supabase } from '@/supabase';
 
 const mockStore = new Map<string, any>();
 
@@ -1213,6 +1214,87 @@ describe('WarehouseInventoryService', () => {
 
             const all = await WarehouseInventoryService.getAllTickets();
             expect(all).toHaveLength(3);
+        });
+
+        it('does not resurrect orphaned stale local tickets (e.g. old KHO 4 - BK before 5/11) when Supabase Cloud returns authoritative data', async () => {
+            await WarehouseInventoryService.clearWarehouseTickets('ALL');
+
+            // Giả lập máy tính đang lưu cache cục bộ (IndexedDB) có phiếu cũ Bách Khoa trước ngày 5/11
+            mockStore.set('warehouse_inventory_tickets', [
+                {
+                    id: 'IMPORT_KHO 4_OLD_BK_1101',
+                    soPhieu: 'OLD_BK_1',
+                    maLenh: '',
+                    reportDate: '2026-11-01',
+                    weighOutDate: '2026-11-01',
+                    weighOutTime: '08:00:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'BÁCH KHOA',
+                    cargoType: 'Viên nén gỗ',
+                    vehiclePlate: '51C-999.99',
+                    carrierName: 'CÔNG TY CŨ',
+                    grossWeight: 50,
+                    tareWeight: 15,
+                    netWeight: 35
+                }
+            ]);
+
+            // Supabase Cloud thực tế chỉ có dữ liệu từ ngày 05/11 trở đi
+            const spy = vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+                if (table === 'warehouse_inventory_tickets') {
+                    const remoteChain: any = {
+                        select: () => remoteChain,
+                        order: () => remoteChain,
+                        range: () =>
+                            Promise.resolve({
+                                data: [
+                                    {
+                                        id: 'IMPORT_KHO 4_NEW_BK_1106',
+                                        so_phieu: 'NEW_BK_1',
+                                        ma_lenh: '',
+                                        report_date: '2026-11-06',
+                                        weigh_out_date: '2026-11-06',
+                                        weigh_out_time: '09:00:00',
+                                        flow_type: 'IMPORT',
+                                        warehouse_id: 'KHO 4',
+                                        customer_name: 'BÁCH KHOA',
+                                        cargo_type: 'Viên nén gỗ',
+                                        vehicle_plate: '50E-837.94',
+                                        carrier_name: 'VẬN TẢI MỚI',
+                                        gross_weight: 50,
+                                        tare_weight: 15,
+                                        net_weight: 35
+                                    }
+                                ],
+                                error: null
+                            })
+                    };
+                    return remoteChain;
+                }
+                const emptyChain: any = {
+                    select: () => emptyChain,
+                    eq: () => emptyChain,
+                    order: () => emptyChain,
+                    range: () => Promise.resolve({ data: [], error: null }),
+                    single: () => Promise.resolve({ data: { settings: {} }, error: null })
+                };
+                return emptyChain;
+            });
+
+            try {
+                const loaded = await WarehouseInventoryService.getAllTickets();
+                expect(loaded).toHaveLength(1);
+                expect(loaded[0]!.id).toBe('IMPORT_KHO 4_NEW_BK_1106');
+                expect(loaded[0]!.reportDate).toBe('2026-11-06');
+
+                // Kiểm tra lại cache cục bộ trên máy cũng đã được làm sạch theo Cloud
+                const localAfter = mockStore.get('warehouse_inventory_tickets');
+                expect(localAfter).toHaveLength(1);
+                expect(localAfter[0].id).toBe('IMPORT_KHO 4_NEW_BK_1106');
+            } finally {
+                spy.mockRestore();
+            }
         });
     });
 });
