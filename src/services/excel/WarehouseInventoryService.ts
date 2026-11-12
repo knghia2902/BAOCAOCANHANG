@@ -9,6 +9,7 @@ import type {
     WarehouseFlowType,
     WarehouseInventoryTicket,
     WarehouseConfig,
+    CustomWarehouseCustomer,
     WarehouseVehicleMap,
     WarehouseFinalRow,
     WarehouseImportSummary,
@@ -23,6 +24,7 @@ const LOCAL_TICKETS_KEY = 'warehouse_inventory_tickets';
 const LOCAL_CONFIGS_KEY = 'warehouse_configs';
 const LOCAL_VEHICLES_KEY = 'warehouse_vehicles';
 const LOCAL_VISUAL_MAP_KEY = 'warehouse_visual_map';
+const LOCAL_CUSTOM_CUSTOMERS_KEY = 'warehouse_custom_customers';
 
 function round2(n: number): number {
     return Math.round((Number(n) || 0) * 1000) / 1000;
@@ -348,10 +350,35 @@ export function isEastwoodTicket(ticket: WarehouseInventoryTicket): boolean {
  * QUY TẮC: Phân định hàng Bách Khoa hay Eastwood dựa vào cột khách hàng (customerName),
  * không dựa vào các cột khác (tài xế, nơi nhận, ghi chú, tàu...).
  */
+export function normalizeCustomerKey(name?: string | null): string {
+    return stripAccents(name || '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+export function isTicketForCustomCustomer(
+    ticket: WarehouseInventoryTicket,
+    customerFilter: string
+): boolean {
+    const target = normalizeCustomerKey(customerFilter);
+    if (!target) return false;
+    return normalizeCustomerKey(ticket.customerName) === target;
+}
+
 export function getTicketCustomerGroup(
     ticket: WarehouseInventoryTicket,
-    configs?: Partial<Record<string, WarehouseConfig>>
-): 'KHO_4' | 'KHO_4_BK' | 'KHO_123' {
+    configs?: Partial<Record<string, WarehouseConfig>>,
+    customCustomers?: CustomWarehouseCustomer[]
+): 'KHO_4' | 'KHO_4_BK' | 'KHO_123' | 'CUSTOM' {
+    // 0. Nếu thuộc khách hàng tùy chỉnh (custom customer) -> tách biệt hoàn toàn khỏi nhóm mặc định
+    if (customCustomers && customCustomers.length > 0 && ticket.customerName) {
+        const ticketCustNorm = normalizeCustomerKey(ticket.customerName);
+        if (
+            ticketCustNorm &&
+            customCustomers.some(c => normalizeCustomerKey(c.customerName) === ticketCustNorm)
+        ) {
+            return 'CUSTOM';
+        }
+    }
+
     // 1. Kiểm tra trực tiếp cột Khách hàng xem có từ khóa Bách Khoa hay Eastwood
     if (isBachKhoaCustomer(ticket.customerName)) {
         return 'KHO_4_BK';
@@ -791,6 +818,8 @@ export function computeWarehouseFinalTable(
         toDate?: string;
         includeDirectForCustomer?: boolean;
         allConfigs?: Partial<Record<string, WarehouseConfig>>;
+        customerFilter?: string;
+        excludeCustomerNames?: string[];
     }
 ): {
     openingStockBeforeFilter: number;
@@ -807,10 +836,24 @@ export function computeWarehouseFinalTable(
     const isKho4 = warehouseId === 'KHO 4';
     const isKho4Like = isKho4 || isBK;
     const physicalWhId = isKho4Like ? 'KHO 4' : warehouseId;
+    const customerFilter = options?.customerFilter?.trim();
+    const excludeSet = new Set(
+        (options?.excludeCustomerNames || [])
+            .map(n => normalizeCustomerKey(n))
+            .filter(Boolean)
+    );
+    const isExcludedCustomTicket = (t: WarehouseInventoryTicket): boolean => {
+        if (excludeSet.size === 0 || !t.customerName) return false;
+        return excludeSet.has(normalizeCustomerKey(t.customerName));
+    };
 
     const whTickets = allTickets.filter(t => {
         if (t.warehouseId !== physicalWhId) return false;
         if (t.flowType !== 'IMPORT' && t.flowType !== 'EXPORT') return false;
+        if (customerFilter) {
+            return isTicketForCustomCustomer(t, customerFilter);
+        }
+        if (isExcludedCustomTicket(t)) return false;
         if (isBK) return isBachKhoaTicket(t);
         if (isKho4) return !isBachKhoaTicket(t);
         return true;
@@ -823,6 +866,10 @@ export function computeWarehouseFinalTable(
     const directTickets = allTickets.filter(t => {
         if (t.flowType !== 'DIRECT') return false;
         if (options?.includeDirectForCustomer === false) return false;
+        if (customerFilter) {
+            return isTicketForCustomCustomer(t, customerFilter);
+        }
+        if (isExcludedCustomTicket(t)) return false;
         return getTicketCustomerGroup(t, (options?.allConfigs || { [warehouseId]: config }) as any) === targetGroup;
     });
 
@@ -842,8 +889,8 @@ export function computeWarehouseFinalTable(
         });
     }
 
-    if (isKho4Like) {
-        // Include direct ticket dates for Kho 4 (Eastwood & Bách Khoa)
+    if (isKho4Like || customerFilter) {
+        // Include direct ticket dates for Kho 4 (Eastwood & Bách Khoa) or isolated custom customers
         if (whTickets.length > 0 || directTickets.length > 0) {
             directTickets.forEach(t => {
                 if (t.reportDate && /^\d{4}-\d{2}-\d{2}$/.test(t.reportDate)) {
@@ -858,6 +905,7 @@ export function computeWarehouseFinalTable(
             t =>
                 (t.warehouseId === 'KHO 1' || t.warehouseId === 'KHO 2' || t.warehouseId === 'KHO 3') &&
                 (t.flowType === 'IMPORT' || t.flowType === 'EXPORT') &&
+                !isExcludedCustomTicket(t) &&
                 t.reportDate &&
                 /^\d{4}-\d{2}-\d{2}$/.test(t.reportDate)
         );
@@ -1019,7 +1067,12 @@ export function parseWeighbridgeCsvText(text: string): RawWeighbridgeRow[] {
         for (let i = 0; i < line.length; i++) {
             const ch = line[i]!;
             if (ch === '"') {
-                inQuotes = !inQuotes;
+                if (inQuotes && line[i + 1] === '"') {
+                    cur += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
             } else if (ch === ',' && !inQuotes) {
                 res.push(cur.trim());
                 cur = '';
@@ -1116,15 +1169,44 @@ export async function readCsvFileDecoded(file: File): Promise<string> {
     return utf8Text;
 }
 
+export const LEGACY_XLS_UNSUPPORTED_ERROR =
+    'Định dạng .xls cũ chưa được hỗ trợ trực tiếp, vui lòng lưu lại thành .xlsx hoặc .csv';
+
+export async function loadExcelWorkbookSafe(file: File) {
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const isOle2BinaryXls =
+        bytes.length >= 4 &&
+        bytes[0] === 0xd0 &&
+        bytes[1] === 0xcf &&
+        bytes[2] === 0x11 &&
+        bytes[3] === 0xe0;
+
+    if (ext === 'xls' || isOle2BinaryXls) {
+        throw new Error(LEGACY_XLS_UNSUPPORTED_ERROR);
+    }
+
+    const ExcelJS = await import('exceljs');
+    const wb = new ExcelJS.Workbook();
+    try {
+        await wb.xlsx.load(buffer);
+    } catch (err: any) {
+        if (ext === 'xls' || isOle2BinaryXls) {
+            throw new Error(LEGACY_XLS_UNSUPPORTED_ERROR);
+        }
+        throw err;
+    }
+    return wb;
+}
+
 export async function parseWeighbridgeFile(file: File): Promise<RawWeighbridgeRow[]> {
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
     if (ext === 'csv') {
         const text = await readCsvFileDecoded(file);
         return parseWeighbridgeCsvText(text);
     } else if (ext === 'xlsx' || ext === 'xls') {
-        const ExcelJS = await import('exceljs');
-        const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(await file.arrayBuffer());
+        const wb = await loadExcelWorkbookSafe(file);
         const sheet = wb.worksheets[0];
         if (sheet) {
             const csvLines: string[] = [];
@@ -1381,6 +1463,12 @@ function isTableMissingError(error: any): boolean {
     if (!error) return false;
     const msg = String(error.message || error.details || error.code || '').toLowerCase();
     return error.code === '42P01' || error.code === 'PGRST205' || msg.includes('could not find the table') || msg.includes('does not exist');
+}
+
+function isCheckConstraintError(error: any): boolean {
+    if (!error) return false;
+    const msg = String(error.message || error.details || '').toLowerCase();
+    return String(error.code || '') === '23514' || msg.includes('check constraint') || msg.includes('violates check');
 }
 
 async function syncFallbackStateToContentSettings() {
@@ -1731,6 +1819,9 @@ let vehiclesInFlight: Promise<Record<string, WarehouseVehicleMap>> | null = null
 let ticketsMemoryCache: { data: WarehouseInventoryTicket[]; timestamp: number } | null = null;
 let ticketsInFlight: Promise<WarehouseInventoryTicket[]> | null = null;
 
+let customCustomersMemoryCache: { data: CustomWarehouseCustomer[]; timestamp: number } | null = null;
+let customCustomersInFlight: Promise<CustomWarehouseCustomer[]> | null = null;
+
 export function invalidateInventoryCaches() {
     visualMapMemoryCache = null;
     visualMapInFlight = null;
@@ -1740,11 +1831,15 @@ export function invalidateInventoryCaches() {
     vehiclesInFlight = null;
     ticketsMemoryCache = null;
     ticketsInFlight = null;
+    customCustomersMemoryCache = null;
+    customCustomersInFlight = null;
 }
 
 export const WarehouseInventoryService = {
     normalizeWarehouseId,
     normalizePlateKey,
+    normalizeCustomerKey,
+    isTicketForCustomCustomer,
     computeReportDate,
     parseToIsoDate,
     parseToTimeStr,
@@ -1972,6 +2067,124 @@ export const WarehouseInventoryService = {
         return fetchPromise;
     },
 
+    async getCustomCustomers(forceRefresh = false): Promise<CustomWarehouseCustomer[]> {
+        if (!isInventoryTestEnv && !forceRefresh && customCustomersMemoryCache && (Date.now() - customCustomersMemoryCache.timestamp < INVENTORY_CACHE_TTL)) {
+            return customCustomersMemoryCache.data;
+        }
+        if (!isInventoryTestEnv && !forceRefresh && customCustomersInFlight) {
+            return customCustomersInFlight;
+        }
+
+        const run = async (): Promise<CustomWarehouseCustomer[]> => {
+            const local = (await dbContext.get<CustomWarehouseCustomer[]>(LOCAL_CUSTOM_CUSTOMERS_KEY)) || [];
+            let result = Array.isArray(local) ? [...local] : [];
+
+            try {
+                const settings = await SettingsService.getSettings(forceRefresh);
+                const remote = settings?.warehouse_custom_customers;
+                if (Array.isArray(remote)) {
+                    const mergedMap = new Map<string, CustomWarehouseCustomer>();
+                    for (const item of result) {
+                        if (item?.id) mergedMap.set(item.id, item);
+                    }
+                    for (const item of remote) {
+                        if (!item?.id) continue;
+                        const existing = mergedMap.get(item.id);
+                        if (!existing) {
+                            mergedMap.set(item.id, item);
+                        } else {
+                            const existingTime = Date.parse(existing.updatedAt || existing.createdAt || '') || 0;
+                            const remoteTime = Date.parse(item.updatedAt || item.createdAt || '') || 0;
+                            if (remoteTime >= existingTime) {
+                                mergedMap.set(item.id, item);
+                            }
+                        }
+                    }
+                    result = Array.from(mergedMap.values());
+                    await dbContext.set(LOCAL_CUSTOM_CUSTOMERS_KEY, result);
+                }
+            } catch (err) {
+                console.warn('getCustomCustomers settings fallback:', err);
+            }
+
+            if (!isInventoryTestEnv) {
+                customCustomersMemoryCache = { data: result, timestamp: Date.now() };
+            }
+            return result;
+        };
+
+        if (isInventoryTestEnv) {
+            return run();
+        }
+        customCustomersInFlight = run().finally(() => {
+            customCustomersInFlight = null;
+        });
+        return customCustomersInFlight;
+    },
+
+    async saveCustomCustomer(
+        customer: Omit<CustomWarehouseCustomer, 'id' | 'createdAt'> & { id?: string; createdAt?: string }
+    ): Promise<CustomWarehouseCustomer> {
+        const current = await this.getCustomCustomers();
+        const nowIso = new Date().toISOString();
+        const cleanedName = (customer.customerName || '').trim();
+        const normTarget = normalizeCustomerKey(cleanedName);
+
+        const existingIdx = current.findIndex(c =>
+            (customer.id && c.id === customer.id) ||
+            (c.warehouseId === customer.warehouseId && normalizeCustomerKey(c.customerName) === normTarget)
+        );
+
+        const existing = existingIdx >= 0 ? current[existingIdx] : undefined;
+        const saved: CustomWarehouseCustomer = {
+            id: existing?.id || customer.id || `cust_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            customerName: cleanedName,
+            warehouseId: customer.warehouseId,
+            initialStock: Number(customer.initialStock) || 0,
+            initialDate: customer.initialDate || '',
+            dailyRemarks: customer.dailyRemarks || {},
+            createdAt: existing?.createdAt || customer.createdAt || nowIso,
+            updatedAt: nowIso
+        };
+
+        const updated = [...current];
+        if (existingIdx >= 0) {
+            updated[existingIdx] = saved;
+        } else {
+            updated.push(saved);
+        }
+
+        await dbContext.set(LOCAL_CUSTOM_CUSTOMERS_KEY, updated);
+        if (!isInventoryTestEnv) {
+            customCustomersMemoryCache = { data: updated, timestamp: Date.now() };
+        }
+
+        try {
+            await SettingsService.updateSettings({ warehouse_custom_customers: updated });
+        } catch (err) {
+            console.warn('saveCustomCustomer SettingsService fallback:', err);
+        }
+
+        return saved;
+    },
+
+    async deleteCustomCustomer(id: string): Promise<boolean> {
+        const current = await this.getCustomCustomers();
+        const filtered = current.filter(c => c.id !== id);
+        await dbContext.set(LOCAL_CUSTOM_CUSTOMERS_KEY, filtered);
+        if (!isInventoryTestEnv) {
+            customCustomersMemoryCache = { data: filtered, timestamp: Date.now() };
+        }
+
+        try {
+            await SettingsService.updateSettings({ warehouse_custom_customers: filtered });
+        } catch (err) {
+            console.warn('deleteCustomCustomer SettingsService fallback:', err);
+        }
+
+        return true;
+    },
+
     async saveConfig(config: WarehouseConfig): Promise<boolean> {
         const defaults = getDefaultConfigs();
         const local = (await dbContext.get<Record<ExtendedWarehouseId, WarehouseConfig>>(LOCAL_CONFIGS_KEY)) || {} as Record<ExtendedWarehouseId, WarehouseConfig>;
@@ -1992,6 +2205,7 @@ export const WarehouseInventoryService = {
             configsMemoryCache = { data: current, timestamp: Date.now() };
         }
 
+        let cloudSuccess = true;
         if (!dedicatedTablesMissing) {
             try {
                 const { error } = await supabase
@@ -2007,22 +2221,34 @@ export const WarehouseInventoryService = {
                 if (error) {
                     if (isTableMissingError(error)) {
                         dedicatedTablesMissing = true;
+                    } else if (isCheckConstraintError(error)) {
+                        console.warn(
+                            `Supabase saveConfig CHECK constraint (23514) fallback to content_settings for "${config.warehouseId}":`,
+                            error.message
+                        );
+                        await syncFallbackStateToContentSettings();
                     } else {
-                        console.warn('Supabase saveConfig warning (stored locally):', error.message);
+                        console.warn('Supabase saveConfig error (stored locally):', error.message);
+                        cloudSuccess = false;
                     }
                 }
             } catch (err) {
                 console.warn('Supabase saveConfig fallback:', err);
+                cloudSuccess = false;
             }
         }
 
         if (dedicatedTablesMissing) {
             await syncFallbackStateToContentSettings();
         }
-        return true;
+        return cloudSuccess;
     },
 
-    async saveConfigsBulk(configsList: WarehouseConfig[]): Promise<boolean> {
+    async saveConfigsBulk(
+        configsList: WarehouseConfig[],
+        errorsOut?: string[],
+        warningsOut?: string[]
+    ): Promise<boolean> {
         if (!configsList || configsList.length === 0) return true;
 
         const defaults = getDefaultConfigs();
@@ -2060,6 +2286,7 @@ export const WarehouseInventoryService = {
             configsMemoryCache = { data: current, timestamp: Date.now() };
         }
 
+        let cloudSuccess = true;
         const dbRows = Array.from(dedupedRows.values());
         if (dbRows.length > 0 && !dedicatedTablesMissing) {
             try {
@@ -2069,19 +2296,44 @@ export const WarehouseInventoryService = {
                 if (error) {
                     if (isTableMissingError(error)) {
                         dedicatedTablesMissing = true;
+                    } else if (isCheckConstraintError(error)) {
+                        const standardRows = dbRows.filter(r =>
+                            ALL_WAREHOUSES.includes(r.warehouse_id as WarehouseId)
+                        );
+                        const nonStandardKeys = dbRows
+                            .filter(r => !ALL_WAREHOUSES.includes(r.warehouse_id as WarehouseId))
+                            .map(r => r.warehouse_id);
+                        if (standardRows.length > 0) {
+                            const { error: retryError } = await supabase
+                                .from('warehouse_configs')
+                                .upsert(standardRows, { onConflict: 'warehouse_id' });
+                            if (retryError) {
+                                console.warn('Supabase saveConfigsBulk standard fallback error:', retryError.message);
+                                errorsOut?.push(`Lỗi đồng bộ cấu hình kho lên Cloud: ${retryError.message}`);
+                                cloudSuccess = false;
+                            }
+                        }
+                        await syncFallbackStateToContentSettings();
+                        const warnMsg = `Cấu hình ${nonStandardKeys.join(', ') || 'mở rộng'} chưa chạy migration CHECK constraint (23514) trên Supabase nên đã lưu dự phòng vào content_settings.`;
+                        console.warn('Supabase saveConfigsBulk warning:', warnMsg);
+                        warningsOut?.push(warnMsg);
                     } else {
-                        console.warn('Supabase saveConfigsBulk warning (stored locally):', error.message);
+                        console.warn('Supabase saveConfigsBulk error (stored locally):', error.message);
+                        errorsOut?.push(`Lỗi đồng bộ cấu hình kho lên Cloud: ${error.message}`);
+                        cloudSuccess = false;
                     }
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.warn('Supabase saveConfigsBulk fallback:', err);
+                errorsOut?.push(`Lỗi đồng bộ cấu hình kho lên Cloud: ${err?.message || String(err)}`);
+                cloudSuccess = false;
             }
         }
 
         if (dedicatedTablesMissing) {
             await syncFallbackStateToContentSettings();
         }
-        return true;
+        return cloudSuccess;
     },
 
     async getVehicles(forceRefresh = false): Promise<Record<string, WarehouseVehicleMap>> {
@@ -2241,7 +2493,8 @@ export const WarehouseInventoryService = {
     async saveVehiclesBulk(vehicles: WarehouseVehicleMap[]): Promise<number> {
         if (!vehicles || vehicles.length === 0) return 0;
         const current = (await dbContext.get<Record<string, WarehouseVehicleMap>>(LOCAL_VEHICLES_KEY)) || {};
-        const dbRows: any[] = [];
+        const dedupedDbRows = new Map<string, any>();
+        const nowIso = new Date().toISOString();
 
         for (const v of vehicles) {
             const key = normalizePlateKey(v.vehiclePlate || v.displayPlate);
@@ -2251,30 +2504,31 @@ export const WarehouseInventoryService = {
                 displayPlate: (v.displayPlate || v.vehiclePlate).trim(),
                 carrierName: v.carrierName.trim()
             };
-            dbRows.push({
+            dedupedDbRows.set(key, {
                 vehicle_plate: key,
                 display_plate: current[key].displayPlate,
                 carrier_name: current[key].carrierName,
-                updated_at: new Date().toISOString()
+                updated_at: nowIso
             });
         }
 
+        const dbRows = Array.from(dedupedDbRows.values());
         await dbContext.set(LOCAL_VEHICLES_KEY, current);
         vehiclesMemoryCache = null;
 
         if (dbRows.length > 0 && !dedicatedTablesMissing) {
-            try {
-                const chunkSize = 500;
-                for (let i = 0; i < dbRows.length; i += chunkSize) {
-                    const chunk = dbRows.slice(i, i + chunkSize);
-                    const { error } = await supabase.from('warehouse_vehicles').upsert(chunk, { onConflict: 'vehicle_plate' });
-                    if (error && isTableMissingError(error)) {
+            const chunkSize = 500;
+            for (let i = 0; i < dbRows.length; i += chunkSize) {
+                const chunk = dbRows.slice(i, i + chunkSize);
+                const { error } = await supabase.from('warehouse_vehicles').upsert(chunk, { onConflict: 'vehicle_plate' });
+                if (error) {
+                    if (isTableMissingError(error)) {
                         dedicatedTablesMissing = true;
                         break;
                     }
+                    console.warn('Supabase saveVehiclesBulk error (saved locally):', error.message);
+                    throw new Error(`Lỗi đồng bộ danh sách xe lên Cloud: ${error.message}`);
                 }
-            } catch (err) {
-                console.warn('Supabase saveVehiclesBulk fallback:', err);
             }
         }
 
@@ -2483,7 +2737,7 @@ export const WarehouseInventoryService = {
     async saveTicketsBulkWithStats(
         tickets: WarehouseInventoryTicket[],
         options?: { preserveExistingFields?: boolean }
-    ): Promise<{ totalProcessed: number; newCount: number; duplicateCount: number }> {
+    ): Promise<{ totalProcessed: number; newCount: number; duplicateCount: number; cloudErrors?: string[] }> {
         if (!tickets || tickets.length === 0) {
             return { totalProcessed: 0, newCount: 0, duplicateCount: 0 };
         }
@@ -2570,37 +2824,49 @@ export const WarehouseInventoryService = {
             ticketsMemoryCache = { data: merged, timestamp: Date.now() };
         }
 
+        const cloudErrors: string[] = [];
+
         if (!dedicatedTablesMissing) {
             try {
                 if (obsoleteIdsToDelete.length > 0) {
                     const delChunkSize = 80;
                     for (let i = 0; i < obsoleteIdsToDelete.length; i += delChunkSize) {
-                        try {
-                            await supabase
-                                .from('warehouse_inventory_tickets')
-                                .delete()
-                                .in('id', obsoleteIdsToDelete.slice(i, i + delChunkSize));
-                        } catch (_) {}
-                    }
-                }
-                const dbRows = Array.from(ticketsToUpsertMap.values()).map(mapModelTicketToDb);
-                const chunkSize = 500;
-                for (let i = 0; i < dbRows.length; i += chunkSize) {
-                    const chunk = dbRows.slice(i, i + chunkSize);
-                    const { error } = await supabase
-                        .from('warehouse_inventory_tickets')
-                        .upsert(chunk, { onConflict: 'id' });
-                    if (error) {
-                        if (isTableMissingError(error)) {
-                            dedicatedTablesMissing = true;
-                        } else {
-                            console.warn('Supabase saveTicketsBulk chunk warning (saved locally):', error.message);
+                        const { error: delErr } = await supabase
+                            .from('warehouse_inventory_tickets')
+                            .delete()
+                            .in('id', obsoleteIdsToDelete.slice(i, i + delChunkSize));
+                        if (delErr) {
+                            if (isTableMissingError(delErr)) {
+                                dedicatedTablesMissing = true;
+                                break;
+                            }
+                            console.warn('Supabase obsolete delete warning:', delErr.message);
+                            cloudErrors.push(`Lỗi xóa phiếu cũ trên Cloud: ${delErr.message}`);
                         }
-                        break;
                     }
                 }
-            } catch (err) {
+                if (!dedicatedTablesMissing) {
+                    const dbRows = Array.from(ticketsToUpsertMap.values()).map(mapModelTicketToDb);
+                    const chunkSize = 500;
+                    for (let i = 0; i < dbRows.length; i += chunkSize) {
+                        const chunk = dbRows.slice(i, i + chunkSize);
+                        const { error } = await supabase
+                            .from('warehouse_inventory_tickets')
+                            .upsert(chunk, { onConflict: 'id' });
+                        if (error) {
+                            if (isTableMissingError(error)) {
+                                dedicatedTablesMissing = true;
+                            } else {
+                                console.warn('Supabase saveTicketsBulk chunk warning (saved locally):', error.message);
+                                cloudErrors.push(`Lỗi đồng bộ phiếu cân lên Cloud: ${error.message}`);
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch (err: any) {
                 console.warn('Supabase saveTicketsBulk fallback:', err);
+                cloudErrors.push(`Lỗi đồng bộ phiếu cân lên Cloud: ${err?.message || String(err)}`);
             }
         }
 
@@ -2611,7 +2877,8 @@ export const WarehouseInventoryService = {
         return {
             totalProcessed: tickets.length,
             newCount,
-            duplicateCount
+            duplicateCount,
+            ...(cloudErrors.length > 0 ? { cloudErrors } : {})
         };
     },
 
@@ -2634,11 +2901,23 @@ export const WarehouseInventoryService = {
     },
 
     async clearWarehouseTickets(
-        target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123'
+        target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123',
+        options?: { customerFilter?: string; customCustomerId?: string }
     ): Promise<boolean> {
         ticketsMemoryCache = null;
         configsMemoryCache = null;
         const configs = await this.getConfigs(true);
+        let hasCloudError = false;
+
+        const recordCloudDeleteError = (err: any, context: string) => {
+            if (!err) return;
+            if (isTableMissingError(err)) {
+                dedicatedTablesMissing = true;
+                return;
+            }
+            console.warn(`Supabase ${context} warning:`, err?.message || err);
+            hasCloudError = true;
+        };
 
         const deleteIdsInChunks = async (ids: string[]) => {
             if (!ids || ids.length === 0 || dedicatedTablesMissing) return;
@@ -2651,19 +2930,28 @@ export const WarehouseInventoryService = {
                         .delete()
                         .in('id', chunk);
                     if (error) {
-                        console.warn('Supabase deleteIdsInChunks warning:', error.message);
+                        recordCloudDeleteError(error, 'deleteIdsInChunks');
+                        if (dedicatedTablesMissing) break;
                     }
                 } catch (err) {
-                    console.warn('Supabase deleteIdsInChunks error:', err);
+                    recordCloudDeleteError(err, 'deleteIdsInChunks');
                 }
             }
         };
 
         if (!target || target === 'ALL') {
             await dbContext.set(LOCAL_TICKETS_KEY, []);
-            try {
-                await supabase.from('warehouse_inventory_tickets').delete().neq('id', '___NON_EXISTENT___');
-            } catch (_) {}
+            if (!dedicatedTablesMissing) {
+                try {
+                    const { error } = await supabase
+                        .from('warehouse_inventory_tickets')
+                        .delete()
+                        .neq('id', '___NON_EXISTENT___');
+                    if (error) recordCloudDeleteError(error, 'clearAllTickets');
+                } catch (err) {
+                    recordCloudDeleteError(err, 'clearAllTickets');
+                }
+            }
             const configsToReset: WarehouseConfig[] = [];
             for (const whId of ALL_WAREHOUSES) {
                 configs[whId].dailyRemarks = {};
@@ -2677,62 +2965,97 @@ export const WarehouseInventoryService = {
                 configs['KHO 4 - BK'].initialDate = '';
                 configsToReset.push(configs['KHO 4 - BK']);
             }
-            await this.saveConfigsBulk(configsToReset);
+            const cfgOk = await this.saveConfigsBulk(configsToReset);
+            if (!cfgOk) hasCloudError = true;
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
-        const current = await this.getAllTickets(true);
+        const [current, customCustomers] = await Promise.all([
+            this.getAllTickets(true),
+            this.getCustomCustomers()
+        ]);
+
+        // Isolated custom customer clear
+        if (options?.customerFilter && ALL_WAREHOUSES.includes(target as WarehouseId)) {
+            const custFilter = options.customerFilter.trim();
+            const isMatch = (t: WarehouseInventoryTicket) =>
+                (t.warehouseId === target || t.flowType === 'DIRECT') &&
+                isTicketForCustomCustomer(t, custFilter);
+            const idsToDelete = current.filter(isMatch).map(t => t.id);
+            const remaining = current.filter(t => !isMatch(t));
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            await deleteIdsInChunks(idsToDelete);
+
+            const targetCust = customCustomers.find(c =>
+                (options.customCustomerId && c.id === options.customCustomerId) ||
+                (c.warehouseId === target && normalizeCustomerKey(c.customerName) === normalizeCustomerKey(custFilter))
+            );
+            if (targetCust) {
+                await this.saveCustomCustomer({
+                    ...targetCust,
+                    initialStock: 0,
+                    initialDate: '',
+                    dailyRemarks: {}
+                });
+            }
+            if (dedicatedTablesMissing) {
+                await syncFallbackStateToContentSettings();
+            }
+            return !hasCloudError;
+        }
 
         if (target === 'DIRECT') {
             const idsToDelete = current.filter(t => t.flowType === 'DIRECT').map(t => t.id);
             const remaining = current.filter(t => t.flowType !== 'DIRECT');
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-            try {
-                await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT');
-            } catch (_) {}
+            if (!dedicatedTablesMissing) {
+                try {
+                    const { error } = await supabase.from('warehouse_inventory_tickets').delete().eq('flow_type', 'DIRECT');
+                    if (error) recordCloudDeleteError(error, 'clearDirectTickets');
+                } catch (err) {
+                    recordCloudDeleteError(err, 'clearDirectTickets');
+                }
+            }
             await deleteIdsInChunks(idsToDelete);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
         if (target === 'DIRECT_KHO4') {
             const idsToDelete = current
-                .filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_4')
+                .filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_4')
                 .map(t => t.id);
-            const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_4'));
+            const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_4'));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             await deleteIdsInChunks(idsToDelete);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
         if (target === 'DIRECT_KHO123') {
             const idsToDelete = current
-                .filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123')
+                .filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_123')
                 .map(t => t.id);
-            const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123'));
+            const remaining = current.filter(t => !(t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_123'));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             await deleteIdsInChunks(idsToDelete);
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
         if (target === 'GROUP_KHO123') {
-            const idsToDelete = current.filter(t => getTicketCustomerGroup(t, configs) === 'KHO_123').map(t => t.id);
-            const remaining = current.filter(t => getTicketCustomerGroup(t, configs) !== 'KHO_123');
+            const idsToDelete = current.filter(t => getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_123').map(t => t.id);
+            const remaining = current.filter(t => getTicketCustomerGroup(t, configs, customCustomers) !== 'KHO_123');
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-            try {
-                await supabase.from('warehouse_inventory_tickets').delete().in('warehouse_id', ['KHO 1', 'KHO 2', 'KHO 3']);
-            } catch (_) {}
             await deleteIdsInChunks(idsToDelete);
             const kho123Configs = (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[]).map((whId) => {
                 configs[whId].dailyRemarks = {};
@@ -2740,16 +3063,17 @@ export const WarehouseInventoryService = {
                 configs[whId].initialDate = '';
                 return configs[whId];
             });
-            await this.saveConfigsBulk(kho123Configs);
+            const cfgOk = await this.saveConfigsBulk(kho123Configs);
+            if (!cfgOk) hasCloudError = true;
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
         if (target === 'KHO 4 - BK') {
             const isBkMatch = (t: WarehouseInventoryTicket) =>
-                isBachKhoaTicket(t) || getTicketCustomerGroup(t, configs) === 'KHO_4_BK';
+                isBachKhoaTicket(t) || getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_4_BK';
             const idsToDelete = current.filter(isBkMatch).map(t => t.id);
             const remaining = current.filter(t => !isBkMatch(t));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
@@ -2758,51 +3082,60 @@ export const WarehouseInventoryService = {
                 configs['KHO 4 - BK'].dailyRemarks = {};
                 configs['KHO 4 - BK'].initialStock = 0;
                 configs['KHO 4 - BK'].initialDate = '';
-                await this.saveConfig(configs['KHO 4 - BK']);
+                const cfgOk = await this.saveConfig(configs['KHO 4 - BK']);
+                if (!cfgOk) hasCloudError = true;
             }
             if (!dedicatedTablesMissing) {
                 try {
-                    await supabase.from('warehouse_configs').delete().eq('warehouse_id', 'KHO 4 (BK)');
-                } catch (_) {}
+                    const { error } = await supabase.from('warehouse_configs').delete().eq('warehouse_id', 'KHO 4 (BK)');
+                    if (error && !isCheckConstraintError(error)) {
+                        recordCloudDeleteError(error, 'cleanupLegacyKho4BkConfig');
+                    }
+                } catch (err) {
+                    recordCloudDeleteError(err, 'cleanupLegacyKho4BkConfig');
+                }
             }
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
         if (target === 'KHO 4') {
-            const idsToDelete = current.filter(t => t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs) === 'KHO_4').map(t => t.id);
-            const remaining = current.filter(t => !(t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs) === 'KHO_4'));
+            const idsToDelete = current.filter(t => t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_4').map(t => t.id);
+            const remaining = current.filter(t => !(t.warehouseId === 'KHO 4' && getTicketCustomerGroup(t, configs, customCustomers) === 'KHO_4'));
             await dbContext.set(LOCAL_TICKETS_KEY, remaining);
             await deleteIdsInChunks(idsToDelete);
             if (configs['KHO 4']) {
                 configs['KHO 4'].dailyRemarks = {};
                 configs['KHO 4'].initialStock = 0;
                 configs['KHO 4'].initialDate = '';
-                await this.saveConfig(configs['KHO 4']);
+                const cfgOk = await this.saveConfig(configs['KHO 4']);
+                if (!cfgOk) hasCloudError = true;
             }
             if (dedicatedTablesMissing) {
                 await syncFallbackStateToContentSettings();
             }
-            return true;
+            return !hasCloudError;
         }
 
-        const remaining = current.filter(t => t.warehouseId !== target);
+        const isDefaultWhMatch = (t: WarehouseInventoryTicket) =>
+            t.warehouseId === target && getTicketCustomerGroup(t, configs, customCustomers) !== 'CUSTOM';
+        const idsToDelete = current.filter(isDefaultWhMatch).map(t => t.id);
+        const remaining = current.filter(t => !isDefaultWhMatch(t));
         await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-        try {
-            await supabase.from('warehouse_inventory_tickets').delete().eq('warehouse_id', target);
-        } catch (_) {}
+        await deleteIdsInChunks(idsToDelete);
         if (configs[target]) {
             configs[target].dailyRemarks = {};
             configs[target].initialStock = 0;
             configs[target].initialDate = '';
-            await this.saveConfig(configs[target]);
+            const cfgOk = await this.saveConfig(configs[target]);
+            if (!cfgOk) hasCloudError = true;
         }
         if (dedicatedTablesMissing) {
             await syncFallbackStateToContentSettings();
         }
-        return true;
+        return !hasCloudError;
     },
 
     async reapplyVehicleCarriers(): Promise<number> {
@@ -3130,7 +3463,10 @@ export const WarehouseInventoryService = {
     /**
      * Import 1 or multiple Weighbridge CSV/Excel files (e.g. Import file + Export file from scale)
      */
-    async importWeighbridgeCsvFiles(files: File[] | FileList): Promise<WarehouseImportSummary> {
+    async importWeighbridgeCsvFiles(
+        files: File[] | FileList,
+        options?: { customerFilter?: string; targetWarehouseId?: WarehouseId }
+    ): Promise<WarehouseImportSummary> {
         const summary: WarehouseImportSummary = {
             importedCount: 0,
             importFlowCount: 0,
@@ -3141,7 +3477,8 @@ export const WarehouseInventoryService = {
             matchedBargesCount: 0,
             vehiclesLearnedCount: 0,
             warehousesUpdated: [],
-            errors: []
+            errors: [],
+            warnings: []
         };
 
         const [vehicleMap, configs, vessels] = await Promise.all([
@@ -3165,9 +3502,7 @@ export const WarehouseInventoryService = {
                     const text = await readCsvFileDecoded(file);
                     fileRows = parseWeighbridgeCsvText(text);
                 } else if (ext === 'xlsx' || ext === 'xls') {
-                    const ExcelJS = await import('exceljs');
-                    const wb = new ExcelJS.Workbook();
-                    await wb.xlsx.load(await file.arrayBuffer());
+                    const wb = await loadExcelWorkbookSafe(file);
                     const sheet = wb.worksheets[0];
                     if (sheet) {
                         const csvLines: string[] = [];
@@ -3210,12 +3545,18 @@ export const WarehouseInventoryService = {
                 summary.ignoredCount++;
                 continue;
             }
+            if (options?.customerFilter) {
+                ticket.customerName = options.customerFilter.trim();
+                if (options.targetWarehouseId && ticket.flowType !== 'DIRECT') {
+                    ticket.warehouseId = options.targetWarehouseId;
+                }
+            }
             classifiedTickets.push(ticket);
             if (ticket.flowType === 'IMPORT') summary.importFlowCount++;
             else if (ticket.flowType === 'EXPORT') summary.exportFlowCount++;
             else if (ticket.flowType === 'DIRECT') summary.directFlowCount++;
 
-            if (ticket.warehouseId) {
+            if (ticket.warehouseId && !options?.customerFilter) {
                 updatedWhSet.add(ticket.warehouseId);
                 if (ticket.warehouseId === 'KHO 4') {
                     if (isBachKhoaTicket(ticket)) {
@@ -3236,24 +3577,31 @@ export const WarehouseInventoryService = {
             summary.importedCount = classifiedTickets.length;
             summary.newCount = stats.newCount;
             summary.duplicateCount = stats.duplicateCount;
+            if (stats.cloudErrors && stats.cloudErrors.length > 0) {
+                summary.errors.push(...stats.cloudErrors);
+            }
         } else {
             summary.newCount = 0;
             summary.duplicateCount = 0;
         }
 
-        const configsToSave: WarehouseConfig[] = [];
-        for (const whId of updatedWhSet) {
-            if (configs[whId]) {
-                configsToSave.push(configs[whId]!);
+        if (!options?.customerFilter) {
+            const configsToSave: WarehouseConfig[] = [];
+            for (const whId of updatedWhSet) {
+                if (configs[whId]) {
+                    configsToSave.push(configs[whId]!);
+                }
+            }
+            if (updatedWhSet.has('KHO 4') && configs['KHO 4 - BK']) {
+                configsToSave.push(configs['KHO 4 - BK']);
+            }
+            if (configsToSave.length > 0) {
+                await this.saveConfigsBulk(configsToSave, summary.errors, summary.warnings);
             }
         }
-        if (updatedWhSet.has('KHO 4') && configs['KHO 4 - BK']) {
-            configsToSave.push(configs['KHO 4 - BK']);
-        }
-        if (configsToSave.length > 0) {
-            await this.saveConfigsBulk(configsToSave);
-        }
-        summary.warehousesUpdated = Array.from(updatedWhSet);
+        summary.warehousesUpdated = options?.targetWarehouseId && classifiedTickets.length > 0
+            ? [options.targetWarehouseId]
+            : Array.from(updatedWhSet);
 
         // Quy tắc nạp vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng:
         // - Mọi xe có cột "Ma lenh" (Mã lệnh) từ cả File 1 (Nhập kho & Nhập thẳng từ sà lan tại Cảng về nhà máy)
@@ -3281,7 +3629,8 @@ export const WarehouseInventoryService = {
      */
     async importHistoricalExcelWorkbook(
         file: File,
-        defaultWarehouseOverride?: ExtendedWarehouseId
+        defaultWarehouseOverride?: ExtendedWarehouseId,
+        options?: { customerFilter?: string; targetWarehouseId?: WarehouseId; customCustomerId?: string }
     ): Promise<WarehouseImportSummary> {
         const summary: WarehouseImportSummary = {
             importedCount: 0,
@@ -3293,13 +3642,12 @@ export const WarehouseInventoryService = {
             matchedBargesCount: 0,
             vehiclesLearnedCount: 0,
             warehousesUpdated: [],
-            errors: []
+            errors: [],
+            warnings: []
         };
 
         try {
-            const ExcelJS = await import('exceljs');
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(await file.arrayBuffer());
+            const workbook = await loadExcelWorkbookSafe(file);
 
             const getCellPrimitive = (cell: any): any => {
                 if (!cell) return '';
@@ -3418,7 +3766,11 @@ export const WarehouseInventoryService = {
                 }
             }
             if (learnedVehicles.length > 0) {
-                summary.vehiclesLearnedCount = await this.saveVehiclesBulk(learnedVehicles);
+                try {
+                    summary.vehiclesLearnedCount = await this.saveVehiclesBulk(learnedVehicles);
+                } catch (vErr: any) {
+                    summary.errors.push(vErr?.message || String(vErr));
+                }
             }
 
             const vehicleMap = await this.getVehicles();
@@ -3917,34 +4269,89 @@ export const WarehouseInventoryService = {
                 }
             }
 
-            // Clear previous tickets for the imported warehouse group before saving fresh historical workbook tickets
-            if (allTickets.length > 0) {
-                if (updatedWhSet.has('KHO 4 - BK')) {
-                    await this.clearWarehouseTickets('KHO 4 - BK');
-                }
-                if (updatedWhSet.has('KHO 4')) {
-                    await this.clearWarehouseTickets('KHO 4');
-                    await this.clearWarehouseTickets('DIRECT_KHO4');
-                }
-                if (updatedWhSet.has('KHO 1') || updatedWhSet.has('KHO 2') || updatedWhSet.has('KHO 3')) {
-                    await this.clearWarehouseTickets('GROUP_KHO123');
-                }
-                const stats = await this.saveTicketsBulkWithStats(allTickets, { preserveExistingFields: true });
-                summary.importedCount = allTickets.length;
-                summary.newCount = stats.newCount;
-                summary.duplicateCount = stats.duplicateCount;
-            } else {
-                summary.newCount = 0;
-                summary.duplicateCount = 0;
-            }
+            const customCustName = options?.customerFilter?.trim() || '';
+            const customTargetWh: WarehouseId =
+                options?.targetWarehouseId ||
+                (isBkOverride ? 'KHO 4' : (defaultWarehouseOverride as WarehouseId)) ||
+                defaultWh;
 
-            const configsToSave = Array.from(updatedWhSet)
-                .filter(whId => Boolean(configs[whId]))
-                .map(whId => configs[whId]!);
-            if (configsToSave.length > 0) {
-                await this.saveConfigsBulk(configsToSave);
+            if (customCustName) {
+                // Isolated custom customer import: stamp customerName & targetWarehouseId, never touch built-in warehouse configs/tickets
+                for (const t of allTickets) {
+                    t.customerName = customCustName;
+                    if (t.flowType !== 'DIRECT') {
+                        t.warehouseId = customTargetWh;
+                    }
+                }
+
+                if (allTickets.length > 0) {
+                    await this.clearWarehouseTickets(customTargetWh, {
+                        customerFilter: customCustName,
+                        customCustomerId: options?.customCustomerId
+                    });
+                    const stats = await this.saveTicketsBulkWithStats(allTickets, { preserveExistingFields: true });
+                    summary.importedCount = allTickets.length;
+                    summary.newCount = stats.newCount;
+                    summary.duplicateCount = stats.duplicateCount;
+                    if (stats.cloudErrors && stats.cloudErrors.length > 0) {
+                        summary.errors.push(...stats.cloudErrors);
+                    }
+                } else {
+                    summary.newCount = 0;
+                    summary.duplicateCount = 0;
+                }
+
+                const customCustomers = await this.getCustomCustomers();
+                const existingCust = customCustomers.find(c =>
+                    (options?.customCustomerId && c.id === options.customCustomerId) ||
+                    (c.warehouseId === customTargetWh && normalizeCustomerKey(c.customerName) === normalizeCustomerKey(customCustName))
+                );
+                const extractedCfg = configs[customTargetWh] || configs[defaultWh];
+                await this.saveCustomCustomer({
+                    id: existingCust?.id || options?.customCustomerId,
+                    customerName: customCustName,
+                    warehouseId: customTargetWh,
+                    initialStock: extractedCfg?.initialStock ?? existingCust?.initialStock ?? 0,
+                    initialDate: extractedCfg?.initialDate ?? existingCust?.initialDate ?? '',
+                    dailyRemarks: {
+                        ...(existingCust?.dailyRemarks || {}),
+                        ...(extractedCfg?.dailyRemarks || {})
+                    }
+                });
+                summary.warehousesUpdated = [customTargetWh];
+            } else {
+                // Clear previous tickets for the imported warehouse group before saving fresh historical workbook tickets
+                if (allTickets.length > 0) {
+                    if (updatedWhSet.has('KHO 4 - BK')) {
+                        await this.clearWarehouseTickets('KHO 4 - BK');
+                    }
+                    if (updatedWhSet.has('KHO 4')) {
+                        await this.clearWarehouseTickets('KHO 4');
+                        await this.clearWarehouseTickets('DIRECT_KHO4');
+                    }
+                    if (updatedWhSet.has('KHO 1') || updatedWhSet.has('KHO 2') || updatedWhSet.has('KHO 3')) {
+                        await this.clearWarehouseTickets('GROUP_KHO123');
+                    }
+                    const stats = await this.saveTicketsBulkWithStats(allTickets, { preserveExistingFields: true });
+                    summary.importedCount = allTickets.length;
+                    summary.newCount = stats.newCount;
+                    summary.duplicateCount = stats.duplicateCount;
+                    if (stats.cloudErrors && stats.cloudErrors.length > 0) {
+                        summary.errors.push(...stats.cloudErrors);
+                    }
+                } else {
+                    summary.newCount = 0;
+                    summary.duplicateCount = 0;
+                }
+
+                const configsToSave = Array.from(updatedWhSet)
+                    .filter(whId => Boolean(configs[whId]))
+                    .map(whId => configs[whId]!);
+                if (configsToSave.length > 0) {
+                    await this.saveConfigsBulk(configsToSave, summary.errors, summary.warnings);
+                }
+                summary.warehousesUpdated = Array.from(updatedWhSet);
             }
-            summary.warehousesUpdated = Array.from(updatedWhSet);
         } catch (err: any) {
             console.error('Error importing historical Excel workbook:', err);
             summary.errors.push(err?.message || String(err));
@@ -3964,6 +4371,8 @@ export const WarehouseInventoryService = {
             filterByCatalog?: boolean;
             fromDate?: string;
             toDate?: string;
+            customerFilter?: string;
+            customConfig?: WarehouseConfig;
         }
     ): Promise<{ buffer: ArrayBuffer; filename: string }> {
         const ExcelJS = await import('exceljs');
@@ -3976,9 +4385,11 @@ export const WarehouseInventoryService = {
         const exportSheetName = `EXPORT ${whNum}`;
         const finalSheetName = `FINAL ${whNum}`;
         const directSheetName = 'XÁ THẲNG';
+        const customerFilter = options?.customerFilter?.trim();
 
         let allTickets: WarehouseInventoryTicket[];
         let configs: Record<ExtendedWarehouseId, WarehouseConfig>;
+        const customCustomers = await this.getCustomCustomers();
         if (options?.tickets) {
             allTickets = options.tickets;
             configs = await this.getConfigs();
@@ -4002,23 +4413,55 @@ export const WarehouseInventoryService = {
                 this.getConfigs()
             ]);
         }
-        const config = (configs[warehouseId] || (isBK ? configs['KHO 4 - BK'] : configs['KHO 4']))!;
+
+        let config: WarehouseConfig;
+        if (customerFilter) {
+            const matchedCust = customCustomers.find(
+                c => c.warehouseId === physicalWhId && normalizeCustomerKey(c.customerName) === normalizeCustomerKey(customerFilter)
+            );
+            config = options?.customConfig || {
+                warehouseId: physicalWhId,
+                initialStock: matchedCust?.initialStock ?? 0,
+                initialDate: matchedCust?.initialDate ?? '',
+                currentCustomer: customerFilter,
+                dailyRemarks: matchedCust?.dailyRemarks ?? {}
+            };
+        } else {
+            config = (configs[warehouseId] || (isBK ? configs['KHO 4 - BK'] : configs['KHO 4']))!;
+        }
+
+        const customCustomerNames = customCustomers.map(c => c.customerName);
+        const excludeSet = new Set(customCustomerNames.map(n => normalizeCustomerKey(n)).filter(Boolean));
+        const isExcludedCustom = (t: WarehouseInventoryTicket) =>
+            Boolean(t.customerName) && excludeSet.has(normalizeCustomerKey(t.customerName));
 
         const whImports = allTickets.filter(t => {
             if (t.warehouseId !== physicalWhId || t.flowType !== 'IMPORT') return false;
+            if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
+            if (isExcludedCustom(t)) return false;
             return isBK ? isBachKhoaTicket(t) : !isBachKhoaTicket(t);
         });
         const whExports = allTickets.filter(t => {
             if (t.warehouseId !== physicalWhId || t.flowType !== 'EXPORT') return false;
+            if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
+            if (isExcludedCustom(t)) return false;
             return isBK ? isBachKhoaTicket(t) : !isBachKhoaTicket(t);
         });
         const targetGroup = isBK ? 'KHO_4_BK' : (physicalWhId === 'KHO 4' ? 'KHO_4' : 'KHO_123');
-        const directTickets = allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === targetGroup);
+        const directTickets = allTickets.filter(t => {
+            if (t.flowType !== 'DIRECT') return false;
+            if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
+            if (isExcludedCustom(t)) return false;
+            return getTicketCustomerGroup(t, configs) === targetGroup;
+        });
 
-        const finalCalc = computeWarehouseFinalTable(warehouseId, allTickets, config, { ...options, allConfigs: configs });
+        const finalCalc = computeWarehouseFinalTable(warehouseId, allTickets, config, {
+            ...options,
+            allConfigs: configs,
+            ...(customerFilter ? { customerFilter } : { excludeCustomerNames: customCustomerNames })
+        });
 
-        if (physicalWhId === 'KHO 4') {
-            // Keep Kho 4 100% untouched
+        if (physicalWhId === 'KHO 4' || customerFilter) {
             // 1. Sheet IMPORT X
             const wsImport = workbook.addWorksheet(importSheetName);
             this.populateImportWorksheet(wsImport, physicalWhId, config.currentCustomer, whImports);
@@ -4052,7 +4495,9 @@ export const WarehouseInventoryService = {
 
         const now = new Date();
         const ddmmyyyy = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
-        const custTag = isBK ? 'BK' : 'EW';
+        const custTag = customerFilter
+            ? normalizeCustomerKey(customerFilter).replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'CUSTOM'
+            : (isBK ? 'BK' : 'EW');
         const filename = `WEIGHT LIST GỖ NÉN_KHO NGUYÊN NGỌC_${custTag}_${ddmmyyyy}.xlsx`;
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -4098,7 +4543,16 @@ export const WarehouseInventoryService = {
             ]);
         }
 
-        const calcOpts = { ...options, allConfigs: configs };
+        const customCustomers = await this.getCustomCustomers();
+        const customCustomerNames = customCustomers.map(c => c.customerName);
+        const excludeSet = new Set(customCustomerNames.map(n => normalizeCustomerKey(n)).filter(Boolean));
+        if (excludeSet.size > 0) {
+            allTickets = allTickets.filter(
+                t => !(t.customerName && excludeSet.has(normalizeCustomerKey(t.customerName)))
+            );
+        }
+
+        const calcOpts = { ...options, allConfigs: configs, excludeCustomerNames: customCustomerNames };
         const cfg1 = configs['KHO 1']!;
         const cfg2 = configs['KHO 2']!;
         const cfg3 = configs['KHO 3']!;

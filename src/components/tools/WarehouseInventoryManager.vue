@@ -12,7 +12,8 @@ import {
     getStandardWarehouseDisplay,
     getStandardAreaDisplay,
     stripAccents,
-    lookupCarrierName
+    lookupCarrierName,
+    isTicketForCustomCustomer
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -20,7 +21,8 @@ import type {
     WarehouseInventoryTicket,
     WarehouseConfig,
     WarehouseVehicleMap,
-    WarehouseFinalRow
+    WarehouseFinalRow,
+    CustomWarehouseCustomer
 } from '@/types/excel';
 import WarehouseVisualMap from './WarehouseVisualMap.vue';
 
@@ -37,11 +39,14 @@ const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('IMPORT');
 const isVisualMapOpen = ref(true);
 const loading = ref(false);
+const importingCsv = ref(false);
 const importingHistoryExcel = ref(false);
 const exportingExcel = ref(false);
 const capturingZaloImage = ref(false);
 
 const allTickets = ref<WarehouseInventoryTicket[]>([]);
+const customCustomers = ref<CustomWarehouseCustomer[]>([]);
+const selectedCustomCustomerId = ref<string | null>(null);
 const validCarriers = ref<Set<string>>(new Set());
 const validWarehouses = ref<Set<string>>(new Set());
 const showExcludedModal = ref(false);
@@ -109,6 +114,25 @@ const editingConfigForm = ref<{
 const showEditCustomerModal = ref(false);
 const editingCustomerGroup = ref<'KHO_4' | 'KHO_4_BK' | 'KHO_123'>('KHO_4');
 const editingCustomerName = ref('');
+
+// Custom Customer Add / Edit modal
+const showCustomCustomerModal = ref(false);
+const savingCustomCustomer = ref(false);
+const customCustomerForm = ref<{
+    id: string | null;
+    customerName: string;
+    warehouseId: WarehouseId;
+    initialStock: number;
+    initialDate: string;
+    dailyRemarks: Record<string, string>;
+}>({
+    id: null,
+    customerName: '',
+    warehouseId: 'KHO 1',
+    initialStock: 0,
+    initialDate: '',
+    dailyRemarks: {}
+});
 
 // Ticket detail editing modal
 const showEditTicketModal = ref(false);
@@ -182,31 +206,153 @@ async function saveCustomerNameModal() {
     }
 }
 
+const selectedCustomCustomer = computed<CustomWarehouseCustomer | null>(() => {
+    if (!selectedCustomCustomerId.value) return null;
+    return customCustomers.value.find(c => c.id === selectedCustomCustomerId.value) || null;
+});
+
+function selectBuiltInMode(mode: ViewWarehouseMode, tab?: SheetTabMode) {
+    isVisualMapOpen.value = false;
+    selectedCustomCustomerId.value = null;
+    selectedWarehouseMode.value = mode;
+    if (tab) activeSheetTab.value = tab;
+}
+
+function selectCustomCustomer(cust: CustomWarehouseCustomer, tab?: SheetTabMode) {
+    isVisualMapOpen.value = false;
+    selectedCustomCustomerId.value = cust.id;
+    selectedWarehouseMode.value = cust.warehouseId;
+    if (tab) {
+        activeSheetTab.value = tab;
+    } else if (activeSheetTab.value === 'FINAL') {
+        activeSheetTab.value = 'IMPORT';
+    }
+}
+
+function openAddCustomCustomerModal() {
+    customCustomerForm.value = {
+        id: null,
+        customerName: '',
+        warehouseId: 'KHO 1',
+        initialStock: 0,
+        initialDate: '',
+        dailyRemarks: {}
+    };
+    showCustomCustomerModal.value = true;
+}
+
+function openEditCustomCustomerModal(cust: CustomWarehouseCustomer) {
+    customCustomerForm.value = {
+        id: cust.id,
+        customerName: cust.customerName,
+        warehouseId: cust.warehouseId,
+        initialStock: Number(cust.initialStock) || 0,
+        initialDate: cust.initialDate || '',
+        dailyRemarks: { ...(cust.dailyRemarks || {}) }
+    };
+    showCustomCustomerModal.value = true;
+}
+
+async function saveCustomCustomerModal() {
+    const trimmedName = sanitizeCustomerName(customCustomerForm.value.customerName.trim(), '');
+    if (!trimmedName) {
+        addToast('Vui lòng nhập tên khách hàng hợp lệ', 'error');
+        return;
+    }
+    savingCustomCustomer.value = true;
+    try {
+        const saved = await WarehouseInventoryService.saveCustomCustomer({
+            ...(customCustomerForm.value.id ? { id: customCustomerForm.value.id } : {}),
+            customerName: trimmedName,
+            warehouseId: customCustomerForm.value.warehouseId,
+            initialStock: Number(customCustomerForm.value.initialStock) || 0,
+            initialDate: customCustomerForm.value.initialDate || '',
+            dailyRemarks: customCustomerForm.value.dailyRemarks
+        });
+        showCustomCustomerModal.value = false;
+        expandedCustomer.value[saved.id] = true;
+        await loadAllData(false, true);
+        selectCustomCustomer(saved, 'FINAL');
+        addToast(
+            customCustomerForm.value.id
+                ? `Đã cập nhật khách hàng "${saved.customerName}"!`
+                : `Đã thêm khách hàng "${saved.customerName}" (${saved.warehouseId})!`,
+            'success'
+        );
+    } catch (err: any) {
+        addToast('Lỗi lưu khách hàng: ' + (err?.message || err), 'error');
+    } finally {
+        savingCustomCustomer.value = false;
+    }
+}
+
+async function handleDeleteCustomCustomer(cust: CustomWarehouseCustomer) {
+    if (!window.confirm(`Bạn có chắc chắn muốn XÓA khách hàng "${cust.customerName}" (${cust.warehouseId})?\n(Phiếu cân của khách hàng này sẽ bị xóa theo)`)) {
+        return;
+    }
+    try {
+        await WarehouseInventoryService.clearWarehouseTickets(cust.warehouseId, {
+            customerFilter: cust.customerName,
+            customCustomerId: cust.id
+        });
+        await WarehouseInventoryService.deleteCustomCustomer(cust.id);
+        if (selectedCustomCustomerId.value === cust.id) {
+            selectedCustomCustomerId.value = null;
+            selectedWarehouseMode.value = 'KHO 4';
+        }
+        await loadAllData(false, true);
+        addToast(`Đã xóa khách hàng "${cust.customerName}"!`, 'success');
+    } catch (err: any) {
+        addToast('Lỗi xóa khách hàng: ' + (err?.message || err), 'error');
+    }
+}
+
 // Active customer group
-const activeCustomerGroup = computed<'KHO_4' | 'KHO_4_BK' | 'KHO_123'>(() => {
+const activeCustomerGroup = computed<'KHO_4' | 'KHO_4_BK' | 'KHO_123' | 'CUSTOM'>(() => {
+    if (selectedCustomCustomer.value) return 'CUSTOM';
     if (selectedWarehouseMode.value === 'KHO 4 - BK') return 'KHO_4_BK';
     if (selectedWarehouseMode.value === 'KHO 4') return 'KHO_4';
     return 'KHO_123';
 });
 
 // File inputs
+const csvFileInput = ref<HTMLInputElement | null>(null);
 const historyExcelFileInput = ref<HTMLInputElement | null>(null);
 
 const activeSingleWarehouseId = computed<WarehouseId>(() => {
+    if (selectedCustomCustomer.value) return selectedCustomCustomer.value.warehouseId;
     if (selectedWarehouseMode.value === 'COMBINED_123') return 'KHO 1';
     if (selectedWarehouseMode.value === 'KHO 4 - BK') return 'KHO 4';
     return selectedWarehouseMode.value as WarehouseId;
 });
 
 const activeWarehouseConfigKey = computed<ExtendedWarehouseId>(() => {
+    if (selectedCustomCustomer.value) return selectedCustomCustomer.value.warehouseId;
     if (selectedWarehouseMode.value === 'KHO 4 - BK') return 'KHO 4 - BK';
     return activeSingleWarehouseId.value;
+});
+
+const activeDisplayConfig = computed<WarehouseConfig>(() => {
+    if (selectedCustomCustomer.value) {
+        const cust = selectedCustomCustomer.value;
+        return {
+            warehouseId: cust.warehouseId,
+            currentCustomer: cust.customerName,
+            initialStock: cust.initialStock,
+            initialDate: cust.initialDate,
+            dailyRemarks: cust.dailyRemarks || {}
+        };
+    }
+    return configs.value[activeWarehouseConfigKey.value]!;
 });
 
 // Dropdown menu state for Delete options
 const showDeleteMenu = ref(false);
 
 const currentOperatingWarehouseName = computed(() => {
+    if (selectedCustomCustomer.value) {
+        return `${selectedCustomCustomer.value.warehouseId} (${selectedCustomCustomer.value.customerName})`;
+    }
     if (selectedWarehouseMode.value === 'COMBINED_123') {
         const custName = configs.value['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH';
         return `${custName} (Kho 1, 2, 3)`;
@@ -235,50 +381,81 @@ async function scrollTablesToBottom() {
 
 let isDataLoading = false;
 let hasInitialLoaded = false;
+let activeLoadPromise: Promise<void> | null = null;
+let pendingForceRefresh = false;
 
 async function loadAllData(silent = false, forceRefresh = false) {
-    if (isDataLoading) return;
+    if (isDataLoading && activeLoadPromise) {
+        if (forceRefresh) {
+            pendingForceRefresh = true;
+        }
+        await activeLoadPromise;
+        if (forceRefresh && pendingForceRefresh) {
+            pendingForceRefresh = false;
+            return loadAllData(silent, true);
+        }
+        return;
+    }
     isDataLoading = true;
     if (!silent) {
         loading.value = true;
     }
-    try {
-        const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses] = await Promise.all([
-            WarehouseInventoryService.getConfigs(forceRefresh),
-            WarehouseInventoryService.getAllTickets(forceRefresh),
-            WarehouseInventoryService.getVehicles(),
-            WarehouseInventoryService.getValidCarriers(),
-            WarehouseInventoryService.getValidWarehouses()
-        ]);
-        configs.value = loadedConfigs;
-        allTickets.value = loadedTickets;
-        vehiclesMap.value = loadedVehicles;
-        validCarriers.value = loadedCarriers;
-        validWarehouses.value = loadedWarehouses;
-        hasInitialLoaded = true;
-
-        // Tự động đối soát và điền Nhà xe từ Danh mục xe cho các phiếu chưa có hoặc khuyết nhà xe
-        const ticketsWithUpdatedCarrier: WarehouseInventoryTicket[] = [];
-        allTickets.value.forEach(t => {
-            const rawCarrier = t.carrierName ? t.carrierName.trim() : '';
-            if (!rawCarrier || rawCarrier === '-' || rawCarrier === '0') {
-                const lookedUp = lookupCarrierName(t.vehiclePlate, vehiclesMap.value);
-                if (lookedUp) {
-                    t.carrierName = lookedUp;
-                    ticketsWithUpdatedCarrier.push(t);
+    const run = async () => {
+        try {
+            const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses, loadedCustomCustomers] = await Promise.all([
+                WarehouseInventoryService.getConfigs(forceRefresh),
+                WarehouseInventoryService.getAllTickets(forceRefresh),
+                WarehouseInventoryService.getVehicles(),
+                WarehouseInventoryService.getValidCarriers(),
+                WarehouseInventoryService.getValidWarehouses(),
+                WarehouseInventoryService.getCustomCustomers(forceRefresh)
+            ]);
+            configs.value = loadedConfigs;
+            allTickets.value = loadedTickets;
+            vehiclesMap.value = loadedVehicles;
+            validCarriers.value = loadedCarriers;
+            validWarehouses.value = loadedWarehouses;
+            customCustomers.value = loadedCustomCustomers;
+            for (const cust of loadedCustomCustomers) {
+                if (expandedCustomer.value[cust.id] === undefined) {
+                    expandedCustomer.value[cust.id] = true;
                 }
             }
-        });
-        if (ticketsWithUpdatedCarrier.length > 0) {
-            WarehouseInventoryService.saveTicketsBulk(ticketsWithUpdatedCarrier).catch(console.warn);
+            if (selectedCustomCustomerId.value && !loadedCustomCustomers.some(c => c.id === selectedCustomCustomerId.value)) {
+                selectedCustomCustomerId.value = null;
+            }
+            hasInitialLoaded = true;
+
+            // Tự động đối soát và điền Nhà xe từ Danh mục xe cho các phiếu chưa có hoặc khuyết nhà xe
+            const ticketsWithUpdatedCarrier: WarehouseInventoryTicket[] = [];
+            allTickets.value.forEach(t => {
+                const rawCarrier = t.carrierName ? t.carrierName.trim() : '';
+                if (!rawCarrier || rawCarrier === '-' || rawCarrier === '0') {
+                    const lookedUp = lookupCarrierName(t.vehiclePlate, vehiclesMap.value);
+                    if (lookedUp) {
+                        t.carrierName = lookedUp;
+                        ticketsWithUpdatedCarrier.push(t);
+                    }
+                }
+            });
+            if (ticketsWithUpdatedCarrier.length > 0) {
+                WarehouseInventoryService.saveTicketsBulk(ticketsWithUpdatedCarrier).catch(console.warn);
+            }
+        } catch (err: any) {
+            console.error('Lỗi tải dữ liệu tồn kho:', err);
+            addToast('Không thể tải dữ liệu tồn kho: ' + (err?.message || err), 'error');
+        } finally {
+            isDataLoading = false;
+            activeLoadPromise = null;
+            loading.value = false;
+            void scrollTablesToBottom();
         }
-    } catch (err: any) {
-        console.error('Lỗi tải dữ liệu tồn kho:', err);
-        addToast('Không thể tải dữ liệu tồn kho: ' + (err?.message || err), 'error');
-    } finally {
-        isDataLoading = false;
-        loading.value = false;
-        void scrollTablesToBottom();
+    };
+    activeLoadPromise = run();
+    await activeLoadPromise;
+    if (pendingForceRefresh) {
+        pendingForceRefresh = false;
+        await loadAllData(silent, true);
     }
 }
 
@@ -353,12 +530,14 @@ const detailCurrentPage = ref(1);
 const detailPageSize = 100;
 
 watch(
-    [selectedWarehouseMode, activeSheetTab, isVisualMapOpen, detailFilterDate, detailSearchQuery, filterFromDate, filterToDate],
+    [selectedWarehouseMode, selectedCustomCustomerId, activeSheetTab, isVisualMapOpen, detailFilterDate, detailSearchQuery, filterFromDate, filterToDate],
     () => {
         detailCurrentPage.value = 1;
         void scrollTablesToBottom();
     }
 );
+
+const customCustomerNames = computed(() => customCustomers.value.map(c => c.customerName));
 
 // Computed FINAL tables for each warehouse
 const finalTablesByWarehouse = computed(() => {
@@ -366,7 +545,8 @@ const finalTablesByWarehouse = computed(() => {
         fromDate: filterFromDate.value || undefined,
         toDate: filterToDate.value || undefined,
         includeDirectForCustomer: showDirectColumnInSingleFinal.value,
-        allConfigs: configs.value
+        allConfigs: configs.value,
+        excludeCustomerNames: customCustomerNames.value
     };
     return {
         'KHO 1': computeWarehouseFinalTable('KHO 1', validTickets.value, configs.value['KHO 1']!, opts),
@@ -382,7 +562,31 @@ const finalTablesByWarehouse = computed(() => {
     };
 });
 
+const finalTablesByCustomCustomer = computed<Record<string, ReturnType<typeof computeWarehouseFinalTable>>>(() => {
+    const res: Record<string, ReturnType<typeof computeWarehouseFinalTable>> = {};
+    for (const cust of customCustomers.value) {
+        const cfg: WarehouseConfig = {
+            warehouseId: cust.warehouseId,
+            currentCustomer: cust.customerName,
+            initialStock: cust.initialStock,
+            initialDate: cust.initialDate,
+            dailyRemarks: cust.dailyRemarks || {}
+        };
+        res[cust.id] = computeWarehouseFinalTable(cust.warehouseId, validTickets.value, cfg, {
+            fromDate: filterFromDate.value || undefined,
+            toDate: filterToDate.value || undefined,
+            includeDirectForCustomer: showDirectColumnInSingleFinal.value,
+            allConfigs: configs.value,
+            customerFilter: cust.customerName
+        });
+    }
+    return res;
+});
+
 const activeFinalCalc = computed(() => {
+    if (selectedCustomCustomer.value) {
+        return finalTablesByCustomCustomer.value[selectedCustomCustomer.value.id]!;
+    }
     if (selectedWarehouseMode.value === 'KHO 4 - BK') {
         return finalTablesByWarehouse.value['KHO 4 - BK'];
     }
@@ -401,8 +605,28 @@ const filteredDetailTickets = computed(() => {
     const whId = activeSingleWarehouseId.value;
     const q = detailSearchQuery.value.trim().toLowerCase();
     const dFilter = detailFilterDate.value;
+    const activeCust = selectedCustomCustomer.value;
 
     let list = validTickets.value.filter(t => {
+        if (activeCust) {
+            if (!isTicketForCustomCustomer(t, activeCust.customerName)) return false;
+            if (activeSheetTab.value === 'IMPORT') {
+                return t.flowType === 'IMPORT' && t.warehouseId === activeCust.warehouseId;
+            }
+            if (activeSheetTab.value === 'EXPORT') {
+                return t.flowType === 'EXPORT' && t.warehouseId === activeCust.warehouseId;
+            }
+            if (activeSheetTab.value === 'DIRECT') {
+                return t.flowType === 'DIRECT';
+            }
+            return false;
+        }
+
+        // Built-in nodes must never include tickets belonging to custom customers
+        if (customCustomers.value.some(c => isTicketForCustomCustomer(t, c.customerName))) {
+            return false;
+        }
+
         if (activeSheetTab.value === 'IMPORT') {
             if (selectedWarehouseMode.value === 'KHO 4 - BK') {
                 return t.flowType === 'IMPORT' && t.warehouseId === 'KHO 4' && isBachKhoaTicket(t);
@@ -550,6 +774,62 @@ async function onFactoryKgChange(t: WarehouseInventoryTicket, e: Event) {
     await handleUpdateTicketField(t);
 }
 
+// Trigger CSV import (supports multiple CSV/Excel files at once)
+function triggerCsvImport() {
+    csvFileInput.value?.click();
+}
+
+async function handleCsvFilesSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    importingCsv.value = true;
+    try {
+        const activeCust = selectedCustomCustomer.value;
+        const summary = await WarehouseInventoryService.importWeighbridgeCsvFiles(
+            input.files,
+            activeCust
+                ? { customerFilter: activeCust.customerName, targetWarehouseId: activeCust.warehouseId }
+                : undefined
+        );
+        await loadAllData(false, true);
+
+        if (summary.errors.length > 0) {
+            const errPreview = summary.errors.slice(0, 2).join(' • ');
+            const extra = summary.errors.length > 2 ? ` (+${summary.errors.length - 2} lỗi khác)` : '';
+            addToast(`Lỗi nạp file CSV: ${errPreview}${extra}`, 'error');
+            return;
+        }
+
+        if (!activeCust && summary.warehousesUpdated.length > 0 && selectedWarehouseMode.value !== 'COMBINED_123') {
+            if (!summary.warehousesUpdated.includes(activeSingleWarehouseId.value)) {
+                selectedWarehouseMode.value = summary.warehousesUpdated[0]!;
+            }
+        }
+
+        const dupNote = summary.duplicateCount && summary.duplicateCount > 0
+            ? ` [Mới: ${summary.newCount ?? 0}, Trùng đã gộp: ${summary.duplicateCount}]`
+            : '';
+        const msgParts = [
+            `Đã nạp ${summary.importedCount} phiếu vào Tồn kho${dupNote} (Nhập kho: ${summary.importFlowCount}, Xuất kho: ${summary.exportFlowCount}, Đi thẳng: ${summary.directFlowCount})`
+        ];
+        if (summary.syncedToAllocatorCount > 0) {
+            msgParts.push(`Đã đồng bộ ${summary.syncedToAllocatorCount} phiếu vào Tab Phiếu Cân ở Dữ Liệu Cân Hàng`);
+            emit('synced-to-allocator', {
+                syncedTicketsCount: summary.syncedToAllocatorCount,
+                matchedBargesCount: 0
+            });
+        }
+        addToast(msgParts.join(' • '), 'success');
+    } catch (err: any) {
+        console.error('Lỗi nạp file CSV trạm cân:', err);
+        addToast('Lỗi nạp file CSV: ' + (err?.message || err), 'error');
+    } finally {
+        importingCsv.value = false;
+        input.value = '';
+    }
+}
+
 // Trigger Historical Excel Bootstrap
 function triggerHistoryExcelImport() {
     historyExcelFileInput.value?.click();
@@ -562,16 +842,33 @@ async function handleHistoryExcelSelected(e: Event) {
 
     importingHistoryExcel.value = true;
     try {
+        const activeCust = selectedCustomCustomer.value;
         const summary = await WarehouseInventoryService.importHistoricalExcelWorkbook(
             file,
-            activeWarehouseConfigKey.value
+            activeCust ? activeCust.warehouseId : activeWarehouseConfigKey.value,
+            activeCust
+                ? {
+                    customerFilter: activeCust.customerName,
+                    targetWarehouseId: activeCust.warehouseId,
+                    customCustomerId: activeCust.id
+                }
+                : undefined
         );
-        await loadAllData();
+        await loadAllData(false, true);
 
-        if (summary.warehousesUpdated.some(w => w === 'KHO 1' || w === 'KHO 2' || w === 'KHO 3') && summary.warehousesUpdated.length >= 2) {
-            selectedWarehouseMode.value = 'COMBINED_123';
-        } else if (summary.warehousesUpdated.length === 1) {
-            selectedWarehouseMode.value = summary.warehousesUpdated[0]!;
+        if (summary.errors.length > 0) {
+            const errPreview = summary.errors.slice(0, 2).join(' • ');
+            const extra = summary.errors.length > 2 ? ` (+${summary.errors.length - 2} lỗi khác)` : '';
+            addToast(`Lỗi nạp "${file.name}": ${errPreview}${extra}`, 'error');
+            return;
+        }
+
+        if (!activeCust) {
+            if (summary.warehousesUpdated.some(w => w === 'KHO 1' || w === 'KHO 2' || w === 'KHO 3') && summary.warehousesUpdated.length >= 2) {
+                selectedWarehouseMode.value = 'COMBINED_123';
+            } else if (summary.warehousesUpdated.length === 1) {
+                selectedWarehouseMode.value = summary.warehousesUpdated[0]!;
+            }
         }
 
         addToast(
@@ -594,7 +891,13 @@ async function handleClearCurrentWarehouse() {
         return;
     }
     try {
-        if (selectedWarehouseMode.value === 'COMBINED_123') {
+        const activeCust = selectedCustomCustomer.value;
+        if (activeCust) {
+            await WarehouseInventoryService.clearWarehouseTickets(activeCust.warehouseId, {
+                customerFilter: activeCust.customerName,
+                customCustomerId: activeCust.id
+            });
+        } else if (selectedWarehouseMode.value === 'COMBINED_123') {
             await WarehouseInventoryService.clearWarehouseTickets('GROUP_KHO123');
             await WarehouseInventoryService.clearWarehouseTickets('DIRECT_KHO123');
         } else if (selectedWarehouseMode.value === 'KHO 4 - BK') {
@@ -628,6 +931,14 @@ async function handleClearAllWarehouses() {
 
 // Save daily remark inline on FINAL table
 async function handleSaveDailyRemark(whId: ExtendedWarehouseId | WarehouseId, reportDate: string, newRemark: string) {
+    if (selectedCustomCustomer.value) {
+        const cust = selectedCustomCustomer.value;
+        if (!cust.dailyRemarks) cust.dailyRemarks = {};
+        cust.dailyRemarks[reportDate] = newRemark.trim();
+        await WarehouseInventoryService.saveCustomCustomer(cust);
+        addToast(`Đã lưu ghi chú ngày ${formatIsoToDmy(reportDate)} cho ${cust.customerName}`, 'success');
+        return;
+    }
     const cfg = configs.value[whId];
     if (!cfg) return;
     if (!cfg.dailyRemarks) cfg.dailyRemarks = {};
@@ -770,21 +1081,40 @@ async function handleBatchAssignVessel() {
 async function handleExportExcel() {
     exportingExcel.value = true;
     try {
+        const activeCust = selectedCustomCustomer.value;
+        const baseTickets = allTickets.value.map(t => ({
+            ...t,
+            carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers.value),
+            originWarehouseName: getStandardWarehouseDisplay(t.originWarehouseName, validWarehouses.value),
+            originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses.value)
+        }));
+        const scopedTickets = activeCust
+            ? baseTickets
+            : baseTickets.filter(t => !customCustomers.value.some(c => isTicketForCustomCustomer(t, c.customerName)));
+
         const opts = {
-            tickets: allTickets.value.map(t => ({
-                ...t,
-                carrierName: getStandardCarrierDisplay(t.carrierName, validCarriers.value),
-                originWarehouseName: getStandardWarehouseDisplay(t.originWarehouseName, validWarehouses.value),
-                originArea: getStandardAreaDisplay(t.originArea, t.originWarehouseName, validWarehouses.value)
-            })),
+            tickets: scopedTickets,
             fromDate: filterFromDate.value || undefined,
             toDate: filterToDate.value || undefined
         };
-        const { buffer, filename } = selectedWarehouseMode.value === 'KHO 4 - BK'
-            ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4 - BK', opts)
-            : (activeCustomerGroup.value === 'KHO_4'
-                ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', opts)
-                : await WarehouseInventoryService.exportCombined123WarehouseWorkbook(opts));
+
+        const { buffer, filename } = activeCust
+            ? await WarehouseInventoryService.exportSingleWarehouseWorkbook(activeCust.warehouseId, {
+                ...opts,
+                customerFilter: activeCust.customerName,
+                customConfig: {
+                    warehouseId: activeCust.warehouseId,
+                    currentCustomer: activeCust.customerName,
+                    initialStock: activeCust.initialStock,
+                    initialDate: activeCust.initialDate,
+                    dailyRemarks: activeCust.dailyRemarks || {}
+                }
+            })
+            : (selectedWarehouseMode.value === 'KHO 4 - BK'
+                ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4 - BK', opts)
+                : (activeCustomerGroup.value === 'KHO_4'
+                    ? await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', opts)
+                    : await WarehouseInventoryService.exportCombined123WarehouseWorkbook(opts)));
 
         const blob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -815,18 +1145,23 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
 
-    const isCombined = !overrideWarehouseId && selectedWarehouseMode.value === 'COMBINED_123';
-    const isBK = !overrideWarehouseId && selectedWarehouseMode.value === 'KHO 4 - BK';
-    const targetWarehouses: ExtendedWarehouseId[] = isCombined
-        ? ['KHO 1', 'KHO 2', 'KHO 3']
-        : [isBK ? 'KHO 4 - BK' : (overrideWarehouseId || activeWarehouseConfigKey.value)];
+    const activeCust = !overrideWarehouseId ? selectedCustomCustomer.value : null;
+    const isCombined = !overrideWarehouseId && !activeCust && selectedWarehouseMode.value === 'COMBINED_123';
+    const isBK = !overrideWarehouseId && !activeCust && selectedWarehouseMode.value === 'KHO 4 - BK';
+    const targetWarehouses: ExtendedWarehouseId[] = activeCust
+        ? [activeCust.warehouseId]
+        : (isCombined
+            ? ['KHO 1', 'KHO 2', 'KHO 3']
+            : [isBK ? 'KHO 4 - BK' : (overrideWarehouseId || activeWarehouseConfigKey.value)]);
 
     const getBlockColWidths = (_whId: string): number[] => {
         return [135, 130, 130, 135, 125];
     };
 
     const getRecentRows = (whId: string): WarehouseFinalRow[] => {
-        const allRows = (finalTablesByWarehouse.value as any)[whId]?.rows || [];
+        const allRows = activeCust
+            ? (finalTablesByCustomCustomer.value[activeCust.id]?.rows || [])
+            : ((finalTablesByWarehouse.value as any)[whId]?.rows || []);
         return allRows.slice(-3);
     };
 
@@ -877,8 +1212,18 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
         const colWidths = getBlockColWidths(whId);
         const blockW = blockWidths[bIdx]!;
         const startX = currentBlockStartX;
-        const cfg = configs.value[whId];
-        const calc = (finalTablesByWarehouse.value as any)[whId];
+        const cfg = activeCust
+            ? {
+                warehouseId: activeCust.warehouseId,
+                currentCustomer: activeCust.customerName,
+                initialStock: activeCust.initialStock,
+                initialDate: activeCust.initialDate,
+                dailyRemarks: activeCust.dailyRemarks || {}
+            }
+            : configs.value[whId];
+        const calc = activeCust
+            ? finalTablesByCustomCustomer.value[activeCust.id]
+            : (finalTablesByWarehouse.value as any)[whId];
         const recentRows = getRecentRows(whId);
 
         let curY = padY;
@@ -1100,6 +1445,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
     <div ref="rootContainer" class="w-full h-full flex flex-col gap-3.5 font-display text-[#1e293b] min-h-0 overflow-y-auto md:overflow-hidden pb-4 md:pb-0">
         <!-- Hidden File Inputs -->
         <input
+            ref="csvFileInput"
+            type="file"
+            multiple
+            accept=".csv,.xlsx,.xls"
+            class="hidden"
+            @change="handleCsvFilesSelected"
+        />
+        <input
             ref="historyExcelFileInput"
             type="file"
             accept=".xlsx,.xls"
@@ -1127,14 +1480,25 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <span>Sơ đồ kho</span>
                 </button>
 
+                <!-- Thêm khách hàng (DESIGN.md Secondary Outline) -->
+                <button
+                    type="button"
+                    @click="openAddCustomCustomerModal"
+                    class="w-full px-3 py-2 bg-white border border-primary/15 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    title="Thêm khách hàng mới theo kho (Kho 1, 2, 3, 4)"
+                >
+                    <span class="material-symbols-outlined text-base">person_add</span>
+                    <span>Thêm khách hàng</span>
+                </button>
+
                 <!-- Tree Group 1: EASTWOOD (Kho 4) -->
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Overview / FINAL Kho 4) -->
                     <div
-                        @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4'; activeSheetTab = 'FINAL'"
+                        @click="selectBuiltInMode('KHO 4', 'FINAL')"
                         :class="[
                             'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
-                            !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
+                            !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
                                 ? 'bg-primary text-white shadow-sm font-black'
                                 : 'hover:bg-slate-100/70 text-[#1e293b]'
                         ]"
@@ -1142,7 +1506,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span
                                 class="material-symbols-outlined text-base shrink-0"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
                             >
                                 corporate_fare
                             </span>
@@ -1155,7 +1519,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     @click.stop="openEditCustomerModal('KHO_4')"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
-                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
+                                        !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL'
                                             ? 'bg-white/20 hover:bg-white/30 text-white'
                                             : 'bg-primary/10 hover:bg-primary/20 text-primary'
                                     ]"
@@ -1168,7 +1532,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <div class="flex items-center gap-1 shrink-0">
                             <span
                                 class="text-xs font-mono font-black"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
                             </span>
@@ -1181,7 +1545,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     class="material-symbols-outlined text-sm transition-transform"
                                     :class="[
                                         {'rotate-180': expandedCustomer['EASTWOOD']},
-                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
+                                        !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
                                     ]"
                                 >
                                     expand_more
@@ -1193,10 +1557,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <!-- Child Warehouses of EASTWOOD: Kho 4 with subdirectory_arrow_right -->
                     <div v-if="expandedCustomer['EASTWOOD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
                         <button
-                            @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4'"
+                            @click="selectBuiltInMode('KHO 4')"
                             :class="[
                                 'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
-                                !isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
+                                !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
@@ -1207,7 +1571,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </span>
                             <span
                                 class="text-xs font-mono font-black shrink-0"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
                             </span>
@@ -1219,10 +1583,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Overview / FINAL Kho 4 - Bách Khoa) -->
                     <div
-                        @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4 - BK'; activeSheetTab = 'FINAL'"
+                        @click="selectBuiltInMode('KHO 4 - BK', 'FINAL')"
                         :class="[
                             'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
-                            !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL'
+                            !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL'
                                 ? 'bg-primary text-white shadow-sm font-black'
                                 : 'hover:bg-slate-100/70 text-[#1e293b]'
                         ]"
@@ -1230,7 +1594,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span
                                 class="material-symbols-outlined text-base shrink-0"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
                             >
                                 school
                             </span>
@@ -1243,7 +1607,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     @click.stop="openEditCustomerModal('KHO_4_BK')"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
-                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL'
+                                        !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL'
                                             ? 'bg-white/20 hover:bg-white/30 text-white'
                                             : 'bg-primary/10 hover:bg-primary/20 text-primary'
                                     ]"
@@ -1256,7 +1620,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <div class="flex items-center gap-1 shrink-0">
                             <span
                                 class="text-xs font-mono font-black"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4 - BK']?.closingStockTons || 0) }} T
                             </span>
@@ -1269,7 +1633,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     class="material-symbols-outlined text-sm transition-transform"
                                     :class="[
                                         {'rotate-180': expandedCustomer['BACH_KHOA']},
-                                        !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
+                                        !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
                                     ]"
                                 >
                                     expand_more
@@ -1281,10 +1645,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <!-- Child Warehouses of BÁCH KHOA: Kho 4 with subdirectory_arrow_right -->
                     <div v-if="expandedCustomer['BACH_KHOA']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
                         <button
-                            @click="isVisualMapOpen = false; selectedWarehouseMode = 'KHO 4 - BK'"
+                            @click="selectBuiltInMode('KHO 4 - BK')"
                             :class="[
                                 'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
-                                !isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab !== 'FINAL'
+                                !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab !== 'FINAL'
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
@@ -1295,7 +1659,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </span>
                             <span
                                 class="text-xs font-mono font-black shrink-0"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4 - BK' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4 - BK']?.closingStockTons || 0) }} T
                             </span>
@@ -1307,10 +1671,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 <div class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50">
                     <!-- Customer Node Header (Click to view Combined overview Kho 1-2-3) -->
                     <div
-                        @click="isVisualMapOpen = false; selectedWarehouseMode = 'COMBINED_123'; activeSheetTab = 'FINAL'"
+                        @click="selectBuiltInMode('COMBINED_123', 'FINAL')"
                         :class="[
                             'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
-                            !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123'
+                            !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'COMBINED_123'
                                 ? 'bg-primary text-white shadow-sm font-black'
                                 : 'hover:bg-slate-100/70 text-[#1e293b]'
                         ]"
@@ -1318,7 +1682,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span
                                 class="material-symbols-outlined text-base shrink-0"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-primary'"
                             >
                                 apartment
                             </span>
@@ -1331,7 +1695,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     @click.stop="openEditCustomerModal('KHO_123')"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
-                                        !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123'
+                                        !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'COMBINED_123'
                                             ? 'bg-white/20 hover:bg-white/30 text-white'
                                             : 'bg-primary/10 hover:bg-primary/20 text-primary'
                                     ]"
@@ -1344,7 +1708,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <div class="flex items-center gap-1 shrink-0">
                             <span
                                 class="text-xs font-mono font-black"
-                                :class="!isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-primary'"
+                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'COMBINED_123' ? 'text-white' : 'text-primary'"
                             >
                                 {{
                                     formatTons(
@@ -1363,7 +1727,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     class="material-symbols-outlined text-sm transition-transform"
                                     :class="[
                                         {'rotate-180': expandedCustomer['GBD']},
-                                        !isVisualMapOpen && selectedWarehouseMode === 'COMBINED_123' ? 'text-white/80' : 'text-slate-400'
+                                        !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'COMBINED_123' ? 'text-white/80' : 'text-slate-400'
                                     ]"
                                 >
                                     expand_more
@@ -1378,10 +1742,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <button
                             v-for="whId in (['KHO 1', 'KHO 2', 'KHO 3'] as WarehouseId[])"
                             :key="whId"
-                            @click="isVisualMapOpen = false; selectedWarehouseMode = whId"
+                            @click="selectBuiltInMode(whId)"
                             :class="[
                                 'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
-                                !isVisualMapOpen && selectedWarehouseMode === whId
+                                !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === whId
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
@@ -1390,8 +1754,109 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <span class="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
                                 <span>{{ whId }}</span>
                             </span>
-                            <span class="text-xs font-mono font-black shrink-0" :class="!isVisualMapOpen && selectedWarehouseMode === whId ? 'text-white' : 'text-slate-600'">
+                            <span class="text-xs font-mono font-black shrink-0" :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === whId ? 'text-white' : 'text-slate-600'">
                                 {{ formatTons(finalTablesByWarehouse[whId].closingStockTons) }} T
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dynamic Custom Customer Tree Groups -->
+                <div
+                    v-for="cust in customCustomers"
+                    :key="cust.id"
+                    class="border rounded-2xl overflow-hidden border-slate-200/80 bg-slate-50/50"
+                >
+                    <div
+                        @click="selectCustomCustomer(cust, 'FINAL')"
+                        :class="[
+                            'p-2.5 flex items-center justify-between cursor-pointer select-none transition-all',
+                            !isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab === 'FINAL'
+                                ? 'bg-primary text-white shadow-sm font-black'
+                                : 'hover:bg-slate-100/70 text-[#1e293b]'
+                        ]"
+                    >
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span
+                                class="material-symbols-outlined text-base shrink-0"
+                                :class="!isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                            >
+                                storefront
+                            </span>
+                            <div class="min-w-0 flex items-center gap-1">
+                                <span class="text-xs font-black truncate max-w-[82px]" :title="cust.customerName">
+                                    {{ cust.customerName }}
+                                </span>
+                                <button
+                                    @click.stop="openEditCustomCustomerModal(cust)"
+                                    :class="[
+                                        'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
+                                        !isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab === 'FINAL'
+                                            ? 'bg-white/20 hover:bg-white/30 text-white'
+                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                    ]"
+                                    title="Sửa thông tin khách hàng"
+                                >
+                                    <span class="material-symbols-outlined text-xs">edit</span>
+                                </button>
+                                <button
+                                    @click.stop="handleDeleteCustomCustomer(cust)"
+                                    :class="[
+                                        'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
+                                        !isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab === 'FINAL'
+                                            ? 'bg-white/20 hover:bg-rose-500 text-white'
+                                            : 'bg-rose-50 hover:bg-rose-100 text-rose-600'
+                                    ]"
+                                    title="Xóa khách hàng"
+                                >
+                                    <span class="material-symbols-outlined text-xs">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span
+                                class="text-xs font-mono font-black"
+                                :class="!isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab === 'FINAL' ? 'text-white' : 'text-primary'"
+                            >
+                                {{ formatTons(finalTablesByCustomCustomer[cust.id]?.closingStockTons || 0) }} T
+                            </span>
+                            <button
+                                @click.stop="expandedCustomer[cust.id] = !expandedCustomer[cust.id]"
+                                class="size-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/10 transition-all active:scale-95"
+                                title="Đóng/mở nhánh"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-sm transition-transform"
+                                    :class="[
+                                        {'rotate-180': expandedCustomer[cust.id]},
+                                        !isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab === 'FINAL' ? 'text-white/80' : 'text-slate-400'
+                                    ]"
+                                >
+                                    expand_more
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="expandedCustomer[cust.id]" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
+                        <button
+                            @click="selectCustomCustomer(cust)"
+                            :class="[
+                                'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
+                                !isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab !== 'FINAL'
+                                    ? 'bg-primary text-white font-black shadow-sm'
+                                    : 'hover:bg-slate-50 text-slate-700 font-bold'
+                            ]"
+                        >
+                            <span class="flex items-center gap-1.5 text-xs truncate">
+                                <span class="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
+                                <span>{{ cust.warehouseId }}</span>
+                            </span>
+                            <span
+                                class="text-xs font-mono font-black shrink-0"
+                                :class="!isVisualMapOpen && selectedCustomCustomerId === cust.id && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                            >
+                                {{ formatTons(finalTablesByCustomCustomer[cust.id]?.closingStockTons || 0) }} T
                             </span>
                         </button>
                     </div>
@@ -1416,16 +1881,26 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 >
                     <div class="flex items-center gap-2">
                         <div class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
-                            <span>{{ selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : (selectedWarehouseMode === 'KHO 4 - BK' ? 'KHO 4 (BÁCH KHOA)' : activeSingleWarehouseId) }}</span>
+                            <span>{{ selectedCustomCustomer ? selectedCustomCustomer.warehouseId : (selectedWarehouseMode === 'COMBINED_123' ? 'GỘP KHO 1-2-3' : (selectedWarehouseMode === 'KHO 4 - BK' ? 'KHO 4 (BÁCH KHOA)' : activeSingleWarehouseId)) }}</span>
                             <span class="text-primary">
                                 ({{
-                                    selectedWarehouseMode === 'COMBINED_123'
-                                        ? (configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH')
-                                        : (configs[activeWarehouseConfigKey]?.currentCustomer || 'Chưa gán')
+                                    selectedCustomCustomer
+                                        ? selectedCustomCustomer.customerName
+                                        : (selectedWarehouseMode === 'COMBINED_123'
+                                            ? (configs['KHO 1']?.currentCustomer || 'GỖ BÌNH ĐỊNH')
+                                            : (configs[activeWarehouseConfigKey]?.currentCustomer || 'Chưa gán'))
                                 }})
                             </span>
                             <button
-                                v-if="selectedWarehouseMode !== 'COMBINED_123'"
+                                v-if="selectedCustomCustomer"
+                                @click="openEditCustomCustomerModal(selectedCustomCustomer)"
+                                class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                                title="Sửa Tồn đầu kỳ & Tên khách hàng"
+                            >
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button
+                                v-else-if="selectedWarehouseMode !== 'COMBINED_123'"
                                 @click="openEditConfigModal(activeWarehouseConfigKey)"
                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                 title="Sửa Tồn đầu kỳ & Tên khách hàng"
@@ -1503,6 +1978,16 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
+                        <button
+                            @click="triggerCsvImport"
+                            :disabled="importingCsv"
+                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Chọn 1 hoặc nhiều file CSV/Excel từ trạm cân (Nhập + Xuất)"
+                        >
+                            <span class="material-symbols-outlined text-[14px]">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
+                            <span>{{ importingCsv ? 'Đang nạp CSV...' : 'Nạp CSV Trạm Cân' }}</span>
+                        </button>
+
                         <button
                             @click="triggerHistoryExcelImport"
                             :disabled="importingHistoryExcel"
@@ -1851,11 +2336,11 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <tbody class="divide-y divide-slate-200">
                         <!-- Opening Stock Row (shown only if openingStockBeforeFilter != 0 and not already represented as the first date row) -->
                         <tr
-                            v-if="activeFinalCalc.openingStockBeforeFilter !== 0 && configs[activeWarehouseConfigKey]?.initialDate !== activeFinalCalc.rows[0]?.reportDate"
+                            v-if="activeFinalCalc.openingStockBeforeFilter !== 0 && activeDisplayConfig?.initialDate !== activeFinalCalc.rows[0]?.reportDate"
                             class="bg-slate-50 font-black"
                         >
                             <td class="py-2 px-3 text-center text-slate-700 border-r border-slate-200">
-                                {{ configs[activeWarehouseConfigKey]?.initialDate ? formatIsoToDmy(configs[activeWarehouseConfigKey].initialDate) : 'Tồn đầu' }}
+                                {{ activeDisplayConfig?.initialDate ? formatIsoToDmy(activeDisplayConfig.initialDate) : 'Tồn đầu' }}
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-primary border-r border-slate-200">
                                 {{ formatKg(activeFinalCalc.openingStockBeforeFilter) }}
@@ -1866,7 +2351,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </td>
                             <td v-if="showDirectColumnInSingleFinal && activeCustomerGroup !== 'KHO_123'" class="py-2 px-3 text-right text-slate-400 border-r border-slate-200">-</td>
                             <td class="py-2 px-3 text-slate-500 italic">
-                                {{ configs[activeWarehouseConfigKey]?.initialDate ? `Tồn kho đến ${formatIsoToDmy(configs[activeWarehouseConfigKey].initialDate)} (Theo báo cáo)` : 'Tồn đầu kỳ lũy kế' }}
+                                {{ activeDisplayConfig?.initialDate ? `Tồn kho đến ${formatIsoToDmy(activeDisplayConfig.initialDate)} (Theo báo cáo)` : 'Tồn đầu kỳ lũy kế' }}
                             </td>
                         </tr>
 
@@ -1879,7 +2364,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 {{ row.displayDate }}
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-primary border-r border-slate-200">
-                                <template v-if="idx === 0 && activeFinalCalc.openingStockBeforeFilter > 0 && configs[activeWarehouseConfigKey]?.initialDate === row.reportDate">
+                                <template v-if="idx === 0 && activeFinalCalc.openingStockBeforeFilter > 0 && activeDisplayConfig?.initialDate === row.reportDate">
                                     {{ formatKg(row.importTons + activeFinalCalc.openingStockBeforeFilter) }}
                                 </template>
                                 <template v-else>
@@ -1908,7 +2393,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                         <tr v-if="activeFinalCalc.rows.length === 0">
                             <td :colspan="(showDirectColumnInSingleFinal && activeCustomerGroup !== 'KHO_123') ? 6 : 5" class="py-12 text-center text-slate-400 font-semibold">
-                                Chưa có dữ liệu phát sinh cho {{ selectedWarehouseMode === 'KHO 4 - BK' ? 'Kho 4 (Bách Khoa)' : activeSingleWarehouseId }}. Hãy bấm <b>"Nạp CSV Trạm Cân"</b> hoặc <b>"Nạp từ Excel Tồn Kho Đang Dùng"</b> ở góc trên!
+                                Chưa có dữ liệu phát sinh cho {{ selectedCustomCustomer ? `${selectedCustomCustomer.warehouseId} (${selectedCustomCustomer.customerName})` : (selectedWarehouseMode === 'KHO 4 - BK' ? 'Kho 4 (Bách Khoa)' : activeSingleWarehouseId) }}. Hãy bấm <b>"Nạp CSV Trạm Cân"</b> hoặc <b>"Nạp từ Excel Tồn Kho Đang Dùng"</b> ở góc trên!
                             </td>
                         </tr>
                     </tbody>
@@ -2904,6 +3389,97 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
                     >
                         Lưu Tên Khách Hàng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add / Edit Custom Customer -->
+        <div
+            v-if="showCustomCustomerModal"
+            class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+            <div class="bg-white rounded-[2rem] p-6 w-full max-w-md border border-primary/10 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-display font-black text-[#1e293b]">
+                        {{ customCustomerForm.id ? 'Chỉnh Sửa Khách Hàng' : 'Thêm Khách Hàng Mới' }}
+                    </h3>
+                    <button
+                        type="button"
+                        @click="showCustomCustomerModal = false"
+                        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-col gap-3 text-xs font-bold">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-slate-600">Tên Khách Hàng</label>
+                        <input
+                            v-model="customCustomerForm.customerName"
+                            type="text"
+                            placeholder="VD: ĐẠI NAM, HƯNG THỊNH..."
+                            @keydown.enter="saveCustomCustomerModal"
+                            class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-primary"
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-slate-600">Thuộc Kho</label>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <button
+                                v-for="wh in (['KHO 1', 'KHO 2', 'KHO 3', 'KHO 4'] as WarehouseId[])"
+                                :key="wh"
+                                type="button"
+                                @click="customCustomerForm.warehouseId = wh"
+                                :class="[
+                                    'py-2 rounded-2xl text-xs font-bold border transition-all cursor-pointer active:scale-95',
+                                    customCustomerForm.warehouseId === wh
+                                        ? 'bg-primary text-white border-primary shadow-sm'
+                                        : 'bg-[#f1f5f9] text-slate-600 border-slate-200 hover:border-primary/40'
+                                ]"
+                            >
+                                {{ wh }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-slate-600">Số Dư Tồn Đầu Kỳ (Đơn vị: Tấn)</label>
+                        <input
+                            v-model.number="customCustomerForm.initialStock"
+                            type="number"
+                            step="0.01"
+                            class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-mono font-bold outline-none focus:border-primary"
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-slate-600">Ngày Chốt Tồn Đầu (Tùy chọn)</label>
+                        <input
+                            v-model="customCustomerForm.initialDate"
+                            type="date"
+                            class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-primary"
+                        />
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="button"
+                        @click="showCustomCustomerModal = false"
+                        class="px-4 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm cursor-pointer"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        type="button"
+                        :disabled="savingCustomCustomer"
+                        @click="saveCustomCustomerModal"
+                        class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer disabled:opacity-50"
+                    >
+                        {{ savingCustomCustomer ? 'Đang lưu...' : (customCustomerForm.id ? 'Lưu Thay Đổi' : 'Thêm Khách Hàng') }}
                     </button>
                 </div>
             </div>

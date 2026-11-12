@@ -166,6 +166,17 @@ export interface WarehouseConfig {
     updatedAt?: string;
 }
 
+export interface CustomWarehouseCustomer {
+    id: string;
+    customerName: string;
+    warehouseId: WarehouseId;
+    initialStock: number;
+    initialDate: string;
+    dailyRemarks: Record<string, string>;
+    createdAt: string;
+    updatedAt?: string;
+}
+
 export interface WarehouseVehicleMap {
     vehiclePlate: string; // Normalized key (uppercase alphanumeric)
     displayPlate: string; // Display plate (e.g. 50H-235.64)
@@ -201,6 +212,7 @@ export interface WarehouseImportSummary {
     vehiclesLearnedCount: number;
     warehousesUpdated: ExtendedWarehouseId[];
     errors: string[];
+    warnings?: string[];
 }
 
 export interface WarehouseMapVertex {

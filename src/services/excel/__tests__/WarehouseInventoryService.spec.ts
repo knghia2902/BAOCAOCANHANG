@@ -52,7 +52,8 @@ import {
     getStandardWarehouseDisplay,
     getStandardAreaDisplay,
     normalizePlateKey,
-    lookupCarrierName
+    lookupCarrierName,
+    LEGACY_XLS_UNSUPPORTED_ERROR
 } from '../WarehouseInventoryService';
 import type { WarehouseConfig, WarehouseInventoryTicket } from '@/types/excel';
 
@@ -1701,6 +1702,232 @@ describe('WarehouseInventoryService', () => {
             expect(ewShared?.customerName).toBe('CÔNG TY CP EASTWOOD ENERGY');
             const bkShared = all.find(t => t.id === 'IMPORT_KHO 4_SHARED01_2026-03-14_08:05:00_BK');
             expect(bkShared?.customerName).toBe('BÁCH KHOA');
+        });
+    });
+
+    describe('Import Hardening, Error Surfacing & Dynamic Custom Customers', () => {
+        beforeEach(() => {
+            mockStore.clear();
+            vi.restoreAllMocks();
+        });
+
+        it('deduplicates saveVehiclesBulk by normalized vehicle_plate before Supabase upsert and surfaces non-missing-table errors', async () => {
+            const upsertSpy = vi.fn().mockResolvedValue({ data: [], error: null });
+            vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+                if (table === 'warehouse_vehicles') {
+                    return { upsert: upsertSpy } as any;
+                }
+                return {
+                    select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { settings: {} }, error: null }) }) })
+                } as any;
+            });
+
+            const count = await WarehouseInventoryService.saveVehiclesBulk([
+                { vehiclePlate: '50H-123.45', displayPlate: '50H-123.45', carrierName: 'NHA XE A' },
+                { vehiclePlate: '50H 12345', displayPlate: '50H-123.45', carrierName: 'NHA XE B' },
+                { vehiclePlate: '77C-999.00', displayPlate: '77C-999.00', carrierName: 'NHA XE C' }
+            ]);
+
+            expect(count).toBe(2);
+            expect(upsertSpy).toHaveBeenCalledTimes(1);
+            const sentRows = upsertSpy.mock.calls[0]![0];
+            expect(sentRows).toHaveLength(2);
+            expect(sentRows.find((r: any) => r.vehicle_plate === '50H12345')?.carrier_name).toBe('NHA XE B');
+
+            // Surface non-missing-table error
+            upsertSpy.mockResolvedValueOnce({
+                data: null,
+                error: { code: '42501', message: 'permission denied for table warehouse_vehicles' }
+            });
+            await expect(
+                WarehouseInventoryService.saveVehiclesBulk([
+                    { vehiclePlate: '50H-123.45', displayPlate: '50H-123.45', carrierName: 'NHA XE A' }
+                ])
+            ).rejects.toThrow(/permission denied/i);
+        });
+
+        it('unescapes doubled quotes ("") in parseWeighbridgeCsvText and returns clear Vietnamese error on binary .xls', async () => {
+            const csv = [
+                'So phieu,So xe,Khach hang,KL hang,Ngay can 2,Gio can 2,Xuat/Nhap,Ghi chu',
+                'P001,50H-123.45,"CONG TY ""ABC"" CO., LTD",30.5,20/10/2026,08:00:00,Nhap kho,"Ghi chu ""dac biet"""'
+            ].join('\n');
+
+            const rows = WarehouseInventoryService.parseWeighbridgeCsvText(csv);
+            expect(rows).toHaveLength(1);
+            expect(rows[0]!.khachHang).toBe('CONG TY "ABC" CO., LTD');
+            expect(rows[0]!.ghiChu).toBe('Ghi chu "dac biet"');
+
+            const ole2Header = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+            const xlsFile = {
+                name: 'legacy_report.xls',
+                arrayBuffer: async () => ole2Header.buffer
+            } as unknown as File;
+
+            const summary = await WarehouseInventoryService.importHistoricalExcelWorkbook(xlsFile);
+            expect(summary.errors).toContain(LEGACY_XLS_UNSUPPORTED_ERROR);
+        });
+
+        it('surfaces Supabase upsert errors in importWeighbridgeCsvFiles summary.errors and handles 23514 CHECK constraint gracefully in saveConfigsBulk', async () => {
+            const csv = [
+                'So phieu,So xe,Khach hang,Loai hang,KL hang,Ngay can 2,Gio can 2,Xuat/Nhap,Loai salan,Tai xe',
+                'P100,50H-555.55,EASTWOOD,VIEN NEN GO,32.0,20/10/2026,09:00:00,Nhap,KHO 4,NHA MAY A'
+            ].join('\n');
+            const csvFile = {
+                name: 'can_hang.csv',
+                arrayBuffer: async () => new TextEncoder().encode(csv).buffer
+            } as unknown as File;
+
+            const defaultChain: any = {
+                select: () => defaultChain,
+                eq: () => defaultChain,
+                in: () => Promise.resolve({ data: [], error: null }),
+                neq: () => Promise.resolve({ data: [], error: null }),
+                order: () => defaultChain,
+                range: () => Promise.resolve({ data: [], error: null }),
+                single: () => Promise.resolve({ data: { settings: {} }, error: null }),
+                upsert: () => Promise.resolve({ data: [], error: null }),
+                update: () => defaultChain,
+                delete: () => defaultChain,
+                then: (resolve: any) => resolve({ data: [], error: null })
+            };
+
+            vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+                if (table === 'warehouse_inventory_tickets') {
+                    return {
+                        ...defaultChain,
+                        upsert: () => Promise.resolve({ data: null, error: { code: '42501', message: 'RLS violation on tickets' } })
+                    } as any;
+                }
+                if (table === 'warehouse_configs') {
+                    return {
+                        ...defaultChain,
+                        upsert: (rows: any[]) => {
+                            if (rows.some((r: any) => r.warehouse_id === 'KHO 4 - BK')) {
+                                return Promise.resolve({
+                                    data: null,
+                                    error: { code: '23514', message: 'new row violates check constraint "warehouse_configs_warehouse_id_check"' }
+                                });
+                            }
+                            return Promise.resolve({ data: [], error: null });
+                        }
+                    } as any;
+                }
+                return defaultChain;
+            });
+
+            const summary = await WarehouseInventoryService.importWeighbridgeCsvFiles([csvFile]);
+            expect(summary.errors.some(e => e.includes('RLS violation on tickets'))).toBe(true);
+
+            // saveConfigsBulk should save KHO 4 and warn on KHO 4 - BK 23514 without failing the whole batch
+            const errorsOut: string[] = [];
+            const warningsOut: string[] = [];
+            const ok = await WarehouseInventoryService.saveConfigsBulk(
+                [
+                    { warehouseId: 'KHO 4', initialStock: 100, initialDate: '2026-10-01', currentCustomer: 'EASTWOOD', dailyRemarks: {} },
+                    { warehouseId: 'KHO 4 - BK', initialStock: 50, initialDate: '2026-10-01', currentCustomer: 'BÁCH KHOA', dailyRemarks: {} }
+                ],
+                errorsOut,
+                warningsOut
+            );
+            expect(ok).toBe(true);
+            expect(errorsOut).toHaveLength(0);
+            expect(warningsOut.length).toBeGreaterThan(0);
+        });
+
+        it('isolates dynamic CustomWarehouseCustomer CRUD, FINAL calculation, import, clear, and export from built-in customers', async () => {
+            const cust = await WarehouseInventoryService.saveCustomCustomer({
+                customerName: 'CÔNG TY GỖ MỚI',
+                warehouseId: 'KHO 2',
+                initialStock: 100,
+                initialDate: '2026-10-01',
+                dailyRemarks: { '2026-10-20': 'Nhập khách mới' }
+            });
+            expect(cust.id).toBeTruthy();
+
+            const list = await WarehouseInventoryService.getCustomCustomers(true);
+            expect(list).toHaveLength(1);
+            expect(list[0]!.customerName).toBe('CÔNG TY GỖ MỚI');
+
+            const tickets: WarehouseInventoryTicket[] = [
+                {
+                    id: 'T_GBD_1',
+                    soPhieu: 'GBD01',
+                    reportDate: '2026-10-20',
+                    weighOutDate: '2026-10-20',
+                    weighOutTime: '08:00:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 2',
+                    customerName: 'GỖ BÌNH ĐỊNH',
+                    cargoType: 'Viên nén',
+                    vehiclePlate: '77C11111',
+                    carrierName: '',
+                    grossWeight: 40,
+                    tareWeight: 10,
+                    netWeight: 30
+                },
+                {
+                    id: 'T_CUSTOM_1',
+                    soPhieu: 'NEW01',
+                    reportDate: '2026-10-20',
+                    weighOutDate: '2026-10-20',
+                    weighOutTime: '09:00:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 2',
+                    customerName: 'CÔNG TY GỖ MỚI',
+                    cargoType: 'Viên nén',
+                    vehiclePlate: '77C22222',
+                    carrierName: '',
+                    grossWeight: 55,
+                    tareWeight: 15,
+                    netWeight: 40
+                }
+            ];
+            await WarehouseInventoryService.saveTicketsBulk(tickets);
+
+            // Built-in KHO 2 (GỖ BÌNH ĐỊNH) excludes custom customer when excludeCustomerNames is passed
+            const gbdFinal = WarehouseInventoryService.computeWarehouseFinalTable(
+                'KHO 2',
+                tickets,
+                { warehouseId: 'KHO 2', initialStock: 0, initialDate: '', currentCustomer: 'GỖ BÌNH ĐỊNH', dailyRemarks: {} },
+                { excludeCustomerNames: ['CÔNG TY GỖ MỚI'] }
+            );
+            expect(gbdFinal.totalImportTons).toBe(30);
+            expect(gbdFinal.closingStockTons).toBe(30);
+
+            // Custom customer FINAL is 100% isolated (100 opening + 40 import = 140)
+            const custFinal = WarehouseInventoryService.computeWarehouseFinalTable(
+                'KHO 2',
+                tickets,
+                {
+                    warehouseId: 'KHO 2',
+                    initialStock: cust.initialStock,
+                    initialDate: cust.initialDate,
+                    currentCustomer: cust.customerName,
+                    dailyRemarks: cust.dailyRemarks
+                },
+                { customerFilter: cust.customerName }
+            );
+            expect(custFinal.totalImportTons).toBe(40);
+            expect(custFinal.closingStockTons).toBe(140);
+
+            // Export isolated single-warehouse workbook for custom customer at KHO 2
+            const exported = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 2', {
+                tickets,
+                customerFilter: cust.customerName
+            });
+            expect(exported.buffer.byteLength).toBeGreaterThan(0);
+            expect(exported.filename).toContain('CONG_TY_GO_MOI');
+
+            // Clear only custom customer tickets without touching GỖ BÌNH ĐỊNH
+            await WarehouseInventoryService.clearWarehouseTickets('KHO 2', {
+                customerFilter: cust.customerName,
+                customCustomerId: cust.id
+            });
+            const remaining = await WarehouseInventoryService.getAllTickets(true);
+            expect(remaining.map(t => t.id)).toEqual(['T_GBD_1']);
+
+            await WarehouseInventoryService.deleteCustomCustomer(cust.id);
+            expect(await WarehouseInventoryService.getCustomCustomers(true)).toHaveLength(0);
         });
     });
 });
