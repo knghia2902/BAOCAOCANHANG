@@ -2151,10 +2151,18 @@ export const WarehouseInventoryService = {
         return saved;
     },
 
-    async deleteCustomCustomer(id: string): Promise<boolean> {
+    async deleteCustomCustomer(id: string, customerName?: string, warehouseId?: WarehouseId): Promise<boolean> {
         customCustomersMemoryCache = null;
+        SettingsService.invalidateCache();
         const current = await this.getCustomCustomers(true);
-        const filtered = current.filter(c => c.id !== id);
+        const normName = customerName ? normalizeCustomerKey(customerName) : '';
+        const filtered = current.filter(c => {
+            if (c.id === id) return false;
+            if (normName && normalizeCustomerKey(c.customerName) === normName && (!warehouseId || c.warehouseId === warehouseId)) {
+                return false;
+            }
+            return true;
+        });
         await dbContext.set(LOCAL_CUSTOM_CUSTOMERS_KEY, filtered);
         if (!isInventoryTestEnv) {
             customCustomersMemoryCache = { data: filtered, timestamp: Date.now() };
@@ -2162,6 +2170,7 @@ export const WarehouseInventoryService = {
 
         try {
             await SettingsService.updateSettings({ warehouse_custom_customers: filtered });
+            SettingsService.invalidateCache();
         } catch (err) {
             console.warn('deleteCustomCustomer SettingsService fallback:', err);
         }
@@ -2886,7 +2895,7 @@ export const WarehouseInventoryService = {
 
     async clearWarehouseTickets(
         target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123',
-        options?: { customerFilter?: string; customCustomerId?: string }
+        options?: { customerFilter?: string; customCustomerId?: string; isDeletingCustomer?: boolean }
     ): Promise<boolean> {
         ticketsMemoryCache = null;
         configsMemoryCache = null;
@@ -2977,7 +2986,7 @@ export const WarehouseInventoryService = {
                 (options.customCustomerId && c.id === options.customCustomerId) ||
                 (c.warehouseId === target && normalizeCustomerKey(c.customerName) === normalizeCustomerKey(custFilter))
             );
-            if (targetCust) {
+            if (targetCust && !options.isDeletingCustomer) {
                 await this.saveCustomCustomer({
                     ...targetCust,
                     initialStock: 0,

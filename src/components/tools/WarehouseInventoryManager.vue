@@ -13,7 +13,8 @@ import {
     getStandardAreaDisplay,
     stripAccents,
     lookupCarrierName,
-    isTicketForCustomCustomer
+    isTicketForCustomCustomer,
+    normalizeCustomerKey
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -294,10 +295,13 @@ async function handleDeleteCustomCustomer(cust: CustomWarehouseCustomer) {
     try {
         await WarehouseInventoryService.clearWarehouseTickets(cust.warehouseId, {
             customerFilter: cust.customerName,
-            customCustomerId: cust.id
+            customCustomerId: cust.id,
+            isDeletingCustomer: true
         });
-        await WarehouseInventoryService.deleteCustomCustomer(cust.id);
-        customCustomers.value = customCustomers.value.filter(c => c.id !== cust.id);
+        await WarehouseInventoryService.deleteCustomCustomer(cust.id, cust.customerName, cust.warehouseId);
+        customCustomers.value = customCustomers.value.filter(
+            c => c.id !== cust.id && normalizeCustomerKey(c.customerName) !== normalizeCustomerKey(cust.customerName)
+        );
         delete expandedCustomer.value[cust.id];
         if (selectedCustomCustomerId.value === cust.id) {
             selectedCustomCustomerId.value = null;
