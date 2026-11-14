@@ -46,6 +46,7 @@ const capturingZaloImage = ref(false);
 
 const allTickets = ref<WarehouseInventoryTicket[]>([]);
 const customCustomers = ref<CustomWarehouseCustomer[]>([]);
+const customerCatalogOptions = ref<string[]>([]);
 const selectedCustomCustomerId = ref<string | null>(null);
 const validCarriers = ref<Set<string>>(new Set());
 const validWarehouses = ref<Set<string>>(new Set());
@@ -402,13 +403,14 @@ async function loadAllData(silent = false, forceRefresh = false) {
     }
     const run = async () => {
         try {
-            const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses, loadedCustomCustomers] = await Promise.all([
+            const [loadedConfigs, loadedTickets, loadedVehicles, loadedCarriers, loadedWarehouses, loadedCustomCustomers, loadedCatalogCustomers] = await Promise.all([
                 WarehouseInventoryService.getConfigs(forceRefresh),
                 WarehouseInventoryService.getAllTickets(forceRefresh),
                 WarehouseInventoryService.getVehicles(),
                 WarehouseInventoryService.getValidCarriers(),
                 WarehouseInventoryService.getValidWarehouses(),
-                WarehouseInventoryService.getCustomCustomers(forceRefresh)
+                WarehouseInventoryService.getCustomCustomers(forceRefresh),
+                WarehouseInventoryService.getCustomerCatalogOptions()
             ]);
             configs.value = loadedConfigs;
             allTickets.value = loadedTickets;
@@ -416,6 +418,7 @@ async function loadAllData(silent = false, forceRefresh = false) {
             validCarriers.value = loadedCarriers;
             validWarehouses.value = loadedWarehouses;
             customCustomers.value = loadedCustomCustomers;
+            customerCatalogOptions.value = loadedCatalogCustomers;
             for (const cust of loadedCustomCustomers) {
                 if (expandedCustomer.value[cust.id] === undefined) {
                     expandedCustomer.value[cust.id] = true;
@@ -3415,14 +3418,22 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                 <div class="flex flex-col gap-3 text-xs font-bold">
                     <div class="flex flex-col gap-1">
-                        <label class="text-slate-600">Tên Khách Hàng</label>
+                        <label class="text-slate-600">Tên Khách Hàng (chọn từ Danh mục hoặc nhập)</label>
                         <input
                             v-model="customCustomerForm.customerName"
                             type="text"
-                            placeholder="VD: ĐẠI NAM, HƯNG THỊNH..."
+                            list="customer-catalog-datalist"
+                            placeholder="Chọn hoặc nhập tên khách hàng..."
                             @keydown.enter="saveCustomCustomerModal"
                             class="px-3 py-2 bg-[#f1f5f9] border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-primary"
                         />
+                        <datalist id="customer-catalog-datalist">
+                            <option
+                                v-for="cName in customerCatalogOptions"
+                                :key="cName"
+                                :value="cName"
+                            />
+                        </datalist>
                     </div>
 
                     <div class="flex flex-col gap-1">

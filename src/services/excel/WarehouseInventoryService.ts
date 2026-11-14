@@ -3215,6 +3215,48 @@ export const WarehouseInventoryService = {
         return valid;
     },
 
+    async getCustomerCatalogOptions(): Promise<string[]> {
+        const list: string[] = [];
+        const seen = new Set<string>();
+        const pushUnique = (name: string) => {
+            const trimmed = String(name || '').trim();
+            if (!trimmed) return;
+            const norm = stripAccents(trimmed).toUpperCase();
+            if (!seen.has(norm)) {
+                seen.add(norm);
+                list.push(trimmed);
+            }
+        };
+
+        try {
+            const saved = await dbContext.get<Array<{ name?: string }>>('master_category-customers');
+            if (Array.isArray(saved) && saved.length > 0) {
+                for (const item of saved) {
+                    if (item?.name) pushUnique(item.name);
+                }
+            }
+        } catch (_) {}
+
+        try {
+            const wbMaster = await WeighbridgeService.getMasterData();
+            if (wbMaster?.customers && Array.isArray(wbMaster.customers)) {
+                wbMaster.customers.forEach(pushUnique);
+            }
+        } catch (_) {}
+
+        if (list.length === 0) {
+            [
+                'CÔNG TY TNHH DE HEUS',
+                'CÔNG TY CP EASTWOOD ENERGY',
+                'BÁCH KHOA',
+                'CÔNG TY CP GỖ BÌNH ĐỊNH',
+                'CÔNG TY CỔ PHẦN GREENFEED VIỆT NAM',
+                'CÔNG TY CỔ PHẦN CHĂN NUÔI C.P. VIỆT NAM'
+            ].forEach(pushUnique);
+        }
+        return list;
+    },
+
     async reapplyVehicleCarriersAndWarehouses(): Promise<{ updatedCount: number; validCount: number; totalCount: number }> {
         const [vehicleMap, placeMap, validCarriers, validWarehouses, tickets] = await Promise.all([
             this.getVehicles(),
