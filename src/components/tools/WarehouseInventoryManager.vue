@@ -297,6 +297,8 @@ async function handleDeleteCustomCustomer(cust: CustomWarehouseCustomer) {
             customCustomerId: cust.id
         });
         await WarehouseInventoryService.deleteCustomCustomer(cust.id);
+        customCustomers.value = customCustomers.value.filter(c => c.id !== cust.id);
+        delete expandedCustomer.value[cust.id];
         if (selectedCustomCustomerId.value === cust.id) {
             selectedCustomCustomerId.value = null;
             selectedWarehouseMode.value = 'KHO 4';

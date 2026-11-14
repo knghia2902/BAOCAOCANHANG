@@ -2083,24 +2083,7 @@ export const WarehouseInventoryService = {
                 const settings = await SettingsService.getSettings(forceRefresh);
                 const remote = settings?.warehouse_custom_customers;
                 if (Array.isArray(remote)) {
-                    const mergedMap = new Map<string, CustomWarehouseCustomer>();
-                    for (const item of result) {
-                        if (item?.id) mergedMap.set(item.id, item);
-                    }
-                    for (const item of remote) {
-                        if (!item?.id) continue;
-                        const existing = mergedMap.get(item.id);
-                        if (!existing) {
-                            mergedMap.set(item.id, item);
-                        } else {
-                            const existingTime = Date.parse(existing.updatedAt || existing.createdAt || '') || 0;
-                            const remoteTime = Date.parse(item.updatedAt || item.createdAt || '') || 0;
-                            if (remoteTime >= existingTime) {
-                                mergedMap.set(item.id, item);
-                            }
-                        }
-                    }
-                    result = Array.from(mergedMap.values());
+                    result = [...remote];
                     await dbContext.set(LOCAL_CUSTOM_CUSTOMERS_KEY, result);
                 }
             } catch (err) {
@@ -2169,7 +2152,8 @@ export const WarehouseInventoryService = {
     },
 
     async deleteCustomCustomer(id: string): Promise<boolean> {
-        const current = await this.getCustomCustomers();
+        customCustomersMemoryCache = null;
+        const current = await this.getCustomCustomers(true);
         const filtered = current.filter(c => c.id !== id);
         await dbContext.set(LOCAL_CUSTOM_CUSTOMERS_KEY, filtered);
         if (!isInventoryTestEnv) {
