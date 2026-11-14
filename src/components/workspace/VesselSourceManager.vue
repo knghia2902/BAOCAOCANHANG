@@ -37,6 +37,8 @@ const showVesselModal = ref(false);
 const showBargeModal = ref(false);
 const editingVessel = ref<Vessel | null>(null);
 const editingBarge = ref<{ vesselId: number; barge: Barge } | null>(null);
+const activeVesselMenuId = ref<number | null>(null);
+const showHeaderVesselMenu = ref(false);
 
 const vesselForm = ref({
     id: 0,
@@ -133,11 +135,35 @@ const selectedVessel = computed(() => {
     return vessels.value.find(v => v.id === selectedVesselId.value) || null;
 });
 
+// Sắp xếp: Sà lan mới tạo / mới nhập luôn được đưa lên phía trên
+const sortBargesList = (list: Barge[]): Barge[] => {
+    return [...list].sort((a, b) => {
+        // 1. So sánh theo created_at giảm dần (nếu có ngày tạo)
+        if (a.created_at && b.created_at) {
+            const timeA = new Date(a.created_at).getTime();
+            const timeB = new Date(b.created_at).getTime();
+            if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+                return timeB - timeA;
+            }
+        }
+        // 2. So sánh theo ID giảm dần (ID mới tạo là timestamp Date.now() hoặc auto-increment cao hơn)
+        const idA = Number(a.id || 0);
+        const idB = Number(b.id || 0);
+        if (idA !== idB) return idB - idA;
+
+        // 3. Fallback: So sánh theo số thứ tự Mã lệnh giảm dần (lệnh mới hơn có số lớn hơn)
+        const orderA = parseInt(String(a.config?.orderNo || a.order_no || '').replace(/\D/g, ''), 10) || 0;
+        const orderB = parseInt(String(b.config?.orderNo || b.order_no || '').replace(/\D/g, ''), 10) || 0;
+        return orderB - orderA;
+    });
+};
+
 const filteredBarges = computed(() => {
     if (!selectedVessel.value || !selectedVessel.value.barges) return [];
+    const sorted = sortBargesList(selectedVessel.value.barges);
     const q = bargeSearchQuery.value.trim().toLowerCase();
-    if (!q) return selectedVessel.value.barges;
-    return selectedVessel.value.barges.filter(
+    if (!q) return sorted;
+    return sorted.filter(
         b =>
             b.name.toLowerCase().includes(q) ||
             (b.config?.orderNo || '').toLowerCase().includes(q)
@@ -592,12 +618,12 @@ onMounted(async () => {
                                     : 'bg-white border-gray-100 hover:border-primary/30 hover:bg-gray-50/70')
                         ]"
                     >
-                        <!-- Dòng 1: Tên tàu + Số sà lan + Nút Ghim/Sửa/Xóa gọn ngay bên phải -->
+                        <!-- Dòng 1: Tên tàu + Số sà lan + Nút 3 chấm thu gọn chức năng -->
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <span
                                     :class="[
-                                        'material-symbols-outlined text-base shrink-0',
+                                        'material-symbols-outlined text-lg shrink-0',
                                         vessel.is_pinned
                                             ? 'text-amber-500'
                                             : (selectedVesselId === vessel.id ? 'text-primary' : 'text-gray-400')
@@ -605,44 +631,86 @@ onMounted(async () => {
                                 >
                                     {{ vessel.is_pinned ? 'push_pin' : 'directions_boat' }}
                                 </span>
-                                <h3 class="text-xs font-display font-black text-[#1e293b] truncate group-hover:text-primary transition-colors">
+                                <h3 class="text-sm font-display font-black text-[#1e293b] truncate group-hover:text-primary transition-colors tracking-tight">
                                     {{ vessel.name }}
                                 </h3>
                             </div>
 
                             <div class="flex items-center gap-1.5 shrink-0">
+                                <span
+                                    v-if="vessel.is_pinned"
+                                    class="size-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0"
+                                    title="Tàu đặc biệt được ghim lên đầu"
+                                >
+                                    <span class="material-symbols-outlined text-xs">push_pin</span>
+                                </span>
                                 <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-bold">
                                     {{ (vessel.barges || []).length }} sà lan
                                 </span>
-                                <button
-                                    type="button"
-                                    @click.stop="handleTogglePinVessel(vessel)"
-                                    :class="[
-                                        'size-7 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer',
-                                        vessel.is_pinned
-                                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-700 shadow-xs'
-                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600'
-                                    ]"
-                                    :title="vessel.is_pinned ? 'Bỏ ghim tàu đặc biệt' : 'Ghim tàu đặc biệt lên đầu'"
-                                >
-                                    <span class="material-symbols-outlined text-xs">push_pin</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    @click.stop="openEditVesselModal(vessel)"
-                                    class="size-7 rounded-full bg-primary/5 hover:bg-primary/15 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
-                                    title="Sửa thông tin tàu"
-                                >
-                                    <span class="material-symbols-outlined text-xs">edit</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    @click.stop="handleDeleteVessel(vessel)"
-                                    class="size-7 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
-                                    title="Xóa tàu"
-                                >
-                                    <span class="material-symbols-outlined text-xs">delete</span>
-                                </button>
+
+                                <!-- Nút 3 chấm thu gọn tất cả chức năng của nguồn tàu -->
+                                <div class="relative">
+                                    <button
+                                        type="button"
+                                        @click.stop="activeVesselMenuId = activeVesselMenuId === vessel.id ? null : vessel.id"
+                                        class="size-7 rounded-full bg-slate-100/90 hover:bg-primary/10 text-slate-500 hover:text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer relative z-25"
+                                        title="Thao tác nguồn tàu"
+                                    >
+                                        <span class="material-symbols-outlined text-base">more_vert</span>
+                                    </button>
+
+                                    <!-- Backdrop để đóng menu khi click ra ngoài -->
+                                    <div
+                                        v-if="activeVesselMenuId === vessel.id"
+                                        class="fixed inset-0 z-20"
+                                        @click.stop="activeVesselMenuId = null"
+                                    ></div>
+
+                                    <!-- Menu popover chứa các nút chức năng -->
+                                    <div
+                                        v-if="activeVesselMenuId === vessel.id"
+                                        class="absolute right-0 top-full mt-1.5 z-30 w-44 bg-white rounded-2xl soft-shadow border border-gray-100 py-1.5 flex flex-col overflow-hidden shadow-lg"
+                                        @click.stop
+                                    >
+                                        <button
+                                            type="button"
+                                            @click="
+                                                activeVesselMenuId = null;
+                                                handleTogglePinVessel(vessel);
+                                            "
+                                            class="w-full px-3.5 py-2 text-left text-xs font-bold text-[#1e293b] hover:bg-primary/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-sm" :class="vessel.is_pinned ? 'text-amber-500' : 'text-slate-400'">push_pin</span>
+                                            <span>{{ vessel.is_pinned ? 'Bỏ ghim tàu' : 'Ghim lên đầu' }}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            @click="
+                                                activeVesselMenuId = null;
+                                                openEditVesselModal(vessel);
+                                            "
+                                            class="w-full px-3.5 py-2 text-left text-xs font-bold text-[#1e293b] hover:bg-primary/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-sm text-primary">edit</span>
+                                            <span>Sửa thông tin</span>
+                                        </button>
+
+                                        <div class="my-1 border-t border-gray-100"></div>
+
+                                        <button
+                                            type="button"
+                                            @click="
+                                                activeVesselMenuId = null;
+                                                handleDeleteVessel(vessel);
+                                            "
+                                            class="w-full px-3.5 py-2 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-sm text-red-500">delete</span>
+                                            <span>Xóa nguồn tàu</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -672,9 +740,16 @@ onMounted(async () => {
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="flex items-center gap-2 min-w-0">
                                 <span class="material-symbols-outlined text-primary text-lg">layers</span>
-                                <h3 class="text-sm font-display font-black text-[#1e293b] truncate">
+                                <h3 class="text-base font-display font-black text-[#1e293b] truncate">
                                     {{ selectedVessel.name }}
                                 </h3>
+                                <span
+                                    v-if="selectedVessel.is_pinned"
+                                    class="size-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0"
+                                    title="Tàu đặc biệt được ghim lên đầu"
+                                >
+                                    <span class="material-symbols-outlined text-xs">push_pin</span>
+                                </span>
                                 <span class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center shrink-0">
                                     {{ filteredBarges.length }} sà lan
                                 </span>
@@ -695,27 +770,71 @@ onMounted(async () => {
 
                                 <button
                                     type="button"
-                                    @click="handleTogglePinVessel(selectedVessel)"
-                                    :class="[
-                                        'h-7 px-2.5 rounded-[8px] border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer',
-                                        selectedVessel.is_pinned
-                                            ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                    ]"
-                                    :title="selectedVessel.is_pinned ? 'Bỏ ghim tàu đặc biệt' : 'Ghim tàu đặc biệt lên đầu'"
-                                >
-                                    <span class="material-symbols-outlined text-xs text-amber-600">push_pin</span>
-                                    <span>{{ selectedVessel.is_pinned ? 'Đã ghim' : 'Ghim tàu' }}</span>
-                                </button>
-
-                                <button
-                                    type="button"
                                     @click="openAddBargeModal"
                                     class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
                                 >
                                     <span class="material-symbols-outlined text-sm">add</span>
                                     Thêm sà lan
                                 </button>
+
+                                <!-- Nút 3 chấm thu gọn tác vụ của nguồn tàu đang chọn -->
+                                <div class="relative">
+                                    <button
+                                        type="button"
+                                        @click.stop="showHeaderVesselMenu = !showHeaderVesselMenu"
+                                        class="h-7 w-7 rounded-[8px] bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-[#1e293b] border border-slate-200 flex items-center justify-center transition-all active:scale-[0.98] cursor-pointer"
+                                        title="Tác vụ nguồn tàu"
+                                    >
+                                        <span class="material-symbols-outlined text-base">more_vert</span>
+                                    </button>
+
+                                    <div
+                                        v-if="showHeaderVesselMenu"
+                                        class="fixed inset-0 z-20"
+                                        @click.stop="showHeaderVesselMenu = false"
+                                    ></div>
+
+                                    <div
+                                        v-if="showHeaderVesselMenu"
+                                        class="absolute right-0 top-full mt-1.5 z-30 w-44 bg-white rounded-2xl soft-shadow border border-gray-100 py-1.5 flex flex-col overflow-hidden shadow-lg"
+                                        @click.stop
+                                    >
+                                        <button
+                                            type="button"
+                                            @click="
+                                                showHeaderVesselMenu = false;
+                                                handleTogglePinVessel(selectedVessel);
+                                            "
+                                            class="w-full px-3.5 py-2 text-left text-xs font-bold text-[#1e293b] hover:bg-primary/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-sm" :class="selectedVessel.is_pinned ? 'text-amber-500' : 'text-slate-400'">push_pin</span>
+                                            <span>{{ selectedVessel.is_pinned ? 'Bỏ ghim tàu' : 'Ghim lên đầu' }}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="
+                                                showHeaderVesselMenu = false;
+                                                openEditVesselModal(selectedVessel);
+                                            "
+                                            class="w-full px-3.5 py-2 text-left text-xs font-bold text-[#1e293b] hover:bg-primary/5 hover:text-primary flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-sm text-primary">edit</span>
+                                            <span>Sửa thông tin</span>
+                                        </button>
+                                        <div class="my-1 border-t border-gray-100"></div>
+                                        <button
+                                            type="button"
+                                            @click="
+                                                showHeaderVesselMenu = false;
+                                                handleDeleteVessel(selectedVessel);
+                                            "
+                                            class="w-full px-3.5 py-2 text-left text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span class="material-symbols-outlined text-sm text-red-500">delete</span>
+                                            <span>Xóa nguồn tàu</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
