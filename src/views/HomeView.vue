@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { authStore } from '../stores/auth';
+import { authStore, hasPermission } from '../stores/auth';
 import { WeighbridgeService } from '../services/excel/WeighbridgeService';
 
 const vessels = ref<any[]>([]);
@@ -146,6 +146,7 @@ onMounted(async () => {
             <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4">
                 <!-- Tạo Nguồn Tàu -->
                 <router-link
+                    v-if="authStore.role === 'admin' || hasPermission('weighbridge')"
                     to="/workspace?tab=vessel-source"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
@@ -160,6 +161,7 @@ onMounted(async () => {
 
                 <!-- Dữ Liệu Cân Hàng -->
                 <router-link
+                    v-if="authStore.role === 'admin' || hasPermission('allocator') || hasPermission('weighbridge')"
                     to="/workspace?tab=scale-data"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
@@ -174,6 +176,7 @@ onMounted(async () => {
 
                 <!-- Báo Cáo Tồn Kho -->
                 <router-link
+                    v-if="authStore.role === 'admin' || hasPermission('warehouse')"
                     to="/workspace?tab=report-inventory"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
@@ -188,6 +191,7 @@ onMounted(async () => {
 
                 <!-- Báo Cáo Lô Hàng -->
                 <router-link
+                    v-if="authStore.role === 'admin' || hasPermission('weighbridge')"
                     to="/workspace?tab=report-shipment"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
@@ -202,6 +206,7 @@ onMounted(async () => {
 
                 <!-- Quản Lý Hồ Sơ Phương Tiện -->
                 <router-link
+                    v-if="authStore.role === 'admin' || hasPermission('vehicles')"
                     to="/workspace?tab=vehicles"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
@@ -216,6 +221,7 @@ onMounted(async () => {
 
                 <!-- Biên Bản Sà Lan -->
                 <router-link
+                    v-if="authStore.role === 'admin' || hasPermission('minutes')"
                     to="/workspace?tab=minutes"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue';
+import { canAccessWorkspaceTab } from '@/services/auth/PermissionService';
 
 const props = defineProps<{
     activeKey: string;
@@ -130,7 +131,12 @@ const categoryItems: NavItem[] = [
     { key: 'category-goods', label: 'Danh mục hàng hóa', icon: 'inventory_2' }
 ];
 
-const isReportActive = computed(() => reportItems.some(r => r.key === props.activeKey));
+const visibleModuleItems = computed(() => moduleItems.filter(item => canAccessWorkspaceTab(item.key)));
+const visibleReportItems = computed(() => reportItems.filter(item => canAccessWorkspaceTab(item.key)));
+const visibleAfterReportItems = computed(() => afterReportItems.filter(item => canAccessWorkspaceTab(item.key)));
+const visibleCategoryItems = computed(() => categoryItems.filter(item => canAccessWorkspaceTab(item.key)));
+
+const isReportActive = computed(() => visibleReportItems.value.some(r => r.key === props.activeKey));
 </script>
 
 <template>
@@ -213,7 +219,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
             <!-- Tree Navigation Body -->
             <div class="flex-1 overflow-y-auto p-2.5 space-y-3.5 custom-scrollbar">
                 <!-- ================= NHÁNH 1: PHÂN HỆ ================= -->
-                <div class="space-y-1.5">
+                <div v-if="visibleModuleItems.length > 0 || visibleReportItems.length > 0 || visibleAfterReportItems.length > 0" class="space-y-1.5">
                     <!-- Branch Header -->
                     <button
                         v-if="isExpanded"
@@ -239,7 +245,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                     <!-- Module Items (Tạo nguồn tàu & Dữ liệu cân) -->
                     <div v-show="!isExpanded || expandedGroups.modules" class="space-y-1.5">
                         <button
-                            v-for="item in moduleItems"
+                            v-for="item in visibleModuleItems"
                             :key="item.key"
                             type="button"
                             @click="handleSelect(item.key)"
@@ -277,7 +283,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                         </button>
 
                         <!-- Nhánh con: Báo cáo -->
-                        <div class="space-y-1.5">
+                        <div v-if="visibleReportItems.length > 0" class="space-y-1.5">
                             <!-- Báo cáo Accordion Header (Chỉ hiện khi mở rộng) -->
                             <button
                                 v-if="isExpanded"
@@ -312,7 +318,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                                 ]"
                             >
                                 <button
-                                    v-for="rep in reportItems"
+                                    v-for="rep in visibleReportItems"
                                     :key="rep.key"
                                     type="button"
                                     @click="handleSelect(rep.key)"
@@ -349,7 +355,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
 
                         <!-- Quản lý hồ sơ phương tiện & Biên bản -->
                         <button
-                            v-for="item in afterReportItems"
+                            v-for="item in visibleAfterReportItems"
                             :key="item.key"
                             type="button"
                             @click="handleSelect(item.key)"
@@ -375,10 +381,10 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
                     </div>
                 </div>
 
-                <div class="h-px bg-primary/5"></div>
+                <div v-if="(visibleModuleItems.length > 0 || visibleReportItems.length > 0 || visibleAfterReportItems.length > 0) && visibleCategoryItems.length > 0" class="h-px bg-primary/5"></div>
 
                 <!-- ================= NHÁNH 2: DANH MỤC ================= -->
-                <div class="space-y-1.5">
+                <div v-if="visibleCategoryItems.length > 0" class="space-y-1.5">
                     <button
                         v-if="isExpanded"
                         type="button"
@@ -402,7 +408,7 @@ const isReportActive = computed(() => reportItems.some(r => r.key === props.acti
 
                     <div v-show="!isExpanded || expandedGroups.categories" class="space-y-1.5">
                         <button
-                            v-for="item in categoryItems"
+                            v-for="item in visibleCategoryItems"
                             :key="item.key"
                             type="button"
                             @click="handleSelect(item.key)"

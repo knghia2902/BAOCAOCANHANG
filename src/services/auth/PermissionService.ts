@@ -1,4 +1,5 @@
 import { SettingsService } from '@/services/storage/SettingsService';
+import { authStore, hasPermission } from '@/stores/auth';
 
 export interface RolePermissionConfig {
     tools: string[];
@@ -20,7 +21,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissionConfig> = {
             weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
             allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
             vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-            minutes: ['min_create', 'min_export']
+            minutes: ['min_create', 'min_export'],
+            warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
+            split: ['split_manage', 'split_export']
         }
     },
     staff: {
@@ -105,3 +108,35 @@ export const PermissionService = {
         }
     }
 };
+
+export function canAccessWorkspaceTab(key: string): boolean {
+    if (!authStore.isAuthenticated) return false;
+    if (authStore.role === 'admin') return true;
+
+    switch (key) {
+        case 'vessel-source':
+            return hasPermission('weighbridge');
+        case 'scale-data':
+            return hasPermission('allocator') || hasPermission('weighbridge');
+        case 'report-inventory':
+            return hasPermission('warehouse');
+        case 'report-shipment':
+            return hasPermission('weighbridge');
+        case 'report-deheus':
+            return hasPermission('split') || hasPermission('allocator');
+        case 'vehicles':
+            return hasPermission('vehicles');
+        case 'minutes':
+            return hasPermission('minutes');
+        case 'category-vehicles':
+            return hasPermission('vehicles') || hasPermission('allocator');
+        case 'category-customers':
+            return hasPermission('weighbridge') || hasPermission('allocator');
+        case 'category-warehouses':
+            return hasPermission('warehouse') || hasPermission('weighbridge');
+        case 'category-goods':
+            return hasPermission('weighbridge') || hasPermission('allocator');
+        default:
+            return true;
+    }
+}

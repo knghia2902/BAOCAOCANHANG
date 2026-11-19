@@ -157,6 +157,26 @@ export interface WarehouseInventoryTicket {
     createdAt?: string;
 }
 
+/**
+ * Helper to check whether a ticket is a Port Dust (Bụi cầu cảng) ticket
+ */
+export function isPortDustTicket(ticket: WarehouseInventoryTicket): boolean {
+    if (!ticket) return false;
+    const strip = (s: string) =>
+        s
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    const remark = strip(ticket.sourceOrRemark || '').toUpperCase();
+    if (remark.includes('BUI CANG') || remark.includes('BUI CAU CANG')) return true;
+    const rawNote = strip(ticket.rawNote || '').toUpperCase();
+    if (rawNote.includes('BUI CANG') || rawNote.includes('BUI CAU CANG')) return true;
+    const cargo = strip(ticket.cargoType || '').toUpperCase();
+    if (cargo.includes('BUI CANG') || cargo.includes('BUI CAU CANG')) return true;
+    return false;
+}
+
 export interface WarehouseConfig {
     warehouseId: ExtendedWarehouseId | string;
     initialStock: number; // Tồn đầu kỳ (Tons)

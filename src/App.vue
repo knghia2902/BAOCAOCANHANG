@@ -103,6 +103,27 @@ watch(
 );
 
 onMounted(async () => {
+    // Xác thực phiên làm việc chống can thiệp giả mạo vai trò qua localStorage (Client-Side Role Tampering)
+    if (authStore.isAuthenticated && authStore.user && !authStore.isDemoMode) {
+        try {
+            const validatedUser = await authService.validateSession(authStore.user);
+            if (!validatedUser) {
+                console.warn('[Security] Phiên làm việc không hợp lệ hoặc đã bị vô hiệu hóa. Đang đăng xuất...');
+                await logout();
+                router.push('/login');
+            } else if (authStore.role !== validatedUser.role) {
+                console.warn('[Security] Phát hiện sai lệch vai trò! Đang đồng bộ vai trò thực từ server:', validatedUser.role);
+                authStore.role = validatedUser.role;
+                authStore.displayName = validatedUser.displayName || authStore.displayName;
+                try {
+                    localStorage.setItem('auth_session', JSON.stringify(authStore));
+                } catch (_) {}
+            }
+        } catch (e) {
+            console.warn('[Security] Lỗi kiểm tra phiên làm việc:', e);
+        }
+    }
+
     // Load all content from Supabase
     await ContentService.loadAll();
     window.addEventListener('click', closeDropdown);

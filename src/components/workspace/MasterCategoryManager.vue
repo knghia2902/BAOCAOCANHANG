@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { dbContext } from '@/services/storage/DBContext';
 import { useToast } from '@/composables/useToast';
 import { WeighbridgeService } from '@/services/excel/WeighbridgeService';
+import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
 
 const props = defineProps<{
     categoryKey: string;
@@ -10,6 +11,12 @@ const props = defineProps<{
 
 const { addToast } = useToast();
 const syncChannel = new BroadcastChannel('allocator_sync_channel');
+
+// Permissions for Category Management
+const canManageCreate = computed(() => authStore.role === 'admin' || canCreate());
+const canManageUpdate = computed(() => authStore.role === 'admin' || canUpdate());
+const canManageDelete = computed(() => authStore.role === 'admin' || canDelete());
+const canWriteCategory = computed(() => canManageCreate.value || canManageUpdate.value);
 
 const searchQuery = ref('');
 const editingId = ref<string | null>(null);
@@ -236,6 +243,15 @@ const resetForm = () => {
 };
 
 const handleSaveItem = async () => {
+    const isEditing = editingId.value !== null;
+    if (isEditing && !canManageUpdate.value) {
+        addToast('Bạn không có quyền cập nhật dữ liệu danh mục!', 'error');
+        return;
+    }
+    if (!isEditing && !canManageCreate.value) {
+        addToast('Bạn không có quyền thêm mới vào danh mục!', 'error');
+        return;
+    }
     if (!form.value.name.trim()) {
         addToast('Vui lòng nhập tên mục danh mục!', 'error');
         return;
@@ -269,6 +285,10 @@ const handleSaveItem = async () => {
 };
 
 const handleEditItem = (item: CategoryItem) => {
+    if (!canManageUpdate.value) {
+        addToast('Bạn không có quyền chỉnh sửa mục này!', 'error');
+        return;
+    }
     editingId.value = item.id;
     form.value = {
         name: item.name,
@@ -280,6 +300,10 @@ const handleEditItem = (item: CategoryItem) => {
 };
 
 const handleDeleteItem = async (item: CategoryItem) => {
+    if (!canManageDelete.value) {
+        addToast('Bạn không có quyền xóa mục này!', 'error');
+        return;
+    }
     if (!confirm(`Bạn có chắc muốn xóa "${item.name}" khỏi danh mục?`)) return;
 
     items.value = items.value.filter(i => i.id !== item.id);
@@ -292,6 +316,10 @@ const handleDeleteItem = async (item: CategoryItem) => {
 };
 
 const handleResetStandardWarehouses = async () => {
+    if (authStore.role !== 'admin' && !canManageDelete.value) {
+        addToast('Bạn không có quyền khôi phục danh mục kho!', 'error');
+        return;
+    }
     if (!confirm('Khôi phục danh sách kho về 16 kho mẫu chuẩn ban đầu (4 kho cảng + 12 kho vệ tinh)?')) return;
     items.value = JSON.parse(JSON.stringify(DEFAULT_WAREHOUSE_CATEGORIES));
     const key = getStorageKey(props.categoryKey);
@@ -344,7 +372,7 @@ onMounted(() => {
 
             <div class="flex items-center gap-2">
                 <button
-                    v-if="categoryKey === 'category-warehouses'"
+                    v-if="categoryKey === 'category-warehouses' && (authStore.role === 'admin' || canManageDelete)"
                     type="button"
                     @click="handleResetStandardWarehouses"
                     class="h-7 px-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-bold rounded-[8px] transition-all flex items-center gap-1 cursor-pointer"
@@ -362,7 +390,7 @@ onMounted(() => {
         <!-- Add/Edit Form (1/3) + Search & Sticky Table (2/3) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <!-- Left Form Card -->
-            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+            <div v-if="canWriteCategory" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">
                         {{ editingId !== null ? 'edit_note' : 'add_circle' }}
@@ -450,7 +478,7 @@ onMounted(() => {
             </div>
 
             <!-- Right Table & Search Card -->
-            <div class="lg:col-span-2 flex flex-col gap-4">
+            <div :class="canWriteCategory ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
                 <!-- Search bar -->
                 <div class="relative w-full">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
@@ -478,7 +506,7 @@ onMounted(() => {
                                         Sức chứa (tấn)
                                     </th>
                                     <th class="px-4 py-3">Ghi chú</th>
-                                    <th class="px-4 py-3 text-center w-24">Thao tác</th>
+                                    <th v-if="canManageUpdate || canManageDelete" class="px-4 py-3 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -520,9 +548,10 @@ onMounted(() => {
                                     <td class="px-4 py-3 text-gray-600">
                                         {{ item.note || 'Không có ghi chú' }}
                                     </td>
-                                    <td class="px-4 py-3 text-center">
+                                    <td v-if="canManageUpdate || canManageDelete" class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button
+                                                v-if="canManageUpdate"
                                                 type="button"
                                                 @click="handleEditItem(item)"
                                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -531,6 +560,7 @@ onMounted(() => {
                                                 <span class="material-symbols-outlined text-sm">edit</span>
                                             </button>
                                             <button
+                                                v-if="canManageDelete"
                                                 type="button"
                                                 @click="handleDeleteItem(item)"
                                                 class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -542,7 +572,7 @@ onMounted(() => {
                                     </td>
                                 </tr>
                                 <tr v-if="filteredItems.length === 0">
-                                    <td :colspan="categoryKey === 'category-warehouses' ? 7 : 5" class="px-4 py-8 text-center text-gray-400 italic">
+                                    <td :colspan="categoryKey === 'category-warehouses' ? (canManageUpdate || canManageDelete ? 7 : 6) : (canManageUpdate || canManageDelete ? 5 : 4)" class="px-4 py-8 text-center text-gray-400 italic">
                                         Không tìm thấy dữ liệu nào phù hợp
                                     </td>
                                 </tr>

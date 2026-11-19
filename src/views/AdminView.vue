@@ -372,6 +372,11 @@ const handleEditAccount = async () => {
         triggerToast('Tên hiển thị không được để trống!');
         return;
     }
+
+    if (editAccountForm.value.username === authStore.user && editAccountForm.value.role !== 'admin') {
+        triggerToast('Không thể tự thay đổi vai trò tài khoản quản trị đang đăng nhập! ⚠️');
+        return;
+    }
     
     const avatarUrl = editAccountForm.value.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(editAccountForm.value.displayName.trim())}`;
     
@@ -392,6 +397,10 @@ const handleEditAccount = async () => {
 };
 
 const deleteAccount = async (username: string) => {
+    if (username === authStore.user) {
+        triggerToast('Không thể tự xóa tài khoản quản trị đang đăng nhập! ⚠️');
+        return;
+    }
     if (confirm(`Bạn có chắc chắn muốn xóa tài khoản "${username}"?`)) {
         const success = await ContentService.deleteUser(username);
         if (success) {
@@ -432,6 +441,10 @@ const handleResetPassword = async () => {
 };
 
 const toggleUserStatus = async (account: any) => {
+    if (account.username === authStore.user) {
+        triggerToast('Không thể tự khóa tài khoản quản trị đang đăng nhập! ⚠️');
+        return;
+    }
     const newStatus = !account.isActive;
     const actionText = newStatus ? 'mở khóa' : 'khóa';
     if (confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản "${account.username}"?`)) {
@@ -500,6 +513,17 @@ const actionPermissionsMapping = {
     { name: 'Lập biên bản làm hàng sà lan', permId: 'min_create', showView: true, showCreate: true, showUpdate: true, showDelete: true },
     { name: 'Xuất bộ biên bản ra Excel', permId: 'min_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
   ],
+  warehouse: [
+    { name: 'Import dữ liệu phiếu cân & Excel tồn kho', permId: 'wh_import', showView: true, showCreate: true, showUpdate: true, showDelete: false },
+    { name: 'Xuất file Excel báo cáo tồn kho', permId: 'wh_export', showView: true, showCreate: false, showUpdate: false, showDelete: false },
+    { name: 'Cấu hình định mức & tham số kho', permId: 'wh_config', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Quản lý khách hàng tùy chỉnh', permId: 'wh_customer_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Xóa toàn bộ phiếu kho', permId: 'wh_delete_tickets', showView: true, showCreate: false, showUpdate: false, showDelete: true }
+  ],
+  split: [
+    { name: 'Quản lý phân bổ tải trọng & tách chuyến', permId: 'split_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+    { name: 'Xuất file kết quả phân bổ', permId: 'split_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+  ],
   utilities: [
     { name: 'Chuyển Đổi Định Dạng File', permId: 'converter', showView: true, showCreate: true, showUpdate: true, showDelete: true },
     { name: 'Gộp Excel Thông Minh', permId: 'merger', showView: true, showCreate: true, showUpdate: true, showDelete: true },
@@ -534,6 +558,12 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
         if (subsystem === 'minutes' && permId === 'min_export') {
             return actionType === 'read';
         }
+        if (subsystem === 'warehouse' && permId === 'wh_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'split' && permId === 'split_export') {
+            return actionType === 'read';
+        }
         return true;
     }
     
@@ -549,6 +579,12 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
             return actionType === 'read';
         }
         if (subsystem === 'minutes' && permId === 'min_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'warehouse' && permId === 'wh_export') {
+            return actionType === 'read';
+        }
+        if (subsystem === 'split' && permId === 'split_export') {
             return actionType === 'read';
         }
         return true;
@@ -582,6 +618,19 @@ const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
         return [
             'min_create:read', 'min_create:create', 'min_create:update', 'min_create:delete',
             'min_export:read'
+        ];
+    } else if (subsystem === 'warehouse') {
+        return [
+            'wh_import:read', 'wh_import:create', 'wh_import:update',
+            'wh_export:read',
+            'wh_config:read', 'wh_config:create', 'wh_config:update', 'wh_config:delete',
+            'wh_customer_manage:read', 'wh_customer_manage:create', 'wh_customer_manage:update', 'wh_customer_manage:delete',
+            'wh_delete_tickets:read', 'wh_delete_tickets:delete'
+        ];
+    } else if (subsystem === 'split') {
+        return [
+            'split_manage:read', 'split_manage:create', 'split_manage:update', 'split_manage:delete',
+            'split_export:read'
         ];
     } else if (subsystem === 'utilities') {
         return [

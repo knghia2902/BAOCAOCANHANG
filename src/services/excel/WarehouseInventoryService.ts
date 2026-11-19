@@ -326,6 +326,21 @@ export function isEastwoodCustomer(name: string | undefined | null): boolean {
 }
 
 /**
+ * Helper to check whether a ticket is a Port Dust (Bụi cầu cảng) ticket
+ * Nhận biết khi stripAccents(ticket.sourceOrRemark || '').toUpperCase().includes('BUI CANG')
+ */
+export function isPortDustTicket(ticket: WarehouseInventoryTicket): boolean {
+    if (!ticket) return false;
+    const remark = stripAccents(ticket.sourceOrRemark || '').toUpperCase();
+    if (remark.includes('BUI CANG') || remark.includes('BUI CAU CANG')) return true;
+    const rawNote = stripAccents(ticket.rawNote || '').toUpperCase();
+    if (rawNote.includes('BUI CANG') || rawNote.includes('BUI CAU CANG')) return true;
+    const cargo = stripAccents(ticket.cargoType || '').toUpperCase();
+    if (cargo.includes('BUI CANG') || cargo.includes('BUI CAU CANG')) return true;
+    return false;
+}
+
+/**
  * Check whether a ticket belongs to Bách Khoa
  * DỰA HOÀN TOÀN VÀO CỘT KHÁCH HÀNG (ticket.customerName), KHÔNG DỰA VÀO CÁC CỘT KHÁC
  */
@@ -668,6 +683,50 @@ export function classifyWeighbridgeRow(
     if (netWeight <= 0) return null;
 
     const carrierName = lookupCarrierName(row.soXe, vehicleMap);
+    const driverClean = stripAccents(row.taiXe || '').toUpperCase().trim();
+    const noteClean = stripAccents(row.ghiChu || '').toUpperCase().trim();
+
+    // 0. Check PORT DUST (Bụi cầu cảng): Cột Tài xế (sourceOrRemark) hoặc Ghi chú chứa "BỤI CẢNG" / "BỤI CẦU CẢNG"
+    const isPortDust =
+        driverClean.includes('BUI CANG') ||
+        driverClean.includes('BUI CAU CANG') ||
+        noteClean.includes('BUI CANG') ||
+        noteClean.includes('BUI CAU CANG') ||
+        cargoClean.includes('BUI CANG') ||
+        cargoClean.includes('BUI CAU CANG');
+
+    if (isPortDust) {
+        const id = `PORT_DUST_${row.soPhieu || normalizePlateKey(row.soXe)}_${weighOutDate}_${weighOutTime || '00:00:00'}`;
+        const sourcePlace = String(row.taiXe || '').trim() || 'BỤI CẢNG';
+        const bargeStr = String(row.loaiSalan || '').trim();
+        const explicitVessel = String(row.nguonTau || '').trim();
+        const resolvedVessel = explicitVessel || resolveVesselNameFromBarge(bargeStr, row.maLenh, vessels);
+        const rawNoteTrimmed = String(row.ghiChu || '').trim();
+        return {
+            id,
+            soPhieu: String(row.soPhieu || '').trim(),
+            maLenh: String(row.maLenh || '').trim(),
+            reportDate,
+            weighInDate: parseToIsoDate(row.ngay1) || weighOutDate,
+            weighInTime: parseToTimeStr(row.gio1),
+            weighOutDate,
+            weighOutTime,
+            flowType: 'EXPORT',
+            warehouseId: null, // Lưu phiếu Bụi cảng, KHÔNG gán nhầm vào xuất kho thông thường
+            customerName: String(row.khachHang || '').trim(),
+            cargoType: String(row.loaiHang || 'Bụi cầu cảng').trim(),
+            vehiclePlate: String(row.soXe || '').trim(),
+            carrierName,
+            grossWeight,
+            tareWeight,
+            netWeight,
+            factoryWeight: null,
+            bargeInfo: bargeStr,
+            vesselName: resolvedVessel || rawNoteTrimmed,
+            sourceOrRemark: sourcePlace,
+            rawNote: rawNoteTrimmed
+        };
+    }
 
     // 1. Check IMPORT: Xuat/Nhap = Nhap AND Loai Salan = KHO 1..4
     if (dirClean.includes('NHAP')) {
@@ -848,6 +907,7 @@ export function computeWarehouseFinalTable(
     };
 
     const whTickets = allTickets.filter(t => {
+        if (isPortDustTicket(t)) return false;
         if (t.warehouseId !== physicalWhId) return false;
         if (t.flowType !== 'IMPORT' && t.flowType !== 'EXPORT') return false;
         if (customerFilter) {
@@ -864,6 +924,7 @@ export function computeWarehouseFinalTable(
     // Direct tickets matching this warehouse's customer group:
     // Kho 4 (EW) -> Customer 1 (EASTWOOD); Kho 4 (BK) -> Bách Khoa; Kho 1..3 -> Customer 2 (GỖ BÌNH ĐỊNH)
     const directTickets = allTickets.filter(t => {
+        if (isPortDustTicket(t)) return false;
         if (t.flowType !== 'DIRECT') return false;
         if (options?.includeDirectForCustomer === false) return false;
         if (customerFilter) {
@@ -903,6 +964,7 @@ export function computeWarehouseFinalTable(
         // across the KHO 1-2-3 group when multi-warehouse data is present
         const groupWhTickets = allTickets.filter(
             t =>
+                !isPortDustTicket(t) &&
                 (t.warehouseId === 'KHO 1' || t.warehouseId === 'KHO 2' || t.warehouseId === 'KHO 3') &&
                 (t.flowType === 'IMPORT' || t.flowType === 'EXPORT') &&
                 !isExcludedCustomTicket(t) &&
@@ -1850,6 +1912,7 @@ export const WarehouseInventoryService = {
     snapMapVertex,
     createWarehousePresetPolygons,
     getDefaultVisualMapState,
+    isPortDustTicket,
     isBachKhoaCustomer,
     isBachKhoaTicket,
     isEastwoodCustomer,
@@ -3582,7 +3645,7 @@ export const WarehouseInventoryService = {
             }
             if (options?.customerFilter) {
                 ticket.customerName = options.customerFilter.trim();
-                if (options.targetWarehouseId && ticket.flowType !== 'DIRECT') {
+                if (options.targetWarehouseId && ticket.flowType !== 'DIRECT' && !isPortDustTicket(ticket)) {
                     ticket.warehouseId = options.targetWarehouseId;
                 }
             }
@@ -3591,7 +3654,7 @@ export const WarehouseInventoryService = {
             else if (ticket.flowType === 'EXPORT') summary.exportFlowCount++;
             else if (ticket.flowType === 'DIRECT') summary.directFlowCount++;
 
-            if (ticket.warehouseId && !options?.customerFilter) {
+            if (ticket.warehouseId && !options?.customerFilter && !isPortDustTicket(ticket)) {
                 updatedWhSet.add(ticket.warehouseId);
                 if (ticket.warehouseId === 'KHO 4') {
                     if (isBachKhoaTicket(ticket)) {
@@ -3813,20 +3876,21 @@ export const WarehouseInventoryService = {
             let detectedWorkbookCustomer = inferredFileCustomer;
             let sheetLevelCustomer = inferredFileCustomer;
 
-            // 2. Parse IMPORT, EXPORT, and XÁ THẲNG sheets
+            // 2. Parse IMPORT, EXPORT, XÁ THẲNG, and BỤI CẦU CẢNG sheets
             for (const sheet of workbook.worksheets) {
                 const sNameClean = stripAccents(sheet.name).toUpperCase().trim();
-                if (sNameClean === 'DATA' || sNameClean.startsWith('FINAL') || sNameClean.includes('BUI CANG')) {
+                if (sNameClean === 'DATA' || sNameClean.startsWith('FINAL')) {
                     continue;
                 }
 
                 const isImportSheet = sNameClean.includes('IMPORT') || sNameClean.startsWith('NHAP');
                 const isExportSheet = sNameClean.includes('EXPORT') || sNameClean.startsWith('XUAT');
                 const isDirectSheet = sNameClean.includes('DI THANG') || sNameClean.includes('XA THANG');
+                const isPortDustSheet = sNameClean.includes('BUI CANG') || sNameClean.includes('BUI CAU CANG');
 
-                if (!isImportSheet && !isExportSheet && !isDirectSheet) continue;
+                if (!isImportSheet && !isExportSheet && !isDirectSheet && !isPortDustSheet) continue;
 
-                const sheetWh: WarehouseId | null = isDirectSheet
+                const sheetWh: WarehouseId | null = (isDirectSheet || isPortDustSheet)
                     ? null
                     : (normalizeWarehouseId(sheet.name) || defaultWh);
 
@@ -4046,42 +4110,80 @@ export const WarehouseInventoryService = {
                         const inOutVal = String(cellAt(row, colInOut) || 'Xuất').trim();
                         const whLabel = String(cellAt(row, colWarehouse) || cellAt(row, colPlace) || sheetWh).trim();
 
-                        if (customerName && configs[exportCfgKey] && sanitizeCustomerName(customerName, '')) {
-                            configs[exportCfgKey].currentCustomer = sanitizeCustomerName(
-                                customerName,
-                                configs[exportCfgKey].currentCustomer
-                            );
-                        }
-                        if (exportCfgKey === 'KHO 4 - BK') {
-                            updatedWhSet.add('KHO 4 - BK');
-                        }
+                        const isRowPortDust =
+                            stripAccents(whLabel).toUpperCase().includes('BUI CANG') ||
+                            stripAccents(whLabel).toUpperCase().includes('BUI CAU CANG') ||
+                            stripAccents(exportRemark).toUpperCase().includes('BUI CANG') ||
+                            stripAccents(exportRemark).toUpperCase().includes('BUI CAU CANG') ||
+                            stripAccents(bargeInfo).toUpperCase().includes('BUI CANG') ||
+                            stripAccents(bargeInfo).toUpperCase().includes('BUI CAU CANG');
 
-                        const id = `EXPORT_${sheetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
-                        allTickets.push({
-                            id,
-                            soPhieu,
-                            maLenh: inOutVal,
-                            reportDate,
-                            weighInDate: reportDate,
-                            weighInTime: weighInTime || weighOutTime,
-                            weighOutDate: reportDate,
-                            weighOutTime,
-                            flowType: 'EXPORT',
-                            warehouseId: sheetWh,
-                            customerName,
-                            cargoType: 'Viên nén gỗ',
-                            vehiclePlate: rawPlateVal,
-                            carrierName,
-                            grossWeight,
-                            tareWeight,
-                            netWeight,
-                            factoryWeight: null,
-                            bargeInfo,
-                            vesselName,
-                            sourceOrRemark: whLabel,
-                            rawNote: exportRemark
-                        });
-                        summary.exportFlowCount++;
+                        if (isRowPortDust) {
+                            const portDustSource = stripAccents(whLabel).toUpperCase().includes('BUI') ? whLabel : 'BỤI CẦU CẢNG';
+                            const id = `PORT_DUST_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
+                            allTickets.push({
+                                id,
+                                soPhieu,
+                                maLenh: inOutVal,
+                                reportDate,
+                                weighInDate: reportDate,
+                                weighInTime: weighInTime || weighOutTime,
+                                weighOutDate: reportDate,
+                                weighOutTime,
+                                flowType: 'EXPORT',
+                                warehouseId: null, // Không gán nhầm vào xuất kho thông thường!
+                                customerName: customerName || '',
+                                cargoType: 'Bụi cầu cảng',
+                                vehiclePlate: rawPlateVal,
+                                carrierName,
+                                grossWeight,
+                                tareWeight,
+                                netWeight,
+                                factoryWeight: null,
+                                bargeInfo,
+                                vesselName,
+                                sourceOrRemark: portDustSource,
+                                rawNote: exportRemark
+                            });
+                            summary.exportFlowCount++;
+                        } else {
+                            if (customerName && configs[exportCfgKey] && sanitizeCustomerName(customerName, '')) {
+                                configs[exportCfgKey].currentCustomer = sanitizeCustomerName(
+                                    customerName,
+                                    configs[exportCfgKey].currentCustomer
+                                );
+                            }
+                            if (exportCfgKey === 'KHO 4 - BK') {
+                                updatedWhSet.add('KHO 4 - BK');
+                            }
+
+                            const id = `EXPORT_${sheetWh}_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
+                            allTickets.push({
+                                id,
+                                soPhieu,
+                                maLenh: inOutVal,
+                                reportDate,
+                                weighInDate: reportDate,
+                                weighInTime: weighInTime || weighOutTime,
+                                weighOutDate: reportDate,
+                                weighOutTime,
+                                flowType: 'EXPORT',
+                                warehouseId: sheetWh,
+                                customerName,
+                                cargoType: 'Viên nén gỗ',
+                                vehiclePlate: rawPlateVal,
+                                carrierName,
+                                grossWeight,
+                                tareWeight,
+                                netWeight,
+                                factoryWeight: null,
+                                bargeInfo,
+                                vesselName,
+                                sourceOrRemark: whLabel,
+                                rawNote: exportRemark
+                            });
+                            summary.exportFlowCount++;
+                        }
                     } else if (isDirectSheet) {
                         const colBarge = findColIdx(h => h.includes('SA LAN') || h.includes('SALAN'), -1);
                         const colVessel = findColIdx(h => h === 'TAU' || h.includes('TEN TAU'), -1);
@@ -4158,6 +4260,40 @@ export const WarehouseInventoryService = {
                             rawNote: directRemark
                         });
                         summary.directFlowCount++;
+                    } else if (isPortDustSheet) {
+                        const colBarge = findColIdx(h => h.includes('SA LAN') || h.includes('SALAN'), -1);
+                        const colVessel = findColIdx(h => h === 'TAU' || h.includes('TEN TAU'), -1);
+                        const colCust = findColIdx(h => h.includes('KHACH'), -1);
+                        const bargeInfo = String(cellAt(row, colBarge) || '').trim();
+                        const dustRemark = String(cellAt(row, colRemark1) || cellAt(row, colPlace) || '').trim();
+                        const vesselName = String(cellAt(row, colVessel) || '').trim();
+                        const custVal = colCust > 0 ? sanitizeCustomerName(cellAt(row, colCust), '') : '';
+                        const id = `PORT_DUST_${soPhieu || normalizePlateKey(rawPlateVal)}_${reportDate}_${r}`;
+                        allTickets.push({
+                            id,
+                            soPhieu,
+                            maLenh: '',
+                            reportDate,
+                            weighInDate: reportDate,
+                            weighInTime: weighInTime || weighOutTimeAny,
+                            weighOutDate: reportDate,
+                            weighOutTime: weighOutTimeAny,
+                            flowType: 'EXPORT',
+                            warehouseId: null,
+                            customerName: custVal || sheetLevelCustomer || '',
+                            cargoType: 'Bụi cầu cảng',
+                            vehiclePlate: rawPlateVal,
+                            carrierName,
+                            grossWeight,
+                            tareWeight,
+                            netWeight,
+                            factoryWeight: null,
+                            bargeInfo,
+                            vesselName,
+                            sourceOrRemark: dustRemark || 'BỤI CẦU CẢNG',
+                            rawNote: dustRemark
+                        });
+                        summary.exportFlowCount++;
                     }
                 }
             }
@@ -4471,12 +4607,14 @@ export const WarehouseInventoryService = {
             Boolean(t.customerName) && excludeSet.has(normalizeCustomerKey(t.customerName));
 
         const whImports = allTickets.filter(t => {
+            if (isPortDustTicket(t)) return false;
             if (t.warehouseId !== physicalWhId || t.flowType !== 'IMPORT') return false;
             if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
             if (isExcludedCustom(t)) return false;
             return isBK ? isBachKhoaTicket(t) : !isBachKhoaTicket(t);
         });
         const whExports = allTickets.filter(t => {
+            if (isPortDustTicket(t)) return false;
             if (t.warehouseId !== physicalWhId || t.flowType !== 'EXPORT') return false;
             if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
             if (isExcludedCustom(t)) return false;
@@ -4484,6 +4622,7 @@ export const WarehouseInventoryService = {
         });
         const targetGroup = isBK ? 'KHO_4_BK' : (physicalWhId === 'KHO 4' ? 'KHO_4' : 'KHO_123');
         const directTickets = allTickets.filter(t => {
+            if (isPortDustTicket(t)) return false;
             if (t.flowType !== 'DIRECT') return false;
             if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
             if (isExcludedCustom(t)) return false;
@@ -4522,6 +4661,19 @@ export const WarehouseInventoryService = {
             // 4. Sheet XÁ THẲNG
             const wsDirect = workbook.addWorksheet(directSheetName);
             this.populateDirectWorksheet(wsDirect, directTickets, config.currentCustomer);
+
+            // 5. Sheet BỤI CẦU CẢNG (Nếu có các phiếu isPortDustTicket trong khoảng thời gian đang lọc)
+            const portDustTickets = allTickets.filter(t => {
+                if (!isPortDustTicket(t)) return false;
+                if (options?.fromDate && t.reportDate < options.fromDate) return false;
+                if (options?.toDate && t.reportDate > options.toDate) return false;
+                if (customerFilter && !isTicketForCustomCustomer(t, customerFilter)) return false;
+                return true;
+            });
+            if (portDustTickets.length > 0) {
+                const wsPortDust = workbook.addWorksheet('BỤI CẦU CẢNG');
+                this.populatePortDustWorksheet(wsPortDust, portDustTickets, config.currentCustomer);
+            }
         } else {
             // Kho 1, 2, 3 (Gỗ Bình Định): The Excel report for GBD is a single workbook containing all 8 sheets:
             // 1. FINAL, 2. IMPORT 1, 3. EXPORT 1, 4. IMPORT 2, 5. EXPORT 2, 6. IMPORT KHO 3, 7. EXPORT KH 3, 8. XÁ THẲNG
@@ -4640,7 +4792,7 @@ export const WarehouseInventoryService = {
                 wsImp,
                 def.wh,
                 configs[def.wh].currentCustomer,
-                allTickets.filter(t => t.warehouseId === def.wh && t.flowType === 'IMPORT')
+                allTickets.filter(t => !isPortDustTicket(t) && t.warehouseId === def.wh && t.flowType === 'IMPORT')
             );
 
             const wsExp = workbook.addWorksheet(def.expName);
@@ -4648,7 +4800,7 @@ export const WarehouseInventoryService = {
                 wsExp,
                 def.wh,
                 configs[def.wh].currentCustomer,
-                allTickets.filter(t => t.warehouseId === def.wh && t.flowType === 'EXPORT')
+                allTickets.filter(t => !isPortDustTicket(t) && t.warehouseId === def.wh && t.flowType === 'EXPORT')
             );
         }
 
@@ -4656,9 +4808,21 @@ export const WarehouseInventoryService = {
         const wsDirect = workbook.addWorksheet('XÁ THẲNG');
         this.populateGbdDirectWorksheet(
             wsDirect,
-            allTickets.filter(t => t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123'),
+            allTickets.filter(t => !isPortDustTicket(t) && t.flowType === 'DIRECT' && getTicketCustomerGroup(t, configs) === 'KHO_123'),
             configs['KHO 1'].currentCustomer
         );
+
+        // 4. Sheet BỤI CẦU CẢNG (Nếu có các phiếu isPortDustTicket trong khoảng thời gian đang lọc)
+        const portDustTickets = allTickets.filter(t => {
+            if (!isPortDustTicket(t)) return false;
+            if (options?.fromDate && t.reportDate < options.fromDate) return false;
+            if (options?.toDate && t.reportDate > options.toDate) return false;
+            return true;
+        });
+        if (portDustTickets.length > 0) {
+            const wsPortDust = workbook.addWorksheet('BỤI CẦU CẢNG');
+            this.populatePortDustWorksheet(wsPortDust, portDustTickets, configs['KHO 1']?.currentCustomer);
+        }
 
         const now = new Date();
         const ddmmyyyy = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
@@ -4666,6 +4830,18 @@ export const WarehouseInventoryService = {
 
         const buffer = await workbook.xlsx.writeBuffer();
         return { buffer: buffer as ArrayBuffer, filename };
+    },
+
+    /**
+     * Alias for exportCombined123WarehouseWorkbook
+     */
+    async exportCombinedWorkbook(options?: {
+        tickets?: WarehouseInventoryTicket[];
+        filterByCatalog?: boolean;
+        fromDate?: string;
+        toDate?: string;
+    }): Promise<{ buffer: ArrayBuffer; filename: string }> {
+        return this.exportCombined123WarehouseWorkbook(options);
     },
 
     populateImportWorksheet(
@@ -5178,6 +5354,214 @@ export const WarehouseInventoryService = {
             { width: 10.7 }, { width: 13.3 }, { width: 19.8 }, { width: 20.3 }, { width: 16.3 },
             { width: 16 }, { width: 16.4 }, { width: 19.8 }, { width: 17.1 }, { width: 20.6 },
             { width: 14.7 }, { width: 40 }, { width: 21.9 }, { width: 18.6 }
+        ];
+    },
+
+    populatePortDustWorksheet(
+        sheet: any,
+        tickets: WarehouseInventoryTicket[],
+        customerName?: string
+    ) {
+        const thinBorder = {
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const tonFmt = '#,##0.00';
+        const primaryHeaderFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4A78C2' },
+            bgColor: { indexed: 64 }
+        };
+        const zebraFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8FAFC' },
+            bgColor: { indexed: 64 }
+        };
+        const totalFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE2E8F0' },
+            bgColor: { indexed: 64 }
+        };
+
+        sheet.mergeCells('A1:M1');
+        sheet.getCell('A1').value = 'BÁO CÁO CHI TIẾT CÂN BỤI CẦU CẢNG';
+        sheet.getCell('A1').font = { name: 'Cambria', family: 1, size: 14, bold: true, color: { argb: 'FF1E293B' } };
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(1).height = 24;
+
+        sheet.mergeCells('A2:M2');
+        sheet.getCell('A2').value = '(PORT DUST WEIGHING LIST REPORT)';
+        sheet.getCell('A2').font = { name: 'Cambria', family: 1, size: 11, bold: true, italic: true, color: { argb: 'FF64748B' } };
+        sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        sheet.getRow(2).height = 20;
+
+        sheet.getRow(3).height = 20;
+        sheet.mergeCells('A3:B3');
+        sheet.getCell('A3').value = 'Hàng hóa (Cargo):';
+        sheet.getCell('A3').font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF1E293B' } };
+        sheet.getCell('A3').alignment = { vertical: 'middle' };
+        sheet.mergeCells('C3:D3');
+        sheet.getCell('C3').value = 'BỤI CẦU CẢNG';
+        sheet.getCell('C3').font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF4A78C2' } };
+        sheet.getCell('C3').alignment = { vertical: 'middle' };
+        sheet.getCell('L3').value = 'ĐVT : Tấn';
+        sheet.getCell('L3').font = { name: 'Cambria', family: 1, size: 11, italic: true, color: { argb: 'FF64748B' } };
+        sheet.getCell('L3').alignment = { vertical: 'middle', horizontal: 'right' };
+
+        sheet.getRow(4).height = 20;
+        sheet.mergeCells('A4:B4');
+        sheet.getCell('A4').value = 'Khách hàng (Customer):';
+        sheet.getCell('A4').font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF1E293B' } };
+        sheet.getCell('A4').alignment = { vertical: 'middle' };
+        sheet.mergeCells('C4:D4');
+        sheet.getCell('C4').value = customerName || tickets[0]?.customerName || 'TẤT CẢ';
+        sheet.getCell('C4').font = { name: 'Cambria', family: 1, size: 11, color: { argb: 'FF1E293B' } };
+        sheet.getCell('C4').alignment = { vertical: 'middle' };
+
+        const lastDataRow = Math.max(7, tickets.length + 6);
+        const totalNetTons = round2(tickets.reduce((s, t) => s + (Number(t.netWeight) || 0), 0));
+        sheet.getRow(5).height = 20;
+        sheet.getCell('F5').value = 'TỔNG TẤN:';
+        sheet.getCell('F5').font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF1E293B' } };
+        sheet.getCell('F5').alignment = { vertical: 'middle', horizontal: 'right' };
+        sheet.getCell('G5').value = { formula: `SUM(G7:G${lastDataRow})`, result: totalNetTons };
+        sheet.getCell('G5').font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF4A78C2' } };
+        sheet.getCell('G5').alignment = { vertical: 'middle', horizontal: 'right' };
+        sheet.getCell('G5').numFmt = tonFmt;
+
+        const headers = [
+            'STT\n(No)',
+            'Ngày cân\n(Date)',
+            'Số phiếu\n(Serial)',
+            'Số xe\n(Truck no)',
+            'T.Lượng vào\n(Weight in)',
+            'T.Lượng ra\n(Weight out)',
+            'Khối lượng hàng\n(Net Weight)',
+            'Khách hàng\n(Customer)',
+            'Tài xế / Ghi chú\n(Remark)',
+            'Sà lan / Điểm đến\n(Barge)',
+            'Tàu\n(Vessel)',
+            'Giờ vào\n(Time in)',
+            'Giờ ra\n(Time out)'
+        ];
+
+        const hRow = sheet.getRow(6);
+        headers.forEach((h, i) => {
+            const cell = hRow.getCell(i + 1);
+            cell.value = h;
+            cell.font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.fill = primaryHeaderFill;
+            cell.border = thinBorder;
+        });
+        hRow.height = 36;
+
+        const sortedTickets = [...tickets].sort(compareTicketsOrder);
+
+        sortedTickets.forEach((t, idx) => {
+            const rNum = idx + 7;
+            const row = sheet.getRow(rNum);
+            row.height = 21;
+            const dtParts = (t.reportDate || '').split('-').map(Number);
+            const excelDate = dtParts.length === 3
+                ? new Date(Date.UTC(dtParts[0]!, (dtParts[1] || 1) - 1, dtParts[2] || 1))
+                : t.reportDate;
+
+            const grossTons = Number(t.grossWeight) || 0;
+            const tareTons = Number(t.tareWeight) || 0;
+            const netTons = Number(t.netWeight) || 0;
+
+            row.getCell(1).value = idx + 1;
+            row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            row.getCell(2).value = excelDate;
+            row.getCell(2).numFmt = 'dd/mm/yyyy';
+            row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            row.getCell(3).value = t.soPhieu || '';
+            row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            row.getCell(4).value = t.vehiclePlate || '';
+            row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            row.getCell(5).value = grossTons;
+            row.getCell(5).numFmt = tonFmt;
+            row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
+
+            row.getCell(6).value = tareTons;
+            row.getCell(6).numFmt = tonFmt;
+            row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+
+            row.getCell(7).value = netTons;
+            row.getCell(7).numFmt = tonFmt;
+            row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
+
+            row.getCell(8).value = t.customerName || '';
+            row.getCell(8).alignment = { vertical: 'middle' };
+
+            row.getCell(9).value = t.sourceOrRemark || 'BỤI CẦU CẢNG';
+            row.getCell(9).alignment = { vertical: 'middle' };
+
+            row.getCell(10).value = t.bargeInfo || '';
+            row.getCell(10).alignment = { vertical: 'middle' };
+
+            row.getCell(11).value = t.vesselName || '';
+            row.getCell(11).alignment = { vertical: 'middle' };
+
+            row.getCell(12).value = t.weighInTime || '';
+            row.getCell(12).numFmt = 'hh:mm:ss';
+            row.getCell(12).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            row.getCell(13).value = t.weighOutTime || '';
+            row.getCell(13).numFmt = 'hh:mm:ss';
+            row.getCell(13).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            const isZebra = idx % 2 === 1;
+            for (let c = 1; c <= 13; c++) {
+                const cell = row.getCell(c);
+                cell.font = { name: 'Cambria', family: 1, size: 11, bold: c === 7, color: { argb: 'FF1E293B' } };
+                cell.border = thinBorder;
+                if (isZebra) {
+                    cell.fill = zebraFill;
+                }
+            }
+        });
+
+        const totalRowNum = sortedTickets.length + 7;
+        const totalRow = sheet.getRow(totalRowNum);
+        totalRow.height = 24;
+        sheet.mergeCells(`A${totalRowNum}:F${totalRowNum}`);
+        totalRow.getCell(1).value = 'TỔNG CỘNG';
+        totalRow.getCell(7).value = { formula: `SUM(G7:G${lastDataRow})`, result: totalNetTons };
+
+        for (let c = 1; c <= 13; c++) {
+            const cell = totalRow.getCell(c);
+            cell.font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF1E293B' } };
+            cell.fill = totalFill;
+            cell.alignment = { horizontal: c <= 6 ? 'center' : (c === 7 ? 'right' : undefined), vertical: 'middle' };
+            cell.border = thinBorder;
+            if (c === 7) cell.numFmt = tonFmt;
+        }
+
+        sheet.columns = [
+            { width: 8 },   // STT
+            { width: 14 },  // Ngày cân
+            { width: 15 },  // Số phiếu
+            { width: 15 },  // Số xe
+            { width: 15 },  // TL Vào
+            { width: 15 },  // TL Ra
+            { width: 18 },  // KL Hàng (Tấn)
+            { width: 22 },  // Khách hàng
+            { width: 22 },  // Tài xế / Ghi chú
+            { width: 18 },  // Sà lan
+            { width: 18 },  // Tàu
+            { width: 13 },  // Giờ vào
+            { width: 13 }   // Giờ ra
         ];
     },
 

@@ -51,7 +51,7 @@ try {
 
 const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
     admin: { 
-        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'], 
+        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'], 
         canCreate: true, 
         canUpdate: true, 
         canDelete: true,
@@ -59,11 +59,13 @@ const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
             weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
             allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
             vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-            minutes: ['min_create', 'min_export']
+            minutes: ['min_create', 'min_export'],
+            warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
+            split: ['split_manage', 'split_export']
         }
     },
     staff: { 
-        tools: ['converter', 'merger', 'ocr'], 
+        tools: ['converter', 'merger', 'ocr', 'minutes'], 
         canCreate: true, 
         canUpdate: true, 
         canDelete: false,
@@ -75,7 +77,7 @@ const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
         }
     },
     operator: { 
-        tools: ['weighbridge', 'allocator', 'vehicles'], 
+        tools: ['weighbridge', 'allocator', 'vehicles', 'minutes'], 
         canCreate: true, 
         canUpdate: true, 
         canDelete: false,
@@ -101,10 +103,10 @@ const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
 };
 
 const initialState: AuthState = {
-    isAuthenticated: saved?.isAuthenticated ?? false,
+    isAuthenticated: !!saved?.isAuthenticated && !!saved?.user && !!saved?.role,
     user: saved?.user ?? null,
-    role: saved?.role ?? (saved?.isAuthenticated ? 'admin' : null),
-    displayName: saved?.displayName ?? (saved?.isAuthenticated ? 'Admin' : null),
+    role: saved?.role ?? null,
+    displayName: saved?.displayName ?? null,
     avatar: saved?.avatar ?? null,
     isFirstLogin: saved?.isFirstLogin ?? false,
     isDemoMode: saved?.isDemoMode ?? false,
@@ -142,7 +144,7 @@ export const loginAsDemo = (): { success: boolean } => {
     authStore.isDemoMode = true;
     authStore.rolePermissions = {
         admin: {
-            tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr'],
+            tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'],
             canCreate: true,
             canUpdate: true,
             canDelete: true,
@@ -150,7 +152,9 @@ export const loginAsDemo = (): { success: boolean } => {
                 weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
                 allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
                 vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-                minutes: ['min_create', 'min_export']
+                minutes: ['min_create', 'min_export'],
+                warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
+                split: ['split_manage', 'split_export']
             }
         }
     };
@@ -280,7 +284,11 @@ export const hasPermission = (toolId: string) => {
     if (!authStore.isAuthenticated) return false;
     if (authStore.role === 'admin') return true;
     const perm = authStore.rolePermissions?.[authStore.role || ''];
-    return perm ? perm.tools.includes(toolId) : false;
+    if (!perm) return false;
+    if (toolId === 'utilities') {
+        return perm.tools.includes('converter') || perm.tools.includes('merger') || perm.tools.includes('ocr');
+    }
+    return perm.tools.includes(toolId);
 };
 
 export const canCreate = () => {
@@ -314,18 +322,38 @@ export const hasDetailPermission = (toolId: string, permissionId: string, action
     const perm = authStore.rolePermissions?.[authStore.role || ''];
     if (!perm) return false;
     if (!perm.tools.includes(toolId)) return false;
-    if (!perm.detailPermissions) return true;
+    if (!perm.detailPermissions) return false;
     const toolPerms = perm.detailPermissions[toolId];
-    if (!toolPerms) return true;
+    if (!toolPerms || !Array.isArray(toolPerms) || toolPerms.length === 0) return false;
     
-    // Backwards compatibility: if bare permissionId is present, all actions are allowed
-    if (toolPerms.includes(permissionId)) {
-        return true;
+    // Strict delete check: if action is delete and role's canDelete is false, deny immediately
+    if (action === 'delete' && !perm.canDelete) {
+        return false;
     }
     
     if (action) {
         const act = action === 'read' ? 'read' : action === 'create' ? 'create' : action === 'update' ? 'update' : action === 'delete' ? 'delete' : action;
-        return toolPerms.includes(`${permissionId}:${act}`);
+        
+        // Exact match or wildcard match
+        if (toolPerms.includes(`${permissionId}:${act}`) || toolPerms.includes(`${permissionId}:*`)) {
+            return true;
+        }
+
+        // Backwards compatibility: if bare permissionId is present in toolPerms,
+        // it grants access to standard actions subject to role-level action flags
+        if (toolPerms.includes(permissionId)) {
+            if (act === 'delete' && !perm.canDelete) return false;
+            if (act === 'create' && perm.canCreate === false) return false;
+            if (act === 'update' && perm.canUpdate === false) return false;
+            return true;
+        }
+
+        return false;
+    }
+    
+    // No specific action provided: check if permissionId itself or any action of it exists
+    if (toolPerms.includes(permissionId) || toolPerms.includes(`${permissionId}:*`)) {
+        return true;
     }
     
     return toolPerms.some(p => p.startsWith(`${permissionId}:`));

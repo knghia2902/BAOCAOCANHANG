@@ -207,6 +207,53 @@ export class AuthService {
         const { data } = await supabase.auth.getSession();
         return !!data?.session;
     }
+
+    /**
+     * Xác thực lại trạng thái tài khoản từ Supabase (bảng users)
+     * Chống can thiệp giả mạo vai trò qua localStorage (Client-Side Role Tampering).
+     * Trả về thông tin user mới nhất nếu hợp lệ và đang kích hoạt (is_active !== false).
+     * Trả về null nếu tài khoản không tồn tại hoặc đã bị vô hiệu hóa / khóa.
+     */
+    async validateSession(username: string): Promise<User | null> {
+        const usernameClean = (username || '').trim().toLowerCase();
+        if (!usernameClean) return null;
+
+        // Nếu là tài khoản Demo, kiểm tra qua DemoSandboxService
+        if (usernameClean === 'demo') {
+            return {
+                username: 'demo',
+                role: 'admin',
+                displayName: 'Khách Trải Nghiệm (Demo)',
+                isActive: true
+            };
+        }
+
+        try {
+            const { data: dbUser, error } = await supabase
+                .from('users')
+                .select('id, username, role, display_name, avatar, is_active, created_at')
+                .eq('username', usernameClean)
+                .maybeSingle();
+
+            if (!error && dbUser) {
+                if (dbUser.is_active === false) {
+                    return null;
+                }
+                return {
+                    id: dbUser.id,
+                    username: dbUser.username,
+                    role: dbUser.role || 'staff',
+                    displayName: dbUser.display_name || dbUser.username,
+                    avatar: dbUser.avatar || '',
+                    isActive: dbUser.is_active !== false,
+                    created_at: dbUser.created_at
+                };
+            }
+        } catch (err) {
+            console.warn('[AuthService] validateSession query error:', err);
+        }
+        return null;
+    }
 }
 
 export const authService = new AuthService();

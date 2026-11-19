@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onActivated, onUnmounted, watch, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
 import {
     WarehouseInventoryService,
     computeWarehouseFinalTable,
@@ -32,6 +33,11 @@ const emit = defineEmits<{
 }>();
 
 const { addToast } = useToast();
+
+// Permissions for Warehouse operations
+const canWarehouseCreate = computed(() => authStore.role === 'admin' || canCreate());
+const canWarehouseUpdate = computed(() => authStore.role === 'admin' || canUpdate());
+const canWarehouseDelete = computed(() => authStore.role === 'admin' || canDelete());
 
 type ViewWarehouseMode = WarehouseId | 'KHO 4 - BK' | 'COMBINED_123';
 type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
@@ -164,6 +170,10 @@ function openEditCustomerModal(group: 'KHO_4' | 'KHO_4_BK' | 'KHO_123') {
 }
 
 async function saveCustomerNameModal() {
+    if (!canWarehouseUpdate.value) {
+        addToast('Bạn không có quyền thay đổi cấu hình kho!', 'error');
+        return;
+    }
     const defaultFallback = editingCustomerGroup.value === 'KHO_4_BK'
         ? 'BÁCH KHOA'
         : (editingCustomerGroup.value === 'KHO_4' ? 'EASTWOOD' : 'GỖ BÌNH ĐỊNH');
@@ -232,6 +242,10 @@ function selectCustomCustomer(cust: CustomWarehouseCustomer, tab?: SheetTabMode)
 }
 
 function openAddCustomCustomerModal() {
+    if (!canWarehouseCreate.value) {
+        addToast('Bạn không có quyền thêm khách hàng mới!', 'error');
+        return;
+    }
     customCustomerForm.value = {
         id: null,
         customerName: '',
@@ -244,6 +258,10 @@ function openAddCustomCustomerModal() {
 }
 
 function openEditCustomCustomerModal(cust: CustomWarehouseCustomer) {
+    if (!canWarehouseUpdate.value) {
+        addToast('Bạn không có quyền sửa thông tin khách hàng!', 'error');
+        return;
+    }
     customCustomerForm.value = {
         id: cust.id,
         customerName: cust.customerName,
@@ -256,6 +274,15 @@ function openEditCustomCustomerModal(cust: CustomWarehouseCustomer) {
 }
 
 async function saveCustomCustomerModal() {
+    const isEditing = !!customCustomerForm.value.id;
+    if (isEditing && !canWarehouseUpdate.value) {
+        addToast('Bạn không có quyền cập nhật khách hàng!', 'error');
+        return;
+    }
+    if (!isEditing && !canWarehouseCreate.value) {
+        addToast('Bạn không có quyền thêm khách hàng mới!', 'error');
+        return;
+    }
     const trimmedName = sanitizeCustomerName(customCustomerForm.value.customerName.trim(), '');
     if (!trimmedName) {
         addToast('Vui lòng nhập tên khách hàng hợp lệ', 'error');
@@ -289,6 +316,10 @@ async function saveCustomCustomerModal() {
 }
 
 async function handleDeleteCustomCustomer(cust: CustomWarehouseCustomer) {
+    if (!canWarehouseDelete.value) {
+        addToast('Bạn không có quyền xóa khách hàng!', 'error');
+        return;
+    }
     if (!window.confirm(`Bạn có chắc chắn muốn XÓA khách hàng "${cust.customerName}" (${cust.warehouseId})?\n(Phiếu cân của khách hàng này sẽ bị xóa theo)`)) {
         return;
     }
@@ -785,10 +816,18 @@ async function onFactoryKgChange(t: WarehouseInventoryTicket, e: Event) {
 
 // Trigger CSV import (supports multiple CSV/Excel files at once)
 function triggerCsvImport() {
+    if (!canWarehouseCreate.value) {
+        addToast('Bạn không có quyền nạp file CSV trạm cân!', 'error');
+        return;
+    }
     csvFileInput.value?.click();
 }
 
 async function handleCsvFilesSelected(e: Event) {
+    if (!canWarehouseCreate.value) {
+        addToast('Bạn không có quyền nạp file CSV trạm cân!', 'error');
+        return;
+    }
     const input = e.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
@@ -841,10 +880,18 @@ async function handleCsvFilesSelected(e: Event) {
 
 // Trigger Historical Excel Bootstrap
 function triggerHistoryExcelImport() {
+    if (!canWarehouseCreate.value) {
+        addToast('Bạn không có quyền nạp file Excel tồn kho!', 'error');
+        return;
+    }
     historyExcelFileInput.value?.click();
 }
 
 async function handleHistoryExcelSelected(e: Event) {
+    if (!canWarehouseCreate.value) {
+        addToast('Bạn không có quyền nạp file Excel tồn kho!', 'error');
+        return;
+    }
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -895,6 +942,10 @@ async function handleHistoryExcelSelected(e: Event) {
 
 async function handleClearCurrentWarehouse() {
     showDeleteMenu.value = false;
+    if (!canWarehouseDelete.value) {
+        addToast('Bạn không có quyền xóa dữ liệu kho!', 'error');
+        return;
+    }
     const whName = currentOperatingWarehouseName.value;
     if (!confirm(`Bạn có chắc chắn muốn XÓA DỮ LIỆU của ${whName} không?\n(Dữ liệu của các kho khác sẽ được giữ nguyên)`)) {
         return;
@@ -926,6 +977,10 @@ async function handleClearCurrentWarehouse() {
 
 async function handleClearAllWarehouses() {
     showDeleteMenu.value = false;
+    if (!canWarehouseDelete.value) {
+        addToast('Bạn không có quyền xóa dữ liệu toàn bộ kho!', 'error');
+        return;
+    }
     if (!confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA TẤT CẢ dữ liệu ở TẤT CẢ các kho (Kho 1, Kho 2, Kho 3, Kho 4 và Xá Thẳng) để làm lại từ đầu không?')) {
         return;
     }
@@ -1491,6 +1546,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                 <!-- Thêm khách hàng (DESIGN.md Secondary Outline) -->
                 <button
+                    v-if="canWarehouseCreate"
                     type="button"
                     @click="openAddCustomCustomerModal"
                     class="w-full px-3 py-2 bg-white border border-primary/15 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
@@ -1797,6 +1853,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     {{ cust.customerName }}
                                 </span>
                                 <button
+                                    v-if="canWarehouseUpdate"
                                     @click.stop="openEditCustomCustomerModal(cust)"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -1809,6 +1866,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     <span class="material-symbols-outlined text-xs">edit</span>
                                 </button>
                                 <button
+                                    v-if="canWarehouseDelete"
                                     @click.stop="handleDeleteCustomCustomer(cust)"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -1988,6 +2046,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
                         <button
+                            v-if="canWarehouseCreate"
                             @click="triggerCsvImport"
                             :disabled="importingCsv"
                             class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1998,6 +2057,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </button>
 
                         <button
+                            v-if="canWarehouseCreate"
                             @click="triggerHistoryExcelImport"
                             :disabled="importingHistoryExcel"
                             class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -2028,7 +2088,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </button>
 
                         <!-- Delete Options Dropdown -->
-                        <div class="relative inline-block">
+                        <div v-if="canWarehouseDelete" class="relative inline-block">
                             <button
                                 @click="showDeleteMenu = !showDeleteMenu"
                                 class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"

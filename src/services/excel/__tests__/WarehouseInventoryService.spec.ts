@@ -47,6 +47,7 @@ import {
     isBachKhoaTicket,
     isEastwoodCustomer,
     isEastwoodTicket,
+    isPortDustTicket,
     isTicketValidForInventoryReport,
     getStandardCarrierDisplay,
     getStandardWarehouseDisplay,
@@ -1928,6 +1929,253 @@ describe('WarehouseInventoryService', () => {
 
             await WarehouseInventoryService.deleteCustomCustomer(cust.id);
             expect(await WarehouseInventoryService.getCustomCustomers(true)).toHaveLength(0);
+        });
+    });
+
+    describe('Port Dust Tickets (Bụi cầu cảng) Handling & Isolated Export', () => {
+        it('identifies port dust tickets via isPortDustTicket based on sourceOrRemark or rawNote', () => {
+            const ticket1: WarehouseInventoryTicket = {
+                id: 'T1',
+                soPhieu: 'P001',
+                reportDate: '2026-11-19',
+                weighOutDate: '2026-11-19',
+                weighOutTime: '08:00:00',
+                flowType: 'EXPORT',
+                warehouseId: null,
+                customerName: 'KHACH A',
+                cargoType: 'Bụi cầu cảng',
+                vehiclePlate: '51C-12345',
+                carrierName: 'XE A',
+                grossWeight: 30,
+                tareWeight: 10,
+                netWeight: 20,
+                sourceOrRemark: 'BỤI CẢNG'
+            };
+            expect(isPortDustTicket(ticket1)).toBe(true);
+
+            const ticket2: WarehouseInventoryTicket = {
+                ...ticket1,
+                id: 'T2',
+                sourceOrRemark: 'Bụi cầu cảng',
+                rawNote: ''
+            };
+            expect(isPortDustTicket(ticket2)).toBe(true);
+
+            const ticket3: WarehouseInventoryTicket = {
+                ...ticket1,
+                id: 'T3',
+                sourceOrRemark: 'XE NGOAI',
+                rawNote: 'Can bui cang ra ben'
+            };
+            expect(isPortDustTicket(ticket3)).toBe(true);
+
+            const normalTicket: WarehouseInventoryTicket = {
+                ...ticket1,
+                id: 'T4',
+                cargoType: 'Viên gỗ nén',
+                sourceOrRemark: 'KHO 1',
+                rawNote: 'Xuat hang binh thuong'
+            };
+            expect(isPortDustTicket(normalTicket)).toBe(false);
+        });
+
+        it('classifies weighbridge row with driver BỤI CẢNG as port dust ticket without assigning to warehouse export', () => {
+            const row = {
+                soPhieu: 'P_DUST_1',
+                maLenh: 'ML001',
+                soXe: '60C-999.88',
+                khachHang: 'EASTWOOD',
+                kl1: 45000,
+                kl2: 15000,
+                klHang: 30000,
+                ngay1: '19/11/2026',
+                gio1: '07:30',
+                ngay2: '19/11/2026',
+                gio2: '08:00',
+                xuatNhap: 'Xuất',
+                loaiHang: 'Viên nén',
+                loaiSalan: 'KHO 4', // Operators might put KHO 4 in loaiSalan by habit
+                taiXe: 'BỤI CẢNG',
+                ghiChu: 'Cân bụi cảng'
+            };
+
+            const ticket = classifyWeighbridgeRow(row);
+            expect(ticket).not.toBeNull();
+            expect(ticket?.warehouseId).toBeNull(); // NOT assigned to KHO 4!
+            expect(ticket?.sourceOrRemark).toBe('BỤI CẢNG');
+            expect(isPortDustTicket(ticket!)).toBe(true);
+        });
+
+        it('excludes port dust tickets from computeWarehouseFinalTable import, export, and closing stock', () => {
+            const config: WarehouseConfig = {
+                warehouseId: 'KHO 4',
+                initialStock: 100,
+                initialDate: '2026-11-01',
+                currentCustomer: 'EASTWOOD',
+                dailyRemarks: {}
+            };
+
+            const tickets: WarehouseInventoryTicket[] = [
+                {
+                    id: 'IMP1',
+                    soPhieu: 'P01',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '08:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên gỗ nén',
+                    vehiclePlate: '51C-11111',
+                    carrierName: 'XE 1',
+                    grossWeight: 50,
+                    tareWeight: 10,
+                    netWeight: 40
+                },
+                {
+                    id: 'EXP1',
+                    soPhieu: 'P02',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '09:00',
+                    flowType: 'EXPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên gỗ nén',
+                    vehiclePlate: '51C-22222',
+                    carrierName: 'XE 2',
+                    grossWeight: 45,
+                    tareWeight: 15,
+                    netWeight: 30
+                },
+                {
+                    id: 'DUST1',
+                    soPhieu: 'P03',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '10:00',
+                    flowType: 'EXPORT',
+                    warehouseId: null,
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Bụi cầu cảng',
+                    vehiclePlate: '51C-33333',
+                    carrierName: 'XE 3',
+                    grossWeight: 35,
+                    tareWeight: 10,
+                    netWeight: 25,
+                    sourceOrRemark: 'BỤI CẢNG'
+                }
+            ];
+
+            const result = computeWarehouseFinalTable('KHO 4', tickets, config);
+            expect(result.totalImportTons).toBe(40);
+            expect(result.totalExportTons).toBe(30);
+            // 100 opening + 40 import - 30 export = 110 (25 tons of dust MUST NOT be deducted)
+            expect(result.closingStockTons).toBe(110);
+            expect(result.rows[0]?.exportTons).toBe(30);
+        });
+
+        it('exports sheet BỤI CẦU CẢNG with Design System styles when port dust tickets are present', async () => {
+            const ExcelJS = await import('exceljs');
+            const tickets: WarehouseInventoryTicket[] = [
+                {
+                    id: 'IMP4_1',
+                    soPhieu: 'P01',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '08:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên gỗ nén',
+                    vehiclePlate: '51C-11111',
+                    carrierName: 'XE 1',
+                    grossWeight: 50,
+                    tareWeight: 10,
+                    netWeight: 40
+                },
+                {
+                    id: 'DUST_1',
+                    soPhieu: 'P_DUST_01',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '10:15',
+                    flowType: 'EXPORT',
+                    warehouseId: null,
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Bụi cầu cảng',
+                    vehiclePlate: '50H-999.01',
+                    carrierName: 'TẤN PHÁT',
+                    grossWeight: 38.5,
+                    tareWeight: 12.2,
+                    netWeight: 26.3,
+                    sourceOrRemark: 'BỤI CẢNG'
+                }
+            ];
+
+            // 1. Single Warehouse Export
+            const singleResult = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', { tickets });
+            const wbSingle = new ExcelJS.Workbook();
+            await wbSingle.xlsx.load(singleResult.buffer);
+
+            const dustSheet = wbSingle.getWorksheet('BỤI CẦU CẢNG');
+            expect(dustSheet).toBeDefined();
+            expect(dustSheet?.getCell('A1').value).toBe('BÁO CÁO CHI TIẾT CÂN BỤI CẦU CẢNG');
+            expect(dustSheet?.getCell('C3').value).toBe('BỤI CẦU CẢNG');
+
+            // Verify header color is primary (#4A78C2)
+            const hCell = dustSheet?.getCell('A6');
+            expect(hCell?.fill).toMatchObject({
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF4A78C2' }
+            });
+
+            // Verify data row netWeight formatting (2 decimal places)
+            const netWeightCell = dustSheet?.getCell('G7');
+            expect(netWeightCell?.value).toBe(26.3);
+            expect(netWeightCell?.numFmt).toBe('#,##0.00');
+
+            // Verify total row at bottom
+            const totalRow = dustSheet?.getRow(8);
+            expect(totalRow?.getCell(1).value).toBe('TỔNG CỘNG');
+            expect(totalRow?.getCell(7).value).toMatchObject({
+                formula: expect.stringContaining('SUM(')
+            });
+
+            // 2. Combined Warehouse Export (via alias exportCombinedWorkbook)
+            const combinedResult = await WarehouseInventoryService.exportCombinedWorkbook({ tickets });
+            const wbCombined = new ExcelJS.Workbook();
+            await wbCombined.xlsx.load(combinedResult.buffer);
+            const combinedDustSheet = wbCombined.getWorksheet('BỤI CẦU CẢNG');
+            expect(combinedDustSheet).toBeDefined();
+        });
+
+        it('does NOT create sheet BỤI CẦU CẢNG when there are no port dust tickets', async () => {
+            const ExcelJS = await import('exceljs');
+            const tickets: WarehouseInventoryTicket[] = [
+                {
+                    id: 'IMP4_ONLY',
+                    soPhieu: 'P01',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '08:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên gỗ nén',
+                    vehiclePlate: '51C-11111',
+                    carrierName: 'XE 1',
+                    grossWeight: 50,
+                    tareWeight: 10,
+                    netWeight: 40
+                }
+            ];
+
+            const singleResult = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', { tickets });
+            const wbSingle = new ExcelJS.Workbook();
+            await wbSingle.xlsx.load(singleResult.buffer);
+            expect(wbSingle.getWorksheet('BỤI CẦU CẢNG')).toBeUndefined();
         });
     });
 });

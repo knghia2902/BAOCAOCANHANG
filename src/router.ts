@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { authStore } from './stores/auth';
+import { authStore, hasPermission } from './stores/auth';
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,43 +24,43 @@ const router = createRouter({
             path: '/tools/weighbridge',
             name: 'tools-weighbridge',
             component: () => import('./views/tools/WeighbridgeView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'weighbridge' }
         },
         {
             path: '/tools/allocator',
             name: 'tools-allocator',
             component: () => import('./views/tools/AllocatorView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'allocator' }
         },
         {
             path: '/tools/vehicles',
             name: 'tools-vehicles',
             component: () => import('./views/tools/VehiclesView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'vehicles' }
         },
         {
             path: '/tools/minutes',
             name: 'tools-minutes',
             component: () => import('./views/tools/MinutesView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'minutes' }
         },
         {
             path: '/tools/utilities',
             name: 'tools-utilities',
             component: () => import('./views/tools/UtilitiesView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'utilities' }
         },
         {
             path: '/tools/warehouse',
             name: 'tools-warehouse',
             component: () => import('./views/tools/WarehouseInventoryView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'warehouse' }
         },
         {
             path: '/split',
             name: 'split-allocator',
             component: () => import('./views/tools/SplitAllocatorView.vue'),
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, toolId: 'split' }
         },
         // Legacy redirects for backward compatibility
         { path: '/tools/split', redirect: '/split' },
@@ -108,6 +108,8 @@ router.beforeEach((to, _from, next) => {
     } else if (to.path === '/admin' && authStore.isFirstLogin) {
         next('/change-password');
     } else if (to.path === '/admin' && authStore.role !== 'admin') {
+        next('/');
+    } else if (to.meta.toolId && !hasPermission(to.meta.toolId as string)) {
         next('/');
     } else {
         next();

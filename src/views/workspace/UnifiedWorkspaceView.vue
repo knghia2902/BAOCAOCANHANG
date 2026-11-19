@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, defineAsyncComponent, type Component }
 import { useRoute, useRouter } from 'vue-router';
 import { authStore } from '@/stores/auth';
 import WorkspaceTreeSidebar from '@/components/workspace/WorkspaceTreeSidebar.vue';
+import { canAccessWorkspaceTab } from '@/services/auth/PermissionService';
 
 // Default active tab loaded eagerly for instant initial render
 import WeighbridgeDataImporter from '@/components/workspace/WeighbridgeDataImporter.vue';
@@ -132,23 +133,59 @@ const activeComponent = computed<Component>(() => {
     }
 });
 
+const ALL_WORKSPACE_KEYS = [
+    'scale-data',
+    'vessel-source',
+    'report-shipment',
+    'report-inventory',
+    'report-deheus',
+    'vehicles',
+    'minutes',
+    'category-vehicles',
+    'category-customers',
+    'category-warehouses',
+    'category-goods'
+];
+
+const getFirstAccessibleTab = (): string => {
+    for (const key of ALL_WORKSPACE_KEYS) {
+        if (canAccessWorkspaceTab(key)) {
+            return key;
+        }
+    }
+    return 'scale-data';
+};
+
+const ensureAccessibleTab = (targetKey?: string) => {
+    if (targetKey && nodeMetaMap[targetKey] && canAccessWorkspaceTab(targetKey)) {
+        activeKey.value = targetKey;
+    } else {
+        const fallback = getFirstAccessibleTab();
+        activeKey.value = fallback;
+        if (route.query.tab !== fallback) {
+            router.replace({ query: { ...route.query, tab: fallback } });
+        }
+    }
+};
+
 const handleSelectNode = (key: string) => {
+    if (!canAccessWorkspaceTab(key)) {
+        return;
+    }
     activeKey.value = key;
     router.replace({ query: { ...route.query, tab: key } });
 };
 
 onMounted(() => {
-    const tabQuery = route.query.tab;
-    if (typeof tabQuery === 'string' && nodeMetaMap[tabQuery]) {
-        activeKey.value = tabQuery;
-    }
+    const tabQuery = typeof route.query.tab === 'string' ? route.query.tab : undefined;
+    ensureAccessibleTab(tabQuery);
 });
 
 watch(
     () => route.query.tab,
     newTab => {
-        if (typeof newTab === 'string' && nodeMetaMap[newTab] && newTab !== activeKey.value) {
-            activeKey.value = newTab;
+        if (typeof newTab === 'string') {
+            ensureAccessibleTab(newTab);
         }
     }
 );
