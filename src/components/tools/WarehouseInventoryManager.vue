@@ -505,9 +505,21 @@ const validTickets = computed(() => {
     return allTickets.value;
 });
 
-// Số lượng phiếu bụi cầu cảng
+// Số lượng phiếu bụi cầu cảng theo phân hệ / khách hàng đang chọn
 const portDustTicketsCount = computed(() => {
-    return validTickets.value.filter(t => isPortDustTicket(t)).length;
+    const activeCust = selectedCustomCustomer.value;
+    const targetGroup = activeCustomerGroup.value;
+
+    return validTickets.value.filter(t => {
+        if (!isPortDustTicket(t)) return false;
+        if (activeCust) {
+            return isTicketForCustomCustomer(t, activeCust.customerName);
+        }
+        if (customCustomers.value.some(c => isTicketForCustomCustomer(t, c.customerName))) {
+            return false;
+        }
+        return getTicketCustomerGroup(t, configs.value) === targetGroup;
+    }).length;
 });
 
 // Số lượng xe trong báo cáo chưa có Nhà xe trong Danh mục xe (cột nhà xe để trống)
@@ -654,9 +666,16 @@ const filteredDetailTickets = computed(() => {
     const activeCust = selectedCustomCustomer.value;
 
     let list = validTickets.value.filter(t => {
-        // Tab BỤI CẦU CẢNG: lọc tất cả các phiếu thỏa mãn isPortDustTicket
+        // Tab BỤI CẦU CẢNG: lọc các phiếu thỏa mãn isPortDustTicket theo khách hàng đang chọn
         if (activeSheetTab.value === 'PORT_DUST') {
-            return isPortDustTicket(t);
+            if (!isPortDustTicket(t)) return false;
+            if (activeCust) {
+                return isTicketForCustomCustomer(t, activeCust.customerName);
+            }
+            if (customCustomers.value.some(c => isTicketForCustomCustomer(t, c.customerName))) {
+                return false;
+            }
+            return getTicketCustomerGroup(t, configs.value) === activeCustomerGroup.value;
         }
 
         // Đảm bảo các phiếu BỤI CẦU CẢNG KHÔNG BAO GIỜ bị lẫn vào tab IMPORT, EXPORT hay DIRECT
@@ -3387,6 +3406,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <th class="py-2.5 px-3 text-center border-r border-white/20">Số phiếu<br /><span class="font-semibold text-[10px]">(Serial)</span></th>
                             <th class="py-2.5 px-3 border-r border-white/20">Biển số xe<br /><span class="font-semibold text-[10px]">(Truck no)</span></th>
                             <th class="py-2.5 px-3 border-r border-white/20">Nhà xe<br /><span class="font-semibold text-[10px]">(Carrier)</span></th>
+                            <th class="py-2.5 px-3 border-r border-white/20">Khách hàng<br /><span class="font-semibold text-[10px]">(Customer)</span></th>
                             <th class="py-2.5 px-3 text-right border-r border-white/20">Khối lượng tịnh (Tấn)<br /><span class="font-semibold text-[10px]">(N.Weight)</span></th>
                             <th class="py-2.5 px-3 border-r border-white/20">Nơi xuất / Tài xế<br /><span class="font-semibold text-[10px]">(Source / Driver)</span></th>
                             <th class="py-2.5 px-3 border-r border-white/20">Ghi chú<br /><span class="font-semibold text-[10px]">(Note)</span></th>
@@ -3411,6 +3431,15 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     placeholder="Nhà xe..."
                                     @change="handleUpdateTicketField(t)"
                                     class="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-bold outline-none"
+                                />
+                            </td>
+                            <td class="py-2 px-3">
+                                <input
+                                    v-model="t.customerName"
+                                    type="text"
+                                    placeholder="Khách hàng..."
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-32 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
                                 />
                             </td>
                             <td class="py-2 px-3 text-right font-mono text-primary font-black">{{ formatTons(t.netWeight) }}</td>
@@ -3452,7 +3481,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </td>
                         </tr>
                         <tr v-if="paginatedDetailTickets.length === 0">
-                            <td colspan="10" class="py-12 text-center text-slate-400">
+                            <td colspan="11" class="py-12 text-center text-slate-400">
                                 <div class="flex flex-col items-center justify-center gap-2">
                                     <span class="material-symbols-outlined text-4xl text-slate-300">filter_drama</span>
                                     <span>Chưa có phiếu bụi cầu cảng nào trong danh sách</span>
@@ -3462,7 +3491,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     </tbody>
                     <tfoot class="sticky bottom-0 bg-slate-100 border-t-2 border-slate-300 font-black text-[#1e293b]">
                         <tr>
-                            <td colspan="6" class="py-2.5 px-3 text-center border-r border-slate-300">
+                            <td colspan="7" class="py-2.5 px-3 text-center border-r border-slate-300">
                                 Tổng cộng (Total): {{ filteredDetailTickets.length }} chuyến
                             </td>
                             <td class="py-2.5 px-3 text-right font-mono text-primary text-sm font-black border-r border-slate-300">

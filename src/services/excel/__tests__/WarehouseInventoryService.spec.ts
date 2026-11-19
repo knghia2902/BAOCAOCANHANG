@@ -2206,15 +2206,148 @@ describe('WarehouseInventoryService', () => {
                 formula: expect.stringContaining('SUM(')
             });
 
-            // 2. Combined Warehouse Export (via alias exportCombinedWorkbook)
-            const combinedResult = await WarehouseInventoryService.exportCombinedWorkbook({ tickets });
+            // 2. Combined Warehouse Export (via alias exportCombinedWorkbook) for GBD
+            const gbdDustTicket: WarehouseInventoryTicket = {
+                id: 'DUST_GBD',
+                soPhieu: 'P_GBD',
+                reportDate: '2026-11-19',
+                weighOutDate: '2026-11-19',
+                weighOutTime: '10:00',
+                flowType: 'EXPORT',
+                warehouseId: null,
+                customerName: 'CTY GỖ BÌNH ĐỊNH',
+                cargoType: 'Bụi cầu cảng',
+                vehiclePlate: '77C-12345',
+                carrierName: 'XE GBD',
+                grossWeight: 35,
+                tareWeight: 10,
+                netWeight: 25,
+                sourceOrRemark: 'BỤI CẢNG'
+            };
+            const combinedResult = await WarehouseInventoryService.exportCombinedWorkbook({
+                tickets: [...tickets, gbdDustTicket]
+            });
             const wbCombined = new ExcelJS.Workbook();
             await wbCombined.xlsx.load(combinedResult.buffer);
             const combinedDustSheet = wbCombined.getWorksheet('BỤI CẦU CẢNG');
             expect(combinedDustSheet).toBeDefined();
             expect(combinedDustSheet?.getCell('A1').value).toBe('BÁO CÁO CHI TIẾT CÂN BỤI CẦU CẢNG');
-            expect(combinedDustSheet?.getCell('G7').value).toBe(26.3);
+            expect(combinedDustSheet?.getCell('G7').value).toBe(25);
             expect(combinedDustSheet?.getCell('G7').numFmt).toBe('#,##0.00');
+        });
+
+        it('strictly separates port dust tickets by customer in exportSingleWarehouseWorkbook and exportCombinedWorkbook', async () => {
+            const ExcelJS = await import('exceljs');
+            const dustEastwood: WarehouseInventoryTicket = {
+                id: 'DUST_EW',
+                soPhieu: 'P_EW',
+                reportDate: '2026-11-19',
+                weighOutDate: '2026-11-19',
+                weighOutTime: '10:00',
+                flowType: 'EXPORT',
+                warehouseId: null,
+                customerName: 'EASTWOOD',
+                cargoType: 'Bụi cầu cảng',
+                vehiclePlate: '51C-11111',
+                carrierName: 'XE EW',
+                grossWeight: 30,
+                tareWeight: 10,
+                netWeight: 20,
+                sourceOrRemark: 'BỤI CẢNG'
+            };
+            const dustBK: WarehouseInventoryTicket = {
+                id: 'DUST_BK',
+                soPhieu: 'P_BK',
+                reportDate: '2026-11-19',
+                weighOutDate: '2026-11-19',
+                weighOutTime: '11:00',
+                flowType: 'EXPORT',
+                warehouseId: null,
+                customerName: 'CÔNG TY TNHH BÁCH KHOA',
+                cargoType: 'Bụi cầu cảng',
+                vehiclePlate: '60C-22222',
+                carrierName: 'XE BK',
+                grossWeight: 40,
+                tareWeight: 15,
+                netWeight: 25,
+                sourceOrRemark: 'BỤI CẢNG'
+            };
+            const dustGBD: WarehouseInventoryTicket = {
+                id: 'DUST_GBD2',
+                soPhieu: 'P_GBD2',
+                reportDate: '2026-11-19',
+                weighOutDate: '2026-11-19',
+                weighOutTime: '12:00',
+                flowType: 'EXPORT',
+                warehouseId: null,
+                customerName: 'CTY CP GỖ BÌNH ĐỊNH',
+                cargoType: 'Bụi cầu cảng',
+                vehiclePlate: '77C-33333',
+                carrierName: 'XE GBD',
+                grossWeight: 45,
+                tareWeight: 15,
+                netWeight: 30,
+                sourceOrRemark: 'BỤI CẢNG'
+            };
+            const dustCustom: WarehouseInventoryTicket = {
+                id: 'DUST_CUST',
+                soPhieu: 'P_CUST',
+                reportDate: '2026-11-19',
+                weighOutDate: '2026-11-19',
+                weighOutTime: '13:00',
+                flowType: 'EXPORT',
+                warehouseId: null,
+                customerName: 'KHACH HANG MOI',
+                cargoType: 'Bụi cầu cảng',
+                vehiclePlate: '50H-44444',
+                carrierName: 'XE CUST',
+                grossWeight: 35,
+                tareWeight: 15,
+                netWeight: 20,
+                sourceOrRemark: 'BỤI CẢNG'
+            };
+
+            const allDustTickets = [dustEastwood, dustBK, dustGBD, dustCustom];
+
+            // 1. Export KHO 4 (Eastwood) -> should only have dustEastwood (20t)
+            const resKho4 = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', { tickets: allDustTickets });
+            const wbKho4 = new ExcelJS.Workbook();
+            await wbKho4.xlsx.load(resKho4.buffer);
+            const sheetKho4 = wbKho4.getWorksheet('BỤI CẦU CẢNG');
+            expect(sheetKho4).toBeDefined();
+            expect(sheetKho4?.getCell('G7').value).toBe(20);
+            expect(sheetKho4?.getCell('H7').value).toBe('EASTWOOD');
+            expect(sheetKho4?.getCell('G8').value).toMatchObject({ formula: 'SUM(G7:G7)' });
+
+            // 2. Export KHO 4 - BK (Bách Khoa) -> should only have dustBK (25t)
+            const resBK = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4 - BK', { tickets: allDustTickets });
+            const wbBK = new ExcelJS.Workbook();
+            await wbBK.xlsx.load(resBK.buffer);
+            const sheetBK = wbBK.getWorksheet('BỤI CẦU CẢNG');
+            expect(sheetBK).toBeDefined();
+            expect(sheetBK?.getCell('G7').value).toBe(25);
+            expect(sheetBK?.getCell('H7').value).toBe('CÔNG TY TNHH BÁCH KHOA');
+
+            // 3. Export Combined KHO 1, 2, 3 (GBD) -> should only have dustGBD (30t)
+            const resGBD = await WarehouseInventoryService.exportCombinedWorkbook({ tickets: allDustTickets });
+            const wbGBD = new ExcelJS.Workbook();
+            await wbGBD.xlsx.load(resGBD.buffer);
+            const sheetGBD = wbGBD.getWorksheet('BỤI CẦU CẢNG');
+            expect(sheetGBD).toBeDefined();
+            expect(sheetGBD?.getCell('G7').value).toBe(30);
+            expect(sheetGBD?.getCell('H7').value).toBe('CTY CP GỖ BÌNH ĐỊNH');
+
+            // 4. Export Custom Customer -> should only have dustCustom (20t)
+            const resCust = await WarehouseInventoryService.exportSingleWarehouseWorkbook('KHO 4', {
+                tickets: allDustTickets,
+                customerFilter: 'KHACH HANG MOI'
+            });
+            const wbCust = new ExcelJS.Workbook();
+            await wbCust.xlsx.load(resCust.buffer);
+            const sheetCust = wbCust.getWorksheet('BỤI CẦU CẢNG');
+            expect(sheetCust).toBeDefined();
+            expect(sheetCust?.getCell('G7').value).toBe(20);
+            expect(sheetCust?.getCell('H7').value).toBe('KHACH HANG MOI');
         });
 
         it('does NOT create sheet BỤI CẦU CẢNG when there are no port dust tickets', async () => {

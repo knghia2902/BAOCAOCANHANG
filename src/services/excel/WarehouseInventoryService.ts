@@ -3038,7 +3038,7 @@ export const WarehouseInventoryService = {
         if (options?.customerFilter && ALL_WAREHOUSES.includes(target as WarehouseId)) {
             const custFilter = options.customerFilter.trim();
             const isMatch = (t: WarehouseInventoryTicket) =>
-                (t.warehouseId === target || t.flowType === 'DIRECT') &&
+                (t.warehouseId === target || t.flowType === 'DIRECT' || isPortDustTicket(t)) &&
                 isTicketForCustomCustomer(t, custFilter);
             const idsToDelete = current.filter(isMatch).map(t => t.id);
             const remaining = current.filter(t => !isMatch(t));
@@ -4667,8 +4667,9 @@ export const WarehouseInventoryService = {
                 if (!isPortDustTicket(t)) return false;
                 if (options?.fromDate && t.reportDate < options.fromDate) return false;
                 if (options?.toDate && t.reportDate > options.toDate) return false;
-                if (customerFilter && !isTicketForCustomCustomer(t, customerFilter)) return false;
-                return true;
+                if (customerFilter) return isTicketForCustomCustomer(t, customerFilter);
+                if (isExcludedCustom(t)) return false;
+                return getTicketCustomerGroup(t, configs) === targetGroup;
             });
             if (portDustTickets.length > 0) {
                 const wsPortDust = workbook.addWorksheet('BỤI CẦU CẢNG');
@@ -4817,7 +4818,7 @@ export const WarehouseInventoryService = {
             if (!isPortDustTicket(t)) return false;
             if (options?.fromDate && t.reportDate < options.fromDate) return false;
             if (options?.toDate && t.reportDate > options.toDate) return false;
-            return true;
+            return getTicketCustomerGroup(t, configs) === 'KHO_123';
         });
         if (portDustTickets.length > 0) {
             const wsPortDust = workbook.addWorksheet('BỤI CẦU CẢNG');
