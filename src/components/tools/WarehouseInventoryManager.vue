@@ -15,7 +15,8 @@ import {
     stripAccents,
     lookupCarrierName,
     isTicketForCustomCustomer,
-    normalizeCustomerKey
+    normalizeCustomerKey,
+    isPortDustTicket
 } from '@/services/excel/WarehouseInventoryService';
 import type {
     WarehouseId,
@@ -40,7 +41,7 @@ const canWarehouseUpdate = computed(() => authStore.role === 'admin' || canUpdat
 const canWarehouseDelete = computed(() => authStore.role === 'admin' || canDelete());
 
 type ViewWarehouseMode = WarehouseId | 'KHO 4 - BK' | 'COMBINED_123';
-type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT';
+type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT' | 'PORT_DUST';
 
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('IMPORT');
@@ -504,6 +505,11 @@ const validTickets = computed(() => {
     return allTickets.value;
 });
 
+// Số lượng phiếu bụi cầu cảng
+const portDustTicketsCount = computed(() => {
+    return validTickets.value.filter(t => isPortDustTicket(t)).length;
+});
+
 // Số lượng xe trong báo cáo chưa có Nhà xe trong Danh mục xe (cột nhà xe để trống)
 const missingCarrierCount = computed(() => {
     return allTickets.value.filter(t => {
@@ -640,7 +646,7 @@ const closingStocksByWarehouse = computed<Record<WarehouseId, number>>(() => ({
     'KHO 4': finalTablesByWarehouse.value['KHO 4'].closingStockTons
 }));
 
-// Filtered detail tickets for IMPORT, EXPORT, DIRECT tabs
+// Filtered detail tickets for IMPORT, EXPORT, DIRECT, PORT_DUST tabs
 const filteredDetailTickets = computed(() => {
     const whId = activeSingleWarehouseId.value;
     const q = detailSearchQuery.value.trim().toLowerCase();
@@ -648,6 +654,16 @@ const filteredDetailTickets = computed(() => {
     const activeCust = selectedCustomCustomer.value;
 
     let list = validTickets.value.filter(t => {
+        // Tab BỤI CẦU CẢNG: lọc tất cả các phiếu thỏa mãn isPortDustTicket
+        if (activeSheetTab.value === 'PORT_DUST') {
+            return isPortDustTicket(t);
+        }
+
+        // Đảm bảo các phiếu BỤI CẦU CẢNG KHÔNG BAO GIỜ bị lẫn vào tab IMPORT, EXPORT hay DIRECT
+        if (isPortDustTicket(t)) {
+            return false;
+        }
+
         if (activeCust) {
             if (!isTicketForCustomCustomer(t, activeCust.customerName)) return false;
             if (activeSheetTab.value === 'IMPORT') {
@@ -703,7 +719,8 @@ const filteredDetailTickets = computed(() => {
             (t.bargeInfo || '').toLowerCase().includes(q) ||
             (t.vesselName || '').toLowerCase().includes(q) ||
             (t.sourceOrRemark || '').toLowerCase().includes(q) ||
-            (t.customerName || '').toLowerCase().includes(q)
+            (t.customerName || '').toLowerCase().includes(q) ||
+            (t.rawNote || '').toLowerCase().includes(q)
         );
     }
 
@@ -2315,6 +2332,30 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     <span>XÁ THẲNG</span>
                                 </button>
                             </template>
+
+                            <!-- Tab BỤI CẦU CẢNG (hiển thị cho mọi phân hệ kho, badge đếm số lượng phiếu) -->
+                            <button
+                                @click="activeSheetTab = 'PORT_DUST'"
+                                :class="[
+                                    'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all cursor-pointer flex items-center gap-1.5 h-6.5 shrink-0',
+                                    activeSheetTab === 'PORT_DUST'
+                                        ? 'bg-primary text-white shadow-soft'
+                                        : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                                ]"
+                                title="Phiếu Bụi Cầu Cảng"
+                            >
+                                <span class="material-symbols-outlined text-sm">filter_drama</span>
+                                <span>BỤI CẦU CẢNG</span>
+                                <span
+                                    v-if="portDustTicketsCount > 0"
+                                    :class="[
+                                        'px-1.5 py-0.2 rounded-full text-[10px] font-bold leading-tight',
+                                        activeSheetTab === 'PORT_DUST' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    ]"
+                                >
+                                    {{ portDustTicketsCount }}
+                                </span>
+                            </button>
                         </div>
 
                         <!-- Right contextual controls (DESIGN.md Section 6 Toolbar Spec) -->
@@ -2328,7 +2369,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <span>Hiển thị cột Xá thẳng</span>
                             </label>
 
-                            <template v-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT'">
+                            <template v-if="activeSheetTab === 'IMPORT' || activeSheetTab === 'EXPORT' || activeSheetTab === 'DIRECT' || activeSheetTab === 'PORT_DUST'">
                                 <div v-if="detailTotalPages > 1" class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-[8px] px-1.5 h-7 shrink-0 text-xs font-bold text-slate-600">
                                     <button
                                         type="button"
@@ -3327,6 +3368,107 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 {{ formatKg(detailTotalDiffTons) }}
                             </td>
                             <td colspan="4" class="py-2.5 px-2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- TAB 5: BỤI CẦU CẢNG DETAILS -->
+            <div
+                v-else-if="activeSheetTab === 'PORT_DUST'"
+                class="inventory-table-scroll flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white"
+            >
+                <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
+                    <thead class="sticky top-0 z-10 bg-primary text-white border-b border-primary/20">
+                        <tr>
+                            <th class="py-2.5 px-3 text-center w-12 border-r border-white/20">STT<br /><span class="font-semibold text-[10px]">(No)</span></th>
+                            <th class="py-2.5 px-3 text-center border-r border-white/20">Ngày cân<br /><span class="font-semibold text-[10px]">(Date)</span></th>
+                            <th class="py-2.5 px-3 text-center border-r border-white/20">Giờ cân<br /><span class="font-semibold text-[10px]">(Time)</span></th>
+                            <th class="py-2.5 px-3 text-center border-r border-white/20">Số phiếu<br /><span class="font-semibold text-[10px]">(Serial)</span></th>
+                            <th class="py-2.5 px-3 border-r border-white/20">Biển số xe<br /><span class="font-semibold text-[10px]">(Truck no)</span></th>
+                            <th class="py-2.5 px-3 border-r border-white/20">Nhà xe<br /><span class="font-semibold text-[10px]">(Carrier)</span></th>
+                            <th class="py-2.5 px-3 text-right border-r border-white/20">Khối lượng tịnh (Tấn)<br /><span class="font-semibold text-[10px]">(N.Weight)</span></th>
+                            <th class="py-2.5 px-3 border-r border-white/20">Nơi xuất / Tài xế<br /><span class="font-semibold text-[10px]">(Source / Driver)</span></th>
+                            <th class="py-2.5 px-3 border-r border-white/20">Ghi chú<br /><span class="font-semibold text-[10px]">(Note)</span></th>
+                            <th class="py-2.5 px-3 text-center w-24">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr
+                            v-for="(t, idx) in paginatedDetailTickets"
+                            :key="t.id"
+                            class="hover:bg-blue-50/40 transition-colors"
+                        >
+                            <td class="py-2 px-3 text-center text-slate-400">{{ detailPageStartIndex + idx + 1 }}</td>
+                            <td class="py-2 px-3 text-center font-mono text-slate-700">{{ formatIsoToDmy(t.reportDate) }}</td>
+                            <td class="py-2 px-3 text-center font-mono text-slate-500">{{ t.weighOutTime || t.weighInTime || '-' }}</td>
+                            <td class="py-2 px-3 text-center font-mono text-slate-600">{{ t.soPhieu || '-' }}</td>
+                            <td class="py-2 px-3 font-mono font-black text-slate-800">{{ t.vehiclePlate || '-' }}</td>
+                            <td class="py-2 px-3">
+                                <input
+                                    v-model="t.carrierName"
+                                    type="text"
+                                    placeholder="Nhà xe..."
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-bold outline-none"
+                                />
+                            </td>
+                            <td class="py-2 px-3 text-right font-mono text-primary font-black">{{ formatTons(t.netWeight) }}</td>
+                            <td class="py-2 px-3">
+                                <input
+                                    v-model="t.sourceOrRemark"
+                                    type="text"
+                                    placeholder="Nơi xuất / Tài xế..."
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-36 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                />
+                            </td>
+                            <td class="py-2 px-3">
+                                <input
+                                    v-model="t.rawNote"
+                                    type="text"
+                                    placeholder="Ghi chú..."
+                                    @change="handleUpdateTicketField(t)"
+                                    class="w-32 px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                />
+                            </td>
+                            <td class="py-2 px-3 text-center">
+                                <div class="inline-flex items-center gap-1.5 justify-center">
+                                    <button
+                                        @click="openEditTicketModal(t)"
+                                        class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                                        title="Sửa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    <button
+                                        @click="handleDeleteTicket(t)"
+                                        class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                                        title="Xóa phiếu cân"
+                                    >
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="paginatedDetailTickets.length === 0">
+                            <td colspan="10" class="py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-4xl text-slate-300">filter_drama</span>
+                                    <span>Chưa có phiếu bụi cầu cảng nào trong danh sách</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="sticky bottom-0 bg-slate-100 border-t-2 border-slate-300 font-black text-[#1e293b]">
+                        <tr>
+                            <td colspan="6" class="py-2.5 px-3 text-center border-r border-slate-300">
+                                Tổng cộng (Total): {{ filteredDetailTickets.length }} chuyến
+                            </td>
+                            <td class="py-2.5 px-3 text-right font-mono text-primary text-sm font-black border-r border-slate-300">
+                                {{ formatTons(detailTotalTons) }}
+                            </td>
+                            <td colspan="3" class="py-2.5 px-3"></td>
                         </tr>
                     </tfoot>
                 </table>

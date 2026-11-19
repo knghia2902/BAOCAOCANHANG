@@ -1953,6 +1953,33 @@ describe('WarehouseInventoryService', () => {
             };
             expect(isPortDustTicket(ticket1)).toBe(true);
 
+            // Test lowercase with accents: "bụi cảng"
+            const ticketLowerAccent: WarehouseInventoryTicket = {
+                ...ticket1,
+                id: 'T1_lower_accent',
+                cargoType: 'Viên nén',
+                sourceOrRemark: 'bụi cảng'
+            };
+            expect(isPortDustTicket(ticketLowerAccent)).toBe(true);
+
+            // Test uppercase unaccented: "BUI CANG"
+            const ticketUpperNoAccent: WarehouseInventoryTicket = {
+                ...ticket1,
+                id: 'T1_upper_no_accent',
+                cargoType: 'Viên nén',
+                sourceOrRemark: 'BUI CANG'
+            };
+            expect(isPortDustTicket(ticketUpperNoAccent)).toBe(true);
+
+            // Test lowercase unaccented: "bui cang"
+            const ticketLowerNoAccent: WarehouseInventoryTicket = {
+                ...ticket1,
+                id: 'T1_lower_no_accent',
+                cargoType: 'Viên nén',
+                sourceOrRemark: 'bui cang'
+            };
+            expect(isPortDustTicket(ticketLowerNoAccent)).toBe(true);
+
             const ticket2: WarehouseInventoryTicket = {
                 ...ticket1,
                 id: 'T2',
@@ -2064,15 +2091,51 @@ describe('WarehouseInventoryService', () => {
                     tareWeight: 10,
                     netWeight: 25,
                     sourceOrRemark: 'BỤI CẢNG'
+                },
+                // Even if mistakenly tagged with warehouseId = 'KHO 4' or flowType = 'IMPORT'
+                {
+                    id: 'DUST2',
+                    soPhieu: 'P04',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '11:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Bụi cầu cảng',
+                    vehiclePlate: '51C-44444',
+                    carrierName: 'XE 4',
+                    grossWeight: 40,
+                    tareWeight: 15,
+                    netWeight: 25,
+                    sourceOrRemark: 'bụi cảng'
+                },
+                {
+                    id: 'DUST3',
+                    soPhieu: 'P05',
+                    reportDate: '2026-11-19',
+                    weighOutDate: '2026-11-19',
+                    weighOutTime: '12:00',
+                    flowType: 'EXPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Viên gỗ nén',
+                    vehiclePlate: '51C-55555',
+                    carrierName: 'XE 5',
+                    grossWeight: 50,
+                    tareWeight: 20,
+                    netWeight: 30,
+                    rawNote: 'BUI CANG xuat di'
                 }
             ];
 
             const result = computeWarehouseFinalTable('KHO 4', tickets, config);
             expect(result.totalImportTons).toBe(40);
             expect(result.totalExportTons).toBe(30);
-            // 100 opening + 40 import - 30 export = 110 (25 tons of dust MUST NOT be deducted)
+            // 100 opening + 40 import - 30 export = 110 (dust tickets of 25t, 25t, 30t MUST NOT be counted)
             expect(result.closingStockTons).toBe(110);
             expect(result.rows[0]?.exportTons).toBe(30);
+            expect(result.rows[0]?.importTons).toBe(40);
         });
 
         it('exports sheet BỤI CẦU CẢNG with Design System styles when port dust tickets are present', async () => {
@@ -2149,6 +2212,9 @@ describe('WarehouseInventoryService', () => {
             await wbCombined.xlsx.load(combinedResult.buffer);
             const combinedDustSheet = wbCombined.getWorksheet('BỤI CẦU CẢNG');
             expect(combinedDustSheet).toBeDefined();
+            expect(combinedDustSheet?.getCell('A1').value).toBe('BÁO CÁO CHI TIẾT CÂN BỤI CẦU CẢNG');
+            expect(combinedDustSheet?.getCell('G7').value).toBe(26.3);
+            expect(combinedDustSheet?.getCell('G7').numFmt).toBe('#,##0.00');
         });
 
         it('does NOT create sheet BỤI CẦU CẢNG when there are no port dust tickets', async () => {
