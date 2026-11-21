@@ -6,6 +6,7 @@ import { dbContext } from '@/services/storage/DBContext';
 import { SettingsService } from '@/services/storage/SettingsService';
 import { DemoSandboxService } from '@/services/storage/DemoSandboxService';
 import { WeighbridgeService, isSameScaleTicket, deduplicateBargeTrucks, type Vessel, type Barge, type Truck, type BargeConfig, type CustomFieldConfig, type PrintElement, type WeighbridgeMasterData, type WeighbridgeStandardTemplate, DEFAULT_MASTER_DATA } from '@/services/excel/WeighbridgeService';
+import { AllocatorService } from '@/services/excel/AllocatorService';
 import { LogService } from '@/services/storage/LogService';
 import ShipmentSettlementModal from './settlement/ShipmentSettlementModal.vue';
 const props = withDefaults(defineProps<{
@@ -3428,14 +3429,25 @@ async function confirmMoveBarge() {
 // Smart name normalization and matching for allocator sync
 
 function isBargeMatch(trip: any, barge: Barge): boolean {
-    // Match strictly by orderNo. If barge has no orderNo, return false
     const bargeOrderNo = barge.config?.orderNo ? String(barge.config.orderNo).trim().toLowerCase() : '';
     const tripOrderNo = trip.orderNo ? String(trip.orderNo).trim().toLowerCase() : '';
-    
-    if (bargeOrderNo) {
+
+    if (!bargeOrderNo) {
+        return false;
+    }
+
+    if (tripOrderNo) {
         return bargeOrderNo === tripOrderNo;
     }
-    
+
+    // Fallback an toàn khi phiếu cân bị bỏ trống cột Mã lệnh nhưng có tên sà lan khớp duy nhất với 1 sà lan đang mở
+    if (!barge.config?.locked && trip.bargeName) {
+        const inferredOrder = AllocatorService.resolveOrderNoFromActiveBarges(trip.bargeName, vessels.value);
+        if (inferredOrder && inferredOrder.trim().toLowerCase() === bargeOrderNo) {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -3707,7 +3719,13 @@ const syncFromAllocatorActiveBarge = async () => {
     isAllocatorSyncRunning = true;
     loading.value = true;
     try {
-        const settings = await SettingsService.getSettings();
+        const [settings, historyByOrder] = await Promise.all([
+            SettingsService.getSettings(),
+            AllocatorService.getTripsByOrderNo(bargeOrderNo).catch((err) => {
+                console.warn('Không thể tải Sổ theo dõi theo mã lệnh:', err);
+                return [] as any[];
+            })
+        ]);
 
         let allocatorTrips: any[] = [];
         if (settings) {
@@ -3717,17 +3735,20 @@ const syncFromAllocatorActiveBarge = async () => {
             allocatorTrips = await dbContext.get<any[]>('allocator_tickets') || [];
         }
 
-        if (!Array.isArray(allocatorTrips) || allocatorTrips.length === 0) {
-            showToast('Không tìm thấy phiếu cân nào trong Dữ liệu cân hàng. Hãy import phiếu cân trước!', 'error');
-            return;
+        const activeBargeName = activeBarge.value.name;
+        // Filter trips from Tab 1 (Phiếu cân) and merge with Tab 2 (Sổ theo dõi) by orderNo
+        const matchedFromTab1 = Array.isArray(allocatorTrips)
+            ? allocatorTrips.filter((t: any) => isBargeMatch(t, activeBarge.value!))
+            : [];
+        const matchedTrips: any[] = [...matchedFromTab1];
+        for (const ht of (historyByOrder || [])) {
+            if (!matchedTrips.some((existing) => isSameScaleTicket(existing, ht))) {
+                matchedTrips.push(ht);
+            }
         }
 
-        const activeBargeName = activeBarge.value.name;
-        // Filter trips for this active barge (matches strictly by orderNo)
-        const matchedTrips = allocatorTrips.filter((t: any) => isBargeMatch(t, activeBarge.value!));
-
         if (matchedTrips.length === 0) {
-            showToast(`Không tìm thấy phiếu cân nào có mã lệnh "${bargeOrderNo}" (Sà lan "${activeBargeName}") trong Dữ liệu cân hàng!`, 'error');
+            showToast(`Không tìm thấy phiếu cân nào có mã lệnh "${bargeOrderNo}" (Sà lan "${activeBargeName}") trong Dữ liệu cân hàng hoặc Sổ theo dõi!`, 'error');
             return;
         }
 

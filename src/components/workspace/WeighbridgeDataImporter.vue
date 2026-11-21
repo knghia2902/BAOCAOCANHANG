@@ -759,11 +759,19 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
         // - Đồng thời hiển thị đầy đủ trên bảng Phiếu cân (như trước đây) để tra cứu, kiểm tra và lưu Sổ theo dõi.
         const convertedRecords: CSVRecord[] = [];
         let orderNoCount = 0;
+        let autoFilledOrderCount = 0;
         let totalNetKg = 0;
 
         for (const item of allRawRows) {
             const rec = convertRawRowToCSVRecord(item.row, item.tag);
             if (!rec) continue;
+            if ((!rec.orderNo || !rec.orderNo.trim()) && rec.bargeName) {
+                const inferredOrderNo = AllocatorService.resolveOrderNoFromActiveBarges(rec.bargeName, vessels);
+                if (inferredOrderNo) {
+                    rec.orderNo = inferredOrderNo;
+                    autoFilledOrderCount++;
+                }
+            }
             convertedRecords.push(rec);
             totalNetKg += rec.weightNet || 0;
             if (rec.orderNo && rec.orderNo.trim() !== '') {
@@ -812,7 +820,7 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
 
         // Tạo thông báo tổng hợp rõ ràng
         const summaryParts: string[] = [
-            `Phiếu cân: +${added} mới, ${updated} cập nhật (${orderNoCount} xe có Mã lệnh làm Báo cáo lô hàng)`
+            `Phiếu cân: +${added} mới, ${updated} cập nhật (${orderNoCount} xe có Mã lệnh làm Báo cáo lô hàng${autoFilledOrderCount > 0 ? `, tự điền Mã lệnh ${autoFilledOrderCount} xe` : ''})`
         ];
         if (classifiedWhTickets.length > 0) {
             summaryParts.push(
@@ -1298,21 +1306,28 @@ async function saveSourceTicketsToHistory() {
             };
         });
 
-        const insertRes = await AllocatorService.insertTrips(tripsToSave);
-        if (insertRes.error) {
-            addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
-            return;
-        }
+        const uniqueTripsToSave = tripsToSave.filter(
+            trip => !existingTrips.value.some(et => isSameScaleTicket(et, trip))
+        );
+        const skippedHistoryCount = tripsToSave.length - uniqueTripsToSave.length;
 
-        const savedItems: SplitTrip[] =
-            insertRes.data && insertRes.data.length === tripsToSave.length
-                ? insertRes.data.map((item, i): SplitTrip => ({
-                      ...item,
-                      fileSource: item.fileSource || tripsToSave[i]?.fileSource || ''
-                  }))
-                : tripsToSave;
-        existingTrips.value = [...savedItems, ...existingTrips.value];
-        await dbContext.set('allocator_history_trips', existingTrips.value);
+        if (uniqueTripsToSave.length > 0) {
+            const insertRes = await AllocatorService.insertTrips(uniqueTripsToSave);
+            if (insertRes.error) {
+                addToast('Lỗi khi lưu vào cơ sở dữ liệu: ' + (insertRes.error.message || 'Thất bại'), 'error');
+                return;
+            }
+
+            const savedItems: SplitTrip[] =
+                insertRes.data && insertRes.data.length === uniqueTripsToSave.length
+                    ? insertRes.data.map((item, i): SplitTrip => ({
+                          ...item,
+                          fileSource: item.fileSource || uniqueTripsToSave[i]?.fileSource || ''
+                      }))
+                    : uniqueTripsToSave;
+            existingTrips.value = [...savedItems, ...existingTrips.value];
+            await dbContext.set('allocator_history_trips', existingTrips.value);
+        }
 
         csvRecords.value = [];
         await doExecuteSaveTicketsToSupabase();
@@ -1321,8 +1336,9 @@ async function saveSourceTicketsToHistory() {
         const savedHeads = new Set(tripsToSave.map(t => AllocatorService.resolveScaleHead(t)));
         historyScaleFilter.value = savedHeads.size === 1 ? [...savedHeads][0]! : 'all';
         activeMainTab.value = 'history';
-        addToast(`Đã lưu thành công ${tripsToSave.length} phiếu cân vào Sổ Theo Dõi!`, 'success');
-        await LogService.logAction('Lưu Sổ Theo Dõi', `Lưu ${tripsToSave.length} phiếu cân vào sổ theo dõi`);
+        const dupNote = skippedHistoryCount > 0 ? ` (bỏ qua ${skippedHistoryCount} phiếu đã tồn tại)` : '';
+        addToast(`Đã lưu thành công ${uniqueTripsToSave.length} phiếu cân vào Sổ Theo Dõi${dupNote}!`, 'success');
+        await LogService.logAction('Lưu Sổ Theo Dõi', `Lưu ${uniqueTripsToSave.length} phiếu cân vào sổ theo dõi${dupNote}`);
     } catch (err: any) {
         console.error('Lỗi khi lưu vào Sổ Theo Dõi:', err);
         addToast('Lỗi khi lưu vào Sổ Theo Dõi: ' + (err?.message || err), 'error');

@@ -330,6 +330,103 @@ export class AllocatorService {
     }
 
     /**
+     * Suy luận Mã lệnh (orderNo) từ tên sà lan khi phiếu cân bị trống cột Mã lệnh.
+     * Chỉ khớp an toàn khi tên sà lan khớp DUY NHẤT 1 Mã lệnh trong số các sà lan đang mở khóa
+     * (`!locked`) thuộc tàu đang làm hàng (`status !== 'done'`).
+     */
+    static resolveOrderNoFromActiveBarges(
+        bargeName: string | undefined | null,
+        vessels: Array<{
+            status?: string;
+            barges?: Array<{
+                name?: string;
+                order_no?: string;
+                config?: { orderNo?: string; locked?: boolean };
+            }>;
+        }>
+    ): string {
+        if (!bargeName || !Array.isArray(vessels) || vessels.length === 0) return '';
+        const cleanInput = String(bargeName)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/gi, 'd')
+            .toUpperCase()
+            .trim();
+        if (!cleanInput) return '';
+        if (/^(KHO\s*\d+|HANG\s*BUI|CAU\s*CANG)$/i.test(cleanInput)) return '';
+
+        const compactInput = cleanInput.replace(/[^A-Z0-9]/g, '');
+        if (!compactInput) return '';
+
+        const matchedOrders = new Set<string>();
+        for (const vessel of vessels) {
+            if (vessel.status === 'done') continue;
+            if (!Array.isArray(vessel.barges)) continue;
+            for (const barge of vessel.barges) {
+                if (barge.config?.locked) continue;
+                const orderNo = String(barge.config?.orderNo || barge.order_no || '').trim();
+                if (!orderNo) continue;
+                const bName = String(barge.name || '')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/đ/gi, 'd')
+                    .toUpperCase()
+                    .trim();
+                if (!bName) continue;
+                const compactBarge = bName.replace(/[^A-Z0-9]/g, '');
+                if (!compactBarge) continue;
+
+                const isMatch =
+                    cleanInput === bName ||
+                    compactInput === compactBarge ||
+                    (compactBarge.length >= 5 && compactInput.includes(compactBarge));
+                if (isMatch) {
+                    matchedOrders.add(orderNo);
+                }
+            }
+        }
+
+        return matchedOrders.size === 1 ? Array.from(matchedOrders)[0]! : '';
+    }
+
+    /**
+     * Lấy tất cả chuyến xe trong Sổ theo dõi theo Mã lệnh (order_no)
+     */
+    static async getTripsByOrderNo(orderNo: string): Promise<AllocatorTripItem[]> {
+        const cleanOrder = String(orderNo || '').trim();
+        if (!cleanOrder) return [];
+
+        const allRows: AllocatorTripRow[] = [];
+        let from = 0;
+        const pageSize = 1000;
+
+        while (true) {
+            const { data, error } = await supabase
+                .from(AllocatorService.TABLE_NAME)
+                .select('*')
+                .eq('order_no', cleanOrder)
+                .order('date1_obj', { ascending: true })
+                .range(from, from + pageSize - 1);
+
+            if (error) {
+                if (error.code === 'PGRST205' || (error.message && error.message.includes('Could not find the table'))) {
+                    console.warn(`[AllocatorService] Bảng '${AllocatorService.TABLE_NAME}' chưa được tạo trên Supabase.`);
+                    return [];
+                }
+                console.error(`Lỗi khi lấy chuyến xe theo mã lệnh ${cleanOrder}:`, error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) break;
+            allRows.push(...(data as AllocatorTripRow[]));
+            from += data.length;
+            if (data.length < pageSize) break;
+        }
+
+        return allRows.map(this.rowToTrip);
+    }
+
+    /**
      * Lấy các chuyến xe theo ngày cụ thể (YYYY-MM-DD)
      */
     static async getTripsByDate(ymd: string): Promise<AllocatorTripItem[]> {

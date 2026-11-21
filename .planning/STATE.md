@@ -117,6 +117,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 261025-tu5 | Chuẩn hóa mẫu phiếu cân toàn cảng và đồng bộ thông tin Nguồn tàu | 2026-10-25 | [261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b](./quick/261025-tu5-chu-n-h-a-m-u-phi-u-c-n-to-n-c-ng-v-ng-b/) |
 | 261101-tnn | Kiểm tra và sửa lỗi lặp dữ liệu phiếu cân khi đồng bộ từ Báo cáo cân hàng qua Báo cáo tổng quan | 2026-11-01 | [261101-tnn-kiem-tra-lai-co-che-dong-bo-phieu-can-tu](./quick/261101-tnn-kiem-tra-lai-co-che-dong-bo-phieu-can-tu/) |
 | 261111-xth | Ẩn cột Xá thẳng trong Ảnh chụp nhanh Final gửi Zalo của Báo Cáo Tồn Kho | 2026-11-11 | [261111-an-cot-xa-thang-anh-zalo-final](./quick/261111-an-cot-xa-thang-anh-zalo-final/) |
+| 261119-vj8 | Khắc phục lỗi sà lan SG 8019 lệnh 208 đồng bộ thiếu dữ liệu cân ngày 17/11/2026 | 2026-11-20 | [261119-vj8-salan-sg-8019-l-nh-208-ng-b-thi-u-d-li-u](./quick/261119-vj8-salan-sg-8019-l-nh-208-ng-b-thi-u-d-li-u/) |
 
 ## Session Continuity
 
