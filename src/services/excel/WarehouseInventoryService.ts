@@ -4845,6 +4845,259 @@ export const WarehouseInventoryService = {
         return this.exportCombined123WarehouseWorkbook(options);
     },
 
+    /**
+     * Xuất danh sách các chuyến khuyết thông tin (Nhà xe / Nơi xuất) ra file Excel (.xlsx)
+     */
+    async exportUnstandardizedTicketsWorkbook(
+        tickets: WarehouseInventoryTicket[],
+        validCarriers?: Set<string>,
+        validWarehouses?: Set<string>
+    ): Promise<{ buffer: ArrayBuffer; filename: string }> {
+        const ExcelJS = await import('exceljs');
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('CHUYẾN KHUYẾT THÔNG TIN');
+
+        const thinBorder = {
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'thin', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const doubleBottomBorder = {
+            top: { style: 'thin', color: { indexed: 64 } },
+            left: { style: 'thin', color: { indexed: 64 } },
+            bottom: { style: 'double', color: { indexed: 64 } },
+            right: { style: 'thin', color: { indexed: 64 } }
+        };
+        const tonFmt = '#,##0.000';
+        const primaryHeaderFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4A78C2' },
+            bgColor: { indexed: 64 }
+        };
+        const zebraFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8FAFC' },
+            bgColor: { indexed: 64 }
+        };
+        const totalFill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE2E8F0' },
+            bgColor: { indexed: 64 }
+        };
+
+        // Title row
+        sheet.mergeCells('A1:O1');
+        sheet.getCell('A1').value = 'DANH SÁCH CHUYẾN CÂN KHUYẾT THÔNG TIN (NHÀ XE / NƠI XUẤT)';
+        sheet.getCell('A1').font = { name: 'Cambria', family: 1, size: 14, bold: true, color: { argb: 'FF1E293B' } };
+        sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+        sheet.getRow(1).height = 25;
+
+        // Subtitle row
+        sheet.mergeCells('A2:O2');
+        sheet.getCell('A2').value = '(Các chuyến được ghi nhận vào báo cáo nhưng cột Nhà xe hoặc Nơi xuất chưa có trong danh mục)';
+        sheet.getCell('A2').font = { name: 'Cambria', family: 1, size: 10, italic: true, color: { argb: 'FF64748B' } };
+        sheet.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle' };
+        sheet.getRow(2).height = 18;
+
+        // Metadata row 3
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const exportTimeStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        sheet.mergeCells('A3:D3');
+        sheet.getCell('A3').value = `Ngày xuất file: ${exportTimeStr}`;
+        sheet.getCell('A3').font = { name: 'Cambria', family: 1, size: 10, italic: true, color: { argb: 'FF334155' } };
+        sheet.getCell('A3').alignment = { vertical: 'middle' };
+
+        sheet.mergeCells('E3:H3');
+        sheet.getCell('E3').value = `Tổng số: ${tickets.length} chuyến khuyết thông tin`;
+        sheet.getCell('E3').font = { name: 'Cambria', family: 1, size: 10, bold: true, color: { argb: 'FF1E293B' } };
+        sheet.getCell('E3').alignment = { vertical: 'middle' };
+
+        sheet.mergeCells('L3:O3');
+        sheet.getCell('L3').value = 'ĐVT: Tấn';
+        sheet.getCell('L3').font = { name: 'Cambria', family: 1, size: 10, italic: true, color: { argb: 'FF64748B' } };
+        sheet.getCell('L3').alignment = { horizontal: 'right', vertical: 'middle' };
+        sheet.getRow(3).height = 20;
+
+        // Headers row 4
+        const headers = [
+            'STT',
+            'MÃ PHIẾU',
+            'BIỂN SỐ XE',
+            'NHÀ XE (CHUẨN HÓA)',
+            'NHÀ XE (GỐC TRÊN PHIẾU)',
+            'NƠI XUẤT / TÊN KHO (CHUẨN)',
+            'NƠI XUẤT (GỐC TRÊN PHIẾU)',
+            'KHU VỰC',
+            'LUỒNG HÀNG',
+            'KHO CẢNG',
+            'NGÀY CÂN',
+            'GIỜ CÂN RA',
+            'LƯỢNG HÀNG (TẤN)',
+            'KHÁCH HÀNG',
+            'TÌNH TRẠNG KHUYẾT THÔNG TIN'
+        ];
+
+        const headerRow = sheet.getRow(4);
+        headerRow.height = 26;
+        headers.forEach((h, idx) => {
+            const cell = headerRow.getCell(idx + 1);
+            cell.value = h;
+            cell.fill = primaryHeaderFill as any;
+            cell.font = { name: 'Cambria', family: 1, size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.border = thinBorder as any;
+        });
+
+        const carriersSet = validCarriers || new Set<string>();
+        const warehousesSet = validWarehouses || new Set<string>();
+
+        let rIdx = 5;
+        for (let i = 0; i < tickets.length; i++) {
+            const t = tickets[i];
+            if (!t) continue;
+            const rawCarrier = t.carrierName ? stripAccents(t.carrierName).toUpperCase().trim() : '';
+            const isCarrierMissing = !rawCarrier || rawCarrier === '-' || rawCarrier === '0' || (carriersSet.size > 0 && !carriersSet.has(rawCarrier));
+
+            const isExport = t.flowType === 'EXPORT';
+            const rawWh = t.originWarehouseName ? stripAccents(t.originWarehouseName).toUpperCase().trim() : '';
+            const isWarehouseMissing = !isExport && (!rawWh || rawWh === '-' || rawWh === '0' || (warehousesSet.size > 0 && !warehousesSet.has(rawWh)));
+
+            let missingStatus = '';
+            if (isCarrierMissing && isWarehouseMissing) {
+                missingStatus = 'Khuyết cả Nhà xe & Nơi xuất';
+            } else if (isCarrierMissing) {
+                missingStatus = 'Khuyết Nhà xe (chưa có trong danh mục)';
+            } else if (isWarehouseMissing) {
+                missingStatus = 'Khuyết Nơi xuất (chưa có trong danh mục)';
+            } else {
+                missingStatus = 'Đạt chuẩn';
+            }
+
+            const row = sheet.getRow(rIdx);
+            row.height = 20;
+
+            const isZebra = i % 2 === 1;
+            const currentFill = isZebra ? zebraFill : undefined;
+
+            const standardCarrier = (!isCarrierMissing && t.carrierName && t.carrierName !== '-' && t.carrierName !== '0') ? t.carrierName : '';
+            const standardWh = (!isWarehouseMissing && t.originWarehouseName && t.originWarehouseName !== '-') ? t.originWarehouseName : '';
+
+            const dateStr = t.reportDate
+                ? (t.reportDate.includes('-') && t.reportDate.length === 10
+                    ? `${t.reportDate.slice(8, 10)}/${t.reportDate.slice(5, 7)}/${t.reportDate.slice(0, 4)}`
+                    : t.reportDate)
+                : (t.weighOutDate || '');
+
+            const rowValues = [
+                i + 1,
+                t.soPhieu || '',
+                t.vehiclePlate || '',
+                standardCarrier,
+                t.carrierName || '',
+                standardWh,
+                t.originWarehouseName || '',
+                t.originArea || '',
+                t.flowType || '',
+                t.warehouseId || '',
+                dateStr,
+                t.weighOutTime || '',
+                t.netWeight || 0,
+                t.customerName || '',
+                missingStatus
+            ];
+
+            rowValues.forEach((val, cIdx) => {
+                const cell = row.getCell(cIdx + 1);
+                cell.value = val;
+                cell.font = { name: 'Cambria', family: 1, size: 10, color: { argb: 'FF1E293B' } };
+                cell.border = thinBorder as any;
+                if (currentFill) cell.fill = currentFill as any;
+
+                if (cIdx === 0 || cIdx === 1 || cIdx === 8 || cIdx === 9 || cIdx === 10 || cIdx === 11) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                } else if (cIdx === 2) {
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cell.font = { name: 'Cambria', family: 1, size: 10, bold: true, color: { argb: 'FF1D4ED8' } };
+                } else if (cIdx === 12) {
+                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                    cell.numFmt = tonFmt;
+                    cell.font = { name: 'Cambria', family: 1, size: 10, bold: true, color: { argb: 'FF0F172A' } };
+                } else if (cIdx === 14) {
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                    cell.font = { name: 'Cambria', family: 1, size: 9, italic: true, color: { argb: 'FFB45309' } };
+                } else {
+                    cell.alignment = { horizontal: 'left', vertical: 'middle' };
+                }
+            });
+
+            rIdx++;
+        }
+
+        // Summary / Total row
+        const totalRow = sheet.getRow(rIdx);
+        totalRow.height = 22;
+        sheet.mergeCells(`A${rIdx}:L${rIdx}`);
+        const totalLabelCell = totalRow.getCell(1);
+        totalLabelCell.value = 'TỔNG CỘNG';
+        totalLabelCell.font = { name: 'Cambria', family: 1, size: 10, bold: true, color: { argb: 'FF1E293B' } };
+        totalLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        totalLabelCell.fill = totalFill as any;
+        totalLabelCell.border = doubleBottomBorder as any;
+
+        for (let col = 1; col <= 12; col++) {
+            const cell = totalRow.getCell(col);
+            cell.fill = totalFill as any;
+            cell.border = doubleBottomBorder as any;
+        }
+
+        const totalWeightCell = totalRow.getCell(13);
+        if (tickets.length > 0) {
+            totalWeightCell.value = { formula: `SUM(M5:M${rIdx - 1})` };
+        } else {
+            totalWeightCell.value = 0;
+        }
+        totalWeightCell.font = { name: 'Cambria', family: 1, size: 11, bold: true, color: { argb: 'FF1E293B' } };
+        totalWeightCell.alignment = { horizontal: 'right', vertical: 'middle' };
+        totalWeightCell.numFmt = tonFmt;
+        totalWeightCell.fill = totalFill as any;
+        totalWeightCell.border = doubleBottomBorder as any;
+
+        for (let col = 14; col <= 15; col++) {
+            const cell = totalRow.getCell(col);
+            cell.value = '';
+            cell.fill = totalFill as any;
+            cell.border = doubleBottomBorder as any;
+        }
+
+        // Column widths
+        sheet.getColumn(1).width = 7;   // STT
+        sheet.getColumn(2).width = 14;  // Mã phiếu
+        sheet.getColumn(3).width = 15;  // Biển số xe
+        sheet.getColumn(4).width = 18;  // Nhà xe chuẩn
+        sheet.getColumn(5).width = 18;  // Nhà xe gốc
+        sheet.getColumn(6).width = 22;  // Nơi xuất chuẩn
+        sheet.getColumn(7).width = 22;  // Nơi xuất gốc
+        sheet.getColumn(8).width = 14;  // Khu vực
+        sheet.getColumn(9).width = 14;  // Luồng
+        sheet.getColumn(10).width = 13; // Kho cảng
+        sheet.getColumn(11).width = 14; // Ngày cân
+        sheet.getColumn(12).width = 13; // Giờ cân ra
+        sheet.getColumn(13).width = 18; // Lượng hàng (tấn)
+        sheet.getColumn(14).width = 22; // Khách hàng
+        sheet.getColumn(15).width = 34; // Tình trạng
+
+        const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+        const filename = `DANH_SACH_CHUYEN_KHUYET_THONG_TIN_${timestamp}.xlsx`;
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return { buffer: buffer as ArrayBuffer, filename };
+    },
+
     populateImportWorksheet(
         sheet: any,
         warehouseId: WarehouseId,

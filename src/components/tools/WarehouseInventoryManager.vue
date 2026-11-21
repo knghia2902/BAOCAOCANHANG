@@ -60,6 +60,7 @@ const validCarriers = ref<Set<string>>(new Set());
 const validWarehouses = ref<Set<string>>(new Set());
 const showExcludedModal = ref(false);
 const restandardizing = ref(false);
+const exportingExcludedExcel = ref(false);
 
 const syncChannel = new BroadcastChannel('allocator_sync_channel');
 syncChannel.onmessage = async (event) => {
@@ -552,6 +553,38 @@ const unstandardizedTickets = computed<WarehouseInventoryTicket[]>(() => {
         return isCarrierMissing || isWarehouseMissing;
     });
 });
+
+async function handleExportUnstandardizedExcel() {
+    if (!unstandardizedTickets.value.length) {
+        addToast('Không có chuyến khuyết thông tin nào để xuất!', 'info');
+        return;
+    }
+    exportingExcludedExcel.value = true;
+    try {
+        const { buffer, filename } = await WarehouseInventoryService.exportUnstandardizedTicketsWorkbook(
+            unstandardizedTickets.value,
+            validCarriers.value,
+            validWarehouses.value
+        );
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        addToast(`Đã xuất file Excel "${filename}" thành công!`, 'success');
+    } catch (err: any) {
+        console.error('Lỗi xuất Excel chuyến khuyết thông tin:', err);
+        addToast('Lỗi xuất file Excel: ' + (err?.message || err), 'error');
+    } finally {
+        exportingExcludedExcel.value = false;
+    }
+}
 
 async function handleRestandardizeData() {
     restandardizing.value = true;
@@ -4024,13 +4057,27 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 </div>
 
                 <!-- Summary Bar -->
-                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs shrink-0">
-                    <div class="flex items-center gap-2 font-bold text-slate-800">
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-xs shrink-0 gap-3">
+                    <div class="flex items-center gap-2 font-bold text-slate-800 shrink-0">
                         <span class="material-symbols-outlined text-base text-primary">fact_check</span>
                         <span>Tổng số: <span class="font-mono font-black text-primary text-sm">{{ unstandardizedTickets.length }}</span> chuyến để trống thông tin</span>
                     </div>
-                    <div class="text-[11px] text-slate-500 font-semibold">
-                        Ghi nhận 100% vào báo cáo • Cột chưa có trong danh mục được để trống
+                    <div class="flex items-center gap-3">
+                        <div class="text-[11px] text-slate-500 font-semibold hidden md:block">
+                            Ghi nhận 100% vào báo cáo • Cột chưa có trong danh mục được để trống
+                        </div>
+                        <button
+                            type="button"
+                            @click="handleExportUnstandardizedExcel"
+                            :disabled="exportingExcludedExcel || !unstandardizedTickets.length"
+                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40"
+                            title="Xuất file Excel danh sách các chuyến khuyết thông tin"
+                        >
+                            <span class="material-symbols-outlined text-sm" :class="{ 'animate-spin': exportingExcludedExcel }">
+                                {{ exportingExcludedExcel ? 'sync' : 'download' }}
+                            </span>
+                            <span>{{ exportingExcludedExcel ? 'Đang xuất...' : 'Xuất Excel' }}</span>
+                        </button>
                     </div>
                 </div>
 
@@ -4110,17 +4157,30 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                 <!-- Footer Actions -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
-                    <button
-                        type="button"
-                        @click="handleRestandardizeData"
-                        :disabled="restandardizing"
-                        class="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-2xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
-                    >
-                        <span class="material-symbols-outlined text-sm" :class="{ 'animate-spin': restandardizing }">
-                            {{ restandardizing ? 'sync' : 'auto_fix_high' }}
-                        </span>
-                        <span>{{ restandardizing ? 'Đang chuẩn hóa lại...' : 'Chuẩn hóa lại ngay' }}</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            @click="handleExportUnstandardizedExcel"
+                            :disabled="exportingExcludedExcel || !unstandardizedTickets.length"
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-40"
+                        >
+                            <span class="material-symbols-outlined text-sm" :class="{ 'animate-spin': exportingExcludedExcel }">
+                                {{ exportingExcludedExcel ? 'sync' : 'download' }}
+                            </span>
+                            <span>{{ exportingExcludedExcel ? 'Đang xuất Excel...' : 'Xuất Excel danh sách' }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="handleRestandardizeData"
+                            :disabled="restandardizing"
+                            class="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-2xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                        >
+                            <span class="material-symbols-outlined text-sm" :class="{ 'animate-spin': restandardizing }">
+                                {{ restandardizing ? 'sync' : 'auto_fix_high' }}
+                            </span>
+                            <span>{{ restandardizing ? 'Đang chuẩn hóa lại...' : 'Chuẩn hóa lại ngay' }}</span>
+                        </button>
+                    </div>
                     <button
                         type="button"
                         @click="showExcludedModal = false"

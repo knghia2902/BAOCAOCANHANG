@@ -2376,5 +2376,107 @@ describe('WarehouseInventoryService', () => {
             await wbSingle.xlsx.load(singleResult.buffer);
             expect(wbSingle.getWorksheet('BỤI CẦU CẢNG')).toBeUndefined();
         });
+
+        it('exports unstandardized tickets workbook with correct missing statuses, styles, and formula', async () => {
+            const ExcelJS = await import('exceljs');
+            const sampleTickets: WarehouseInventoryTicket[] = [
+                {
+                    id: 'MISSING_ALL',
+                    soPhieu: 'P_MISSING_1',
+                    reportDate: '2026-11-20',
+                    weighOutDate: '2026-11-20',
+                    weighOutTime: '08:30',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Dăm gỗ',
+                    vehiclePlate: '60C-99999',
+                    carrierName: 'NHÀ XE LẠ',
+                    originWarehouseName: 'KHO NGOÀI',
+                    grossWeight: 45,
+                    tareWeight: 10,
+                    netWeight: 35
+                },
+                {
+                    id: 'MISSING_CARRIER_ONLY',
+                    soPhieu: 'P_MISSING_2',
+                    reportDate: '2026-11-20',
+                    weighOutDate: '2026-11-20',
+                    weighOutTime: '09:00',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 4',
+                    customerName: 'EASTWOOD',
+                    cargoType: 'Dăm gỗ',
+                    vehiclePlate: '61H-88888',
+                    carrierName: '-',
+                    originWarehouseName: 'KHO CHUẨN',
+                    grossWeight: 40,
+                    tareWeight: 10,
+                    netWeight: 30
+                },
+                {
+                    id: 'MISSING_WH_ONLY',
+                    soPhieu: 'P_MISSING_3',
+                    reportDate: '2026-11-20',
+                    weighOutDate: '2026-11-20',
+                    weighOutTime: '09:30',
+                    flowType: 'IMPORT',
+                    warehouseId: 'KHO 1',
+                    customerName: 'GBD',
+                    cargoType: 'Viên nén',
+                    vehiclePlate: '50H-77777',
+                    carrierName: 'XE CHUẨN',
+                    originWarehouseName: '',
+                    grossWeight: 50,
+                    tareWeight: 10,
+                    netWeight: 40
+                }
+            ];
+
+            const validCarriers = new Set(['XE CHUAN']);
+            const validWarehouses = new Set(['KHO CHUAN']);
+
+            const { buffer, filename } = await WarehouseInventoryService.exportUnstandardizedTicketsWorkbook(
+                sampleTickets,
+                validCarriers,
+                validWarehouses
+            );
+
+            expect(filename).toMatch(/^DANH_SACH_CHUYEN_KHUYET_THONG_TIN_\d{8}_\d{4}\.xlsx$/);
+            const wb = new ExcelJS.Workbook();
+            await wb.xlsx.load(buffer);
+
+            const ws = wb.getWorksheet('CHUYẾN KHUYẾT THÔNG TIN');
+            expect(ws).toBeDefined();
+
+            // Check title
+            expect(ws?.getCell('A1').value).toContain('DANH SÁCH CHUYẾN CÂN KHUYẾT THÔNG TIN');
+
+            // Check Row 5 (First ticket: missing both)
+            expect(ws?.getCell('B5').value).toBe('P_MISSING_1');
+            expect(ws?.getCell('C5').value).toBe('60C-99999');
+            expect(ws?.getCell('D5').value).toBe(''); // standard carrier empty
+            expect(ws?.getCell('E5').value).toBe('NHÀ XE LẠ'); // raw carrier
+            expect(ws?.getCell('F5').value).toBe(''); // standard warehouse empty
+            expect(ws?.getCell('G5').value).toBe('KHO NGOÀI'); // raw warehouse
+            expect(ws?.getCell('M5').value).toBe(35);
+            expect(ws?.getCell('O5').value).toBe('Khuyết cả Nhà xe & Nơi xuất');
+
+            // Check Row 6 (Missing carrier only, warehouse valid)
+            expect(ws?.getCell('B6').value).toBe('P_MISSING_2');
+            expect(ws?.getCell('D6').value).toBe('');
+            expect(ws?.getCell('F6').value).toBe('KHO CHUẨN');
+            expect(ws?.getCell('O6').value).toBe('Khuyết Nhà xe (chưa có trong danh mục)');
+
+            // Check Row 7 (Carrier valid, missing warehouse)
+            expect(ws?.getCell('B7').value).toBe('P_MISSING_3');
+            expect(ws?.getCell('D7').value).toBe('XE CHUẨN');
+            expect(ws?.getCell('F7').value).toBe('');
+            expect(ws?.getCell('O7').value).toBe('Khuyết Nơi xuất (chưa có trong danh mục)');
+
+            // Check total row at row 8
+            expect(ws?.getCell('A8').value).toBe('TỔNG CỘNG');
+            expect((ws?.getCell('M8').value as any).formula).toBe('SUM(M5:M7)');
+        });
     });
 });
