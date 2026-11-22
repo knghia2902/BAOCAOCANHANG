@@ -1206,14 +1206,14 @@ function buildVesselThreeSheetBargeSummary(
 }
 
 /**
- * Xây dựng Sheet `XUẤT KHO_NN` theo form chuẩn
+ * Xây dựng Sheet `XUẤT KHO` theo form chuẩn
  */
 function buildVesselWarehouseExportSheet(
     workbook: ExcelJS.Workbook,
     vessel: any,
     tickets: any[]
 ) {
-    const sheet = workbook.addWorksheet('XUẤT KHO_NN');
+    const sheet = workbook.addWorksheet('XUẤT KHO');
     sheet.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1 };
     sheet.pageSetup.margins = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
 
@@ -1368,14 +1368,14 @@ function buildVesselWarehouseExportSheet(
 }
 
 /**
- * Xây dựng Sheet `XÁ THẲNG_NN` theo form chuẩn
+ * Xây dựng Sheet `XÁ THẲNG` theo form chuẩn
  */
 function buildVesselDirectExportSheet(
     workbook: ExcelJS.Workbook,
     vessel: any,
     tickets: any[]
 ) {
-    const sheet = workbook.addWorksheet('XÁ THẲNG_NN');
+    const sheet = workbook.addWorksheet('XÁ THẲNG');
     sheet.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1 };
     sheet.pageSetup.margins = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
 
@@ -1672,7 +1672,7 @@ export const SettlementExcelExporter = {
     },
 
     /**
-     * Xây dựng Workbook 3 Sheet chuẩn mẫu (BK SALAN, XUẤT KHO_NN, XÁ THẲNG_NN) từ dữ liệu tàu, sà lan và phiếu cân
+     * Xây dựng Workbook 3 Sheet chuẩn mẫu (BK SALAN, XUẤT KHO, XÁ THẲNG) từ dữ liệu tàu, sà lan và phiếu cân
      */
     buildVesselShipmentThreeSheetWorkbook(
         vessel: any,
@@ -1688,17 +1688,17 @@ export const SettlementExcelExporter = {
         // 1. Sheet BK SALAN
         buildVesselThreeSheetBargeSummary(workbook, vessel, barges, trucks);
 
-        // 2. Sheet XUẤT KHO_NN
+        // 2. Sheet XUẤT KHO
         buildVesselWarehouseExportSheet(workbook, vessel, flows.exportWarehouseTickets);
 
-        // 3. Sheet XÁ THẲNG_NN
+        // 3. Sheet XÁ THẲNG
         buildVesselDirectExportSheet(workbook, vessel, flows.directBargeTickets);
 
         return workbook;
     },
 
     /**
-     * Xuất và tải xuống báo cáo lô hàng 3 Sheet theo mẫu cảng (DNTT)
+     * Xuất và tải xuống báo cáo lô hàng 3 Sheet (BAO_CAO_LO_HANG_[TEN_TAU]_[NGAY].xlsx)
      */
     async exportVesselShipmentThreeSheetReport(
         vessel: any,
@@ -1706,11 +1706,12 @@ export const SettlementExcelExporter = {
         trucks: any[] = []
     ): Promise<string> {
         const workbook = this.buildVesselShipmentThreeSheetWorkbook(vessel, barges, trucks);
-        const sanitize = (s: string) => String(s || '').replace(/[^a-zA-Z0-9À-ỹ_\s-]/g, '').trim().replace(/\s+/g, ' ');
+        const sanitize = (s: string) => String(s || '').replace(/[^a-zA-Z0-9À-ỹ_\s-]/g, '').trim().replace(/\s+/g, '_');
         const vName = sanitize(vessel.name || 'VESSEL').toUpperCase();
-        const dischargePort = sanitize(vessel.dischargePort || 'NHA BE').toUpperCase();
-        const custCode = sanitize(vessel.customerCode || 'EW').toUpperCase();
-        const filename = `DNTT_${vName}_${dischargePort}_${custCode}.xlsx`;
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const now = new Date();
+        const dateStr = `${pad(now.getDate())}${pad(now.getMonth() + 1)}${now.getFullYear()}`;
+        const filename = `BAO_CAO_LO_HANG_${vName}_${dateStr}.xlsx`;
         await this.downloadSettlementExcel(workbook, filename);
         return filename;
     }

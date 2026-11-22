@@ -5323,7 +5323,7 @@ defineExpose({
                                     @click="exportVesselSummaryExcel"
                                     :disabled="exportingVesselReport"
                                     class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
-                                    title="Xuất file Excel báo cáo lô hàng 3 sheet (BK SALAN, XUẤT KHO_NN, XÁ THẲNG_NN)"
+                                    title="Xuất file Excel báo cáo lô hàng 3 sheet (BK SALAN, XUẤT KHO, XÁ THẲNG)"
                                 >
                                     <span v-if="exportingVesselReport" class="material-symbols-outlined text-sm animate-spin">sync</span>
                                     <span v-else class="material-symbols-outlined text-sm">download</span>

@@ -267,8 +267,8 @@ describe('SettlementExcelExporter', () => {
 
             expect(wb.worksheets.map(w => w.name)).toEqual([
                 'BK SALAN',
-                'XUẤT KHO_NN',
-                'XÁ THẲNG_NN'
+                'XUẤT KHO',
+                'XÁ THẲNG'
             ]);
         });
 
@@ -279,8 +279,8 @@ describe('SettlementExcelExporter', () => {
                 mockTrucks
             );
 
-            const wsWarehouse = wb.getWorksheet('XUẤT KHO_NN')!;
-            const wsDirect = wb.getWorksheet('XÁ THẲNG_NN')!;
+            const wsWarehouse = wb.getWorksheet('XUẤT KHO')!;
+            const wsDirect = wb.getWorksheet('XÁ THẲNG')!;
 
             // Check warehouse sheet has tickets WH-001 and WH-003
             const whTicketNos: string[] = [];
@@ -310,8 +310,8 @@ describe('SettlementExcelExporter', () => {
                 mockTrucks
             );
 
-            const wsWarehouse = wb.getWorksheet('XUẤT KHO_NN')!;
-            const wsDirect = wb.getWorksheet('XÁ THẲNG_NN')!;
+            const wsWarehouse = wb.getWorksheet('XUẤT KHO')!;
+            const wsDirect = wb.getWorksheet('XÁ THẲNG')!;
 
             // Check cross-sheet reference to BK SALAN
             expect((wsWarehouse.getCell('D14').value as any)?.formula).toBe("'BK SALAN'!D9");
@@ -338,6 +338,32 @@ describe('SettlementExcelExporter', () => {
             );
             const buffer = await wb.xlsx.writeBuffer();
             expect(buffer.byteLength).toBeGreaterThan(5000);
+        });
+
+        it('should format filename as BAO_CAO_LO_HANG_[TEN_TAU]_[NGAY].xlsx', async () => {
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const now = new Date();
+            const dateStr = `${pad(now.getDate())}${pad(now.getMonth() + 1)}${now.getFullYear()}`;
+            const expectedFilename = `BAO_CAO_LO_HANG_EVER_VANTAGE_${dateStr}.xlsx`;
+
+            // Spy on downloadSettlementExcel
+            let downloadedFilename = '';
+            const origDownload = SettlementExcelExporter.downloadSettlementExcel;
+            SettlementExcelExporter.downloadSettlementExcel = async (_wb, name) => {
+                downloadedFilename = name;
+            };
+
+            try {
+                const fname = await SettlementExcelExporter.exportVesselShipmentThreeSheetReport(
+                    mockVessel,
+                    mockBarges,
+                    mockTrucks
+                );
+                expect(fname).toBe(expectedFilename);
+                expect(downloadedFilename).toBe(expectedFilename);
+            } finally {
+                SettlementExcelExporter.downloadSettlementExcel = origDownload;
+            }
         });
     });
 });
