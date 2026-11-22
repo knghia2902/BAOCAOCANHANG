@@ -390,5 +390,49 @@ describe('SettlementExcelExporter', () => {
                 SettlementExcelExporter.downloadSettlementExcel = origDownload;
             }
         });
+
+        it('should embed company logo in all 3 sheets, merge duplicate columns, and calculate TOTAL row correctly in BK SALAN', () => {
+            const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
+                mockVessel,
+                mockBarges,
+                mockTrucks
+            );
+
+            const wsBk = wb.getWorksheet('BK SALAN')!;
+            const wsWh = wb.getWorksheet('XUẤT KHO')!;
+            const wsDir = wb.getWorksheet('XÁ THẲNG')!;
+
+            // 1. Company logo embedded in all 3 sheets
+            expect(wsBk.getImages().length).toBeGreaterThan(0);
+            expect(wsWh.getImages().length).toBeGreaterThan(0);
+            expect(wsDir.getImages().length).toBeGreaterThan(0);
+
+            // 2. Duplicate columns merged (B14:B15, D14:D15, E14:E15)
+            // In ExcelJS, merged slave cells or master cell model reflects merge
+            // We can inspect master cells or merged ranges
+            const b14 = wsBk.getCell('B14');
+            const b15 = wsBk.getCell('B15');
+            expect(b15.master.address).toBe(b14.address);
+
+            const d14 = wsBk.getCell('D14');
+            const d15 = wsBk.getCell('D15');
+            expect(d15.master.address).toBe(d14.address);
+
+            const e14 = wsBk.getCell('E14');
+            const e15 = wsBk.getCell('E15');
+            expect(e15.master.address).toBe(e14.address);
+
+            // 3. TOTAL row at Row 16
+            const row16 = wsBk.getRow(16);
+            expect(row16.getCell(2).value).toBe(''); // Vessel name removed in TOTAL row
+            expect(row16.getCell(3).value).toBe('TOTAL');
+
+            // Cargo total in column 6 (F) with formula and numeric result
+            const f16 = row16.getCell(6).value as any;
+            expect(f16).toBeDefined();
+            expect(f16.formula).toBe('SUM(F14:F15)');
+            // Net sum: 60,000 (SG 8888) + 35,000 (VL 9999) = 95,000
+            expect(f16.result).toBe(95000);
+        });
     });
 });

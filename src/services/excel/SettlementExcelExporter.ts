@@ -7,6 +7,7 @@ import type {
 import {
     parseDateTimeFlexible
 } from '@/services/settlement/BargeDemurrageService';
+import { COMPANY_LOGO_BASE64 } from './assets/CompanyLogo';
 
 const FONT_NAME = 'Cambria';
 
@@ -1063,6 +1064,23 @@ function buildVesselThreeSheetBargeSummary(
         { width: 22.1 }  // 7: DAY
     ];
 
+    // Rows 1-7: Company Logo
+    if (COMPANY_LOGO_BASE64) {
+        try {
+            const logoId = workbook.addImage({
+                base64: COMPANY_LOGO_BASE64,
+                extension: 'jpeg'
+            });
+            sheet.addImage(logoId, {
+                tl: { col: 1.1, row: 0.2 },
+                br: { col: 6.8, row: 6.8 },
+                editAs: 'oneCell'
+            } as any);
+        } catch (err) {
+            console.warn('Could not add logo to BK SALAN:', err);
+        }
+    }
+
     // Row 8: Title
     sheet.mergeCells('A8:G8');
     const titleCell = sheet.getCell('A8');
@@ -1119,11 +1137,13 @@ function buildVesselThreeSheetBargeSummary(
 
     let curRow = 14;
     const groupTotalCellRefs: string[] = [];
+    let grandCargoTotal = 0;
 
     sortedPortKeys.forEach((portKey, gIdx) => {
         const groupBarges = [...(groups[portKey] || [])];
         groupBarges.sort(compareBargeOrder);
         const groupStartRow = curRow;
+        let groupCargoSum = 0;
 
         groupBarges.forEach((b) => {
             const row = sheet.getRow(curRow);
@@ -1132,6 +1152,7 @@ function buildVesselThreeSheetBargeSummary(
             const bTrucks = trucks.filter(t => t.barge_id === b.id || t.bargeName === b.name);
             const bTrucksNet = bTrucks.reduce((sum, t) => sum + normalizeNetKg(t), 0);
             const cargoKg = bTrucksNet > 0 ? bTrucksNet : (b.totalWeight ? Math.round(b.totalWeight) : Math.round((b.cargoWeight || 0) * 1000));
+            groupCargoSum += cargoKg;
 
             let dayStr = '';
             if (b.dateStart) {
@@ -1175,16 +1196,38 @@ function buildVesselThreeSheetBargeSummary(
 
         // Group Total Row
         const groupEndRow = curRow - 1;
+        grandCargoTotal += groupCargoSum;
+
+        // Merge các cột có cùng thông tin: Nguồn tàu (B), Port of loading (D), Port of Discharge (E)
+        if (groupEndRow > groupStartRow) {
+            sheet.mergeCells(`B${groupStartRow}:B${groupEndRow}`);
+            sheet.mergeCells(`D${groupStartRow}:D${groupEndRow}`);
+            sheet.mergeCells(`E${groupStartRow}:E${groupEndRow}`);
+
+            for (let r = groupStartRow; r <= groupEndRow; r++) {
+                sheet.getCell(`B${r}`).border = THIN_BORDER;
+                sheet.getCell(`D${r}`).border = THIN_BORDER;
+                sheet.getCell(`E${r}`).border = THIN_BORDER;
+            }
+
+            sheet.getCell(`B${groupStartRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+            sheet.getCell(`D${groupStartRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+            sheet.getCell(`E${groupStartRow}`).alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+
         const gRow = sheet.getRow(curRow);
         gRow.height = 22;
 
         sheet.mergeCells(`C${curRow}:E${curRow}`);
         const gLabel = sortedPortKeys.length > 1 ? `TOTAL (${gIdx + 1})` : 'TOTAL';
         gRow.getCell(3).value = gLabel;
-        gRow.getCell(2).value = { formula: 'D9', result: vessel.name };
+        gRow.getCell(2).value = ''; // Bỏ nguồn tàu ở hàng TOTAL đi
 
         const gTotalCell = gRow.getCell(6);
-        gTotalCell.value = { formula: `SUM(F${groupStartRow}:F${groupEndRow})` };
+        gTotalCell.value = {
+            formula: `SUM(F${groupStartRow}:F${groupEndRow})`,
+            result: groupCargoSum // Bổ sung tổng khối lượng
+        };
         gTotalCell.numFmt = '#,##0';
         groupTotalCellRefs.push(`F${curRow}`);
 
@@ -1210,7 +1253,10 @@ function buildVesselThreeSheetBargeSummary(
 
         const grandTotalCell = totalRow.getCell(6);
         const sumExpr = groupTotalCellRefs.join('+');
-        grandTotalCell.value = { formula: `+${sumExpr}` };
+        grandTotalCell.value = {
+            formula: `+${sumExpr}`,
+            result: grandCargoTotal
+        };
         grandTotalCell.numFmt = '#,##0';
 
         for (let col = 1; col <= 7; col++) {
@@ -1259,6 +1305,23 @@ function buildVesselWarehouseExportSheet(
         { width: 22.0 }, // 11: Loại hàng
         { width: 28.0 }  // 12: Salan
     ];
+
+    // Rows 1-10: Company Logo
+    if (COMPANY_LOGO_BASE64) {
+        try {
+            const logoId = workbook.addImage({
+                base64: COMPANY_LOGO_BASE64,
+                extension: 'jpeg'
+            });
+            sheet.addImage(logoId, {
+                tl: { col: 3.2, row: 0.2 },
+                br: { col: 9.8, row: 9.8 },
+                editAs: 'oneCell'
+            } as any);
+        } catch (err) {
+            console.warn('Could not add logo to XUẤT KHO:', err);
+        }
+    }
 
     // Row 11: Title
     sheet.mergeCells('A11:L11');
@@ -1423,6 +1486,23 @@ function buildVesselDirectExportSheet(
         { width: 28.0 }, // 13: Ghi chú
         { width: 20.0 }  // 14: Nơi nhận
     ];
+
+    // Rows 1-10: Company Logo
+    if (COMPANY_LOGO_BASE64) {
+        try {
+            const logoId = workbook.addImage({
+                base64: COMPANY_LOGO_BASE64,
+                extension: 'jpeg'
+            });
+            sheet.addImage(logoId, {
+                tl: { col: 3.5, row: 0.2 },
+                br: { col: 10.5, row: 9.8 },
+                editAs: 'oneCell'
+            } as any);
+        } catch (err) {
+            console.warn('Could not add logo to XÁ THẲNG:', err);
+        }
+    }
 
     // Row 11: Title
     sheet.mergeCells('A11:N11');
