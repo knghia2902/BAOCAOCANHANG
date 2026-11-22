@@ -166,6 +166,7 @@ const globalBargesSummary = ref<BargeSummary[]>([]);
 const loadingGlobalSummary = ref(false);
 const exportingGlobalBarges = ref(false);
 const exportingActiveBargeTrucks = ref(false);
+const exportingVesselReport = ref(false);
 const sortKey = ref<string>('');
 const sortOrder = ref<'asc' | 'desc'>('asc');
 const selectedVesselStatusTab = ref<'in_progress' | 'done'>('in_progress');
@@ -1594,142 +1595,37 @@ const openSettlementModal = async () => {
     }
 };
 
-const exportVesselSummaryExcel = () => {
+const exportVesselSummaryExcel = async () => {
     const vessel = activeVessel.value;
     if (!vessel) return;
     
+    exportingVesselReport.value = true;
     try {
-        import('exceljs').then(async (ExcelJS) => {
-            const workbook = new ExcelJS.Workbook();
-            const sheet = workbook.addWorksheet('Báo Cáo Tổng Hợp Tàu');
-            
-            sheet.pageSetup.margins = {
-                left: 0.7, right: 0.7,
-                top: 0.75, bottom: 0.75,
-                header: 0.3, footer: 0.3
-            };
-            
-            sheet.addRow([`BÁO CÁO TỔNG HỢP TÀU: ${vessel.name}`]);
-            sheet.addRow([`Cảng Nguyên Ngọc - Đồng bộ lúc: ${formatDateTimeStr(new Date().toISOString())}`]);
-            sheet.addRow([]);
-            
-            const headerRow = sheet.addRow(['STT', 'Tên sà lan', 'Số chuyến xe chạy', 'Tổng khối lượng hàng (Net - kg)', 'Thời gian bắt đầu', 'Thời gian kết thúc']);
-            
-            sheet.mergeCells('A1:F1');
-            const titleCell = sheet.getCell('A1');
-            titleCell.font = { name: 'Times New Roman', size: 16, bold: true };
-            titleCell.alignment = { horizontal: 'center' };
-            
-            sheet.mergeCells('A2:F2');
-            const subtitleCell = sheet.getCell('A2');
-            subtitleCell.font = { name: 'Times New Roman', size: 10, italic: true };
-            subtitleCell.alignment = { horizontal: 'center' };
-            
-            headerRow.font = { name: 'Times New Roman', size: 11, bold: true };
-            headerRow.eachCell((cell) => {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFE8DCD0' }
-                };
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                };
-                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        const bargesList = vessel.barges || [];
+        const trucksByBarge = await fetchTrucksForBargeIds(bargesList.map(b => b.id));
+        const loadedBarges: Barge[] = [];
+        const allTrks: any[] = [];
+        bargesList.forEach((b) => {
+            const trks = trucksByBarge[b.id] || [];
+            loadedBarges.push({ ...b, trucks: trks });
+            trks.forEach(t => {
+                allTrks.push({ ...t, bargeName: b.name });
             });
-            
-            let totalTrips = 0;
-            let grandTotalWeight = 0;
-            
-            filteredVesselBarges.value.forEach((b, idx) => {
-                const row = sheet.addRow([
-                    idx + 1,
-                    b.name,
-                    b.truckCount,
-                    b.totalWeight,
-                    formatDateTimeStr(b.dateStart) || '-',
-                    formatDateTimeStr(b.dateEnd) || '-'
-                ]);
-                totalTrips += b.truckCount;
-                grandTotalWeight += b.totalWeight;
-                
-                row.font = { name: 'Times New Roman', size: 11 };
-                row.eachCell((cell, colNumber) => {
-                    cell.border = {
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
-                    };
-                    if (colNumber === 1 || colNumber === 2 || colNumber === 5 || colNumber === 6) {
-                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    } else if (colNumber === 3) {
-                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                    } else if (colNumber === 4) {
-                        cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                        cell.numFmt = '#,##0';
-                    }
-                });
-            });
-            
-            const totalRow = sheet.addRow([
-                'TỔNG CỘNG',
-                '',
-                totalTrips,
-                grandTotalWeight,
-                '',
-                ''
-            ]);
-            sheet.mergeCells(`A${totalRow.number}:B${totalRow.number}`);
-            
-            totalRow.font = { name: 'Times New Roman', size: 11, bold: true };
-            totalRow.eachCell((cell, colNumber) => {
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                };
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFF5EBE6' }
-                };
-                if (colNumber === 1) {
-                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                } else if (colNumber === 3) {
-                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                } else if (colNumber === 4) {
-                    cell.alignment = { horizontal: 'right', vertical: 'middle' };
-                    cell.numFmt = '#,##0';
-                }
-            });
-            
-            sheet.columns.forEach((col, idx) => {
-                let maxLen = 10;
-                sheet.eachRow((row, rowNumber) => {
-                    // Bỏ qua tiêu đề (dòng 1, 2, 3) để tránh làm dãn cột STT quá rộng
-                    if (rowNumber >= 4) {
-                        const val = row.getCell(idx + 1).value;
-                        if (val) maxLen = Math.max(maxLen, String(val).length);
-                    }
-                });
-                col.width = maxLen + 4;
-            });
-            
-            const buffer = await workbook.xlsx.writeBuffer();
-            excelService.downloadFile(
-                buffer, 
-                `BAO_CAO_TONG_HOP_TAU_${vessel.name.replace(/\s+/g, '_')}.xlsx`, 
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            );
-            showToast('Xuất báo cáo tổng hợp tàu thành công!');
         });
+        loadedBarges.sort((a, b) => a.name.localeCompare(b.name));
+
+        const { SettlementExcelExporter } = await import('@/services/excel/SettlementExcelExporter');
+        const filename = await SettlementExcelExporter.exportVesselShipmentThreeSheetReport(
+            vessel,
+            loadedBarges,
+            allTrks
+        );
+        showToast(`Đã xuất báo cáo lô hàng "${filename}" thành công!`, 'success');
     } catch (e: any) {
-        showToast('Lỗi khi xuất báo cáo: ' + e.message, 'error');
+        console.error('Lỗi khi xuất báo cáo lô hàng 3 sheet:', e);
+        showToast('Lỗi khi xuất báo cáo: ' + (e?.message || e), 'error');
+    } finally {
+        exportingVesselReport.value = false;
     }
 };
 
@@ -5425,10 +5321,13 @@ defineExpose({
                                 <button 
                                     v-if="filteredVesselBarges.length > 0"
                                     @click="exportVesselSummaryExcel"
-                                    class="px-4 py-2 bg-teal-600 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
+                                    :disabled="exportingVesselReport"
+                                    class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                                    title="Xuất file Excel báo cáo lô hàng 3 sheet (BK SALAN, XUẤT KHO_NN, XÁ THẲNG_NN)"
                                 >
-                                    <span class="material-symbols-outlined text-sm">download</span>
-                                    Xuất báo cáo
+                                    <span v-if="exportingVesselReport" class="material-symbols-outlined text-sm animate-spin">sync</span>
+                                    <span v-else class="material-symbols-outlined text-sm">download</span>
+                                    <span>{{ exportingVesselReport ? 'Đang xuất...' : 'Xuất báo cáo' }}</span>
                                 </button>
                             </div>
                         </div>

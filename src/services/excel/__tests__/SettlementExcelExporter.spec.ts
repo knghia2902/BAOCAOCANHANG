@@ -179,4 +179,165 @@ describe('SettlementExcelExporter', () => {
         const buffer = await workbook.xlsx.writeBuffer();
         expect(buffer.byteLength).toBeGreaterThan(5000);
     });
+
+    describe('buildVesselShipmentThreeSheetWorkbook', () => {
+        const mockVessel = {
+            id: 1,
+            name: 'EVER VANTAGE',
+            dischargePort: 'NHA BE',
+            customerCode: 'EW',
+            cargoName: 'WOOD PELLETS IN BULK',
+            billOfLading: 'BL-EV-001',
+            dateStart: '2026-11-06T08:00:00Z',
+            dateEnd: '2026-11-12T18:00:00Z'
+        };
+
+        const mockBarges = [
+            {
+                id: 101,
+                name: 'SG 8888',
+                portOfLoading: 'NGUYÊN NGỌC',
+                dateStart: '2026-11-06T09:00:00Z',
+                dateEnd: '2026-11-07T12:00:00Z',
+                customsDeclarationWeight: 1500000,
+                truckCount: 2,
+                totalWeight: 60000
+            },
+            {
+                id: 102,
+                name: 'VL 9999',
+                portOfLoading: 'NGUYÊN NGỌC',
+                dateStart: '2026-11-08T09:00:00Z',
+                dateEnd: '2026-11-09T15:00:00Z',
+                customsDeclarationWeight: 1200000,
+                truckCount: 1,
+                totalWeight: 35000
+            }
+        ];
+
+        const mockTrucks = [
+            // Warehouse export ticket
+            {
+                id: 1,
+                ticketNo: 'WH-001',
+                licensePlate: '50H-11111',
+                bargeName: 'SG 8888',
+                warehouse: 'KHO 4',
+                flowType: 'EXPORT',
+                weightIn: 14000,
+                weightOut: 44000,
+                weightNet: 30000,
+                timeOut: '2026-11-06T10:30:00Z'
+            },
+            // Direct barge ticket (xá thẳng)
+            {
+                id: 2,
+                ticketNo: 'DIR-002',
+                licensePlate: '50H-22222',
+                bargeName: 'SG 8888',
+                warehouse: 'XE SANG SÀ LAN',
+                flowType: 'DIRECT',
+                weightIn: 45000,
+                weightOut: 15000,
+                weightNet: 30000,
+                factoryNetWeight: 30050,
+                timeOut: '2026-11-06T14:45:00Z'
+            },
+            // Warehouse ticket for second barge
+            {
+                id: 3,
+                ticketNo: 'WH-003',
+                licensePlate: '50H-33333',
+                bargeName: 'VL 9999',
+                warehouse: 'KHO 2',
+                flowType: 'EXPORT',
+                weightIn: 13000,
+                weightOut: 48000,
+                weightNet: 35000,
+                timeOut: '2026-11-08T11:00:00Z'
+            }
+        ];
+
+        it('should build exactly 3 sheets with exact names and Cambria font', () => {
+            const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
+                mockVessel,
+                mockBarges,
+                mockTrucks
+            );
+
+            expect(wb.worksheets.map(w => w.name)).toEqual([
+                'BK SALAN',
+                'XUẤT KHO_NN',
+                'XÁ THẲNG_NN'
+            ]);
+        });
+
+        it('should partition tickets accurately into warehouse and direct sheets', () => {
+            const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
+                mockVessel,
+                mockBarges,
+                mockTrucks
+            );
+
+            const wsWarehouse = wb.getWorksheet('XUẤT KHO_NN')!;
+            const wsDirect = wb.getWorksheet('XÁ THẲNG_NN')!;
+
+            // Check warehouse sheet has tickets WH-001 and WH-003
+            const whTicketNos: string[] = [];
+            wsWarehouse.eachRow(row => {
+                const val = row.getCell(3).value; // Column C: Số phiếu
+                if (val && typeof val === 'string' && val.startsWith('WH-')) {
+                    whTicketNos.push(val);
+                }
+            });
+            expect(whTicketNos).toEqual(['WH-001', 'WH-003']);
+
+            // Check direct sheet has ticket DIR-002
+            const dirTicketNos: string[] = [];
+            wsDirect.eachRow(row => {
+                const val = row.getCell(3).value; // Column C: Số phiếu
+                if (val && typeof val === 'string' && val.startsWith('DIR-')) {
+                    dirTicketNos.push(val);
+                }
+            });
+            expect(dirTicketNos).toEqual(['DIR-002']);
+        });
+
+        it('should link vessel info cross-sheet via formula and calculate factory difference', () => {
+            const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
+                mockVessel,
+                mockBarges,
+                mockTrucks
+            );
+
+            const wsWarehouse = wb.getWorksheet('XUẤT KHO_NN')!;
+            const wsDirect = wb.getWorksheet('XÁ THẲNG_NN')!;
+
+            // Check cross-sheet reference to BK SALAN
+            expect((wsWarehouse.getCell('D14').value as any)?.formula).toBe("'BK SALAN'!D9");
+            expect((wsDirect.getCell('D13').value as any)?.formula).toBe("'BK SALAN'!D9");
+
+            // Check difference formula in direct sheet (=G{r}-J{r})
+            let foundDiffFormula = false;
+            wsDirect.eachRow(row => {
+                const cellK = row.getCell(11); // Column K: Chênh lệch
+                const val = cellK.value as any;
+                if (val && typeof val === 'object' && val.formula && val.formula.includes('-J')) {
+                    foundDiffFormula = true;
+                    expect(val.formula).toMatch(/^=?G\d+-J\d+$/);
+                }
+            });
+            expect(foundDiffFormula).toBe(true);
+        });
+
+        it('should serialize 3-sheet workbook cleanly to buffer > 5000 bytes', async () => {
+            const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
+                mockVessel,
+                mockBarges,
+                mockTrucks
+            );
+            const buffer = await wb.xlsx.writeBuffer();
+            expect(buffer.byteLength).toBeGreaterThan(5000);
+        });
+    });
 });

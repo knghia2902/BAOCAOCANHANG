@@ -36,6 +36,12 @@ const TOTAL_FILL: ExcelJS.Fill = {
     fgColor: { argb: 'FFF1F5F9' }
 };
 
+const GREEN_HEADER_FILL: ExcelJS.Fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFA8D08D' }
+};
+
 function styleCell(
     cell: ExcelJS.Cell,
     opts: {
@@ -84,6 +90,56 @@ function normalizeNetKg(t: any): number {
     const raw = Number(t.weightNet ?? t.netWeight ?? t.weight ?? 0);
     // Nếu dữ liệu nhỏ hơn 200 (đơn vị tấn), quy ra kg; ngược lại giữ nguyên kg
     return raw > 0 && raw < 200 ? Math.round(raw * 1000) : Math.round(raw);
+}
+
+function normalizeWeightKg(w: any): number {
+    const raw = Number(w ?? 0);
+    return raw > 0 && raw < 200 ? Math.round(raw * 1000) : Math.round(raw);
+}
+
+function formatExcelDay(dateStr?: string | Date | null): string {
+    if (!dateStr) return '';
+    if (dateStr instanceof Date) {
+        const dd = String(dateStr.getDate()).padStart(2, '0');
+        const mm = String(dateStr.getMonth() + 1).padStart(2, '0');
+        const yyyy = dateStr.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    }
+    const d = parseDateTimeFlexible(dateStr);
+    if (d) {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    }
+    const s = String(dateStr).trim();
+    if (s.includes('T')) {
+        const dPart = s.split('T')[0];
+        const [y, m, day] = (dPart || '').split('-');
+        if (y && m && day) return `${day}/${m}/${y}`;
+    }
+    return s;
+}
+
+function formatExcelTime(timeOrDateStr?: string | Date | null): string {
+    if (!timeOrDateStr) return '';
+    if (timeOrDateStr instanceof Date) {
+        const hh = String(timeOrDateStr.getHours()).padStart(2, '0');
+        const min = String(timeOrDateStr.getMinutes()).padStart(2, '0');
+        const sec = String(timeOrDateStr.getSeconds()).padStart(2, '0');
+        return `${hh}:${min}:${sec}`;
+    }
+    const s = String(timeOrDateStr).trim();
+    if (s.includes('T')) {
+        const tPart = s.split('T')[1];
+        if (tPart) return tPart.slice(0, 8);
+    }
+    if (s.includes(' ') && s.includes(':')) {
+        const parts = s.split(' ');
+        const timePart = parts[1] || parts[0];
+        return (timePart || '').slice(0, 8);
+    }
+    return s;
 }
 
 /**
@@ -922,6 +978,585 @@ function buildTruckSheet(
     }
 }
 
+/**
+ * Phân tách danh sách phiếu cân của tàu thành 2 luồng: Xuất kho và Xá thẳng
+ */
+export function splitVesselTicketsIntoFlows(allTrucks: any[]): {
+    exportWarehouseTickets: any[];
+    directBargeTickets: any[];
+} {
+    const exportWarehouseTickets: any[] = [];
+    const directBargeTickets: any[] = [];
+
+    if (!Array.isArray(allTrucks)) {
+        return { exportWarehouseTickets, directBargeTickets };
+    }
+
+    for (const t of allTrucks) {
+        const flow = String(t.flowType || t.flow_type || '').toUpperCase();
+        const note = String(t.note || t.sourceOrRemark || '').toUpperCase();
+        const yard = String(t.yard || t.originWarehouseName || '').toUpperCase();
+
+        const w1 = Number(t.weight1 || 0);
+        const w2 = Number(t.weight2 || 0);
+
+        // Xuất kho: flow EXPORT, có chữ KHO, hoặc xe vào rỗng ra có hàng (w1 < w2)
+        const isWh = flow === 'EXPORT' || note.includes('XUẤT KHO') || note.includes('XUAT KHO') || yard.includes('KHO') || (w1 > 0 && w2 > 0 && w1 < w2);
+        // Xá thẳng: flow DIRECT, có chữ XÁ THẲNG, hoặc xe vào có hàng ra rỗng (w1 > w2)
+        const isDirect = flow === 'DIRECT' || note.includes('XÁ THẲNG') || note.includes('XA THANG') || (w1 > 0 && w2 > 0 && w1 > w2);
+
+        if (isWh && !isDirect) {
+            exportWarehouseTickets.push(t);
+        } else if (isDirect && !isWh) {
+            directBargeTickets.push(t);
+        } else if (yard.includes('KHO') || flow === 'EXPORT') {
+            exportWarehouseTickets.push(t);
+        } else {
+            directBargeTickets.push(t);
+        }
+    }
+
+    return { exportWarehouseTickets, directBargeTickets };
+}
+
+/**
+ * Xây dựng Sheet `BK SALAN` theo form chuẩn DNTT
+ */
+function buildVesselThreeSheetBargeSummary(
+    workbook: ExcelJS.Workbook,
+    vessel: any,
+    barges: any[],
+    trucks: any[]
+) {
+    const sheet = workbook.addWorksheet('BK SALAN');
+    sheet.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1 };
+    sheet.pageSetup.margins = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+
+    sheet.columns = [
+        { width: 9.7 },  // 1: No.
+        { width: 20.5 }, // 2: Vessel
+        { width: 15.0 }, // 3: Barge Name
+        { width: 21.7 }, // 4: Port of loading
+        { width: 22.6 }, // 5: Port of Discharge
+        { width: 18.0 }, // 6: Cargo (Kg)
+        { width: 22.1 }  // 7: DAY
+    ];
+
+    // Row 8: Title
+    sheet.mergeCells('A8:G8');
+    const titleCell = sheet.getCell('A8');
+    const cargoUpper = String(vessel.cargo || 'VIÊN GỖ NÉN').toUpperCase();
+    titleCell.value = `BẢNG KÊ SÀ LAN VẬN CHUYỂN ${cargoUpper}`;
+    titleCell.font = { name: FONT_NAME, size: 16, bold: true, color: { argb: 'FF1E293B' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(8).height = 28;
+
+    // Row 9-11: Headers
+    sheet.getRow(9).height = 18;
+    sheet.getCell('B9').value = 'Nguồn tàu (Vessel):';
+    sheet.getCell('B9').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D9').value = vessel.name || '';
+    sheet.getCell('D9').font = { name: FONT_NAME, size: 11 };
+
+    sheet.getRow(10).height = 18;
+    sheet.getCell('B10').value = 'Hàng hóa (Cargo):';
+    sheet.getCell('B10').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D10').value = vessel.cargo || 'Viên Nén Gỗ (FSC Mix 1%)';
+    sheet.getCell('D10').font = { name: FONT_NAME, size: 11 };
+
+    sheet.getRow(11).height = 18;
+    sheet.getCell('B11').value = 'Khách hàng (Customer):';
+    sheet.getCell('B11').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D11').value = vessel.customer || 'CÔNG TY CP EASTWOOD ENERGY ĐỒNG NAI';
+    sheet.getCell('D11').font = { name: FONT_NAME, size: 11 };
+
+    // Row 13: Table headers
+    sheet.getRow(13).height = 34.2;
+    const headers = ['No.', 'Vessel', 'Barge Name', 'Port of loading', 'Port of Discharge', 'Cargo (Kg)', 'DAY'];
+    headers.forEach((h, idx) => {
+        const c = sheet.getRow(13).getCell(idx + 1);
+        c.value = h;
+        c.fill = GREEN_HEADER_FILL;
+        c.font = { name: FONT_NAME, size: 12, bold: true, color: { argb: 'FF1E293B' } };
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = THIN_BORDER;
+    });
+
+    // Grouping
+    const groups: Record<string, any[]> = {};
+    barges.forEach(b => {
+        const port = (b.area || b.portOfLoading || 'NGUYÊN NGỌC').toUpperCase().trim();
+        if (!groups[port]) groups[port] = [];
+        groups[port].push(b);
+    });
+
+    const sortedPortKeys = Object.keys(groups).sort((a, b) => {
+        if (a.includes('NGUYÊN NGỌC') || a.includes('NGUYEN NGOC')) return -1;
+        if (b.includes('NGUYÊN NGỌC') || b.includes('NGUYEN NGOC')) return 1;
+        return a.localeCompare(b);
+    });
+
+    let curRow = 14;
+    const groupTotalCellRefs: string[] = [];
+
+    sortedPortKeys.forEach((portKey, gIdx) => {
+        const groupBarges = groups[portKey] || [];
+        const groupStartRow = curRow;
+
+        groupBarges.forEach((b) => {
+            const row = sheet.getRow(curRow);
+            row.height = 20;
+
+            const bTrucks = trucks.filter(t => t.barge_id === b.id || t.bargeName === b.name);
+            const bTrucksNet = bTrucks.reduce((sum, t) => sum + normalizeNetKg(t), 0);
+            const cargoKg = bTrucksNet > 0 ? bTrucksNet : (b.totalWeight ? Math.round(b.totalWeight) : Math.round((b.cargoWeight || 0) * 1000));
+
+            let dayStr = '';
+            if (b.dateEnd) dayStr = formatExcelDay(b.dateEnd);
+            else if (b.dateStart) dayStr = formatExcelDay(b.dateStart);
+            else if (bTrucks.length > 0) {
+                const latestTrk = bTrucks[bTrucks.length - 1];
+                dayStr = formatExcelDay(latestTrk.dateOut || latestTrk.dateIn || latestTrk.created_at);
+            }
+
+            if (curRow === 14) {
+                row.getCell(1).value = 1;
+            } else {
+                row.getCell(1).value = { formula: `A${curRow - 1}+1`, result: curRow - 13 };
+            }
+            row.getCell(2).value = { formula: 'D9', result: vessel.name };
+            row.getCell(3).value = b.name || '';
+            row.getCell(4).value = b.area || b.portOfLoading || portKey;
+            row.getCell(5).value = b.dischargePort || vessel.dischargePort || 'NHÀ BÈ';
+            row.getCell(6).value = cargoKg;
+            row.getCell(6).numFmt = '#,##0';
+            row.getCell(7).value = dayStr;
+
+            for (let col = 1; col <= 7; col++) {
+                const cell = row.getCell(col);
+                cell.font = { name: FONT_NAME, size: 11 };
+                cell.border = THIN_BORDER;
+                cell.alignment = {
+                    horizontal: col === 6 ? 'right' : 'center',
+                    vertical: 'middle'
+                };
+            }
+
+            curRow++;
+        });
+
+        // Group Total Row
+        const groupEndRow = curRow - 1;
+        const gRow = sheet.getRow(curRow);
+        gRow.height = 22;
+
+        sheet.mergeCells(`C${curRow}:E${curRow}`);
+        const gLabel = sortedPortKeys.length > 1 ? `TOTAL (${gIdx + 1})` : 'TOTAL';
+        gRow.getCell(3).value = gLabel;
+        gRow.getCell(2).value = { formula: 'D9', result: vessel.name };
+
+        const gTotalCell = gRow.getCell(6);
+        gTotalCell.value = { formula: `SUM(F${groupStartRow}:F${groupEndRow})` };
+        gTotalCell.numFmt = '#,##0';
+        groupTotalCellRefs.push(`F${curRow}`);
+
+        for (let col = 1; col <= 7; col++) {
+            const cell = gRow.getCell(col);
+            cell.font = { name: FONT_NAME, size: 12, bold: true };
+            cell.border = THIN_BORDER;
+            cell.fill = GREEN_HEADER_FILL;
+            if (col === 6) cell.alignment = { horizontal: 'right', vertical: 'middle' };
+            else cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+
+        curRow++;
+    });
+
+    // Grand total row nếu có nhiều hơn 1 group
+    if (sortedPortKeys.length > 1) {
+        const totalRow = sheet.getRow(curRow);
+        totalRow.height = 24;
+        sheet.mergeCells(`A${curRow}:E${curRow}`);
+        const groupNums = sortedPortKeys.map((_, i) => `(${i + 1})`).join(' + ');
+        totalRow.getCell(1).value = `TOTAL ${groupNums}`;
+
+        const grandTotalCell = totalRow.getCell(6);
+        const sumExpr = groupTotalCellRefs.join('+');
+        grandTotalCell.value = { formula: `+${sumExpr}` };
+        grandTotalCell.numFmt = '#,##0';
+
+        for (let col = 1; col <= 7; col++) {
+            const cell = totalRow.getCell(col);
+            cell.font = { name: FONT_NAME, size: 13, bold: true };
+            cell.border = TOTAL_BORDER;
+            cell.fill = GREEN_HEADER_FILL;
+            if (col === 6) cell.alignment = { horizontal: 'right', vertical: 'middle' };
+            else cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+        curRow++;
+    }
+
+    // Signatures
+    curRow += 2;
+    sheet.mergeCells(`E${curRow}:G${curRow}`);
+    const signCell = sheet.getCell(`E${curRow}`);
+    signCell.value = 'CÔNG TY CỔ PHẦN DỊCH VỤ CẢNG THỊ VẢI';
+    signCell.font = { name: FONT_NAME, size: 11, bold: true };
+    signCell.alignment = { horizontal: 'center', vertical: 'middle' };
+}
+
+/**
+ * Xây dựng Sheet `XUẤT KHO_NN` theo form chuẩn
+ */
+function buildVesselWarehouseExportSheet(
+    workbook: ExcelJS.Workbook,
+    vessel: any,
+    tickets: any[]
+) {
+    const sheet = workbook.addWorksheet('XUẤT KHO_NN');
+    sheet.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1 };
+    sheet.pageSetup.margins = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+
+    sheet.columns = [
+        { width: 9.0 },  // 1: STT
+        { width: 16.0 }, // 2: Ngày xuất
+        { width: 16.0 }, // 3: Số phiếu
+        { width: 16.0 }, // 4: Số xe
+        { width: 16.0 }, // 5: T.Lượng vào
+        { width: 16.0 }, // 6: T.Lượng ra
+        { width: 17.0 }, // 7: T.Lượng hàng
+        { width: 14.0 }, // 8: Kho
+        { width: 15.0 }, // 9: Ngày cân vào
+        { width: 15.0 }, // 10: Ngày cân ra
+        { width: 22.0 }, // 11: Loại hàng
+        { width: 28.0 }  // 12: Salan
+    ];
+
+    // Row 11: Title
+    sheet.mergeCells('A11:L11');
+    const tCell = sheet.getCell('A11');
+    tCell.value = 'BÁO CÁO CHI TIẾT CÂN XUẤT KHO NGUYÊN NGỌC';
+    tCell.font = { name: FONT_NAME, size: 16, bold: true, color: { argb: 'FF1E293B' } };
+    tCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(11).height = 26;
+
+    // Row 12: Subtitle
+    sheet.mergeCells('A12:L12');
+    const subCell = sheet.getCell('A12');
+    subCell.value = 'WEIGHING LIST REPORT';
+    subCell.font = { name: FONT_NAME, size: 11, bold: true, italic: true, color: { argb: 'FF1E293B' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(12).height = 20;
+
+    // Rows 14-16: Headers
+    sheet.getRow(14).height = 18;
+    sheet.getCell('A14').value = 'Nguồn tàu (Vessel):';
+    sheet.getCell('A14').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D14').value = { formula: "'BK SALAN'!D9" };
+    sheet.getCell('D14').font = { name: FONT_NAME, size: 11 };
+
+    sheet.getRow(15).height = 18;
+    sheet.getCell('A15').value = 'Hàng hóa (Cargo):';
+    sheet.getCell('A15').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D15').value = { formula: "'BK SALAN'!D10" };
+    sheet.getCell('D15').font = { name: FONT_NAME, size: 11 };
+
+    sheet.getRow(16).height = 18;
+    sheet.getCell('A16').value = 'Khách hàng (Customer):';
+    sheet.getCell('A16').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D16').value = { formula: "'BK SALAN'!D11" };
+    sheet.getCell('D16').font = { name: FONT_NAME, size: 11 };
+    sheet.getCell('K16').value = 'ĐVT : kg';
+    sheet.getCell('K16').font = { name: FONT_NAME, size: 11, italic: true };
+    sheet.getCell('K16').alignment = { horizontal: 'right', vertical: 'middle' };
+
+    // Row 18: Table Headers
+    sheet.getRow(18).height = 34.2;
+    const headers = [
+        'STT (No)',
+        'Ngày xuất\n(Date)',
+        'Số phiếu (Serial)',
+        'Số xe \n(Truck no)',
+        'T.Lượng vào (Weight in)',
+        'T.Lượng ra (Weight out)',
+        'T.Lượng hàng (N.Weight)',
+        'Kho (Warehouse)',
+        'Ngày cân vào',
+        'Ngày cân ra',
+        'Loại hàng',
+        'Salan'
+    ];
+    headers.forEach((h, idx) => {
+        const c = sheet.getRow(18).getCell(idx + 1);
+        c.value = h;
+        c.fill = GREEN_HEADER_FILL;
+        c.font = { name: FONT_NAME, size: 12, bold: true, color: { argb: 'FF1E293B' } };
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = THIN_BORDER;
+    });
+
+    let curRow = 19;
+    const startRow = 19;
+
+    tickets.forEach((t, i) => {
+        const row = sheet.getRow(curRow);
+        row.height = 20;
+
+        const dayStr = formatExcelDay(t.dateOut || t.dateIn || t.weighOutDate || t.reportDate);
+        const timeInStr = formatExcelTime(t.dateIn || t.weighInTime);
+        const timeOutStr = formatExcelTime(t.dateOut || t.weighOutTime);
+
+        const wIn = normalizeWeightKg(t.weight1 ?? t.tareWeight);
+        const wOut = normalizeWeightKg(t.weight2 ?? t.grossWeight);
+        const wNet = normalizeNetKg(t);
+
+        if (curRow === startRow) {
+            row.getCell(1).value = 1;
+        } else {
+            row.getCell(1).value = { formula: `A${curRow - 1}+1`, result: i + 1 };
+        }
+        row.getCell(2).value = dayStr;
+        row.getCell(3).value = t.ticketNo || t.sourceTicketNo || t.soPhieu || '';
+        row.getCell(4).value = t.plateNumber || t.vehiclePlate || t.truckNo || '';
+        row.getCell(5).value = wIn;
+        row.getCell(6).value = wOut;
+        row.getCell(7).value = wNet;
+        row.getCell(8).value = t.yard || t.warehouseId || 'KHO 4';
+        row.getCell(9).value = timeInStr;
+        row.getCell(10).value = timeOutStr;
+        row.getCell(11).value = t.cargoType || vessel.cargo || 'Viên Nén Gỗ (FSC Mix 1%)';
+        row.getCell(12).value = t.bargeName || t.note || '';
+
+        for (let col = 1; col <= 12; col++) {
+            const cell = row.getCell(col);
+            cell.font = { name: FONT_NAME, size: 12 };
+            cell.border = THIN_BORDER;
+            if (col >= 5 && col <= 7) {
+                cell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
+            } else if (col === 12) {
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            } else {
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            }
+        }
+        curRow++;
+    });
+
+    const endRow = Math.max(startRow, curRow - 1);
+    const totalRow = sheet.getRow(curRow);
+    totalRow.height = 22;
+    sheet.mergeCells(`A${curRow}:F${curRow}`);
+    totalRow.getCell(1).value = 'TỔNG CỘNG / TOTAL';
+
+    const netTotalCell = totalRow.getCell(7);
+    if (tickets.length > 0) {
+        netTotalCell.value = { formula: `SUM(G${startRow}:G${endRow})` };
+    } else {
+        netTotalCell.value = 0;
+    }
+    netTotalCell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+
+    for (let col = 1; col <= 12; col++) {
+        const cell = totalRow.getCell(col);
+        cell.font = { name: FONT_NAME, size: 12, bold: true };
+        cell.border = TOTAL_BORDER;
+        cell.fill = GREEN_HEADER_FILL;
+        if (col === 1) cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        else if (col === 7) cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    }
+}
+
+/**
+ * Xây dựng Sheet `XÁ THẲNG_NN` theo form chuẩn
+ */
+function buildVesselDirectExportSheet(
+    workbook: ExcelJS.Workbook,
+    vessel: any,
+    tickets: any[]
+) {
+    const sheet = workbook.addWorksheet('XÁ THẲNG_NN');
+    sheet.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1 };
+    sheet.pageSetup.margins = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+
+    sheet.columns = [
+        { width: 8.0 },  // 1: STT
+        { width: 15.0 }, // 2: Ngày nhập
+        { width: 15.0 }, // 3: Số phiếu
+        { width: 15.0 }, // 4: Số xe
+        { width: 15.0 }, // 5: T.Lượng vào
+        { width: 15.0 }, // 6: T.Lượng ra
+        { width: 16.0 }, // 7: T.Lượng hàng
+        { width: 13.0 }, // 8: Ngày cân vào
+        { width: 13.0 }, // 9: Ngày cân ra
+        { width: 16.0 }, // 10: Cân Nhà Máy
+        { width: 13.0 }, // 11: Chênh lệch
+        { width: 22.0 }, // 12: Loại hàng
+        { width: 28.0 }, // 13: Ghi chú
+        { width: 20.0 }  // 14: Nơi nhận
+    ];
+
+    // Row 11: Title
+    sheet.mergeCells('A11:N11');
+    const tCell = sheet.getCell('A11');
+    tCell.value = 'BÁO CÁO CHI TIẾT CÂN XE XUẤT THẲNG SÀ LAN TẠI NGUYÊN NGỌC';
+    tCell.font = { name: FONT_NAME, size: 16, bold: true, color: { argb: 'FF1E293B' } };
+    tCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(11).height = 26;
+
+    // Row 12: Subtitle
+    sheet.mergeCells('A12:N12');
+    const subCell = sheet.getCell('A12');
+    subCell.value = 'WEIGHING LIST REPORT';
+    subCell.font = { name: FONT_NAME, size: 11, bold: true, italic: true, color: { argb: 'FF1E293B' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(12).height = 20;
+
+    // Rows 13-15: Headers
+    sheet.getRow(13).height = 18;
+    sheet.getCell('A13').value = 'Nguồn tàu (Vessel):';
+    sheet.getCell('A13').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D13').value = { formula: "'BK SALAN'!D9" };
+    sheet.getCell('D13').font = { name: FONT_NAME, size: 11 };
+
+    sheet.getRow(14).height = 18;
+    sheet.getCell('A14').value = 'Hàng hóa (Cargo):';
+    sheet.getCell('A14').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D14').value = { formula: "'BK SALAN'!D10" };
+    sheet.getCell('D14').font = { name: FONT_NAME, size: 11 };
+
+    sheet.getRow(15).height = 18;
+    sheet.getCell('A15').value = 'Khách hàng (Customer):';
+    sheet.getCell('A15').font = { name: FONT_NAME, size: 11, bold: true };
+    sheet.getCell('D15').value = { formula: "'BK SALAN'!D11" };
+    sheet.getCell('D15').font = { name: FONT_NAME, size: 11 };
+    sheet.getCell('M15').value = 'ĐVT : kg';
+    sheet.getCell('M15').font = { name: FONT_NAME, size: 11, italic: true };
+    sheet.getCell('M15').alignment = { horizontal: 'right', vertical: 'middle' };
+
+    // Row 17: Table Headers
+    sheet.getRow(17).height = 34.2;
+    const headers = [
+        'STT \nNo',
+        'Ngày nhập\nDate',
+        'Số phiếu (Serial)',
+        'Số xe (Truck no)',
+        'T.Lượng vào (Weight in)',
+        'T.Lượng ra (Weight out)',
+        'T.Lượng hàng (N.Weight)',
+        'Ngày cân vào',
+        'Ngày cân ra',
+        'Cân Nhà Máy',
+        'Chênh lệch',
+        'Loại hàng',
+        'Ghi chú',
+        'Nơi nhận'
+    ];
+    headers.forEach((h, idx) => {
+        const c = sheet.getRow(17).getCell(idx + 1);
+        c.value = h;
+        c.fill = GREEN_HEADER_FILL;
+        c.font = { name: FONT_NAME, size: 12, bold: true, color: { argb: 'FF1E293B' } };
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = THIN_BORDER;
+    });
+
+    let curRow = 18;
+    const startRow = 18;
+
+    tickets.forEach((t, i) => {
+        const row = sheet.getRow(curRow);
+        row.height = 20;
+
+        const dayStr = formatExcelDay(t.dateOut || t.dateIn || t.weighOutDate || t.reportDate);
+        const timeInStr = formatExcelTime(t.dateIn || t.weighInTime);
+        const timeOutStr = formatExcelTime(t.dateOut || t.weighOutTime);
+
+        const wIn = normalizeWeightKg(t.weight1 ?? t.grossWeight);
+        const wOut = normalizeWeightKg(t.weight2 ?? t.tareWeight);
+        const wNet = normalizeNetKg(t);
+        const factoryKg = t.factoryWeight ? normalizeWeightKg(t.factoryWeight) : 0;
+
+        if (curRow === startRow) {
+            row.getCell(1).value = 1;
+        } else {
+            row.getCell(1).value = { formula: `A${curRow - 1}+1`, result: i + 1 };
+        }
+        row.getCell(2).value = dayStr;
+        row.getCell(3).value = t.ticketNo || t.sourceTicketNo || t.soPhieu || '';
+        row.getCell(4).value = t.plateNumber || t.vehiclePlate || t.truckNo || '';
+        row.getCell(5).value = wIn;
+        row.getCell(6).value = wOut;
+        row.getCell(7).value = wNet;
+        row.getCell(8).value = timeInStr;
+        row.getCell(9).value = timeOutStr;
+        row.getCell(10).value = factoryKg > 0 ? factoryKg : '-';
+        if (factoryKg > 0) {
+            row.getCell(11).value = { formula: `G${curRow}-J${curRow}`, result: wNet - factoryKg };
+        } else {
+            row.getCell(11).value = '-';
+        }
+        row.getCell(12).value = t.cargoType || vessel.cargo || 'Viên Nén Gỗ (FSC Mix 1%)';
+        row.getCell(13).value = t.note || (t.bargeName ? `Sà lan ${t.bargeName}` : '');
+        row.getCell(14).value = t.sourceOrRemark || t.originWarehouseName || t.driver || 'CHƠN THÀNH';
+
+        for (let col = 1; col <= 14; col++) {
+            const cell = row.getCell(col);
+            cell.font = { name: FONT_NAME, size: 12 };
+            cell.border = THIN_BORDER;
+            if (col >= 5 && col <= 7) {
+                cell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
+            } else if (col === 10 || col === 11) {
+                if (typeof cell.value === 'number' || (cell.value && typeof cell.value === 'object')) {
+                    cell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+                }
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
+            } else if (col === 13 || col === 14) {
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            } else {
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            }
+        }
+        curRow++;
+    });
+
+    const endRow = Math.max(startRow, curRow - 1);
+    const totalRow = sheet.getRow(curRow);
+    totalRow.height = 22;
+    sheet.mergeCells(`A${curRow}:F${curRow}`);
+    totalRow.getCell(1).value = 'TỔNG CỘNG / TOTAL';
+
+    const netTotalCell = totalRow.getCell(7);
+    if (tickets.length > 0) {
+        netTotalCell.value = { formula: `SUM(G${startRow}:G${endRow})` };
+    } else {
+        netTotalCell.value = 0;
+    }
+    netTotalCell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+
+    const factoryTotalCell = totalRow.getCell(10);
+    if (tickets.length > 0) {
+        factoryTotalCell.value = { formula: `SUM(J${startRow}:J${endRow})` };
+    } else {
+        factoryTotalCell.value = 0;
+    }
+    factoryTotalCell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+
+    const diffTotalCell = totalRow.getCell(11);
+    diffTotalCell.value = { formula: `G${curRow}-J${curRow}` };
+    diffTotalCell.numFmt = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+
+    for (let col = 1; col <= 14; col++) {
+        const cell = totalRow.getCell(col);
+        cell.font = { name: FONT_NAME, size: 12, bold: true };
+        cell.border = TOTAL_BORDER;
+        cell.fill = GREEN_HEADER_FILL;
+        if (col === 1) cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        else if (col === 7 || col === 10 || col === 11) cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    }
+}
+
 export const SettlementExcelExporter = {
     /**
      * Xây dựng Workbook 8 Sheet chuẩn mẫu cảng từ SettlementSummary và danh sách phiếu cân.
@@ -1032,6 +1667,50 @@ export const SettlementExcelExporter = {
         const dateTag = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
         const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9À-ỹ_\s-]/g, '').trim().replace(/\s+/g, '_');
         const filename = `DNTT_${sanitize(summary.cargoName || 'WOOD_PELLET')}_${sanitize(summary.vesselName)}_${dateTag}.xlsx`;
+        await this.downloadSettlementExcel(workbook, filename);
+        return filename;
+    },
+
+    /**
+     * Xây dựng Workbook 3 Sheet chuẩn mẫu (BK SALAN, XUẤT KHO_NN, XÁ THẲNG_NN) từ dữ liệu tàu, sà lan và phiếu cân
+     */
+    buildVesselShipmentThreeSheetWorkbook(
+        vessel: any,
+        barges: any[] = [],
+        trucks: any[] = []
+    ): ExcelJS.Workbook {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Cảng Nguyên Ngọc - Góc Nhỏ Tiện Ích';
+        workbook.created = new Date();
+
+        const flows = splitVesselTicketsIntoFlows(trucks);
+
+        // 1. Sheet BK SALAN
+        buildVesselThreeSheetBargeSummary(workbook, vessel, barges, trucks);
+
+        // 2. Sheet XUẤT KHO_NN
+        buildVesselWarehouseExportSheet(workbook, vessel, flows.exportWarehouseTickets);
+
+        // 3. Sheet XÁ THẲNG_NN
+        buildVesselDirectExportSheet(workbook, vessel, flows.directBargeTickets);
+
+        return workbook;
+    },
+
+    /**
+     * Xuất và tải xuống báo cáo lô hàng 3 Sheet theo mẫu cảng (DNTT)
+     */
+    async exportVesselShipmentThreeSheetReport(
+        vessel: any,
+        barges: any[] = [],
+        trucks: any[] = []
+    ): Promise<string> {
+        const workbook = this.buildVesselShipmentThreeSheetWorkbook(vessel, barges, trucks);
+        const sanitize = (s: string) => String(s || '').replace(/[^a-zA-Z0-9À-ỹ_\s-]/g, '').trim().replace(/\s+/g, ' ');
+        const vName = sanitize(vessel.name || 'VESSEL').toUpperCase();
+        const dischargePort = sanitize(vessel.dischargePort || 'NHA BE').toUpperCase();
+        const custCode = sanitize(vessel.customerCode || 'EW').toUpperCase();
+        const filename = `DNTT_${vName}_${dischargePort}_${custCode}.xlsx`;
         await this.downloadSettlementExcel(workbook, filename);
         return filename;
     }
