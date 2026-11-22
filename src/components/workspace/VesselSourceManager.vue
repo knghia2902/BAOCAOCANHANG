@@ -623,8 +623,8 @@ onMounted(async () => {
     <div class="h-full flex flex-col font-display min-h-0">
         <!-- Split Workspace toàn màn hình (Trái: Tổng quan tất cả tàu mẹ | Phải: Danh sách sà lan của tàu đang chọn) -->
         <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0">
-            <!-- Left Column: Tổng quan tất cả tàu mẹ (5 cols) -->
-            <div class="lg:col-span-5 bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col overflow-hidden min-h-0">
+            <!-- Left Column: Tổng quan tất cả tàu mẹ (6 cols - 50%) -->
+            <div class="lg:col-span-6 bg-white rounded-[24px] soft-shadow border border-primary/5 flex flex-col overflow-hidden min-h-0">
                 <!-- Toolbar chuẩn DESIGN.md Mục 6 -->
                 <div class="p-3 px-4 border-b border-primary/5 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2 shrink-0">
                     <div class="relative flex-1 min-w-[160px]">
@@ -798,8 +798,8 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <!-- Right Column: Danh sách Sà lan tiếp nhận của Tàu đang chọn (7 cols) -->
-            <div class="lg:col-span-7 bg-white rounded-[24px] soft-shadow border border-primary/5 p-4 flex flex-col gap-3 overflow-hidden min-h-0">
+            <!-- Right Column: Danh sách Sà lan tiếp nhận của Tàu đang chọn (6 cols - 50%) -->
+            <div class="lg:col-span-6 bg-white rounded-[24px] soft-shadow border border-primary/5 p-4 flex flex-col gap-3 overflow-hidden min-h-0">
                 <template v-if="selectedVessel">
                     <!-- Toolbar + Thông tin tàu mẹ kế thừa (DESIGN.md Mục 6) -->
                     <div class="flex flex-col gap-2 pb-2.5 border-b border-gray-100 shrink-0">
@@ -815,9 +815,6 @@ onMounted(async () => {
                                     title="Tàu đặc biệt được ghim lên đầu"
                                 >
                                     <span class="material-symbols-outlined text-xs">push_pin</span>
-                                </span>
-                                <span class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold flex items-center shrink-0">
-                                    {{ filteredBarges.length }} sà lan
                                 </span>
                             </div>
 
@@ -908,12 +905,12 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Dải thông tin chung của tàu mẹ (thay vì lặp lại trên từng dòng sà lan) -->
-                        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
-                            <span class="px-2.5 py-0.5 rounded-lg bg-primary/5 text-primary border border-primary/15 font-bold">
+                        <!-- Dải thông tin chung của tàu mẹ (xếp hàng dọc, cùng 1 màu và giảm bo góc) -->
+                        <div class="flex flex-col items-start gap-1.5 text-xs font-semibold text-slate-600">
+                            <span class="px-2.5 py-0.5 rounded-[6px] bg-slate-100 text-slate-700 border border-slate-200/80 font-bold">
                                 Loại hàng: {{ selectedVessel.cargo_type || 'Chưa gán' }}{{ selectedVessel.cargo_code ? ` (${selectedVessel.cargo_code})` : '' }}
                             </span>
-                            <span class="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/70 font-bold">
+                            <span class="px-2.5 py-0.5 rounded-[6px] bg-slate-100 text-slate-700 border border-slate-200/80 font-bold">
                                 Khách hàng: {{ selectedVessel.customer || 'Chưa gán' }}
                             </span>
                         </div>
