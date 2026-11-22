@@ -195,23 +195,25 @@ describe('SettlementExcelExporter', () => {
         const mockBarges = [
             {
                 id: 101,
-                name: 'SG 8888',
-                portOfLoading: 'NGUYÊN NGỌC',
-                dateStart: '2026-11-06T09:00:00Z',
-                dateEnd: '2026-11-07T12:00:00Z',
-                customsDeclarationWeight: 1500000,
-                truckCount: 2,
-                totalWeight: 60000
-            },
-            {
-                id: 102,
                 name: 'VL 9999',
                 portOfLoading: 'NGUYÊN NGỌC',
                 dateStart: '2026-11-08T09:00:00Z',
                 dateEnd: '2026-11-09T15:00:00Z',
                 customsDeclarationWeight: 1200000,
                 truckCount: 1,
-                totalWeight: 35000
+                totalWeight: 35000,
+                config: { orderNo: '175' }
+            },
+            {
+                id: 102,
+                name: 'SG 8888',
+                portOfLoading: 'NGUYÊN NGỌC',
+                dateStart: '2026-11-06T09:00:00Z',
+                dateEnd: '2026-11-07T12:00:00Z',
+                customsDeclarationWeight: 1500000,
+                truckCount: 2,
+                totalWeight: 60000,
+                config: { orderNo: '174' }
             }
         ];
 
@@ -229,7 +231,7 @@ describe('SettlementExcelExporter', () => {
                 weightNet: 30000,
                 timeOut: '2026-11-06T10:30:00Z'
             },
-            // Direct barge ticket (xá thẳng)
+            // Direct barge ticket (xá thẳng) with factory weight in note
             {
                 id: 2,
                 ticketNo: 'DIR-002',
@@ -240,7 +242,7 @@ describe('SettlementExcelExporter', () => {
                 weightIn: 45000,
                 weightOut: 15000,
                 weightNet: 30000,
-                factoryNetWeight: 30050,
+                note: '30050', // Cân nhà máy trong ghi chú
                 timeOut: '2026-11-06T14:45:00Z'
             },
             // Warehouse ticket for second barge
@@ -303,6 +305,21 @@ describe('SettlementExcelExporter', () => {
             expect(dirTicketNos).toEqual(['DIR-002']);
         });
 
+        it('should sort barges by orderNo ascending and set Day from dateStart in BK SALAN', () => {
+            const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
+                mockVessel,
+                mockBarges,
+                mockTrucks
+            );
+
+            const wsBk = wb.getWorksheet('BK SALAN')!;
+            // Row 14 should be SG 8888 (order 174), Row 15 should be VL 9999 (order 175)
+            expect(wsBk.getCell('C14').value).toBe('SG 8888');
+            expect(wsBk.getCell('G14').value).toBe('06/11/2026'); // dateStart of SG 8888
+            expect(wsBk.getCell('C15').value).toBe('VL 9999');
+            expect(wsBk.getCell('G15').value).toBe('08/11/2026'); // dateStart of VL 9999
+        });
+
         it('should link vessel info cross-sheet via formula and calculate factory difference', () => {
             const wb = SettlementExcelExporter.buildVesselShipmentThreeSheetWorkbook(
                 mockVessel,
@@ -316,6 +333,14 @@ describe('SettlementExcelExporter', () => {
             // Check cross-sheet reference to BK SALAN
             expect((wsWarehouse.getCell('D14').value as any)?.formula).toBe("'BK SALAN'!D9");
             expect((wsDirect.getCell('D13').value as any)?.formula).toBe("'BK SALAN'!D9");
+
+            // Check XÁ THẲNG headers: column 13 must be Salan
+            expect(wsDirect.getRow(17).getCell(13).value).toBe('Salan');
+
+            // Check factory weight parsed from note and placed in Column J (Cân Nhà Máy)
+            const row18 = wsDirect.getRow(18);
+            expect(row18.getCell(10).value).toBe(30050); // Cân nhà máy
+            expect(row18.getCell(13).value).toBe('SG 8888'); // Salan column has barge name
 
             // Check difference formula in direct sheet (=G{r}-J{r})
             let foundDiffFormula = false;

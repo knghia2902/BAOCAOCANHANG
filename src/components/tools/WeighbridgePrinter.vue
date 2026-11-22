@@ -1583,7 +1583,22 @@ const openSettlementModal = async () => {
                 allTrks.push({ ...t, bargeName: b.name });
             });
         });
-        loadedBarges.sort((a, b) => a.name.localeCompare(b.name));
+        loadedBarges.sort((a, b) => {
+            const orderA = String(a.config?.orderNo || (a as any).orderNo || '').trim();
+            const orderB = String(b.config?.orderNo || (b as any).orderNo || '').trim();
+            if (orderA && orderB) {
+                return orderA.localeCompare(orderB, undefined, { numeric: true, sensitivity: 'base' });
+            }
+            if (orderA) return -1;
+            if (orderB) return 1;
+            if (a.created_at && b.created_at) {
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
+            if (a.id && b.id) {
+                return a.id - b.id;
+            }
+            return a.name.localeCompare(b.name);
+        });
         settlementBargesData.value = loadedBarges;
         settlementTicketsData.value = allTrks;
         isSettlementModalOpen.value = true;
@@ -1612,7 +1627,22 @@ const exportVesselSummaryExcel = async () => {
                 allTrks.push({ ...t, bargeName: b.name });
             });
         });
-        loadedBarges.sort((a, b) => a.name.localeCompare(b.name));
+        loadedBarges.sort((a, b) => {
+            const orderA = String(a.config?.orderNo || (a as any).orderNo || '').trim();
+            const orderB = String(b.config?.orderNo || (b as any).orderNo || '').trim();
+            if (orderA && orderB) {
+                return orderA.localeCompare(orderB, undefined, { numeric: true, sensitivity: 'base' });
+            }
+            if (orderA) return -1;
+            if (orderB) return 1;
+            if (a.created_at && b.created_at) {
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
+            if (a.id && b.id) {
+                return a.id - b.id;
+            }
+            return a.name.localeCompare(b.name);
+        });
 
         const { SettlementExcelExporter } = await import('@/services/excel/SettlementExcelExporter');
         const filename = await SettlementExcelExporter.exportVesselShipmentThreeSheetReport(
@@ -4899,10 +4929,9 @@ defineExpose({
                                 @click="selectVessel(vessel.id); expandedVesselIds[vessel.id] = !expandedVesselIds[vessel.id]"
                                 :class="['group flex items-center justify-between p-2.5 hover:bg-primary/10 cursor-pointer transition-colors', activeVesselId === vessel.id && activeBargeId === null ? 'bg-primary/10 border-l-4 border-primary' : '']"
                             >
-                                <div class="flex items-center gap-1.5 font-bold text-xs text-[#1e293b]">
-                                    <span class="material-symbols-outlined text-primary text-base">directions_boat</span>
-                                    <span class="truncate max-w-[120px]">{{ vessel.name }}</span>
-                                    <span v-if="vessel.status === 'done'" class="text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.2 rounded font-bold uppercase shrink-0">Xong</span>
+                                <div class="flex items-center gap-1.5 font-bold text-xs text-[#1e293b] min-w-0">
+                                    <span class="material-symbols-outlined text-primary text-base shrink-0">directions_boat</span>
+                                    <span class="truncate max-w-[160px]">{{ vessel.name }}</span>
                                 </div>
                                 
                                 <!-- Vessel Actions -->
@@ -5249,23 +5278,15 @@ defineExpose({
                                     <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5 flex-wrap">
                                         <span @click="activeVesselId = null; activeBargeId = null" class="text-gray-400 hover:text-primary cursor-pointer transition-colors flex items-center gap-0.5" title="Quay lại Tổng quan"><span class="material-symbols-outlined text-base">home</span>Tổng quan</span>
                                         <span class="text-gray-300">&rsaquo;</span>
-                                        Tàu: <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-black">{{ activeVessel?.name }}</span>
-                                        <span v-if="(isDeHeusVessel(activeVessel) ? selectedVesselStatusTab === 'done' : activeVessel?.status === 'done')" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-300 flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-xs">check_circle</span>
-                                            {{ isDeHeusVessel(activeVessel) ? 'Sà lan đã chốt' : 'Đã xong' }}
-                                        </span>
-                                        <span v-else class="px-2 py-0.5 bg-sky-100 text-sky-700 rounded-full text-xs font-bold border border-sky-300 flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-xs">schedule</span>
-                                            Đang làm hàng
-                                        </span>
+                                        Tàu: <span class="px-2 py-0.5 bg-primary/10 text-primary rounded-[6px] text-xs font-black">{{ activeVessel?.name }}</span>
                                     </h1>
                                     <div class="flex items-center gap-2 mt-1.5 flex-wrap text-xs">
-                                        <span v-if="activeVessel?.customer" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold border border-blue-200">
-                                            <span class="material-symbols-outlined text-xs">business</span>
+                                        <span v-if="activeVessel?.customer" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-[6px] font-bold border border-slate-200/80">
+                                            <span class="material-symbols-outlined text-xs text-slate-500">business</span>
                                             Khách hàng: {{ activeVessel.customer }}
                                         </span>
-                                        <span v-if="activeVessel?.cargo_type" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded-full font-bold border border-amber-200">
-                                            <span class="material-symbols-outlined text-xs">inventory_2</span>
+                                        <span v-if="activeVessel?.cargo_type" class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-[6px] font-bold border border-slate-200/80">
+                                            <span class="material-symbols-outlined text-xs text-slate-500">inventory_2</span>
                                             Hàng hóa: {{ activeVessel.cargo_type }} {{ activeVessel.cargo_code ? `(${activeVessel.cargo_code})` : '' }}
                                         </span>
                                     </div>
@@ -5748,7 +5769,7 @@ defineExpose({
                                                 </th>
                                                 <th class="p-2.5 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors" @click="toggleSort('note')">
                                                     <div class="flex items-center gap-1">
-                                                        Ghi chú
+                                                        Cân nhà máy
                                                         <span v-if="sortKey === 'note'" class="material-symbols-outlined text-[12px] font-bold">{{ sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</span>
                                                     </div>
                                                 </th>
@@ -6085,8 +6106,8 @@ defineExpose({
                         >
                     </div>
                     <div class="col-span-2 flex flex-col gap-1.5">
-                        <label>Ghi chú</label>
-                        <input v-model="dialogTruck.note" type="text" placeholder="Ghi chú thêm..." class="px-4 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
+                        <label>Cân nhà máy</label>
+                        <input v-model="dialogTruck.note" type="text" placeholder="Khối lượng cân nhà máy (kg)..." class="px-4 py-2.5 rounded-[8px] border border-gray-200 text-sm font-semibold focus:outline-none focus:border-primary">
                     </div>
                 </form>
 

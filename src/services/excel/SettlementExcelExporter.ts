@@ -1019,6 +1019,27 @@ export function splitVesselTicketsIntoFlows(allTrucks: any[]): {
     return { exportWarehouseTickets, directBargeTickets };
 }
 
+function getBargeOrderNo(b: any): string {
+    return String(b.config?.orderNo || b.orderNo || '').trim();
+}
+
+function compareBargeOrder(a: any, b: any): number {
+    const orderA = getBargeOrderNo(a);
+    const orderB = getBargeOrderNo(b);
+    if (orderA && orderB) {
+        return orderA.localeCompare(orderB, undefined, { numeric: true, sensitivity: 'base' });
+    }
+    if (orderA) return -1;
+    if (orderB) return 1;
+    if (a.created_at && b.created_at) {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    if (a.id && b.id) {
+        return a.id - b.id;
+    }
+    return String(a.name || '').localeCompare(String(b.name || ''));
+}
+
 /**
  * Xây dựng Sheet `BK SALAN` theo form chuẩn DNTT
  */
@@ -1100,7 +1121,8 @@ function buildVesselThreeSheetBargeSummary(
     const groupTotalCellRefs: string[] = [];
 
     sortedPortKeys.forEach((portKey, gIdx) => {
-        const groupBarges = groups[portKey] || [];
+        const groupBarges = [...(groups[portKey] || [])];
+        groupBarges.sort(compareBargeOrder);
         const groupStartRow = curRow;
 
         groupBarges.forEach((b) => {
@@ -1112,11 +1134,17 @@ function buildVesselThreeSheetBargeSummary(
             const cargoKg = bTrucksNet > 0 ? bTrucksNet : (b.totalWeight ? Math.round(b.totalWeight) : Math.round((b.cargoWeight || 0) * 1000));
 
             let dayStr = '';
-            if (b.dateEnd) dayStr = formatExcelDay(b.dateEnd);
-            else if (b.dateStart) dayStr = formatExcelDay(b.dateStart);
-            else if (bTrucks.length > 0) {
-                const latestTrk = bTrucks[bTrucks.length - 1];
-                dayStr = formatExcelDay(latestTrk.dateOut || latestTrk.dateIn || latestTrk.created_at);
+            if (b.dateStart) {
+                dayStr = formatExcelDay(b.dateStart);
+            } else if (bTrucks.length > 0) {
+                const sortedTrks = [...bTrucks].sort((t1, t2) => {
+                    const d1 = t1.dateIn || t1.dateOut || t1.created_at || '';
+                    const d2 = t2.dateIn || t2.dateOut || t2.created_at || '';
+                    return d1.localeCompare(d2);
+                });
+                dayStr = formatExcelDay(sortedTrks[0].dateIn || sortedTrks[0].dateOut || sortedTrks[0].created_at);
+            } else if (b.dateEnd) {
+                dayStr = formatExcelDay(b.dateEnd);
             }
 
             if (curRow === 14) {
@@ -1325,7 +1353,7 @@ function buildVesselWarehouseExportSheet(
         row.getCell(9).value = timeInStr;
         row.getCell(10).value = timeOutStr;
         row.getCell(11).value = t.cargoType || vessel.cargo || 'Viên Nén Gỗ (FSC Mix 1%)';
-        row.getCell(12).value = t.bargeName || t.note || '';
+        row.getCell(12).value = t.bargeName || t.bargeInfo || t.barge || '';
 
         for (let col = 1; col <= 12; col++) {
             const cell = row.getCell(col);
@@ -1449,7 +1477,7 @@ function buildVesselDirectExportSheet(
         'Cân Nhà Máy',
         'Chênh lệch',
         'Loại hàng',
-        'Ghi chú',
+        'Salan',
         'Nơi nhận'
     ];
     headers.forEach((h, idx) => {
@@ -1475,7 +1503,16 @@ function buildVesselDirectExportSheet(
         const wIn = normalizeWeightKg(t.weight1 ?? t.grossWeight);
         const wOut = normalizeWeightKg(t.weight2 ?? t.tareWeight);
         const wNet = normalizeNetKg(t);
-        const factoryKg = t.factoryWeight ? normalizeWeightKg(t.factoryWeight) : 0;
+        let factoryKg = 0;
+        if (t.factoryWeight) {
+            factoryKg = normalizeWeightKg(t.factoryWeight);
+        } else if (t.note) {
+            const cleaned = String(t.note).replace(/,/g, '').trim();
+            const num = parseFloat(cleaned);
+            if (!isNaN(num) && num > 0) {
+                factoryKg = normalizeWeightKg(num);
+            }
+        }
 
         if (curRow === startRow) {
             row.getCell(1).value = 1;
@@ -1497,7 +1534,7 @@ function buildVesselDirectExportSheet(
             row.getCell(11).value = '-';
         }
         row.getCell(12).value = t.cargoType || vessel.cargo || 'Viên Nén Gỗ (FSC Mix 1%)';
-        row.getCell(13).value = t.note || (t.bargeName ? `Sà lan ${t.bargeName}` : '');
+        row.getCell(13).value = t.bargeName || t.barge || t.bargeInfo || '';
         row.getCell(14).value = t.sourceOrRemark || t.originWarehouseName || t.driver || 'CHƠN THÀNH';
 
         for (let col = 1; col <= 14; col++) {

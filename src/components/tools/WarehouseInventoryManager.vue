@@ -2115,28 +2115,6 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
                         <button
-                            v-if="canWarehouseCreate"
-                            @click="triggerCsvImport"
-                            :disabled="importingCsv"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Chọn 1 hoặc nhiều file CSV/Excel từ trạm cân (Nhập + Xuất)"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
-                            <span>{{ importingCsv ? 'Đang nạp CSV...' : 'Nạp CSV Trạm Cân' }}</span>
-                        </button>
-
-                        <button
-                            v-if="canWarehouseCreate"
-                            @click="triggerHistoryExcelImport"
-                            :disabled="importingHistoryExcel"
-                            class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Nạp từ file Excel Tồn kho đang dùng"
-                        >
-                            <span class="material-symbols-outlined text-[14px]">{{ importingHistoryExcel ? 'sync' : 'folder_open' }}</span>
-                            <span>{{ importingHistoryExcel ? 'Đang hút lịch sử...' : 'Nạp từ Excel Tồn Kho Đang Dùng' }}</span>
-                        </button>
-
-                        <button
                             @click="handleCopyZaloImage"
                             :disabled="capturingZaloImage"
                             class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
@@ -2156,16 +2134,15 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <span>{{ exportingExcel ? 'Đang export...' : 'Export' }}</span>
                         </button>
 
-                        <!-- Delete Options Dropdown -->
-                        <div v-if="canWarehouseDelete" class="relative inline-block">
+                        <!-- Nút 3 chấm thu gọn: Nạp CSV Trạm Cân, Nạp từ Excel Tồn Kho Đang Dùng, Delete all -->
+                        <div v-if="canWarehouseCreate || canWarehouseDelete" class="relative inline-block">
                             <button
+                                type="button"
                                 @click="showDeleteMenu = !showDeleteMenu"
-                                class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
-                                title="Tùy chọn xóa dữ liệu"
+                                class="h-7 w-7 rounded-[8px] bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-[#1e293b] border border-slate-200 flex items-center justify-center transition-all active:scale-[0.98] cursor-pointer"
+                                title="Thêm tác vụ (Nạp dữ liệu & Xóa dữ liệu)"
                             >
-                                <span class="material-symbols-outlined text-[14px]">delete</span>
-                                <span>Delete all</span>
-                                <span class="material-symbols-outlined text-xs transition-transform" :class="{ 'rotate-180': showDeleteMenu }">expand_more</span>
+                                <span class="material-symbols-outlined text-base">more_vert</span>
                             </button>
 
                             <!-- Backdrop for closing dropdown on outside click -->
@@ -2180,39 +2157,69 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 v-if="showDeleteMenu"
                                 class="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-40 flex flex-col overflow-hidden text-left"
                             >
-                                <div class="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                                    Chọn phạm vi xóa dữ liệu
-                                </div>
-
-                                <!-- Option 1: Xóa kho đang thao tác -->
-                                <button
-                                    type="button"
-                                    @click="handleClearCurrentWarehouse"
-                                    class="px-3.5 py-2.5 text-left hover:bg-amber-50/70 transition-colors flex items-start gap-2.5 cursor-pointer text-[#1e293b]"
-                                >
-                                    <span class="material-symbols-outlined text-amber-600 text-lg mt-0.5 shrink-0">delete_sweep</span>
-                                    <div class="flex flex-col min-w-0">
-                                        <span class="text-xs font-black text-slate-800">1. Xóa kho đang thao tác</span>
-                                        <span class="text-[11px] font-bold text-amber-700 truncate">{{ currentOperatingWarehouseName }}</span>
-                                        <span class="text-[10px] text-slate-400 mt-0.5">Chỉ xóa phiếu và tồn đầu kho này, kho khác giữ nguyên</span>
+                                <template v-if="canWarehouseCreate">
+                                    <div class="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                                        Nạp dữ liệu tồn kho
                                     </div>
-                                </button>
 
-                                <div class="h-px bg-slate-100 my-1"></div>
+                                    <button
+                                        type="button"
+                                        :disabled="importingCsv"
+                                        @click="showDeleteMenu = false; triggerCsvImport()"
+                                        class="px-3.5 py-2.5 text-left hover:bg-primary/5 transition-colors flex items-center gap-2.5 cursor-pointer text-[#1e293b] disabled:opacity-40"
+                                    >
+                                        <span class="material-symbols-outlined text-primary text-lg shrink-0">{{ importingCsv ? 'sync' : 'upload_file' }}</span>
+                                        <span class="text-xs font-bold text-slate-800">{{ importingCsv ? 'Đang nạp CSV...' : 'Nạp CSV Trạm Cân' }}</span>
+                                    </button>
 
-                                <!-- Option 2: Xóa tất cả các kho -->
-                                <button
-                                    type="button"
-                                    @click="handleClearAllWarehouses"
-                                    class="px-3.5 py-2.5 text-left hover:bg-rose-50 transition-colors flex items-start gap-2.5 cursor-pointer text-[#1e293b]"
-                                >
-                                    <span class="material-symbols-outlined text-rose-600 text-lg mt-0.5 shrink-0">delete_forever</span>
-                                    <div class="flex flex-col min-w-0">
-                                        <span class="text-xs font-black text-rose-600">2. Xóa tất cả các kho</span>
-                                        <span class="text-[11px] font-bold text-rose-500">Kho 1, 2, 3, 4 & Xá thẳng</span>
-                                        <span class="text-[10px] text-rose-400 mt-0.5">Xóa trắng toàn bộ dữ liệu làm lại từ đầu</span>
+                                    <button
+                                        type="button"
+                                        :disabled="importingHistoryExcel"
+                                        @click="showDeleteMenu = false; triggerHistoryExcelImport()"
+                                        class="px-3.5 py-2.5 text-left hover:bg-primary/5 transition-colors flex items-center gap-2.5 cursor-pointer text-[#1e293b] disabled:opacity-40"
+                                    >
+                                        <span class="material-symbols-outlined text-primary text-lg shrink-0">{{ importingHistoryExcel ? 'sync' : 'folder_open' }}</span>
+                                        <span class="text-xs font-bold text-slate-800">{{ importingHistoryExcel ? 'Đang hút lịch sử...' : 'Nạp từ Excel Tồn Kho Đang Dùng' }}</span>
+                                    </button>
+                                </template>
+
+                                <div v-if="canWarehouseCreate && canWarehouseDelete" class="h-px bg-slate-100 my-1"></div>
+
+                                <template v-if="canWarehouseDelete">
+                                    <div class="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                                        Xóa dữ liệu (Delete all)
                                     </div>
-                                </button>
+
+                                    <!-- Option 1: Xóa kho đang thao tác -->
+                                    <button
+                                        type="button"
+                                        @click="handleClearCurrentWarehouse"
+                                        class="px-3.5 py-2.5 text-left hover:bg-amber-50/70 transition-colors flex items-start gap-2.5 cursor-pointer text-[#1e293b]"
+                                    >
+                                        <span class="material-symbols-outlined text-amber-600 text-lg mt-0.5 shrink-0">delete_sweep</span>
+                                        <div class="flex flex-col min-w-0">
+                                            <span class="text-xs font-black text-slate-800">1. Xóa kho đang thao tác</span>
+                                            <span class="text-[11px] font-bold text-amber-700 truncate">{{ currentOperatingWarehouseName }}</span>
+                                            <span class="text-[10px] text-slate-400 mt-0.5">Chỉ xóa phiếu và tồn đầu kho này, kho khác giữ nguyên</span>
+                                        </div>
+                                    </button>
+
+                                    <div class="h-px bg-slate-100 my-1"></div>
+
+                                    <!-- Option 2: Xóa tất cả các kho -->
+                                    <button
+                                        type="button"
+                                        @click="handleClearAllWarehouses"
+                                        class="px-3.5 py-2.5 text-left hover:bg-rose-50 transition-colors flex items-start gap-2.5 cursor-pointer text-[#1e293b]"
+                                    >
+                                        <span class="material-symbols-outlined text-rose-600 text-lg mt-0.5 shrink-0">delete_forever</span>
+                                        <div class="flex flex-col min-w-0">
+                                            <span class="text-xs font-black text-rose-600">2. Xóa tất cả các kho</span>
+                                            <span class="text-[11px] font-bold text-rose-500">Kho 1, 2, 3, 4 & Xá thẳng</span>
+                                            <span class="text-[10px] text-rose-400 mt-0.5">Xóa trắng toàn bộ dữ liệu làm lại từ đầu</span>
+                                        </div>
+                                    </button>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -3325,7 +3332,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <th class="py-2.5 px-2 text-center border-r border-slate-300">Ngày cân ra</th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">Cân Nhà Máy</th>
                             <th class="py-2.5 px-2 text-right border-r border-slate-300">Chênh lệch</th>
-                            <th class="py-2.5 px-2 border-r border-slate-300">Ghi chú</th>
+                            <th class="py-2.5 px-2 border-r border-slate-300">Salan</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Nơi nhận</th>
                             <th class="py-2.5 px-2 border-r border-slate-300">Tàu</th>
                             <th class="py-2.5 px-2 text-center w-20">Thao tác</th>
