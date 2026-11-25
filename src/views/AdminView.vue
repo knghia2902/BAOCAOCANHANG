@@ -489,6 +489,7 @@ const DEFAULT_ROLE_LABELS: Record<string, string> = {
 
 const rolePermissions = ref<Record<string, RolePermissionConfigLocal>>({});
 const selectedRoleToConfigure = ref<string>('staff');
+const activeSubsystem = ref<string>('vessel_source');
 const hasUnsavedRoleChanges = ref(false);
 
 const getRoleDisplayLabel = (key: string): string => {
@@ -775,6 +776,82 @@ const isActionPermChecked = (role: string, subsystem: string, permId: string, ac
     }
 
     return perms.includes(specificPerm);
+};
+
+const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
+    const items = actionPermissionsMapping[subsystem];
+    if (!items) return [];
+    const result: string[] = [];
+    for (const item of items) {
+        for (const action of getAllowedActionsForItem(item)) {
+            result.push(`${item.permId}:${action}`);
+        }
+    }
+    return result;
+};
+
+const isSubsystemChecked = (role: string, id: string): boolean => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig || !Array.isArray(roleConfig.tools)) return false;
+    if (id === 'utilities') {
+        return UTILITY_TOOL_IDS.some(u => roleConfig.tools.includes(u));
+    }
+    return roleConfig.tools.includes(id);
+};
+
+const enabledActionSubsystems = computed(() => {
+    const role = selectedRoleToConfigure.value;
+    return allSubsystemsList.filter(sub => isSubsystemChecked(role, sub.id));
+});
+
+const onSubsystemCheckboxToggle = (role: string, subsystem: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig) return;
+
+    if (!Array.isArray(roleConfig.tools)) {
+        roleConfig.tools = [];
+    }
+    if (!roleConfig.detailPermissions) {
+        roleConfig.detailPermissions = {};
+    }
+
+    const currentlyChecked = isSubsystemChecked(role, subsystem);
+
+    if (subsystem === 'utilities') {
+        if (currentlyChecked) {
+            roleConfig.tools = roleConfig.tools.filter(t => !(UTILITY_TOOL_IDS as readonly string[]).includes(t));
+            roleConfig.detailPermissions.utilities = [];
+        } else {
+            for (const utilId of UTILITY_TOOL_IDS) {
+                if (!roleConfig.tools.includes(utilId)) {
+                    roleConfig.tools.push(utilId);
+                }
+            }
+            roleConfig.detailPermissions.utilities = getDefaultPermissionsForSubsystem('utilities');
+            activeSubsystem.value = subsystem;
+        }
+    } else {
+        if (currentlyChecked) {
+            roleConfig.tools = roleConfig.tools.filter(t => t !== subsystem);
+            roleConfig.detailPermissions[subsystem] = [];
+            if (activeSubsystem.value === subsystem) {
+                const firstActive = allSubsystemsList.find(s => isSubsystemChecked(role, s.id));
+                activeSubsystem.value = firstActive ? firstActive.id : 'vessel_source';
+            }
+        } else {
+            if (!roleConfig.tools.includes(subsystem)) {
+                roleConfig.tools.push(subsystem);
+            }
+            const existing = roleConfig.detailPermissions[subsystem];
+            if (!existing || existing.length === 0) {
+                roleConfig.detailPermissions[subsystem] = getDefaultPermissionsForSubsystem(subsystem);
+            }
+            activeSubsystem.value = subsystem;
+        }
+    }
+
+    syncRoleDerivedFlags(roleConfig);
+    hasUnsavedRoleChanges.value = true;
 };
 
 const toggleActionPerm = (role: string, subsystem: string, permId: string, actionType: ActionType) => {
@@ -1516,13 +1593,68 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Actions Permissions Table List (Clean Previous Layout) -->
-                        <div class="space-y-6">
+                        <!-- Grid for Subsystems (Oct 25 Design) -->
+                        <div class="space-y-3.5 text-left">
+                            <h4 class="text-xs font-display font-black text-slate-500 uppercase tracking-wider">
+                                Phân quyền truy cập các Phân hệ (Subsystem)
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div
+                                    v-for="sub in allSubsystemsList"
+                                    :key="sub.id"
+                                    @click="activeSubsystem = sub.id"
+                                    class="p-4 bg-white rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer select-none group"
+                                    :class="activeSubsystem === sub.id
+                                        ? 'border-primary ring-1 ring-primary/20 bg-primary/[0.02] shadow-sm'
+                                        : 'border-slate-200 hover:border-primary/40'"
+                                >
+                                    <div class="flex items-center gap-3.5 pr-2">
+                                        <label class="relative flex items-center cursor-pointer shrink-0" @click.stop>
+                                            <input
+                                                type="checkbox"
+                                                :checked="isSubsystemChecked(selectedRoleToConfigure, sub.id)"
+                                                @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, sub.id)"
+                                                class="sr-only peer"
+                                            />
+                                            <div
+                                                class="size-6 rounded-full flex items-center justify-center transition-all border-2"
+                                                :class="isSubsystemChecked(selectedRoleToConfigure, sub.id)
+                                                    ? 'bg-primary border-primary text-white'
+                                                    : 'bg-white border-slate-300 text-transparent'"
+                                            >
+                                                <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
+                                            </div>
+                                        </label>
+
+                                        <div class="flex flex-col gap-0.5 text-left">
+                                            <span
+                                                class="font-display font-black text-xs transition-colors"
+                                                :class="activeSubsystem === sub.id ? 'text-primary' : 'text-[#1e293b] group-hover:text-primary'"
+                                            >
+                                                {{ sub.name }}
+                                            </span>
+                                            <span class="text-xs font-semibold text-slate-400 leading-normal">
+                                                {{ sub.description }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="size-9 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center border border-slate-200/80 shrink-0">
+                                        <span class="material-symbols-outlined text-base">
+                                            {{ sub.icon }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Permissions Table List (Only Selected Subsystems) -->
+                        <div v-if="enabledActionSubsystems.length > 0" class="space-y-6">
                             <h4 class="text-xs font-display font-black text-slate-500 uppercase tracking-wider text-left">
                                 Chi tiết quyền hạn thao tác (Actions Permissions)
                             </h4>
 
-                            <div v-for="sub in allSubsystemsList" :key="sub.id" class="space-y-2.5 text-left animate-fade-in">
+                            <div v-for="sub in enabledActionSubsystems" :key="sub.id" class="space-y-2.5 text-left animate-fade-in">
                                 <div class="flex items-center gap-2 px-1">
                                     <span class="material-symbols-outlined text-base text-primary">
                                         {{ sub.icon }}
