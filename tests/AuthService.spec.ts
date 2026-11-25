@@ -4,12 +4,18 @@ import { supabase } from '@/supabase';
 import {
     authStore,
     DEFAULT_ROLE_PERMISSIONS as STORE_DEFAULT_ROLE_PERMISSIONS,
+    DEFAULT_ROLE_LABELS as STORE_DEFAULT_ROLE_LABELS,
+    getRoleLabel as storeGetRoleLabel,
+    refreshRolePermissions,
     hasDetailPermission
 } from '@/stores/auth';
 import {
     DEFAULT_ROLE_PERMISSIONS as SERVICE_DEFAULT_ROLE_PERMISSIONS,
+    DEFAULT_ROLE_LABELS as SERVICE_DEFAULT_ROLE_LABELS,
+    getRoleLabel as serviceGetRoleLabel,
     canAccessWorkspaceTab
 } from '@/services/auth/PermissionService';
+import { ContentService } from '@/services/ContentService';
 
 vi.mock('@/supabase', () => {
     const mockBuilder = {
@@ -128,15 +134,26 @@ describe('Permission Schema & Authorization Guards', () => {
     });
 
     it('keeps DEFAULT_ROLE_PERMISSIONS strictly synchronized between auth store and PermissionService', () => {
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS).toBe(SERVICE_DEFAULT_ROLE_PERMISSIONS);
         expect(STORE_DEFAULT_ROLE_PERMISSIONS).toEqual(SERVICE_DEFAULT_ROLE_PERMISSIONS);
+        expect(STORE_DEFAULT_ROLE_LABELS).toBe(SERVICE_DEFAULT_ROLE_LABELS);
+        expect(storeGetRoleLabel).toBe(serviceGetRoleLabel);
         expect(Object.keys(STORE_DEFAULT_ROLE_PERMISSIONS).sort()).toEqual([
             'admin',
             'operator',
             'staff',
             'viewer'
         ]);
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.admin.label).toBe('Quản trị viên');
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.staff.label).toBe('Nhân viên văn phòng');
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.operator.label).toBe('Nhân viên vận hành');
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.viewer.label).toBe('Giám sát (Chỉ xem)');
         expect(STORE_DEFAULT_ROLE_PERMISSIONS.admin.tools).toContain('vessel_source');
         expect(STORE_DEFAULT_ROLE_PERMISSIONS.admin.tools).toContain('categories');
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.admin.detailPermissions?.allocator).toEqual(['al_data_manage', 'al_export']);
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.admin.detailPermissions?.vehicles).toEqual(['veh_barge_profile']);
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.operator.detailPermissions?.allocator).toEqual(['al_data_manage', 'al_export']);
+        expect(STORE_DEFAULT_ROLE_PERMISSIONS.operator.detailPermissions?.vehicles).toEqual(['veh_barge_profile']);
         expect(STORE_DEFAULT_ROLE_PERMISSIONS.staff.tools).toEqual([
             'converter',
             'merger',
@@ -144,6 +161,98 @@ describe('Permission Schema & Authorization Guards', () => {
             'minutes',
             'categories'
         ]);
+    });
+
+    it('resolves role labels via DEFAULT_ROLE_LABELS and getRoleLabel', () => {
+        expect(STORE_DEFAULT_ROLE_LABELS).toEqual({
+            admin: 'Quản trị viên',
+            staff: 'Nhân viên văn phòng',
+            operator: 'Nhân viên vận hành',
+            viewer: 'Giám sát (Chỉ xem)'
+        });
+
+        // Uses custom label from authStore.rolePermissions (trimmed)
+        resetAuthState('ke_toan_kho', {
+            ke_toan_kho: {
+                label: '  Kế toán kho  ',
+                tools: ['warehouse'],
+                canCreate: true,
+                canUpdate: true,
+                canDelete: false
+            },
+            staff: {
+                label: '   ',
+                tools: ['minutes'],
+                canCreate: false,
+                canUpdate: false,
+                canDelete: false
+            }
+        });
+        expect(storeGetRoleLabel('ke_toan_kho')).toBe('Kế toán kho');
+        // Blank custom label falls back to DEFAULT_ROLE_LABELS
+        expect(storeGetRoleLabel('staff')).toBe('Nhân viên văn phòng');
+        // Unknown role without custom label falls back to raw roleKey
+        expect(storeGetRoleLabel('custom_unknown')).toBe('custom_unknown');
+
+        // Explicit permsMap overrides authStore.rolePermissions
+        const customMap = {
+            admin: {
+                label: 'Giám đốc hệ thống',
+                tools: ['warehouse'],
+                canCreate: true,
+                canUpdate: true,
+                canDelete: true
+            }
+        };
+        expect(storeGetRoleLabel('admin', customMap)).toBe('Giám đốc hệ thống');
+        expect(storeGetRoleLabel('operator', customMap)).toBe('Nhân viên vận hành');
+        expect(storeGetRoleLabel('ke_toan_kho', customMap)).toBe('ke_toan_kho');
+    });
+
+    it('refreshes rolePermissions only for authenticated non-demo sessions', async () => {
+        const loadSpy = vi.spyOn(ContentService, 'loadRolePermissions');
+
+        // Unauthenticated -> no-op
+        authStore.isAuthenticated = false;
+        authStore.user = null;
+        authStore.isDemoMode = false;
+        expect(await refreshRolePermissions()).toBe(false);
+        expect(loadSpy).not.toHaveBeenCalled();
+
+        // Demo mode -> no-op
+        authStore.isAuthenticated = true;
+        authStore.user = 'demo';
+        authStore.isDemoMode = true;
+        expect(await refreshRolePermissions()).toBe(false);
+        expect(loadSpy).not.toHaveBeenCalled();
+
+        // Authenticated real user -> loads and updates authStore.rolePermissions
+        const updatedPerms = {
+            ...JSON.parse(JSON.stringify(STORE_DEFAULT_ROLE_PERMISSIONS)),
+            ke_toan: {
+                label: 'Kế toán',
+                tools: ['warehouse'],
+                canCreate: true,
+                canUpdate: true,
+                canDelete: false,
+                detailPermissions: { warehouse: ['wh_export:read'] }
+            }
+        };
+        loadSpy.mockResolvedValueOnce(updatedPerms);
+        authStore.isAuthenticated = true;
+        authStore.user = 'staff1';
+        authStore.role = 'staff';
+        authStore.isDemoMode = false;
+
+        expect(await refreshRolePermissions()).toBe(true);
+        expect(loadSpy).toHaveBeenCalledTimes(1);
+        expect(authStore.rolePermissions.ke_toan?.label).toBe('Kế toán');
+
+        // Error handling -> returns false cleanly
+        loadSpy.mockRejectedValueOnce(new Error('Network error'));
+        expect(await refreshRolePermissions()).toBe(false);
+
+        loadSpy.mockRestore();
     });
 
     it('maps canAccessWorkspaceTab 1-to-1 and enforces default deny for unknown keys', () => {

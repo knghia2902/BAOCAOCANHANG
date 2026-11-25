@@ -8,6 +8,16 @@ import { invalidateVesselsCache } from '../services/weighbridge/WeighbridgeServi
 import { AllocatorService } from '../services/excel/AllocatorService';
 import { WarehouseInventoryService } from '../services/excel/WarehouseInventoryService';
 
+export interface RolePermissionConfig {
+    label?: string;
+    tools: string[];
+    description?: string;
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    detailPermissions?: Record<string, string[]>;
+}
+
 interface AuthState {
     isAuthenticated: boolean;
     user: string | null;
@@ -16,15 +26,15 @@ interface AuthState {
     avatar: string | null;
     isFirstLogin: boolean;
     isDemoMode?: boolean;
-    rolePermissions: Record<string, { 
-        tools: string[]; 
-        description?: string;
-        canCreate: boolean; 
-        canUpdate: boolean; 
-        canDelete: boolean;
-        detailPermissions?: Record<string, string[]>;
-    }>;
+    rolePermissions: Record<string, RolePermissionConfig>;
 }
+
+export const DEFAULT_ROLE_LABELS: Record<string, string> = {
+    admin: 'Quản trị viên',
+    staff: 'Nhân viên văn phòng',
+    operator: 'Nhân viên vận hành',
+    viewer: 'Giám sát (Chỉ xem)'
+};
 
 const STORAGE_KEY = 'auth_session';
 
@@ -50,8 +60,9 @@ try {
     console.warn('Could not parse saved auth session:', e);
 }
 
-export const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissionConfig> = {
     admin: {
+        label: DEFAULT_ROLE_LABELS.admin,
         tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'minutes', 'categories', 'converter', 'merger', 'ocr'],
         description: 'Quản trị viên toàn quyền hệ thống',
         canCreate: true,
@@ -59,16 +70,17 @@ export const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
         canDelete: true,
         detailPermissions: {
             vessel_source: ['vs_vessel_manage', 'vs_barge_manage'],
-            allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
+            allocator: ['al_data_manage', 'al_export'],
             warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
             weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
             split: ['split_manage', 'split_export'],
-            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+            vehicles: ['veh_barge_profile'],
             minutes: ['min_create', 'min_export'],
             categories: ['cat_vehicles', 'cat_customers', 'cat_warehouses', 'cat_goods']
         }
     },
     staff: {
+        label: DEFAULT_ROLE_LABELS.staff,
         tools: ['converter', 'merger', 'ocr', 'minutes', 'categories'],
         description: 'Nhân viên văn phòng, xử lý tài liệu Excel/PDF và biên bản',
         canCreate: true,
@@ -80,6 +92,7 @@ export const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
         }
     },
     operator: {
+        label: DEFAULT_ROLE_LABELS.operator,
         tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'minutes', 'categories'],
         description: 'Nhân viên vận hành, quản lý nguồn tàu, dữ liệu cân và báo cáo',
         canCreate: true,
@@ -87,11 +100,11 @@ export const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
         canDelete: false,
         detailPermissions: {
             vessel_source: ['vs_vessel_manage', 'vs_barge_manage'],
-            allocator: ['al_barge_manage', 'al_data_manage', 'al_export'],
+            allocator: ['al_data_manage', 'al_export'],
             warehouse: ['wh_import', 'wh_export', 'wh_customer_manage'],
             weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export'],
             split: ['split_manage', 'split_export'],
-            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
+            vehicles: ['veh_barge_profile'],
             minutes: ['min_create', 'min_export'],
             categories: [
                 'cat_vehicles:read', 'cat_vehicles:create', 'cat_vehicles:update',
@@ -102,6 +115,7 @@ export const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
         }
     },
     viewer: {
+        label: DEFAULT_ROLE_LABELS.viewer,
         tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'categories'],
         description: 'Tài khoản giám sát, chỉ xem dữ liệu và báo cáo sản lượng',
         canCreate: false,
@@ -131,6 +145,30 @@ const initialState: AuthState = {
 };
 
 export const authStore = reactive<AuthState>(initialState);
+
+export const getRoleLabel = (
+    roleKey: string,
+    permsMap?: Record<string, RolePermissionConfig>
+): string => {
+    return (permsMap ?? authStore.rolePermissions)?.[roleKey]?.label?.trim() || DEFAULT_ROLE_LABELS[roleKey] || roleKey;
+};
+
+export const refreshRolePermissions = async (): Promise<boolean> => {
+    if (!authStore.isAuthenticated || !authStore.user || authStore.isDemoMode) {
+        return false;
+    }
+    try {
+        const perms = await ContentService.loadRolePermissions();
+        if (perms && typeof perms === 'object') {
+            authStore.rolePermissions = perms;
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error('Failed to refresh role permissions:', e);
+        return false;
+    }
+};
 
 // Đồng bộ tức thời (flush: 'sync') để tránh race condition giữa authStore và localStorage.getItem('auth_session')
 watch(

@@ -2,7 +2,7 @@
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { onMounted, ref, onUnmounted, watch } from 'vue';
 import { ContentService } from './services/ContentService';
-import { authStore, logout, updateStoreProfile } from './stores/auth';
+import { authStore, logout, updateStoreProfile, refreshRolePermissions, getRoleLabel } from './stores/auth';
 import { authService } from './services/storage/AuthService';
 import { StorageService } from './services/storage/StorageService';
 import { DemoSandboxService } from './services/storage/DemoSandboxService';
@@ -111,13 +111,16 @@ onMounted(async () => {
                 console.warn('[Security] Phiên làm việc không hợp lệ hoặc đã bị vô hiệu hóa. Đang đăng xuất...');
                 await logout();
                 router.push('/login');
-            } else if (authStore.role !== validatedUser.role) {
-                console.warn('[Security] Phát hiện sai lệch vai trò! Đang đồng bộ vai trò thực từ server:', validatedUser.role);
-                authStore.role = validatedUser.role;
-                authStore.displayName = validatedUser.displayName || authStore.displayName;
-                try {
-                    localStorage.setItem('auth_session', JSON.stringify(authStore));
-                } catch (_) {}
+            } else {
+                if (authStore.role !== validatedUser.role) {
+                    console.warn('[Security] Phát hiện sai lệch vai trò! Đang đồng bộ vai trò thực từ server:', validatedUser.role);
+                    authStore.role = validatedUser.role;
+                    authStore.displayName = validatedUser.displayName || authStore.displayName;
+                    try {
+                        localStorage.setItem('auth_session', JSON.stringify(authStore));
+                    } catch (_) {}
+                }
+                await refreshRolePermissions();
             }
         } catch (e) {
             console.warn('[Security] Lỗi kiểm tra phiên làm việc:', e);
@@ -200,7 +203,7 @@ onUnmounted(() => {
             @click="toggleDropdown($event)" 
             class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-11 border-2 border-pastel-pink cursor-pointer hover:border-primary hover:scale-105 active:scale-95 transition-all flex items-center justify-center overflow-hidden" 
             :style="{ backgroundImage: `url(${authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))})` }"
-            :title="`Tài khoản: ${authStore.displayName} (${authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'})`"
+            :title="`Tài khoản: ${authStore.displayName} (${getRoleLabel(authStore.role || '')})`"
           >
           </div>
  
@@ -220,7 +223,7 @@ onUnmounted(() => {
                 <div class="truncate">
                   <p class="text-xs font-black text-primary truncate leading-tight">{{ authStore.displayName }}</p>
                   <p class="text-xs font-black uppercase text-gray-400 mt-0.5 tracking-wider">
-                    {{ authStore.role === 'admin' ? 'Quản trị viên' : 'Nhân viên' }}
+                    {{ getRoleLabel(authStore.role || '') }}
                   </p>
                 </div>
               </div>

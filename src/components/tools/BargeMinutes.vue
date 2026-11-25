@@ -400,6 +400,11 @@ function handleVoyageChange() {
 
 function handleTemplateUpload(event: Event) {
     const target = event.target as HTMLInputElement;
+    if (authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_create', 'create')) {
+        showToast('Bạn không có quyền tải mẫu biên bản!', 'error');
+        target.value = '';
+        return;
+    }
     const file = target.files?.[0];
     if (file) {
         templateFile.value = file;
@@ -690,11 +695,24 @@ async function generateMinutes() {
                     </h3>
                     
                     <div class="flex flex-col gap-3">
-                        <label class="border-2 border-dashed border-gray-200 hover:border-primary/50 transition-all rounded-[16px] p-4 text-center cursor-pointer bg-gray-50/50 hover:bg-primary/10 flex flex-col items-center gap-2">
+                        <label
+                            :class="[
+                                'border-2 border-dashed border-gray-200 transition-all rounded-[16px] p-4 text-center bg-gray-50/50 flex flex-col items-center gap-2',
+                                authStore.role === 'admin' || hasDetailPermission('minutes', 'min_create', 'create')
+                                    ? 'hover:border-primary/50 cursor-pointer hover:bg-primary/10'
+                                    : 'opacity-50 cursor-not-allowed pointer-events-none'
+                            ]"
+                        >
                             <span class="material-symbols-outlined text-gray-400 text-3xl">table_chart</span>
                             <span class="text-xs font-black text-[#1e293b]">{{ wlFile ? wlFile.name : 'Chọn file Weight List (.xlsx)' }}</span>
                             <span class="text-xs opacity-60">Sử dụng 4 sheet xuất hàng</span>
-                            <input type="file" accept=".xlsx" @change="handleWlUpload" class="hidden" />
+                            <input
+                                type="file"
+                                accept=".xlsx"
+                                @change="handleWlUpload"
+                                :disabled="authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_create', 'create')"
+                                class="hidden"
+                            />
                         </label>
                         
                         <div v-if="loading" class="flex items-center justify-center gap-2 py-4">
@@ -711,11 +729,24 @@ async function generateMinutes() {
                         Biên bản mẫu (Template)
                     </h3>
                     <div class="flex flex-col gap-3">
-                        <label class="border border-dashed border-gray-200 hover:border-primary/30 transition-all rounded-[16px] p-3 text-center cursor-pointer bg-gray-50/30 flex flex-col items-center gap-1">
+                        <label
+                            :class="[
+                                'border border-dashed border-gray-200 transition-all rounded-[16px] p-3 text-center bg-gray-50/30 flex flex-col items-center gap-1',
+                                authStore.role === 'admin' || hasDetailPermission('minutes', 'min_create', 'create')
+                                    ? 'hover:border-primary/30 cursor-pointer'
+                                    : 'opacity-50 cursor-not-allowed pointer-events-none'
+                            ]"
+                        >
                             <span class="material-symbols-outlined text-gray-400 text-xl">description</span>
                             <span class="text-xs font-bold text-[#1e293b] truncate max-w-xs">{{ templateFile ? templateFile.name : 'Tải lên mẫu riêng (.xlsx)' }}</span>
                             <span class="text-xs opacity-50">Mặc định: 2 BỘ BIÊN BẢN GIAO NHẬN</span>
-                            <input type="file" accept=".xlsx" @change="handleTemplateUpload" class="hidden" />
+                            <input
+                                type="file"
+                                accept=".xlsx"
+                                @change="handleTemplateUpload"
+                                :disabled="authStore.role !== 'admin' && !hasDetailPermission('minutes', 'min_create', 'create')"
+                                class="hidden"
+                            />
                         </label>
                     </div>
                 </div>
@@ -950,7 +981,7 @@ async function generateMinutes() {
                     </div>
 
                     <!-- Submit action button -->
-                    <div class="border-t border-primary/5 pt-4 flex items-center justify-end">
+                    <div v-if="authStore.role === 'admin' || hasDetailPermission('minutes', 'min_export', 'read')" class="border-t border-primary/5 pt-4 flex items-center justify-end">
                         <button 
                             @click="generateMinutes"
                             :disabled="processing || detectedVoyages.length === 0"

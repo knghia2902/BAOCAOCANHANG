@@ -284,14 +284,14 @@ const accountForm = ref({
     username: '',
     password: '',
     displayName: '',
-    role: 'staff' as 'admin' | 'staff',
+    role: 'staff' as string,
     avatar: ''
 });
 
 const editAccountForm = ref({
     username: '',
     displayName: '',
-    role: 'staff' as 'admin' | 'staff',
+    role: 'staff' as string,
     avatar: ''
 });
 
@@ -374,7 +374,7 @@ const handleEditAccount = async () => {
     }
 
     if (editAccountForm.value.username === authStore.user && editAccountForm.value.role !== 'admin') {
-        triggerToast('Không thể tự thay đổi vai trò tài khoản quản trị đang đăng nhập! ⚠️');
+        triggerToast('Không thể tự thay đổi chức vụ tài khoản quản trị đang đăng nhập! ⚠️');
         return;
     }
     
@@ -470,16 +470,59 @@ const loadStaffToolsConfig = async () => {
 
 
 
-const rolePermissions = ref<Record<string, { 
-    tools: string[]; 
+interface RolePermissionConfigLocal {
+    label?: string;
+    tools: string[];
     description?: string;
-    canCreate: boolean; 
-    canUpdate: boolean; 
+    canCreate: boolean;
+    canUpdate: boolean;
     canDelete: boolean;
     detailPermissions?: Record<string, string[]>;
-}>>({});
+}
+
+const DEFAULT_ROLE_LABELS: Record<string, string> = {
+    admin: 'Quản trị viên',
+    staff: 'Nhân viên văn phòng',
+    operator: 'Nhân viên vận hành',
+    viewer: 'Giám sát (Chỉ xem)'
+};
+
+const rolePermissions = ref<Record<string, RolePermissionConfigLocal>>({});
 const selectedRoleToConfigure = ref<string>('staff');
-const activeSubsystem = ref<string>('vessel_source');
+const activeMatrixGroup = ref<'all' | 'phanHe' | 'danhMuc' | 'tienIch'>('all');
+const hasUnsavedRoleChanges = ref(false);
+
+const getRoleDisplayLabel = (key: string): string => {
+    const config = rolePermissions.value[key];
+    return config?.label?.trim() || DEFAULT_ROLE_LABELS[key] || key;
+};
+
+const selectedRoleLabel = computed({
+    get: () => {
+        const key = selectedRoleToConfigure.value;
+        const config = rolePermissions.value[key];
+        if (!config) return '';
+        return config.label !== undefined ? config.label : (DEFAULT_ROLE_LABELS[key] || key);
+    },
+    set: (val: string) => {
+        const config = rolePermissions.value[selectedRoleToConfigure.value];
+        if (config) {
+            config.label = val;
+            hasUnsavedRoleChanges.value = true;
+        }
+    }
+});
+
+const slugifyRoleKey = (input: string): string => {
+    return input
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+};
 
 type ActionType = 'read' | 'create' | 'update' | 'delete';
 
@@ -513,6 +556,8 @@ const SUBSYSTEM_ORDER = [
     'utilities'
 ] as const;
 
+const UTILITY_TOOL_IDS = ['converter', 'merger', 'ocr'] as const;
+
 const subsystemGroups = {
     phanHeMain: [
         {
@@ -524,7 +569,7 @@ const subsystemGroups = {
         {
             id: 'allocator',
             name: 'Dữ liệu cân',
-            description: 'Quản lý phân bổ sà lan, cấu hình luật phân bổ, nhập/sửa dữ liệu cân & xuất báo cáo',
+            description: 'Quản lý phiếu cân, sổ theo dõi và xuất Excel dữ liệu cân',
             icon: 'balance'
         }
     ] as SubsystemItem[],
@@ -539,7 +584,7 @@ const subsystemGroups = {
         {
             id: 'weighbridge',
             name: 'Báo cáo lô hàng',
-            description: 'Quản lý tàu/sà lan, phiếu cân xe, in phiếu & xuất Excel, cài đặt mẫu in & bố cục',
+            description: 'Quản lý lô hàng/chốt tàu, phiếu cân xe, in phiếu & xuất Excel, cài đặt mẫu in & bố cục',
             icon: 'monitoring',
             parentLabel: 'Báo cáo'
         },
@@ -555,13 +600,13 @@ const subsystemGroups = {
         {
             id: 'vehicles',
             name: 'Quản lý hồ sơ phương tiện',
-            description: 'Quản lý hồ sơ sà lan, hồ sơ thuyền viên, đăng kiểm & bảo hiểm',
+            description: 'Quản lý hồ sơ sà lan, thuyền viên & giấy tờ đăng kiểm, bảo hiểm',
             icon: 'local_shipping'
         },
         {
             id: 'minutes',
             name: 'Biên bản',
-            description: 'Tạo, chỉnh sửa và xuất bộ biên bản làm hàng sà lan',
+            description: 'Tải Weight List, lập biên bản và xuất file Excel biên bản làm hàng sà lan',
             icon: 'description'
         }
     ] as SubsystemItem[],
@@ -593,11 +638,10 @@ const allSubsystemsList: SubsystemItem[] = [
     ...subsystemGroups.tienIch
 ];
 
-const categorySubItems = [
-    { permId: 'cat_vehicles', name: 'Danh sách xe', description: 'Quản lý biển số xe, đầu kéo & rơ-moóc', icon: 'local_shipping' },
-    { permId: 'cat_customers', name: 'Danh sách khách hàng', description: 'Quản lý đối tác & khách hàng nhận hàng', icon: 'groups' },
-    { permId: 'cat_warehouses', name: 'Danh sách kho hàng', description: 'Quản lý kho bãi & vị trí lưu trữ', icon: 'warehouse' },
-    { permId: 'cat_goods', name: 'Danh mục hàng hóa', description: 'Quản lý chủng loại & mã hàng hóa', icon: 'inventory_2' }
+const phanHeSubsystemsList: SubsystemItem[] = [
+    ...subsystemGroups.phanHeMain,
+    ...subsystemGroups.phanHeReports,
+    ...subsystemGroups.phanHeOther
 ];
 
 const actionPermissionsMapping: Record<string, ActionPermissionItem[]> = {
@@ -606,20 +650,18 @@ const actionPermissionsMapping: Record<string, ActionPermissionItem[]> = {
         { name: 'Quản lý sà lan thuộc tàu', permId: 'vs_barge_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true }
     ],
     allocator: [
-        { name: 'Quản lý phân bổ sà lan', permId: 'al_barge_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
-        { name: 'Cấu hình luật phân bổ', permId: 'al_rules_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
-        { name: 'Nhập / Sửa dữ liệu cân', permId: 'al_data_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
-        { name: 'Xuất báo cáo phân bổ', permId: 'al_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+        { name: 'Quản lý Phiếu cân & Sổ theo dõi', permId: 'al_data_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+        { name: 'Xuất Excel Phiếu cân & Sổ theo dõi', permId: 'al_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
     ],
     warehouse: [
-        { name: 'Nạp dữ liệu CSV / Excel tồn kho', permId: 'wh_import', showView: true, showCreate: true, showUpdate: true, showDelete: false },
+        { name: 'Nạp dữ liệu CSV / Excel tồn kho', permId: 'wh_import', showView: false, showCreate: true, showUpdate: false, showDelete: false },
         { name: 'Xem & Xuất báo cáo tồn kho', permId: 'wh_export', showView: true, showCreate: false, showUpdate: false, showDelete: false },
-        { name: 'Cấu hình tồn đầu & Sơ đồ kho', permId: 'wh_config', showView: true, showCreate: false, showUpdate: true, showDelete: false },
+        { name: 'Cấu hình tồn đầu & Sơ đồ kho', permId: 'wh_config', showView: false, showCreate: false, showUpdate: true, showDelete: false },
         { name: 'Quản lý khách hàng kho', permId: 'wh_customer_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
         { name: 'Xóa phiếu cân tồn kho', permId: 'wh_delete_tickets', showView: false, showCreate: false, showUpdate: false, showDelete: true }
     ],
     weighbridge: [
-        { name: 'Quản lý thông tin tàu / sà lan', permId: 'wb_vessel_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
+        { name: 'Quản lý lô hàng / Chốt tàu', permId: 'wb_vessel_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
         { name: 'Quản lý phiếu cân xe', permId: 'wb_truck_manage', showView: true, showCreate: true, showUpdate: true, showDelete: true },
         { name: 'In phiếu & Xuất Excel', permId: 'wb_print_export', showView: true, showCreate: false, showUpdate: false, showDelete: false },
         { name: 'Cài đặt mẫu in & bố cục', permId: 'wb_layout_config', showView: true, showCreate: false, showUpdate: true, showDelete: false }
@@ -629,13 +671,11 @@ const actionPermissionsMapping: Record<string, ActionPermissionItem[]> = {
         { name: 'Xuất báo cáo De Heus', permId: 'split_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
     ],
     vehicles: [
-        { name: 'Hồ sơ sà lan', permId: 'veh_barge_profile', showView: true, showCreate: true, showUpdate: true, showDelete: true },
-        { name: 'Hồ sơ thuyền viên', permId: 'veh_crew_profile', showView: true, showCreate: true, showUpdate: true, showDelete: true },
-        { name: 'Đăng kiểm & Bảo hiểm', permId: 'veh_registry_insurance', showView: true, showCreate: true, showUpdate: true, showDelete: true }
+        { name: 'Hồ sơ sà lan, thuyền viên & giấy tờ', permId: 'veh_barge_profile', showView: true, showCreate: true, showUpdate: true, showDelete: true }
     ],
     minutes: [
-        { name: 'Tạo / Chỉnh sửa biên bản', permId: 'min_create', showView: true, showCreate: true, showUpdate: true, showDelete: true },
-        { name: 'Xem & Xuất biên bản', permId: 'min_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
+        { name: 'Tải Weight List & lập biên bản', permId: 'min_create', showView: true, showCreate: true, showUpdate: false, showDelete: false },
+        { name: 'Xuất file Excel biên bản', permId: 'min_export', showView: true, showCreate: false, showUpdate: false, showDelete: false }
     ],
     categories: [
         { name: 'Danh sách xe', permId: 'cat_vehicles', showView: true, showCreate: true, showUpdate: true, showDelete: true },
@@ -665,56 +705,6 @@ const getAllowedActionsForPerm = (subsystem: string, permId: string): ActionType
     return item ? getAllowedActionsForItem(item) : [];
 };
 
-const isActionColumnDisabled = (role: string, actionType: ActionType): boolean => {
-    const roleConfig = rolePermissions.value[role];
-    if (!roleConfig) return true;
-    if (actionType === 'create') return !roleConfig.canCreate;
-    if (actionType === 'update') return !roleConfig.canUpdate;
-    if (actionType === 'delete') return !roleConfig.canDelete;
-    return false;
-};
-
-const getDisabledActionTooltip = (actionType: ActionType): string => {
-    if (actionType === 'create') return "Bật công tắc 'Cho phép Thêm' ở trên để cấp quyền thêm";
-    if (actionType === 'update') return "Bật công tắc 'Cho phép Sửa' ở trên để cấp quyền sửa";
-    if (actionType === 'delete') return "Bật công tắc 'Cho phép Xóa' ở trên để cấp quyền xóa";
-    return '';
-};
-
-const isActionPermChecked = (role: string, subsystem: string, permId: string, actionType: ActionType) => {
-    const roleConfig = rolePermissions.value[role];
-    if (!roleConfig) return false;
-
-    // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools.
-    if (subsystem === 'utilities') {
-        return actionType === 'read' && roleConfig.tools.includes(permId);
-    }
-
-    // If parent subsystem is not enabled, child permissions must be false
-    if (!roleConfig.tools.includes(subsystem)) {
-        return false;
-    }
-
-    const allowed = getAllowedActionsForPerm(subsystem, permId);
-    if (!allowed.includes(actionType)) {
-        return false;
-    }
-
-    if (!roleConfig.detailPermissions || !roleConfig.detailPermissions[subsystem]) {
-        return true;
-    }
-
-    const perms = roleConfig.detailPermissions[subsystem];
-    const specificPerm = `${permId}:${actionType}`;
-
-    // Backwards compatibility: if the bare permId or wildcard is present in perms, it means all allowed actions are enabled
-    if (perms.includes(permId) || perms.includes(`${permId}:*`)) {
-        return true;
-    }
-
-    return perms.includes(specificPerm);
-};
-
 const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
     const items = actionPermissionsMapping[subsystem];
     if (!items) return [];
@@ -727,146 +717,164 @@ const getDefaultPermissionsForSubsystem = (subsystem: string): string[] => {
     return result;
 };
 
-const isSubsystemChecked = (role: string, id: string) => {
-    const roleConfig = rolePermissions.value[role];
-    if (!roleConfig || !roleConfig.tools) return false;
-    if (id === 'utilities') {
-        return roleConfig.tools.includes('converter') || roleConfig.tools.includes('merger') || roleConfig.tools.includes('ocr');
+const syncRoleDerivedFlags = (roleConfig: RolePermissionConfigLocal) => {
+    if (!Array.isArray(roleConfig.tools)) {
+        roleConfig.tools = [];
     }
-    return roleConfig.tools.includes(id);
-};
-
-const isCategoryItemChecked = (role: string, permId: string): boolean => {
-    if (!isSubsystemChecked(role, 'categories')) return false;
-    return (
-        isActionPermChecked(role, 'categories', permId, 'read') ||
-        isActionPermChecked(role, 'categories', permId, 'create') ||
-        isActionPermChecked(role, 'categories', permId, 'update') ||
-        isActionPermChecked(role, 'categories', permId, 'delete')
-    );
-};
-
-const onCategoryItemToggle = (role: string, permId: string) => {
-    const roleConfig = rolePermissions.value[role];
-    if (!roleConfig || !roleConfig.tools) return;
-
-    const currentlyChecked = isCategoryItemChecked(role, permId);
     if (!roleConfig.detailPermissions) {
         roleConfig.detailPermissions = {};
     }
 
-    if (currentlyChecked) {
-        let perms = roleConfig.detailPermissions.categories
-            ? [...roleConfig.detailPermissions.categories]
-            : getDefaultPermissionsForSubsystem('categories');
-        perms = perms.filter(p => p !== permId && !p.startsWith(`${permId}:`));
-        roleConfig.detailPermissions.categories = perms;
+    const nextTools: string[] = [];
+    let hasCreate = false;
+    let hasUpdate = false;
+    let hasDelete = false;
 
-        const hasAnyRemaining = categorySubItems.some(item =>
-            perms.includes(item.permId) || perms.some(p => p.startsWith(`${item.permId}:`))
-        );
-        if (!hasAnyRemaining) {
-            roleConfig.tools = roleConfig.tools.filter(t => t !== 'categories');
-            if (activeSubsystem.value === 'categories') {
-                const firstActive = SUBSYSTEM_ORDER.find(t => isSubsystemChecked(role, t));
-                activeSubsystem.value = firstActive || 'vessel_source';
+    for (const subsystem of SUBSYSTEM_ORDER) {
+        if (subsystem === 'utilities') continue;
+        const perms = roleConfig.detailPermissions[subsystem];
+        if (Array.isArray(perms) && perms.length > 0) {
+            nextTools.push(subsystem);
+            const items = actionPermissionsMapping[subsystem] || [];
+            for (const item of items) {
+                const hasBareOrWildcard = perms.includes(item.permId) || perms.includes(`${item.permId}:*`);
+                if (item.showCreate && (hasBareOrWildcard || perms.includes(`${item.permId}:create`))) {
+                    hasCreate = true;
+                }
+                if (item.showUpdate && (hasBareOrWildcard || perms.includes(`${item.permId}:update`))) {
+                    hasUpdate = true;
+                }
+                if (item.showDelete && (hasBareOrWildcard || perms.includes(`${item.permId}:delete`))) {
+                    hasDelete = true;
+                }
             }
         }
-    } else {
-        if (!roleConfig.tools.includes('categories')) {
-            roleConfig.tools.push('categories');
-            roleConfig.detailPermissions.categories = [];
-        } else if (!roleConfig.detailPermissions.categories) {
-            roleConfig.detailPermissions.categories = [];
-        }
-        const perms = [...roleConfig.detailPermissions.categories];
-        for (const act of getAllowedActionsForPerm('categories', permId)) {
-            const key = `${permId}:${act}`;
-            if (!perms.includes(key)) perms.push(key);
-        }
-        roleConfig.detailPermissions.categories = perms;
-        activeSubsystem.value = 'categories';
     }
+
+    const activeUtilities = UTILITY_TOOL_IDS.filter(id => roleConfig.tools.includes(id));
+    for (const utilId of activeUtilities) {
+        nextTools.push(utilId);
+    }
+    roleConfig.detailPermissions.utilities = activeUtilities.map(id => `${id}:read`);
+
+    roleConfig.tools = nextTools;
+    roleConfig.canCreate = hasCreate;
+    roleConfig.canUpdate = hasUpdate;
+    roleConfig.canDelete = hasDelete;
 };
 
-const onSubsystemCheckboxToggle = (role: string, id: string) => {
+const isActionPermChecked = (role: string, subsystem: string, permId: string, actionType: ActionType) => {
     const roleConfig = rolePermissions.value[role];
-    if (!roleConfig || !roleConfig.tools) return;
+    if (!roleConfig) return false;
 
-    if (id === 'utilities') {
-        const isChecked = isSubsystemChecked(role, 'utilities');
-        if (isChecked) {
-            // Disable: Remove converter, merger, ocr from tools
-            roleConfig.tools = roleConfig.tools.filter(t => t !== 'converter' && t !== 'merger' && t !== 'ocr' && t !== 'utilities');
-            if (roleConfig.detailPermissions) {
-                roleConfig.detailPermissions.utilities = [];
-            }
-        } else {
-            // Enable: Add converter, merger, ocr to tools
-            const newTools = [...roleConfig.tools];
-            if (!newTools.includes('converter')) newTools.push('converter');
-            if (!newTools.includes('merger')) newTools.push('merger');
-            if (!newTools.includes('ocr')) newTools.push('ocr');
-            roleConfig.tools = newTools;
-            if (!roleConfig.detailPermissions) {
-                roleConfig.detailPermissions = {};
-            }
-            roleConfig.detailPermissions.utilities = getDefaultPermissionsForSubsystem('utilities');
-        }
-        handleSubsystemCheckboxChange(role, 'utilities');
-    } else {
-        const index = roleConfig.tools.indexOf(id);
-        if (index >= 0) {
-            // Disable
-            roleConfig.tools.splice(index, 1);
-        } else {
-            // Enable
-            roleConfig.tools.push(id);
-        }
-        handleSubsystemCheckboxChange(role, id);
+    // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools.
+    if (subsystem === 'utilities') {
+        return actionType === 'read' && Array.isArray(roleConfig.tools) && roleConfig.tools.includes(permId);
     }
+
+    if (!Array.isArray(roleConfig.tools) || !roleConfig.tools.includes(subsystem)) {
+        return false;
+    }
+
+    const allowed = getAllowedActionsForPerm(subsystem, permId);
+    if (!allowed.includes(actionType)) {
+        return false;
+    }
+
+    const perms = roleConfig.detailPermissions?.[subsystem];
+    if (!perms || !Array.isArray(perms) || perms.length === 0) {
+        return false;
+    }
+
+    const specificPerm = `${permId}:${actionType}`;
+
+    // Backwards compatibility: bare permId or wildcard means all allowed actions are enabled
+    if (perms.includes(permId) || perms.includes(`${permId}:*`)) {
+        return true;
+    }
+
+    return perms.includes(specificPerm);
 };
 
-const handleSubsystemCheckboxChange = (role: string, subsystem: string) => {
+const isSubsystemChecked = (role: string, id: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig || !Array.isArray(roleConfig.tools)) return false;
+    if (id === 'utilities') {
+        return UTILITY_TOOL_IDS.some(u => roleConfig.tools.includes(u));
+    }
+    const items = actionPermissionsMapping[id] || [];
+    return items.some(item =>
+        getAllowedActionsForItem(item).some(act => isActionPermChecked(role, id, item.permId, act))
+    );
+};
+
+const isSubsystemFullyChecked = (role: string, id: string): boolean => {
+    const items = actionPermissionsMapping[id] || [];
+    if (items.length === 0) return false;
+    return items.every(item =>
+        getAllowedActionsForItem(item).every(act => isActionPermChecked(role, id, item.permId, act))
+    );
+};
+
+const activeSubsystemsCount = computed(() => {
+    const role = selectedRoleToConfigure.value;
+    return SUBSYSTEM_ORDER.filter(id => isSubsystemChecked(role, id)).length;
+});
+
+const toggleAllSubsystemPerms = (role: string, subsystem: string) => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
 
-    const isEnabled = isSubsystemChecked(role, subsystem);
+    const fullyChecked = isSubsystemFullyChecked(role, subsystem);
+    if (!roleConfig.detailPermissions) {
+        roleConfig.detailPermissions = {};
+    }
 
-    if (!isEnabled) {
-        // Clear all sub-permissions when subsystem is disabled
-        if (roleConfig.detailPermissions) {
-            roleConfig.detailPermissions[subsystem] = [];
-        }
-        // If the disabled subsystem was the active one, switch activeSubsystem to another enabled subsystem
-        if (activeSubsystem.value === subsystem) {
-            const firstActive = SUBSYSTEM_ORDER.find(t => isSubsystemChecked(role, t));
-            activeSubsystem.value = firstActive || 'vessel_source';
+    if (subsystem === 'utilities') {
+        if (fullyChecked) {
+            roleConfig.tools = roleConfig.tools.filter(t => !(UTILITY_TOOL_IDS as readonly string[]).includes(t));
+            roleConfig.detailPermissions.utilities = [];
+        } else {
+            for (const utilId of UTILITY_TOOL_IDS) {
+                if (!roleConfig.tools.includes(utilId)) {
+                    roleConfig.tools.push(utilId);
+                }
+            }
+            roleConfig.detailPermissions.utilities = getDefaultPermissionsForSubsystem('utilities');
         }
     } else {
-        // Automatically make the newly enabled subsystem active
-        activeSubsystem.value = subsystem;
-
-        // Populate default sub-permissions when subsystem is enabled
-        if (!roleConfig.detailPermissions) {
-            roleConfig.detailPermissions = {};
-        }
-        if (subsystem === 'utilities') {
-            roleConfig.detailPermissions.utilities = ['converter', 'merger', 'ocr']
-                .filter(t => roleConfig.tools.includes(t))
-                .map(t => `${t}:read`);
-        } else {
-            roleConfig.detailPermissions[subsystem] = getDefaultPermissionsForSubsystem(subsystem);
-        }
+        roleConfig.detailPermissions[subsystem] = fullyChecked ? [] : getDefaultPermissionsForSubsystem(subsystem);
     }
+
+    syncRoleDerivedFlags(roleConfig);
+    hasUnsavedRoleChanges.value = true;
+};
+
+const clearSubsystemPerms = (role: string, subsystem: string) => {
+    const roleConfig = rolePermissions.value[role];
+    if (!roleConfig) return;
+    if (!roleConfig.detailPermissions) {
+        roleConfig.detailPermissions = {};
+    }
+
+    if (subsystem === 'utilities') {
+        roleConfig.tools = roleConfig.tools.filter(t => !(UTILITY_TOOL_IDS as readonly string[]).includes(t));
+        roleConfig.detailPermissions.utilities = [];
+    } else {
+        roleConfig.detailPermissions[subsystem] = [];
+    }
+
+    syncRoleDerivedFlags(roleConfig);
+    hasUnsavedRoleChanges.value = true;
 };
 
 const toggleActionPerm = (role: string, subsystem: string, permId: string, actionType: ActionType) => {
     const roleConfig = rolePermissions.value[role];
     if (!roleConfig) return;
 
-    // Respect coarse role-level action locks
-    if (isActionColumnDisabled(role, actionType)) return;
+    if (!roleConfig.detailPermissions) {
+        roleConfig.detailPermissions = {};
+    }
 
     // For utilities subsystem, the child tools are converter, merger, ocr and stored in roleConfig.tools
     if (subsystem === 'utilities') {
@@ -877,21 +885,13 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, actio
         } else {
             roleConfig.tools.push(permId);
         }
-        handleSubsystemCheckboxChange(role, 'utilities');
+        syncRoleDerivedFlags(roleConfig);
+        hasUnsavedRoleChanges.value = true;
         return;
     }
 
-    // Automatically enable subsystem tool if not enabled
-    if (!roleConfig.tools.includes(subsystem)) {
-        roleConfig.tools.push(subsystem);
-    }
-
-    if (!roleConfig.detailPermissions) {
-        roleConfig.detailPermissions = {};
-    }
-
     if (!roleConfig.detailPermissions[subsystem]) {
-        roleConfig.detailPermissions[subsystem] = getDefaultPermissionsForSubsystem(subsystem);
+        roleConfig.detailPermissions[subsystem] = [];
     }
 
     let perms = [...roleConfig.detailPermissions[subsystem]];
@@ -914,20 +914,22 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, actio
         perms.splice(index, 1);
     } else {
         perms.push(specificPerm);
+        // Auto-check read when checking create/update/delete on a row that has showView: true
+        if (actionType !== 'read') {
+            const item = (actionPermissionsMapping[subsystem] || []).find(i => i.permId === permId);
+            if (item?.showView && !perms.includes(`${permId}:read`)) {
+                perms.push(`${permId}:read`);
+            }
+        }
     }
 
     roleConfig.detailPermissions[subsystem] = perms;
+    syncRoleDerivedFlags(roleConfig);
+    hasUnsavedRoleChanges.value = true;
 };
 
 const customRoleName = ref<string>('');
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
-
-const enabledActionSubsystems = computed(() => {
-    const role = selectedRoleToConfigure.value;
-    const config = rolePermissions.value[role];
-    if (!config || !config.tools) return [];
-    return SUBSYSTEM_ORDER.filter((id) => isSubsystemChecked(role, id));
-});
 
 const getSubsystemMeta = (id: string) => allSubsystemsList.find(tool => tool.id === id);
 
@@ -937,25 +939,10 @@ const getSubsystemName = (id: string) => {
     return meta.parentLabel ? `${meta.parentLabel} — ${meta.name}` : meta.name;
 };
 
-const getSubsystemIcon = (id: string) => getSubsystemMeta(id)?.icon || 'extension';
-
-watch([selectedRoleToConfigure, () => rolePermissions.value], ([newRole, permissions]) => {
-    if (!permissions) return;
-    const roleConfig = permissions[newRole];
-    if (roleConfig && roleConfig.tools) {
-        const isCurrentActiveValid = isSubsystemChecked(newRole, activeSubsystem.value) && (activeSubsystem.value in actionPermissionsMapping);
-        if (!isCurrentActiveValid) {
-            const firstActive = SUBSYSTEM_ORDER.find(t => isSubsystemChecked(newRole, t));
-            activeSubsystem.value = firstActive || 'vessel_source';
-        }
-    }
-}, { immediate: true });
-
-
-
 const loadRolePermissionsConfig = async () => {
     try {
         rolePermissions.value = await ContentService.loadRolePermissions();
+        hasUnsavedRoleChanges.value = false;
         const roles = Object.keys(rolePermissions.value).filter(r => r !== 'admin');
         if (roles.length > 0 && !roles.includes(selectedRoleToConfigure.value)) {
             selectedRoleToConfigure.value = roles[0] || 'staff';
@@ -966,68 +953,79 @@ const loadRolePermissionsConfig = async () => {
 };
 
 const handleSaveRolePermissions = async () => {
+    for (const [roleKey, roleConfig] of Object.entries(rolePermissions.value)) {
+        if (roleKey !== 'admin' && roleConfig) {
+            syncRoleDerivedFlags(roleConfig);
+        }
+    }
     if (rolePermissions.value.staff) {
         staffToolsConfig.value = rolePermissions.value.staff.tools;
         await ContentService.saveStaffTools(staffToolsConfig.value);
     }
     const success = await ContentService.saveRolePermissions(rolePermissions.value);
     if (success) {
-        triggerToast('Cập nhật phân quyền vai trò thành công! 🛠️');
-        await LogService.logAction('Phân quyền', 'Cập nhật phân quyền cho các vai trò');
+        authStore.rolePermissions = JSON.parse(JSON.stringify(rolePermissions.value));
+        hasUnsavedRoleChanges.value = false;
+        triggerToast('Cập nhật phân quyền chức vụ thành công! 🛠️');
+        await LogService.logAction('Phân quyền', 'Cập nhật phân quyền cho các chức vụ');
     } else {
-        triggerToast('Có lỗi xảy ra khi lưu cấu hình vai trò.');
+        triggerToast('Có lỗi xảy ra khi lưu cấu hình chức vụ.');
     }
 };
 
 const handleCreateCustomRole = () => {
-    const name = customRoleName.value.trim().toLowerCase();
-    if (!name) {
-        triggerToast('Tên vai trò không được để trống!');
+    const rawLabel = customRoleName.value.trim();
+    if (!rawLabel) {
+        triggerToast('Tên chức vụ không được để trống!');
         return;
     }
-    if (name === 'admin') {
-        triggerToast('Không thể tạo vai trò trùng tên với Admin!');
+    const key = slugifyRoleKey(rawLabel);
+    if (!key) {
+        triggerToast('Tên chức vụ không hợp lệ!');
         return;
     }
-    if (rolePermissions.value[name]) {
-        triggerToast('Vai trò này đã tồn tại!');
+    if (key === 'admin') {
+        triggerToast('Không thể tạo chức vụ trùng mã với Quản trị viên!');
         return;
     }
-    
-    rolePermissions.value[name] = {
-        tools: ['converter', 'merger', 'ocr'],
+    if (rolePermissions.value[key]) {
+        triggerToast('Chức vụ này đã tồn tại!');
+        return;
+    }
+
+    rolePermissions.value[key] = {
+        label: rawLabel,
+        tools: [],
         description: '',
-        canCreate: true,
-        canUpdate: true,
+        canCreate: false,
+        canUpdate: false,
         canDelete: false,
-        detailPermissions: {
-            vessel_source: [],
-            allocator: [],
-            warehouse: [],
-            weighbridge: [],
-            split: [],
-            vehicles: [],
-            minutes: [],
-            categories: [],
-            utilities: getDefaultPermissionsForSubsystem('utilities')
-        }
+        detailPermissions: {}
     };
-    
-    selectedRoleToConfigure.value = name;
+
+    selectedRoleToConfigure.value = key;
     customRoleName.value = '';
-    triggerToast(`Đã tạo vai trò mới: ${name}! Hãy cấu hình công cụ bên dưới.`);
+    hasUnsavedRoleChanges.value = true;
+    triggerToast(`Đã tạo chức vụ mới: ${rawLabel}! Hãy cấu hình quyền bên dưới và bấm Lưu.`);
 };
 
 const handleDeleteCustomRole = (role: string) => {
     if (role === 'admin') {
-        triggerToast('Không thể xóa vai trò Admin chính!');
+        triggerToast('Không thể xóa chức vụ Quản trị viên chính!');
         return;
     }
-    if (confirm(`Bạn có chắc chắn muốn xóa vai trò "${role}" không? Các tài khoản thuộc vai trò này sẽ mất quyền.`)) {
+    const label = getRoleDisplayLabel(role);
+    const affectedUsers = accountsList.value.filter(acc => (acc.role || 'staff') === role);
+    const warningMsg = affectedUsers.length > 0
+        ? `Bạn có chắc chắn muốn xóa chức vụ "${label}" không? Hiện có ${affectedUsers.length} tài khoản đang thuộc chức vụ này và sẽ mất quyền truy cập cho đến khi được gán chức vụ khác.`
+        : `Bạn có chắc chắn muốn xóa chức vụ "${label}" không?`;
+
+    if (confirm(warningMsg)) {
         delete rolePermissions.value[role];
         const remainingRoles = Object.keys(rolePermissions.value).filter(r => r !== 'admin');
         selectedRoleToConfigure.value = remainingRoles[0] || 'staff';
-        triggerToast(`Đã xóa vai trò: ${role}`);
+        hasUnsavedRoleChanges.value = true;
+        triggerToast(`Đã xóa chức vụ: ${label}. Bấm "Lưu cấu hình phân quyền" để áp dụng.`);
     }
 };
 
@@ -1486,7 +1484,7 @@ onMounted(async () => {
                                 <tr class="border-b border-primary/10 text-gray-400 text-xs font-black uppercase tracking-wider">
                                     <th class="pb-4 pl-4">Tên hiển thị</th>
                                     <th class="pb-4">Tên đăng nhập</th>
-                                    <th class="pb-4">Vai trò</th>
+                                    <th class="pb-4">Chức vụ</th>
                                     <th class="pb-4">Trạng thái</th>
                                     <th class="pb-4 text-right pr-4">Hành động</th>
                                 </tr>
@@ -1502,10 +1500,10 @@ onMounted(async () => {
                                     </td>
                                     <td class="py-4 font-bold text-sm text-[#1e293b]">{{ acc.username }}</td>
                                     <td class="py-4">
-                                        <span class="px-3 py-1 text-xs font-black uppercase rounded-full"
-                                            :class="acc.role === 'admin' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'"
+                                        <span class="px-3 py-1 text-xs font-black rounded-full"
+                                            :class="acc.role === 'admin' ? 'bg-rose-50 text-rose-600' : 'bg-teal-50 text-teal-600'"
                                         >
-                                            {{ acc.role || 'staff' }}
+                                            {{ getRoleDisplayLabel(acc.role || 'staff') }}
                                         </span>
                                     </td>
                                     <td class="py-4">
@@ -1530,22 +1528,34 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <!-- Phân Quyền Theo Vai Trò Card -->
-                <div class="bg-white rounded-[3rem] p-8 card-shadow border border-white/40 flex flex-col gap-6">
+                <!-- Phân Quyền Theo Chức Vụ Card -->
+                <div class="bg-white rounded-[2.5rem] p-8 card-shadow border border-primary/5 flex flex-col gap-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-primary/10 pb-6">
-                        <div>
-                            <h4 class="text-base font-black text-[#1e293b] flex items-center gap-2">
-                                <span class="material-symbols-outlined text-primary">settings_accessibility</span>
-                                Quản Lý & Phân Quyền Vai Trò
-                            </h4>
-                            <p class="text-xs font-bold text-gray-400 mt-1">Cấu hình chi tiết quyền truy cập công cụ và hành động cho từng vai trò.</p>
+                        <div class="text-left">
+                            <div class="flex flex-wrap items-center gap-2.5">
+                                <h4 class="text-xl font-display font-black text-[#1e293b] flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary">settings_accessibility</span>
+                                    Quản Lý & Phân Quyền Chức Vụ
+                                </h4>
+                                <span v-if="hasUnsavedRoleChanges" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold">
+                                    <span class="size-1.5 rounded-full bg-amber-500"></span>
+                                    Chưa lưu thay đổi
+                                </span>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-500 mt-1">Cấu hình chi tiết quyền thao tác cho từng chức vụ. Bật/tắt trực tiếp trên bảng quyền bên dưới.</p>
                         </div>
                         
                         <!-- Add Custom Role Form -->
                         <div class="flex items-center gap-2 w-full md:w-auto">
-                            <input v-model="customRoleName" type="text" placeholder="Tên vai trò mới (vd: manager)" class="bg-[#f1f5f9] px-4 py-2.5 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shrink-0 w-44" />
-                            <button @click="handleCreateCustomRole" class="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
-                                <span class="material-symbols-outlined text-xs">add</span> Tạo vai trò
+                            <input
+                                v-model="customRoleName"
+                                @keyup.enter="handleCreateCustomRole"
+                                type="text"
+                                placeholder="Tên chức vụ mới (vd: Kế toán kho)"
+                                class="bg-[#f1f5f9] px-4 py-2.5 rounded-2xl text-xs font-bold text-[#1e293b] border border-transparent focus:border-primary/30 outline-none focus:ring-2 focus:ring-primary/20 flex-1 md:w-56"
+                            />
+                            <button @click="handleCreateCustomRole" class="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2.5 rounded-2xl font-display font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95">
+                                <span class="material-symbols-outlined text-sm">add</span> Tạo chức vụ
                             </button>
                         </div>
                     </div>
@@ -1554,105 +1564,94 @@ onMounted(async () => {
                     <div class="flex flex-wrap gap-2">
                         <button v-for="r in roleNames" :key="r"
                             @click="selectedRoleToConfigure = r"
-                            class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border"
-                            :class="selectedRoleToConfigure === r ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150'"
+                            class="px-4 py-2 rounded-2xl text-xs font-display font-bold transition-all flex items-center gap-1.5 border"
+                            :class="selectedRoleToConfigure === r ? 'bg-primary text-white border-primary shadow-soft' : 'bg-[#f1f5f9] text-slate-600 border-slate-200/80 hover:border-primary/40 hover:text-primary'"
                         >
-                            <span>{{ r.toUpperCase() }}</span>
-                            <span v-if="r !== 'admin'" @click.stop="handleDeleteCustomRole(r)" class="material-symbols-outlined text-xs hover:text-red-200 transition-colors ml-1">close</span>
+                            <span>{{ getRoleDisplayLabel(r) }}</span>
+                            <span v-if="r !== 'admin'" @click.stop="handleDeleteCustomRole(r)" title="Xóa chức vụ" class="material-symbols-outlined text-xs hover:text-rose-300 transition-colors ml-1">close</span>
                         </button>
                     </div>
 
                     <!-- Configure Permissions for Selected Role -->
                     <div v-if="rolePermissions[selectedRoleToConfigure]" class="space-y-6">
-                        <!-- Role Description & Role-level Coarse Action Flags -->
-                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                            <!-- Role Description (Mô tả chi tiết) -->
-                            <div class="lg:col-span-5 bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2 text-left">
-                                <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm text-primary">badge</span>
-                                    Mô tả chi tiết vai trò
-                                </label>
-                                <input 
-                                    type="text" 
-                                    v-model="rolePermissions[selectedRoleToConfigure]!.description" 
-                                    placeholder="VD: Quyền thực hiện cân và tra cứu báo cáo cân" 
-                                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-colors placeholder:text-gray-400 placeholder:font-normal"
+                        <!-- Editable Role Label & Description -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                            <div class="bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2 text-left">
+                                <div class="flex items-center justify-between gap-2">
+                                    <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-sm text-primary">badge</span>
+                                        Tên chức vụ
+                                    </label>
+                                    <span class="text-xs font-semibold text-slate-400">Mã: {{ selectedRoleToConfigure }}</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    v-model="selectedRoleLabel"
+                                    placeholder="VD: Kế toán kho"
+                                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary transition-colors placeholder:text-gray-400 placeholder:font-normal"
                                 />
                             </div>
 
-                            <!-- Coarse Role-level Action Toggles (canCreate, canUpdate, canDelete) -->
-                            <div class="lg:col-span-7 bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-4 space-y-3 text-left">
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <span class="text-xs font-display font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                                        <span class="material-symbols-outlined text-sm text-primary">admin_panel_settings</span>
-                                        Khóa quyền thao tác tổng quát (Cấp vai trò)
-                                    </span>
-                                    <span v-if="!rolePermissions[selectedRoleToConfigure]!.canDelete" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200/70 text-xs font-bold">
-                                        <span class="material-symbols-outlined text-xs">lock</span>
-                                        Đang khóa quyền Xóa
-                                    </span>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                    <!-- Cho phép Thêm -->
-                                    <label class="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-white border cursor-pointer transition-all select-none"
-                                        :class="rolePermissions[selectedRoleToConfigure]!.canCreate ? 'border-teal-200 bg-teal-50/40' : 'border-slate-200'"
-                                    >
-                                        <div class="flex flex-col">
-                                            <span class="text-xs font-display font-black text-[#1e293b]">Cho phép Thêm</span>
-                                            <span class="text-xs font-semibold" :class="rolePermissions[selectedRoleToConfigure]!.canCreate ? 'text-teal-600' : 'text-slate-500'">
-                                                {{ rolePermissions[selectedRoleToConfigure]!.canCreate ? 'Đang bật' : 'Đang khóa' }}
-                                            </span>
-                                        </div>
-                                        <div class="relative inline-flex items-center shrink-0">
-                                            <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canCreate" class="sr-only peer" />
-                                            <div class="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
-                                        </div>
-                                    </label>
-
-                                    <!-- Cho phép Sửa -->
-                                    <label class="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-white border cursor-pointer transition-all select-none"
-                                        :class="rolePermissions[selectedRoleToConfigure]!.canUpdate ? 'border-teal-200 bg-teal-50/40' : 'border-slate-200'"
-                                    >
-                                        <div class="flex flex-col">
-                                            <span class="text-xs font-display font-black text-[#1e293b]">Cho phép Sửa</span>
-                                            <span class="text-xs font-semibold" :class="rolePermissions[selectedRoleToConfigure]!.canUpdate ? 'text-teal-600' : 'text-slate-500'">
-                                                {{ rolePermissions[selectedRoleToConfigure]!.canUpdate ? 'Đang bật' : 'Đang khóa' }}
-                                            </span>
-                                        </div>
-                                        <div class="relative inline-flex items-center shrink-0">
-                                            <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canUpdate" class="sr-only peer" />
-                                            <div class="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
-                                        </div>
-                                    </label>
-
-                                    <!-- Cho phép Xóa -->
-                                    <label class="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-white border cursor-pointer transition-all select-none"
-                                        :class="rolePermissions[selectedRoleToConfigure]!.canDelete ? 'border-teal-200 bg-teal-50/40' : 'border-rose-200 bg-rose-50/40'"
-                                    >
-                                        <div class="flex flex-col">
-                                            <span class="text-xs font-display font-black text-[#1e293b]">Cho phép Xóa</span>
-                                            <span class="text-xs font-semibold" :class="rolePermissions[selectedRoleToConfigure]!.canDelete ? 'text-teal-600' : 'text-rose-600'">
-                                                {{ rolePermissions[selectedRoleToConfigure]!.canDelete ? 'Đang bật' : 'Đã khóa' }}
-                                            </span>
-                                        </div>
-                                        <div class="relative inline-flex items-center shrink-0">
-                                            <input type="checkbox" v-model="rolePermissions[selectedRoleToConfigure]!.canDelete" class="sr-only peer" />
-                                            <div class="w-10 h-5 bg-rose-200 rounded-full peer peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
-                                        </div>
-                                    </label>
-                                </div>
+                            <div class="bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2 text-left">
+                                <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-sm text-primary">description</span>
+                                    Mô tả chức vụ
+                                </label>
+                                <input
+                                    type="text"
+                                    v-model="rolePermissions[selectedRoleToConfigure]!.description"
+                                    @input="hasUnsavedRoleChanges = true"
+                                    placeholder="VD: Quyền thực hiện cân và tra cứu báo cáo cân"
+                                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-colors placeholder:text-gray-400 placeholder:font-normal"
+                                />
                             </div>
                         </div>
 
-                        <!-- Subsystems Tree Sections (Sơ đồ cây) -->
-                        <div class="space-y-5 text-left">
-                            <div class="flex items-center justify-between">
-                                <h4 class="text-xs font-display font-black text-slate-500 uppercase tracking-wider">Phân quyền truy cập theo Sơ đồ cây</h4>
-                                <span class="text-xs font-semibold text-slate-500">Đã bật {{ enabledActionSubsystems.length }} / {{ SUBSYSTEM_ORDER.length }} phân hệ</span>
+                        <!-- Unified Actions Permissions Matrix (Single Source of Truth) -->
+                        <div class="space-y-5">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5 text-left">
+                                    <h4 class="text-xs font-display font-black text-slate-600 uppercase tracking-wider">Chi tiết quyền hạn thao tác (Actions Permissions)</h4>
+                                    <span class="h-7 px-2.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-[8px] text-xs font-bold inline-flex items-center">
+                                        Đang bật {{ activeSubsystemsCount }} / {{ SUBSYSTEM_ORDER.length }} phân hệ
+                                    </span>
+                                </div>
+
+                                <!-- Compact Group Filter Tabs (DESIGN.md Section 6) -->
+                                <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center overflow-x-auto">
+                                    <button
+                                        @click="activeMatrixGroup = 'all'"
+                                        class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all whitespace-nowrap"
+                                        :class="activeMatrixGroup === 'all' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+                                    >
+                                        Tất cả
+                                    </button>
+                                    <button
+                                        @click="activeMatrixGroup = 'phanHe'"
+                                        class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all whitespace-nowrap"
+                                        :class="activeMatrixGroup === 'phanHe' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+                                    >
+                                        1. Phân hệ (5)
+                                    </button>
+                                    <button
+                                        @click="activeMatrixGroup = 'danhMuc'"
+                                        class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all whitespace-nowrap"
+                                        :class="activeMatrixGroup === 'danhMuc' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+                                    >
+                                        2. Danh mục (4)
+                                    </button>
+                                    <button
+                                        @click="activeMatrixGroup = 'tienIch'"
+                                        class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all whitespace-nowrap"
+                                        :class="activeMatrixGroup === 'tienIch' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+                                    >
+                                        Tiện ích (3)
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- GROUP 1: 1. PHÂN HỆ (5 mục) -->
-                            <div class="rounded-3xl bg-[#f1f5f9]/70 border border-slate-200/80 p-5 space-y-4">
+                            <!-- SECTION 1: 1. PHÂN HỆ (5 mục) -->
+                            <div v-if="activeMatrixGroup === 'all' || activeMatrixGroup === 'phanHe'" class="rounded-3xl bg-[#f1f5f9]/70 border border-slate-200/80 p-5 space-y-4">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-2.5">
                                         <span class="size-6 rounded-lg bg-primary text-white text-xs font-display font-black flex items-center justify-center shadow-sm">1</span>
@@ -1661,384 +1660,303 @@ onMounted(async () => {
                                     <span class="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full">5 mục</span>
                                 </div>
 
-                                <!-- Tạo nguồn tàu & Dữ liệu cân -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                    <div 
-                                        v-for="t in subsystemGroups.phanHeMain" 
-                                        :key="t.id"
-                                        @click="activeSubsystem = t.id"
-                                        class="p-4 bg-white rounded-2xl border flex items-center justify-between transition-all cursor-pointer select-none group"
-                                        :class="activeSubsystem === t.id ? 'border-primary ring-1 ring-primary/30 bg-primary/[0.02] shadow-sm' : 'border-slate-200 hover:border-primary/40'"
-                                    >
-                                        <div class="flex items-center gap-3.5 pr-2">
-                                            <label class="relative flex items-center cursor-pointer" @click.stop>
-                                                <input 
-                                                    type="checkbox" 
-                                                    :checked="isSubsystemChecked(selectedRoleToConfigure, t.id)" 
-                                                    @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, t.id)"
-                                                    class="sr-only peer"
-                                                />
-                                                <div 
-                                                    class="size-6 rounded-lg flex items-center justify-center transition-all border-2"
-                                                    :class="isSubsystemChecked(selectedRoleToConfigure, t.id) 
-                                                        ? 'bg-primary border-primary text-white' 
-                                                        : 'bg-white border-slate-300 text-transparent'"
-                                                >
-                                                    <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
-                                                </div>
-                                            </label>
-                                            <div class="flex flex-col gap-0.5 text-left">
-                                                <span class="font-display font-black text-sm text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
-                                                <span class="text-xs font-semibold text-slate-500 leading-snug">{{ t.description }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="size-9 rounded-xl flex items-center justify-center border shrink-0 transition-colors"
-                                            :class="isSubsystemChecked(selectedRoleToConfigure, t.id) ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                                        >
-                                            <span class="material-symbols-outlined text-base">{{ t.icon }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Nhóm con: Báo cáo (3 phân hệ con) -->
-                                <div class="rounded-2xl bg-white/90 border border-primary/15 p-4 space-y-3">
-                                    <div class="flex items-center justify-between gap-2">
+                                <div v-for="sub in phanHeSubsystemsList" :key="sub.id" class="space-y-2 text-left">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
                                         <div class="flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-base text-primary">analytics</span>
-                                            <span class="text-xs font-display font-black text-primary uppercase tracking-wider">Báo cáo</span>
-                                        </div>
-                                        <span class="text-xs font-bold text-slate-500 bg-[#f1f5f9] px-2.5 py-0.5 rounded-full">3 phân hệ con</span>
-                                    </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <div 
-                                            v-for="t in subsystemGroups.phanHeReports" 
-                                            :key="t.id"
-                                            @click="activeSubsystem = t.id"
-                                            class="p-3.5 bg-white rounded-2xl border flex items-start justify-between gap-2.5 transition-all cursor-pointer select-none group"
-                                            :class="activeSubsystem === t.id ? 'border-primary ring-1 ring-primary/30 bg-primary/[0.02] shadow-sm' : 'border-slate-200 hover:border-primary/40'"
-                                        >
-                                            <div class="flex items-start gap-3">
-                                                <label class="relative flex items-center cursor-pointer mt-0.5" @click.stop>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        :checked="isSubsystemChecked(selectedRoleToConfigure, t.id)" 
-                                                        @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, t.id)"
-                                                        class="sr-only peer"
-                                                    />
-                                                    <div 
-                                                        class="size-6 rounded-lg flex items-center justify-center transition-all border-2"
-                                                        :class="isSubsystemChecked(selectedRoleToConfigure, t.id) 
-                                                            ? 'bg-primary border-primary text-white' 
-                                                            : 'bg-white border-slate-300 text-transparent'"
-                                                    >
-                                                        <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
-                                                    </div>
-                                                </label>
-                                                <div class="flex flex-col gap-0.5 text-left">
-                                                    <span class="font-display font-black text-sm text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
-                                                    <span class="text-xs font-semibold text-slate-500 leading-snug">{{ t.description }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="size-8 rounded-xl flex items-center justify-center border shrink-0 transition-colors"
-                                                :class="isSubsystemChecked(selectedRoleToConfigure, t.id) ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                                            <span class="material-symbols-outlined text-base text-primary">{{ sub.icon }}</span>
+                                            <span class="text-xs font-display font-black text-[#1e293b] uppercase tracking-wide">
+                                                {{ getSubsystemName(sub.id) }}
+                                            </span>
+                                            <span
+                                                class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                                                :class="isSubsystemChecked(selectedRoleToConfigure, sub.id)
+                                                    ? 'bg-teal-50 text-teal-600 border-teal-200'
+                                                    : 'bg-slate-100 text-slate-500 border-slate-200'"
                                             >
-                                                <span class="material-symbols-outlined text-sm">{{ t.icon }}</span>
-                                            </div>
+                                                {{ isSubsystemChecked(selectedRoleToConfigure, sub.id) ? 'Đang bật' : 'Tắt' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <button
+                                                @click="toggleAllSubsystemPerms(selectedRoleToConfigure, sub.id)"
+                                                class="h-7 px-3 rounded-[8px] text-xs font-bold border transition-all active:scale-[0.98]"
+                                                :class="isSubsystemFullyChecked(selectedRoleToConfigure, sub.id)
+                                                    ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                    : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'"
+                                            >
+                                                {{ isSubsystemFullyChecked(selectedRoleToConfigure, sub.id) ? 'Bỏ chọn' : 'Chọn tất cả' }}
+                                            </button>
+                                            <button
+                                                v-if="isSubsystemChecked(selectedRoleToConfigure, sub.id) && !isSubsystemFullyChecked(selectedRoleToConfigure, sub.id)"
+                                                @click="clearSubsystemPerms(selectedRoleToConfigure, sub.id)"
+                                                class="h-7 px-3 rounded-[8px] text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-all active:scale-[0.98]"
+                                            >
+                                                Bỏ chọn
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Quản lý hồ sơ phương tiện & Biên bản -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                    <div 
-                                        v-for="t in subsystemGroups.phanHeOther" 
-                                        :key="t.id"
-                                        @click="activeSubsystem = t.id"
-                                        class="p-4 bg-white rounded-2xl border flex items-center justify-between transition-all cursor-pointer select-none group"
-                                        :class="activeSubsystem === t.id ? 'border-primary ring-1 ring-primary/30 bg-primary/[0.02] shadow-sm' : 'border-slate-200 hover:border-primary/40'"
-                                    >
-                                        <div class="flex items-center gap-3.5 pr-2">
-                                            <label class="relative flex items-center cursor-pointer" @click.stop>
-                                                <input 
-                                                    type="checkbox" 
-                                                    :checked="isSubsystemChecked(selectedRoleToConfigure, t.id)" 
-                                                    @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, t.id)"
-                                                    class="sr-only peer"
-                                                />
-                                                <div 
-                                                    class="size-6 rounded-lg flex items-center justify-center transition-all border-2"
-                                                    :class="isSubsystemChecked(selectedRoleToConfigure, t.id) 
-                                                        ? 'bg-primary border-primary text-white' 
-                                                        : 'bg-white border-slate-300 text-transparent'"
-                                                >
-                                                    <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
-                                                </div>
-                                            </label>
-                                            <div class="flex flex-col gap-0.5 text-left">
-                                                <span class="font-display font-black text-sm text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
-                                                <span class="text-xs font-semibold text-slate-500 leading-snug">{{ t.description }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="size-9 rounded-xl flex items-center justify-center border shrink-0 transition-colors"
-                                            :class="isSubsystemChecked(selectedRoleToConfigure, t.id) ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                                        >
-                                            <span class="material-symbols-outlined text-base">{{ t.icon }}</span>
-                                        </div>
+                                    <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                                        <table class="w-full border-collapse">
+                                            <thead>
+                                                <tr class="bg-slate-50 border-b border-slate-200 text-left">
+                                                    <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider w-[44%]">Chức năng</th>
+                                                    <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Xem</th>
+                                                    <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Thêm</th>
+                                                    <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Sửa</th>
+                                                    <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Xóa</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                <tr v-for="act in actionPermissionsMapping[sub.id]" :key="act.permId" class="hover:bg-slate-50/70 transition-colors">
+                                                    <td class="py-3 px-5 text-xs font-bold text-[#1e293b]">
+                                                        {{ act.name }}
+                                                    </td>
+                                                    <td class="py-3 px-4 text-center">
+                                                        <label v-if="act.showView" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                :checked="isActionPermChecked(selectedRoleToConfigure, sub.id, act.permId, 'read')"
+                                                                @change="toggleActionPerm(selectedRoleToConfigure, sub.id, act.permId, 'read')"
+                                                                class="sr-only peer"
+                                                            />
+                                                            <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                                <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                            </div>
+                                                        </label>
+                                                        <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                    </td>
+                                                    <td class="py-3 px-4 text-center">
+                                                        <label v-if="act.showCreate" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                :checked="isActionPermChecked(selectedRoleToConfigure, sub.id, act.permId, 'create')"
+                                                                @change="toggleActionPerm(selectedRoleToConfigure, sub.id, act.permId, 'create')"
+                                                                class="sr-only peer"
+                                                            />
+                                                            <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                                <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                            </div>
+                                                        </label>
+                                                        <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                    </td>
+                                                    <td class="py-3 px-4 text-center">
+                                                        <label v-if="act.showUpdate" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                :checked="isActionPermChecked(selectedRoleToConfigure, sub.id, act.permId, 'update')"
+                                                                @change="toggleActionPerm(selectedRoleToConfigure, sub.id, act.permId, 'update')"
+                                                                class="sr-only peer"
+                                                            />
+                                                            <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                                <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                            </div>
+                                                        </label>
+                                                        <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                    </td>
+                                                    <td class="py-3 px-4 text-center">
+                                                        <label v-if="act.showDelete" class="relative inline-flex items-center justify-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                :checked="isActionPermChecked(selectedRoleToConfigure, sub.id, act.permId, 'delete')"
+                                                                @change="toggleActionPerm(selectedRoleToConfigure, sub.id, act.permId, 'delete')"
+                                                                class="sr-only peer"
+                                                            />
+                                                            <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                                <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                            </div>
+                                                        </label>
+                                                        <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- GROUP 2: 2. DANH MỤC (4 phần riêng biệt) -->
-                            <div class="rounded-3xl bg-[#f1f5f9]/70 border border-slate-200/80 p-5 space-y-4">
-                                <div class="flex flex-wrap items-center justify-between gap-3">
+                            <!-- SECTION 2: 2. DANH MỤC (4 mục) -->
+                            <div v-if="activeMatrixGroup === 'all' || activeMatrixGroup === 'danhMuc'" class="rounded-3xl bg-[#f1f5f9]/70 border border-slate-200/80 p-5 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
                                     <div class="flex items-center gap-2.5">
                                         <span class="size-6 rounded-lg bg-primary text-white text-xs font-display font-black flex items-center justify-center shadow-sm">2</span>
                                         <h5 class="text-sm font-display font-black text-[#1e293b] uppercase tracking-wide">2. DANH MỤC</h5>
-                                        <span class="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full">4 danh mục</span>
-                                    </div>
-                                    <label class="inline-flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:border-primary/40 transition-colors">
-                                        <input
-                                            type="checkbox"
-                                            :checked="isSubsystemChecked(selectedRoleToConfigure, 'categories')"
-                                            @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, 'categories')"
-                                            class="sr-only peer"
-                                        />
-                                        <div
-                                            class="size-4 rounded flex items-center justify-center transition-all border-2"
+                                        <span
+                                            class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
                                             :class="isSubsystemChecked(selectedRoleToConfigure, 'categories')
-                                                ? 'bg-primary border-primary text-white'
-                                                : 'bg-white border-slate-300 text-transparent'"
+                                                ? 'bg-teal-50 text-teal-600 border-teal-200'
+                                                : 'bg-slate-100 text-slate-500 border-slate-200'"
                                         >
-                                            <span class="material-symbols-outlined text-xs font-bold scale-75">check</span>
-                                        </div>
-                                        <span class="text-xs font-bold text-[#1e293b]">Bật/Tắt tất cả danh mục</span>
-                                    </label>
-                                </div>
-
-                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <div
-                                        v-for="cat in categorySubItems"
-                                        :key="cat.permId"
-                                        @click="onCategoryItemToggle(selectedRoleToConfigure, cat.permId)"
-                                        class="p-3.5 bg-white rounded-2xl border flex items-start justify-between gap-2.5 transition-all cursor-pointer select-none group"
-                                        :class="isCategoryItemChecked(selectedRoleToConfigure, cat.permId)
-                                            ? 'border-primary/50 bg-primary/[0.02] shadow-sm'
-                                            : 'border-slate-200 hover:border-primary/40'"
-                                    >
-                                        <div class="flex items-start gap-3">
-                                            <div
-                                                class="size-5 mt-0.5 rounded-md flex items-center justify-center transition-all border-2 shrink-0"
-                                                :class="isCategoryItemChecked(selectedRoleToConfigure, cat.permId)
-                                                    ? 'bg-primary border-primary text-white'
-                                                    : 'bg-white border-slate-300 text-transparent'"
-                                            >
-                                                <span class="material-symbols-outlined text-xs font-bold scale-90">check</span>
-                                            </div>
-                                            <div class="flex flex-col gap-0.5 text-left">
-                                                <span class="font-display font-black text-xs text-[#1e293b] group-hover:text-primary transition-colors">{{ cat.name }}</span>
-                                                <span class="text-xs font-semibold text-slate-500 leading-snug">{{ cat.description }}</span>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="size-8 rounded-xl flex items-center justify-center border shrink-0 transition-colors"
-                                            :class="isCategoryItemChecked(selectedRoleToConfigure, cat.permId) ? 'bg-primary/10 text-primary border-primary/20' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                                            {{ isSubsystemChecked(selectedRoleToConfigure, 'categories') ? 'Đang bật' : 'Tắt' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full">4 danh mục</span>
+                                        <button
+                                            @click="toggleAllSubsystemPerms(selectedRoleToConfigure, 'categories')"
+                                            class="h-7 px-3 rounded-[8px] text-xs font-bold border transition-all active:scale-[0.98]"
+                                            :class="isSubsystemFullyChecked(selectedRoleToConfigure, 'categories')
+                                                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'"
                                         >
-                                            <span class="material-symbols-outlined text-sm">{{ cat.icon }}</span>
-                                        </div>
+                                            {{ isSubsystemFullyChecked(selectedRoleToConfigure, 'categories') ? 'Bỏ chọn' : 'Chọn tất cả' }}
+                                        </button>
+                                        <button
+                                            v-if="isSubsystemChecked(selectedRoleToConfigure, 'categories') && !isSubsystemFullyChecked(selectedRoleToConfigure, 'categories')"
+                                            @click="clearSubsystemPerms(selectedRoleToConfigure, 'categories')"
+                                            class="h-7 px-3 rounded-[8px] text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-all active:scale-[0.98]"
+                                        >
+                                            Bỏ chọn
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- SECONDARY GROUP: TIỆN ÍCH VĂN PHÒNG (Mục phụ) -->
-                            <div class="rounded-2xl bg-slate-50/80 border border-dashed border-slate-200 p-4 space-y-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-base text-slate-500">construction</span>
-                                        <h5 class="text-xs font-display font-black text-slate-600 uppercase tracking-wider">Tiện ích văn phòng (Mục phụ)</h5>
-                                    </div>
-                                    <span class="text-xs font-semibold text-slate-500">Converter • Merger • OCR</span>
-                                </div>
-                                <div 
-                                    v-for="t in subsystemGroups.tienIch" 
-                                    :key="t.id"
-                                    @click="activeSubsystem = t.id"
-                                    class="p-3.5 bg-white rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer select-none group"
-                                    :class="activeSubsystem === t.id ? 'border-primary ring-1 ring-primary/30 bg-primary/[0.02] shadow-sm' : 'border-slate-200 hover:border-primary/40'"
-                                >
-                                    <div class="flex items-center gap-3.5">
-                                        <label class="relative flex items-center cursor-pointer" @click.stop>
-                                            <input 
-                                                type="checkbox" 
-                                                :checked="isSubsystemChecked(selectedRoleToConfigure, t.id)" 
-                                                @change="onSubsystemCheckboxToggle(selectedRoleToConfigure, t.id)"
-                                                class="sr-only peer"
-                                            />
-                                            <div 
-                                                class="size-6 rounded-lg flex items-center justify-center transition-all border-2"
-                                                :class="isSubsystemChecked(selectedRoleToConfigure, t.id) 
-                                                    ? 'bg-primary border-primary text-white' 
-                                                    : 'bg-white border-slate-300 text-transparent'"
-                                            >
-                                                <span class="material-symbols-outlined text-base font-bold scale-90">check</span>
-                                            </div>
-                                        </label>
-                                        <div class="flex flex-col gap-0.5 text-left">
-                                            <span class="font-display font-black text-sm text-[#1e293b] group-hover:text-primary transition-colors">{{ t.name }}</span>
-                                            <span class="text-xs font-semibold text-slate-500 leading-snug">{{ t.description }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-1.5 shrink-0">
-                                        <span v-for="tag in t.tags" :key="tag" class="hidden sm:inline-block px-2 py-0.5 rounded-lg bg-[#f1f5f9] text-slate-600 text-xs font-bold">{{ tag }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Actions Permissions Table List -->
-                        <div v-if="enabledActionSubsystems.length > 0" class="space-y-6">
-                            <h4 class="text-xs font-display font-black text-slate-500 uppercase tracking-wider">Chi tiết quyền hạn thao tác (Actions Permissions)</h4>
-                            
-                            <div v-for="subsystem in enabledActionSubsystems" :key="subsystem" class="space-y-2.5 text-left animate-fade-in">
-                                <div class="flex items-center gap-2 px-1">
-                                    <span class="material-symbols-outlined text-base text-primary">
-                                        {{ getSubsystemIcon(subsystem) }}
-                                    </span>
-                                    <span class="text-xs font-display font-black text-[#1e293b] uppercase tracking-wide">
-                                        {{ getSubsystemName(subsystem) }}
-                                    </span>
-                                </div>
-                                
-                                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
                                     <table class="w-full border-collapse">
                                         <thead>
                                             <tr class="bg-slate-50 border-b border-slate-200 text-left">
-                                                <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider w-[40%]">Chức năng</th>
-                                                <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Xem</th>
-                                                <th class="py-3 px-5 text-xs font-display font-black uppercase tracking-wider text-center w-[15%]"
-                                                    :class="isActionColumnDisabled(selectedRoleToConfigure, 'create') ? 'text-slate-400' : 'text-slate-500'"
-                                                    :title="isActionColumnDisabled(selectedRoleToConfigure, 'create') ? getDisabledActionTooltip('create') : ''"
-                                                >
-                                                    <span class="inline-flex items-center gap-1">
-                                                        Thêm
-                                                        <span v-if="isActionColumnDisabled(selectedRoleToConfigure, 'create')" class="material-symbols-outlined text-xs text-rose-500">lock</span>
-                                                    </span>
-                                                </th>
-                                                <th class="py-3 px-5 text-xs font-display font-black uppercase tracking-wider text-center w-[15%]"
-                                                    :class="isActionColumnDisabled(selectedRoleToConfigure, 'update') ? 'text-slate-400' : 'text-slate-500'"
-                                                    :title="isActionColumnDisabled(selectedRoleToConfigure, 'update') ? getDisabledActionTooltip('update') : ''"
-                                                >
-                                                    <span class="inline-flex items-center gap-1">
-                                                        Sửa
-                                                        <span v-if="isActionColumnDisabled(selectedRoleToConfigure, 'update')" class="material-symbols-outlined text-xs text-rose-500">lock</span>
-                                                    </span>
-                                                </th>
-                                                <th class="py-3 px-5 text-xs font-display font-black uppercase tracking-wider text-center w-[15%]"
-                                                    :class="isActionColumnDisabled(selectedRoleToConfigure, 'delete') ? 'text-rose-500' : 'text-slate-500'"
-                                                    :title="isActionColumnDisabled(selectedRoleToConfigure, 'delete') ? getDisabledActionTooltip('delete') : ''"
-                                                >
-                                                    <span class="inline-flex items-center gap-1">
-                                                        Xóa
-                                                        <span v-if="isActionColumnDisabled(selectedRoleToConfigure, 'delete')" class="material-symbols-outlined text-xs text-rose-500">lock</span>
-                                                    </span>
-                                                </th>
+                                                <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider w-[44%]">Danh mục</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Xem</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Thêm</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Sửa</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Xóa</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
-                                            <tr v-for="act in actionPermissionsMapping[subsystem]" :key="act.permId" class="hover:bg-slate-50/70 transition-colors">
-                                                <!-- Chức năng -->
-                                                <td class="py-3.5 px-5 text-xs font-bold text-[#1e293b]">
+                                            <tr v-for="act in actionPermissionsMapping.categories" :key="act.permId" class="hover:bg-slate-50/70 transition-colors">
+                                                <td class="py-3 px-5 text-xs font-bold text-[#1e293b] text-left">
                                                     {{ act.name }}
                                                 </td>
-                                                
-                                                <!-- Xem -->
-                                                <td class="py-3.5 px-5 text-center">
-                                                    <label v-if="act.showView" class="relative inline-flex items-center justify-center cursor-pointer">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            :checked="isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'read')" 
-                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'read')"
+                                                <td class="py-3 px-4 text-center">
+                                                    <label class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, 'categories', act.permId, 'read')"
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, 'categories', act.permId, 'read')"
                                                             class="sr-only peer"
                                                         />
                                                         <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
                                                             <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
                                                         </div>
                                                     </label>
-                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
                                                 </td>
-                                                
-                                                <!-- Thêm -->
-                                                <td class="py-3.5 px-5 text-center">
-                                                    <label v-if="act.showCreate"
-                                                        class="relative inline-flex items-center justify-center"
-                                                        :class="isActionColumnDisabled(selectedRoleToConfigure, 'create') ? 'cursor-not-allowed opacity-45' : 'cursor-pointer'"
-                                                        :title="isActionColumnDisabled(selectedRoleToConfigure, 'create') ? getDisabledActionTooltip('create') : ''"
-                                                    >
-                                                        <input 
-                                                            type="checkbox" 
-                                                            :disabled="isActionColumnDisabled(selectedRoleToConfigure, 'create')"
-                                                            :checked="!isActionColumnDisabled(selectedRoleToConfigure, 'create') && isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'create')" 
-                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'create')"
+                                                <td class="py-3 px-4 text-center">
+                                                    <label class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, 'categories', act.permId, 'create')"
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, 'categories', act.permId, 'create')"
                                                             class="sr-only peer"
                                                         />
-                                                        <div class="size-5 rounded flex items-center justify-center transition-all border-2"
-                                                            :class="isActionColumnDisabled(selectedRoleToConfigure, 'create')
-                                                                ? 'bg-slate-100 border-slate-200'
-                                                                : 'bg-white border-slate-300 peer-checked:bg-primary peer-checked:border-primary'"
-                                                        >
+                                                        <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
                                                             <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
                                                         </div>
                                                     </label>
-                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
                                                 </td>
-                                                
-                                                <!-- Sửa -->
-                                                <td class="py-3.5 px-5 text-center">
-                                                    <label v-if="act.showUpdate"
-                                                        class="relative inline-flex items-center justify-center"
-                                                        :class="isActionColumnDisabled(selectedRoleToConfigure, 'update') ? 'cursor-not-allowed opacity-45' : 'cursor-pointer'"
-                                                        :title="isActionColumnDisabled(selectedRoleToConfigure, 'update') ? getDisabledActionTooltip('update') : ''"
-                                                    >
-                                                        <input 
-                                                            type="checkbox" 
-                                                            :disabled="isActionColumnDisabled(selectedRoleToConfigure, 'update')"
-                                                            :checked="!isActionColumnDisabled(selectedRoleToConfigure, 'update') && isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'update')" 
-                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'update')"
+                                                <td class="py-3 px-4 text-center">
+                                                    <label class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, 'categories', act.permId, 'update')"
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, 'categories', act.permId, 'update')"
                                                             class="sr-only peer"
                                                         />
-                                                        <div class="size-5 rounded flex items-center justify-center transition-all border-2"
-                                                            :class="isActionColumnDisabled(selectedRoleToConfigure, 'update')
-                                                                ? 'bg-slate-100 border-slate-200'
-                                                                : 'bg-white border-slate-300 peer-checked:bg-primary peer-checked:border-primary'"
-                                                        >
+                                                        <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
                                                             <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
                                                         </div>
                                                     </label>
-                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
                                                 </td>
-                                                
-                                                <!-- Xóa -->
-                                                <td class="py-3.5 px-5 text-center">
-                                                    <label v-if="act.showDelete"
-                                                        class="relative inline-flex items-center justify-center"
-                                                        :class="isActionColumnDisabled(selectedRoleToConfigure, 'delete') ? 'cursor-not-allowed opacity-45' : 'cursor-pointer'"
-                                                        :title="isActionColumnDisabled(selectedRoleToConfigure, 'delete') ? getDisabledActionTooltip('delete') : ''"
-                                                    >
-                                                        <input 
-                                                            type="checkbox" 
-                                                            :disabled="isActionColumnDisabled(selectedRoleToConfigure, 'delete')"
-                                                            :checked="!isActionColumnDisabled(selectedRoleToConfigure, 'delete') && isActionPermChecked(selectedRoleToConfigure, subsystem, act.permId, 'delete')" 
-                                                            @change="toggleActionPerm(selectedRoleToConfigure, subsystem, act.permId, 'delete')"
+                                                <td class="py-3 px-4 text-center">
+                                                    <label class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, 'categories', act.permId, 'delete')"
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, 'categories', act.permId, 'delete')"
                                                             class="sr-only peer"
                                                         />
-                                                        <div class="size-5 rounded flex items-center justify-center transition-all border-2"
-                                                            :class="isActionColumnDisabled(selectedRoleToConfigure, 'delete')
-                                                                ? 'bg-rose-50 border-rose-200'
-                                                                : 'bg-white border-slate-300 peer-checked:bg-primary peer-checked:border-primary'"
-                                                        >
+                                                        <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
                                                             <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
                                                         </div>
                                                     </label>
-                                                    <div v-else class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 3: TIỆN ÍCH VĂN PHÒNG (Mục phụ) -->
+                            <div v-if="activeMatrixGroup === 'all' || activeMatrixGroup === 'tienIch'" class="rounded-3xl bg-slate-50/80 border border-dashed border-slate-200 p-5 space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base text-slate-500">construction</span>
+                                        <h5 class="text-xs font-display font-black text-slate-600 uppercase tracking-wider">Tiện ích văn phòng (Mục phụ)</h5>
+                                        <span
+                                            class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                                            :class="isSubsystemChecked(selectedRoleToConfigure, 'utilities')
+                                                ? 'bg-teal-50 text-teal-600 border-teal-200'
+                                                : 'bg-slate-100 text-slate-500 border-slate-200'"
+                                        >
+                                            {{ isSubsystemChecked(selectedRoleToConfigure, 'utilities') ? 'Đang bật' : 'Tắt' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <button
+                                            @click="toggleAllSubsystemPerms(selectedRoleToConfigure, 'utilities')"
+                                            class="h-7 px-3 rounded-[8px] text-xs font-bold border transition-all active:scale-[0.98]"
+                                            :class="isSubsystemFullyChecked(selectedRoleToConfigure, 'utilities')
+                                                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'"
+                                        >
+                                            {{ isSubsystemFullyChecked(selectedRoleToConfigure, 'utilities') ? 'Bỏ chọn' : 'Chọn tất cả' }}
+                                        </button>
+                                        <button
+                                            v-if="isSubsystemChecked(selectedRoleToConfigure, 'utilities') && !isSubsystemFullyChecked(selectedRoleToConfigure, 'utilities')"
+                                            @click="clearSubsystemPerms(selectedRoleToConfigure, 'utilities')"
+                                            class="h-7 px-3 rounded-[8px] text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-all active:scale-[0.98]"
+                                        >
+                                            Bỏ chọn
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                                    <table class="w-full border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-slate-200 text-left">
+                                                <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider w-[44%]">Tiện ích</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[14%]">Xem</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-400 uppercase tracking-wider text-center w-[14%]">Thêm</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-400 uppercase tracking-wider text-center w-[14%]">Sửa</th>
+                                                <th class="py-3 px-4 text-xs font-display font-black text-slate-400 uppercase tracking-wider text-center w-[14%]">Xóa</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <tr v-for="act in actionPermissionsMapping.utilities" :key="act.permId" class="hover:bg-slate-50/70 transition-colors">
+                                                <td class="py-3 px-5 text-xs font-bold text-[#1e293b] text-left">
+                                                    {{ act.name }}
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <label class="relative inline-flex items-center justify-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            :checked="isActionPermChecked(selectedRoleToConfigure, 'utilities', act.permId, 'read')"
+                                                            @change="toggleActionPerm(selectedRoleToConfigure, 'utilities', act.permId, 'read')"
+                                                            class="sr-only peer"
+                                                        />
+                                                        <div class="size-5 bg-white border-2 border-slate-300 rounded flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
+                                                            <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
+                                                        </div>
+                                                    </label>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <div class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <div class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
+                                                </td>
+                                                <td class="py-3 px-4 text-center">
+                                                    <div class="size-5 mx-auto bg-slate-100 border border-slate-200 rounded cursor-not-allowed"></div>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -2048,8 +1966,17 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <div class="flex justify-end pt-3 border-t border-dashed border-primary/10">
-                        <button @click="handleSaveRolePermissions" class="bg-primary text-white px-8 py-2.5 font-display font-bold text-xs rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all">Lưu cấu hình phân quyền</button>
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-dashed border-primary/10">
+                        <span v-if="hasUnsavedRoleChanges" class="text-xs font-bold text-amber-600 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">info</span>
+                            Bạn có thay đổi phân quyền chưa lưu. Bấm nút bên phải để áp dụng.
+                        </span>
+                        <span v-else class="text-xs font-semibold text-slate-400">
+                            Cấu hình đã được đồng bộ.
+                        </span>
+                        <button @click="handleSaveRolePermissions" class="bg-primary text-white px-8 py-2.5 font-display font-bold text-xs rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all">
+                            Lưu cấu hình phân quyền
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2111,7 +2038,7 @@ onMounted(async () => {
                                 <tr class="border-b border-primary/10 text-gray-400 text-xs font-black uppercase tracking-wider">
                                     <th class="pb-4 pl-4">Thời gian</th>
                                     <th class="pb-4">Người dùng</th>
-                                    <th class="pb-4">Vai trò</th>
+                                    <th class="pb-4">Chức vụ</th>
                                     <th class="pb-4">Hành động</th>
                                     <th class="pb-4 pr-4">Chi tiết</th>
                                 </tr>
@@ -2133,10 +2060,10 @@ onMounted(async () => {
                                         </div>
                                     </td>
                                     <td class="py-3.5">
-                                        <span class="px-2.5 py-1 text-xs font-black uppercase rounded-full"
-                                            :class="log.role === 'admin' ? 'bg-red-50 text-red-500' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-600'"
+                                        <span class="px-2.5 py-1 text-xs font-black rounded-full"
+                                            :class="log.role === 'admin' ? 'bg-rose-50 text-rose-600' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-teal-50 text-teal-600'"
                                         >
-                                            {{ log.role }}
+                                            {{ log.role === 'system' ? 'Hệ thống' : getRoleDisplayLabel(log.role) }}
                                         </span>
                                     </td>
                                     <td class="py-3.5">
@@ -2322,11 +2249,11 @@ onMounted(async () => {
                             <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Chức vụ</label>
                             <select v-model="accountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
-                                <option value="admin">Admin (Quản trị viên)</option>
+                                <option value="admin">{{ getRoleDisplayLabel('admin') }}</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
-                                    {{ r.toUpperCase() }} ({{ r === 'staff' ? 'Nhân viên' : r === 'operator' ? 'Điều hành' : r === 'viewer' ? 'Xem báo cáo' : 'Vai trò tùy chỉnh' }})
+                                    {{ getRoleDisplayLabel(r) }}
                                 </option>
                             </select>
                         </div>
@@ -2358,11 +2285,17 @@ onMounted(async () => {
                             <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Vai trò</label>
+                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Chức vụ</label>
                             <select v-model="editAccountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
-                                <option value="admin">Admin (Quản trị viên)</option>
+                                <option value="admin">{{ getRoleDisplayLabel('admin') }}</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
-                                    {{ r.toUpperCase() }} ({{ r === 'staff' ? 'Nhân viên' : r === 'operator' ? 'Điều hành' : r === 'viewer' ? 'Xem báo cáo' : 'Vai trò tùy chỉnh' }})
+                                    {{ getRoleDisplayLabel(r) }}
+                                </option>
+                                <option
+                                    v-if="editAccountForm.role && editAccountForm.role !== 'admin' && !roleNames.includes(editAccountForm.role)"
+                                    :value="editAccountForm.role"
+                                >
+                                    {{ getRoleDisplayLabel(editAccountForm.role) }} (Chức vụ đã bị xóa)
                                 </option>
                             </select>
                         </div>

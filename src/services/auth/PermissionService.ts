@@ -1,83 +1,16 @@
 import { SettingsService } from '@/services/storage/SettingsService';
-import { authStore, hasPermission, hasDetailPermission } from '@/stores/auth';
+import {
+    authStore,
+    hasPermission,
+    hasDetailPermission,
+    DEFAULT_ROLE_PERMISSIONS,
+    DEFAULT_ROLE_LABELS,
+    getRoleLabel,
+    type RolePermissionConfig
+} from '@/stores/auth';
 
-export interface RolePermissionConfig {
-    tools: string[];
-    description?: string;
-    canCreate: boolean;
-    canUpdate: boolean;
-    canDelete: boolean;
-    detailPermissions?: Record<string, string[]>;
-}
-
-export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissionConfig> = {
-    admin: {
-        tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'minutes', 'categories', 'converter', 'merger', 'ocr'],
-        description: 'Quản trị viên toàn quyền hệ thống',
-        canCreate: true,
-        canUpdate: true,
-        canDelete: true,
-        detailPermissions: {
-            vessel_source: ['vs_vessel_manage', 'vs_barge_manage'],
-            allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
-            warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
-            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
-            split: ['split_manage', 'split_export'],
-            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-            minutes: ['min_create', 'min_export'],
-            categories: ['cat_vehicles', 'cat_customers', 'cat_warehouses', 'cat_goods']
-        }
-    },
-    staff: {
-        tools: ['converter', 'merger', 'ocr', 'minutes', 'categories'],
-        description: 'Nhân viên văn phòng, xử lý tài liệu Excel/PDF và biên bản',
-        canCreate: true,
-        canUpdate: true,
-        canDelete: false,
-        detailPermissions: {
-            minutes: ['min_create', 'min_export'],
-            categories: ['cat_vehicles:read', 'cat_customers:read', 'cat_warehouses:read', 'cat_goods:read']
-        }
-    },
-    operator: {
-        tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'minutes', 'categories'],
-        description: 'Nhân viên vận hành, quản lý nguồn tàu, dữ liệu cân và báo cáo',
-        canCreate: true,
-        canUpdate: true,
-        canDelete: false,
-        detailPermissions: {
-            vessel_source: ['vs_vessel_manage', 'vs_barge_manage'],
-            allocator: ['al_barge_manage', 'al_data_manage', 'al_export'],
-            warehouse: ['wh_import', 'wh_export', 'wh_customer_manage'],
-            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export'],
-            split: ['split_manage', 'split_export'],
-            vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-            minutes: ['min_create', 'min_export'],
-            categories: [
-                'cat_vehicles:read', 'cat_vehicles:create', 'cat_vehicles:update',
-                'cat_customers:read', 'cat_customers:create', 'cat_customers:update',
-                'cat_warehouses:read', 'cat_warehouses:create', 'cat_warehouses:update',
-                'cat_goods:read', 'cat_goods:create', 'cat_goods:update'
-            ]
-        }
-    },
-    viewer: {
-        tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'categories'],
-        description: 'Tài khoản giám sát, chỉ xem dữ liệu và báo cáo sản lượng',
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false,
-        detailPermissions: {
-            vessel_source: ['vs_vessel_manage:read', 'vs_barge_manage:read'],
-            allocator: ['al_export:read'],
-            warehouse: ['wh_export:read'],
-            weighbridge: ['wb_print_export:read'],
-            split: ['split_export:read'],
-            vehicles: ['veh_barge_profile:read'],
-            categories: ['cat_vehicles:read', 'cat_customers:read', 'cat_warehouses:read', 'cat_goods:read']
-        }
-    }
-};
+export { DEFAULT_ROLE_PERMISSIONS, DEFAULT_ROLE_LABELS, getRoleLabel };
+export type { RolePermissionConfig };
 
 export const PermissionService = {
     async loadStaffTools(): Promise<string[]> {

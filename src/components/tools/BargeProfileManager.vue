@@ -585,7 +585,7 @@ async function loadData() {
 }
 
 const addPhuMyBarge = async () => {
-    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'create')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -895,6 +895,10 @@ function findHistoricalBarge(bargeName: string): HistoricalSearchResult {
 }
 
 function handleTriggerHistorySync() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'update')) {
+        addToast('Bạn không có quyền cập nhật hồ sơ sà lan!', 'error');
+        return;
+    }
     const name = editBargeName.value.trim().toUpperCase();
     if (!name) {
         addToast('Vui lòng nhập tên sà lan trước khi truy xuất!', 'info');
@@ -980,6 +984,11 @@ function applyHistoricalSync() {
 
 async function handleImageUpload(e: Event, type: 'gcn' | 'dk' | 'bh' | 'crew') {
     const target = e.target as HTMLInputElement;
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'update')) {
+        addToast('Bạn không có quyền tải ảnh hồ sơ sà lan!', 'error');
+        target.value = '';
+        return;
+    }
     if (!target.files || target.files.length === 0) return;
     
     addToast('Đang tải hình ảnh lên... ⏳', 'info');
@@ -1010,6 +1019,10 @@ async function handleImageUpload(e: Event, type: 'gcn' | 'dk' | 'bh' | 'crew') {
 }
 
 async function removeImage(index: number, type: 'gcn' | 'dk' | 'bh' | 'crew') {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'update')) {
+        addToast('Bạn không có quyền xóa ảnh hồ sơ sà lan!', 'error');
+        return;
+    }
     let urlToDelete = '';
     if (type === 'gcn') {
         urlToDelete = editGcnImages.value[index] || '';
@@ -1058,7 +1071,7 @@ function removeCustomMeta(index: number) {
 }
 
 async function saveProfile() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_registry_insurance')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'update')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1151,6 +1164,10 @@ async function saveProfile() {
 
 
 async function exportToExcel() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('vehicles', 'veh_barge_profile', 'read')) {
+        addToast('Bạn không có quyền xuất Excel hồ sơ phương tiện!', 'error');
+        return;
+    }
     try {
         addToast('Đang tải và khởi tạo tệp mẫu Excel... ⏳', 'info');
         const ExcelJS = (await import('exceljs')).default;
@@ -1535,7 +1552,7 @@ onUnmounted(() => {
                     <div class="flex items-center gap-2 shrink-0">
                         <!-- Add Barge (Only for Phu My area) -->
                         <button 
-                            v-if="activeSite === 'PhuMy'"
+                            v-if="activeSite === 'PhuMy' && (authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'create'))"
                             @click="newBargeName = ''; showAddBargeModal = true"
                             class="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10 shrink-0"
                             title="Tạo sà lan mới thuộc khu vực Phú Mỹ"
@@ -1544,6 +1561,7 @@ onUnmounted(() => {
                             Thêm sà lan mới
                         </button>
                         <button 
+                            v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'read')"
                             @click="exportToExcel"
                             class="h-8 px-3.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 shrink-0"
                             title="Xuất dữ liệu hồ sơ sà lan sang file Excel"
@@ -1753,7 +1771,7 @@ onUnmounted(() => {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
-                                            v-if="activeSite === 'PhuMy'" 
+                                            v-if="activeSite === 'PhuMy' && (authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'delete'))" 
                                             @click="deletePhuMyBarge(item.barge)" 
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa sà lan"
@@ -1998,7 +2016,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                         <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
-                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'crew')" class="hidden" />
@@ -2011,7 +2029,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button @click="removeImage(idx, 'crew')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" @click="removeImage(idx, 'crew')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -2183,7 +2201,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editGcnImages.length }})</span>
-                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'gcn')" class="hidden" />
@@ -2196,7 +2214,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button @click="removeImage(idx, 'gcn')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" @click="removeImage(idx, 'gcn')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -2237,7 +2255,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editDkImages.length }})</span>
-                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'dk')" class="hidden" />
@@ -2250,7 +2268,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button @click="removeImage(idx, 'dk')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" @click="removeImage(idx, 'dk')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -2291,7 +2309,7 @@ onUnmounted(() => {
                             <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editBhImages.length }})</span>
-                                    <label class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
+                                    <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
                                         <span class="material-symbols-outlined text-xs">add_photo_alternate</span>
                                         Tải ảnh
                                         <input type="file" accept="image/*" @change="e => handleImageUpload(e, 'bh')" class="hidden" />
@@ -2304,7 +2322,7 @@ onUnmounted(() => {
                                             <button @click="previewImageUrl = img" class="text-teal-600 hover:underline font-bold flex items-center gap-0.5">
                                                 <span class="material-symbols-outlined text-xs">visibility</span> Xem
                                             </button>
-                                            <button @click="removeImage(idx, 'bh')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
+                                            <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" @click="removeImage(idx, 'bh')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center">
                                                 <span class="material-symbols-outlined text-xs">delete</span>
                                             </button>
                                         </div>
@@ -2351,6 +2369,7 @@ onUnmounted(() => {
                         Hủy
                     </button>
                     <button 
+                        v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')"
                         type="button"
                         @click="handleTriggerHistorySync"
                         class="h-9 px-5 bg-primary/10 hover:bg-primary/20 text-primary font-black rounded-xl text-xs active:scale-95 transition-all flex items-center gap-1.5 border border-primary/20 cursor-pointer"
@@ -2359,7 +2378,7 @@ onUnmounted(() => {
                         <span class="material-symbols-outlined text-base">history</span>
                         Truy xuất hồ sơ
                     </button>
-                    <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_registry_insurance', 'update')"
+                    <button v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')"
                         @click="saveProfile"
                         :disabled="saving"
                         class="h-9 px-6 bg-primary hover:bg-primary-dark text-white font-black rounded-xl text-xs active:scale-95 transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 disabled:opacity-50"

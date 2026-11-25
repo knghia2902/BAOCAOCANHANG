@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { authStore, canCreate, canUpdate, canDelete, hasDetailPermission } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 import { excelService } from '@/services/excel/ExcelService';
 import { dbContext } from '@/services/storage/DBContext';
 import { SettingsService } from '@/services/storage/SettingsService';
@@ -73,7 +73,7 @@ watch(() => props.hideCard, (newVal) => {
 }, { immediate: true });
 
 watch(() => authStore.role, (newRole) => {
-    if (newRole !== 'admin') {
+    if (newRole !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'read')) {
         activeTab.value = 'data';
     }
 });
@@ -1175,6 +1175,10 @@ const selectBarge = async (vesselId: number, bargeId: number) => {
 };
 
 const exportActiveBargeTrucksToExcel = () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_print_export', 'read')) {
+        showToast('Bạn không có quyền xuất báo cáo Excel!', 'error');
+        return;
+    }
     const barge = activeBarge.value;
     if (!barge) {
         showToast('Vui lòng chọn một sà lan trước!', 'error');
@@ -1353,6 +1357,10 @@ const exportActiveBargeTrucksToExcel = () => {
 };
 
 const exportAllBargesToExcel = () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_print_export', 'read')) {
+        showToast('Bạn không có quyền xuất báo cáo Excel!', 'error');
+        return;
+    }
     if (filteredAllBarges.value.length === 0) return;
     
     try {
@@ -1568,6 +1576,10 @@ const settlementTicketsData = ref<any[]>([]);
 const loadingSettlementData = ref(false);
 
 const openSettlementModal = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_print_export', 'read')) {
+        showToast('Bạn không có quyền xem quyết toán & xuất báo cáo!', 'error');
+        return;
+    }
     const vessel = activeVessel.value;
     if (!vessel) return;
     loadingSettlementData.value = true;
@@ -1611,6 +1623,10 @@ const openSettlementModal = async () => {
 };
 
 const exportVesselSummaryExcel = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_print_export', 'read')) {
+        showToast('Bạn không có quyền xuất báo cáo lô hàng!', 'error');
+        return;
+    }
     const vessel = activeVessel.value;
     if (!vessel) return;
     
@@ -1665,7 +1681,7 @@ const saveBargeConfig = () => {
     if (showGlobalTemplateModal.value) return; // In global template modal, changes are saved via saveGlobalTemplateFromModal
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
-    if (cfgForm.locked || (authStore.role !== 'admin' && !canUpdate())) return; // Prevent auto-saving when locked or not admin
+    if (cfgForm.locked || (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update'))) return; // Prevent auto-saving when locked or unauthorized
     
     // Save to local backup immediately
     try {
@@ -1704,10 +1720,6 @@ const saveBargeConfigImmediately = async () => {
     if (!bargeId) return;
     if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
         showToast('Bạn không có quyền thay đổi cấu hình sà lan!', 'error');
-        return;
-    }
-    if (authStore.role !== 'admin' && !canUpdate()) {
-        showToast('Bạn không có quyền lưu cấu hình!', 'error');
         return;
     }
     if (cfgForm.locked) {
@@ -1755,12 +1767,8 @@ const toggleBargeLock = async () => {
     }
     const bargeId = activeBargeId.value;
     if (!bargeId) return;
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
         showToast('Bạn không có quyền khóa/mở khóa sà lan!', 'error');
-        return;
-    }
-    if (authStore.role !== 'admin') {
-        showToast('Chỉ Quản trị viên mới có quyền thực hiện thao tác này!', 'error');
         return;
     }
 
@@ -1837,8 +1845,8 @@ const saveAsGlobalDefaultLayout = () => {
 };
 
 const applyLayoutToAllBarges = async () => {
-    if (authStore.role !== 'admin' && !canUpdate()) {
-        showToast('Chỉ Quản trị viên mới có quyền thực hiện thao tác này!', 'error');
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
+        showToast('Bạn không có quyền áp dụng cấu hình mẫu in!', 'error');
         return;
     }
     if (cfgForm.locked) {
@@ -1891,8 +1899,8 @@ const applyLayoutToAllBarges = async () => {
 };
 
 const copyLayoutFromBarge = (fromBargeId: number) => {
-    if (authStore.role !== 'admin' && !canUpdate()) {
-        showToast('Chỉ Quản trị viên mới có quyền thực hiện thao tác này!', 'error');
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
+        showToast('Bạn không có quyền sao chép cấu hình mẫu in!', 'error');
         return;
     }
     if (cfgForm.locked) {
@@ -2794,10 +2802,18 @@ const renameVessel = (id: number, _currentName: string) => {
 
 // Master Data Modal Controller
 const openMasterDataModal = () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền quản lý danh mục chuẩn!', 'error');
+        return;
+    }
     showMasterDataModal.value = true;
 };
 
 const addMasterCustomer = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền cập nhật danh mục chuẩn!', 'error');
+        return;
+    }
     if (!newCustomerInput.value.trim()) return;
     const name = newCustomerInput.value.trim().toUpperCase();
     if (!masterData.value.customers.includes(name)) {
@@ -2811,12 +2827,20 @@ const addMasterCustomer = async () => {
 };
 
 const removeMasterCustomer = async (index: number) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền cập nhật danh mục chuẩn!', 'error');
+        return;
+    }
     const removed = masterData.value.customers.splice(index, 1);
     await WeighbridgeService.saveMasterData(masterData.value);
     showToast(`Đã xóa khách hàng: ${removed[0]}`);
 };
 
 const addMasterGoods = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền cập nhật danh mục chuẩn!', 'error');
+        return;
+    }
     if (!newGoodsName.value.trim()) return;
     const name = newGoodsName.value.trim().toUpperCase();
     const code = newGoodsCode.value.trim().toUpperCase();
@@ -2832,6 +2856,10 @@ const addMasterGoods = async () => {
 };
 
 const removeMasterGoods = async (index: number) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền cập nhật danh mục chuẩn!', 'error');
+        return;
+    }
     const removed = masterData.value.goods.splice(index, 1);
     await WeighbridgeService.saveMasterData(masterData.value);
     showToast(`Đã xóa loại hàng: ${removed[0]?.name}`);
@@ -2889,6 +2917,10 @@ const saveGlobalTemplateFromModal = async () => {
 };
 
 const resetGlobalTemplateToDefault = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_layout_config', 'update')) {
+        showToast('Bạn không có quyền khôi phục mẫu phiếu mặc định!', 'error');
+        return;
+    }
     const confirmed = await showConfirm({
         title: 'Khôi phục mẫu phiếu mặc định',
         message: 'Bạn có chắc chắn muốn đặt lại toàn bộ tọa độ và mẫu in về trạng thái chuẩn ban đầu của Cảng Nguyên Ngọc?',
@@ -2908,6 +2940,10 @@ const resetGlobalTemplateToDefault = async () => {
 };
 
 const deleteVessel = async (id: number, name: string) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')) {
+        showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirm = await showConfirm({
         title: 'Xóa tàu',
         message: `Bạn có chắc chắn muốn xóa tàu "${name}" cùng toàn bộ sà lan và dữ liệu cân xe của nó không? Hành động này sẽ xóa vĩnh viễn dữ liệu.`,
@@ -2916,11 +2952,6 @@ const deleteVessel = async (id: number, name: string) => {
         cancelText: 'Hủy'
     });
     if (!confirm) return;
-
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
-        showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
-        return;
-    }
 
     loading.value = true;
     try {
@@ -2945,6 +2976,10 @@ const deleteVessel = async (id: number, name: string) => {
 };
 
 const handleCloseVessel = async (vesselId?: number) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền chốt số liệu tàu!', 'error');
+        return;
+    }
     const targetId = vesselId || activeVesselId.value;
     if (!targetId) return;
     const targetVessel = vessels.value.find(v => v.id === targetId);
@@ -3025,7 +3060,7 @@ const addBarge = async (vesselId: number) => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể thêm sà lan mới!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')) {
         showToast('Bạn không có quyền thêm sà lan mới!', 'error');
         return;
     }
@@ -3055,7 +3090,7 @@ const addBarge = async (vesselId: number) => {
     const result = await showBargeDialog('Thêm sà lan phân bổ mới', '', nextOrderNo);
     if (!result || !result.name.trim()) return;
 
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3084,7 +3119,7 @@ const renameBarge = async (id: number, currentName: string) => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể chỉnh sửa sà lan!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3151,7 +3186,7 @@ const deleteBarge = async (_vesselId: number, id: number, name: string) => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể xóa sà lan!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3219,6 +3254,10 @@ const availableTargetVessels = computed(() => {
 });
 
 function handleBargeDragStart(event: DragEvent, vessel: Vessel, barge: Barge) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        event.preventDefault();
+        return;
+    }
     if (vessel.status === 'done' || barge.config?.locked) {
         event.preventDefault();
         return;
@@ -3261,6 +3300,11 @@ function handleVesselDragLeave(_event: DragEvent, targetVessel: Vessel) {
 
 function handleVesselDrop(_event: DragEvent, targetVessel: Vessel) {
     dragOverVesselId.value = null;
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền chuyển sà lan sang tàu khác!', 'error');
+        draggedBarge.value = null;
+        return;
+    }
     if (!draggedBarge.value) return;
     if (draggedBarge.value.vesselId === targetVessel.id) {
         draggedBarge.value = null;
@@ -3285,6 +3329,10 @@ function handleVesselDrop(_event: DragEvent, targetVessel: Vessel) {
 }
 
 function openMoveBargeModal(vessel: Vessel, barge: Barge) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền chuyển sà lan sang tàu khác!', 'error');
+        return;
+    }
     if (vessel.status === 'done') {
         showToast('Tàu này đã chốt số liệu, không thể chuyển sà lan!', 'error');
         return;
@@ -3307,6 +3355,10 @@ function openMoveBargeModal(vessel: Vessel, barge: Barge) {
 }
 
 async function confirmMoveBarge() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')) {
+        showToast('Bạn không có quyền chuyển sà lan sang tàu khác!', 'error');
+        return;
+    }
     if (!moveBargeTarget.value || !moveBargeTarget.value.targetVesselId) {
         showToast('Vui lòng chọn tàu đích để chuyển sà lan!', 'warning');
         return;
@@ -3621,7 +3673,7 @@ const syncFromAllocatorActiveBarge = async () => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể đồng bộ dữ liệu mới!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3830,7 +3882,7 @@ const handleExcelFile = async (file: File) => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể nhập Excel!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3893,6 +3945,11 @@ const handleExcelFile = async (file: File) => {
 
 const handleFileSelect = (e: Event) => {
     const target = e.target as HTMLInputElement;
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) {
+        showToast('Bạn không có quyền nhập Excel phiếu cân xe!', 'error');
+        target.value = '';
+        return;
+    }
     if (target.files && target.files.length > 0) {
         const file = target.files[0];
         if (file) handleExcelFile(file);
@@ -3902,6 +3959,10 @@ const handleFileSelect = (e: Event) => {
 
 const handleExcelDrop = (e: DragEvent) => {
     e.preventDefault();
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) {
+        showToast('Bạn không có quyền nhập Excel phiếu cân xe!', 'error');
+        return;
+    }
     if (e.dataTransfer && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         if (file) handleExcelFile(file);
@@ -4095,6 +4156,10 @@ const parseExcelDate = (val: any): string => {
 };
 
 const confirmExcelMapping = async () => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) {
+        showToast('Bạn không có quyền nhập dữ liệu phiếu cân xe!', 'error');
+        return;
+    }
     const bargeId = activeBargeId.value;
     if (!pendingExcelData.value || !bargeId) return;
     if (cfgForm.locked) {
@@ -4267,7 +4332,7 @@ const openAddTruckDialog = () => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể thêm xe mới!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -4308,7 +4373,7 @@ const openEditTruckDialog = (truck: Truck) => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể sửa thông tin xe!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !canUpdate()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'update')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -4336,7 +4401,7 @@ const onWeightInput = () => {
 
 const saveTruck = async () => {
     const isNew = dialogTruck.id === 0;
-    if (authStore.role !== 'admin' && ((isNew && !canCreate()) || (!isNew && !canUpdate()))) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', isNew ? 'create' : 'update')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -4401,7 +4466,7 @@ const deleteTruck = async (id: number, plate: string) => {
         showToast('Tàu này đã chốt số liệu (Đã xong), không thể xóa xe!', 'warning');
         return;
     }
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_truck_manage', 'delete')) {
         showToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -4608,6 +4673,10 @@ const formatNumber = (num: number): string => {
 const printTrucksList = ref<Truck[]>([]);
 
 const triggerPrint = async (singleTruck?: Truck) => {
+    if (authStore.role !== 'admin' && !hasDetailPermission('weighbridge', 'wb_print_export', 'read')) {
+        showToast('Bạn không có quyền in phiếu cân!', 'error');
+        return;
+    }
     if (singleTruck) {
         printTrucksList.value = [singleTruck];
     } else {
@@ -4975,7 +5044,7 @@ defineExpose({
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0">
                                         <!-- Barge Actions (Chỉ hiện khi rê chuột) -->
-                                        <div v-if="(authStore.role === 'admin' || canCreate() || canUpdate() || canDelete()) && vessel.status !== 'done'" class="hidden group-hover:flex items-center gap-0.5" @click.stopPropagation>
+                                        <div v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update') || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete')) && vessel.status !== 'done'" class="hidden group-hover:flex items-center gap-0.5" @click.stopPropagation>
                                             <button v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')" @click="openMoveBargeModal(vessel, barge)" class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center transition-colors" :class="activeBargeId === barge.id ? 'text-white' : 'text-gray-400 hover:text-teal-600'" title="Chuyển sang tàu khác">
                                                 <span class="material-symbols-outlined text-xs">swap_horiz</span>
                                             </button>
@@ -5042,7 +5111,7 @@ defineExpose({
                                     Mẫu phiếu cân toàn cảng
                                 </button>
                                 <button 
-                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage')"
+                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update')"
                                     @click="openMasterDataModal"
                                     class="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-[14px] flex items-center gap-1.5 transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
                                     title="Quản lý danh mục Khách hàng & Hàng hóa chuẩn"
@@ -5114,6 +5183,7 @@ defineExpose({
                                     Danh sách quản lý tất cả sà lan
                                 </h3>
                                 <button 
+                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                     @click="exportAllBargesToExcel" 
                                     :disabled="exportingGlobalBarges || filteredAllBarges.length === 0"
                                     class="h-8 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -5305,7 +5375,7 @@ defineExpose({
                                 </button>
                                 <!-- Close vessel button: available when vessel is in_progress (hidden for De Heus continuous vessel) -->
                                 <button 
-                                    v-if="activeVessel?.status !== 'done' && !isDeHeusVessel(activeVessel)"
+                                    v-if="activeVessel?.status !== 'done' && !isDeHeusVessel(activeVessel) && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update'))"
                                     @click="handleCloseVessel(activeVesselId!)"
                                     :disabled="isUpdatingVesselStatus"
                                     class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
@@ -5328,7 +5398,7 @@ defineExpose({
                                 </button>
 
                                 <button
-                                    v-if="activeVessel"
+                                    v-if="activeVessel && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read'))"
                                     @click="openSettlementModal"
                                     :disabled="loadingSettlementData"
                                     class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
@@ -5340,7 +5410,7 @@ defineExpose({
                                 </button>
 
                                 <button 
-                                    v-if="filteredVesselBarges.length > 0"
+                                    v-if="filteredVesselBarges.length > 0 && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read'))"
                                     @click="exportVesselSummaryExcel"
                                     :disabled="exportingVesselReport"
                                     class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
@@ -5497,7 +5567,7 @@ defineExpose({
                                     <span class="text-gray-300">&rsaquo;</span>
                                     Sà lan: <span class="px-2 py-0.5 bg-teal-500/10 text-teal-600 rounded-full text-xs font-black">{{ activeBarge?.name }}</span>
                                     <button 
-                                        v-if="!isCurrentVesselDone"
+                                        v-if="!isCurrentVesselDone && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update'))"
                                         @click="toggleBargeLock" 
                                         :class="['ml-2 p-1 rounded-full flex items-center justify-center transition-all', cfgForm.locked ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']"
                                         :title="cfgForm.locked ? 'Mở khóa sà lan' : 'Khóa sà lan'"
@@ -5559,7 +5629,7 @@ defineExpose({
                                 <span class="material-symbols-outlined text-sm">local_shipping</span>
                                 Danh sách xe & In ấn
                             </button>
-                            <button v-if="(authStore.role === 'admin' || canUpdate()) && !isCurrentVesselDone"
+                            <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'read')) && !isCurrentVesselDone"
                                 @click="activeTab = 'config'"
                                 :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'config' ? 'bg-primary text-white shadow-soft' : 'text-[#1e293b]/60 hover:bg-white/50']"
                             >
@@ -5573,7 +5643,7 @@ defineExpose({
                             <!-- Stats & Excel Upload Side-by-Side -->
                             <div class="grid grid-cols-2 lg:grid-cols-12 gap-3 md:gap-4 items-stretch">
                                 <!-- Stats Grid (6 cols / 12 cols depending on role and read-only status) -->
-                                <div :class="((authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <div :class="((authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone) ? 'col-span-2 lg:col-span-6' : 'col-span-2 lg:col-span-12'" class="grid grid-cols-3 gap-2 sm:gap-3">
                                     <div class="bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 flex items-center gap-1.5 sm:gap-3">
                                         <div class="size-7 sm:size-9 bg-primary/10 text-primary rounded-[10px] sm:rounded-[12px] flex items-center justify-center flex-shrink-0">
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>
@@ -5604,7 +5674,7 @@ defineExpose({
                                 </div>
 
                                 <!-- Compact Excel Upload (3 cols) -->
-                                <div v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
+                                <div v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone"
                                     @dragover.prevent
                                     @drop="cfgForm.locked ? null : handleExcelDrop($event)"
                                     :class="['col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50', cfgForm.locked ? 'opacity-50 pointer-events-none' : '']"
@@ -5640,7 +5710,7 @@ defineExpose({
 
 
                                 <!-- Direct Sync Card (3 cols) -->
-                                <div v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
+                                <div v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone"
                                     class="col-span-1 lg:col-span-3 bg-white rounded-2xl p-2 sm:p-3 soft-shadow border border-primary/5 hover:border-primary/20 transition-all flex items-center justify-between gap-1.5 sm:gap-3 bg-gray-50/50"
                                 >
                                     <div class="flex items-center gap-1.5 sm:gap-2 min-w-0 cursor-pointer" @click="syncFromAllocatorActiveBarge()">
@@ -5670,7 +5740,7 @@ defineExpose({
                                     </h3>
                                     
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <button v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
+                                        <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone"
                                             @click="openAddTruckDialog"
                                             :disabled="cfgForm.locked"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
@@ -5678,7 +5748,7 @@ defineExpose({
                                             <span class="material-symbols-outlined !text-[15px] leading-none">add</span>
                                             Thêm xe
                                         </button>
-                                        <button v-if="(authStore.role === 'admin' || canCreate()) && !isCurrentVesselDone"
+                                        <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone"
                                             @click="fileInput?.click()"
                                             :disabled="cfgForm.locked"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
@@ -5686,7 +5756,7 @@ defineExpose({
                                             <span class="material-symbols-outlined !text-[15px] leading-none">upload_file</span>
                                             Nhập Excel
                                         </button>
-                                        <button v-if="(authStore.role === 'admin' || canDelete()) && !isCurrentVesselDone"
+                                        <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'delete')) && !isCurrentVesselDone"
                                             @click="clearTrucks"
                                             :disabled="cfgForm.locked"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none shrink-0 box-border border-0"
@@ -5695,6 +5765,7 @@ defineExpose({
                                             Xóa tất cả
                                         </button>
                                         <button 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                             @click="triggerPrint()"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
@@ -5702,6 +5773,7 @@ defineExpose({
                                             In hàng loạt (A5)
                                         </button>
                                         <button 
+                                            v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                             @click="exportActiveBargeTrucksToExcel"
                                             :disabled="exportingActiveBargeTrucks || filteredTrucks.length === 0"
                                             class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
@@ -5796,6 +5868,7 @@ defineExpose({
                                                 <td class="p-2">
                                                     <div class="flex items-center gap-1.5 justify-center">
                                                         <button 
+                                                    v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                                     @click="triggerPrint(truck)" 
                                                     class="size-8 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-600 flex items-center justify-center transition-all active:scale-95"
                                                     title="In phiếu này"
@@ -5803,7 +5876,7 @@ defineExpose({
                                                     <span class="material-symbols-outlined text-[12px]">print</span>
                                                 </button>
                                                         <button 
-                                                    v-if="(authStore.role === 'admin' || canUpdate()) && !isCurrentVesselDone" 
+                                                    v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'update')) && !isCurrentVesselDone" 
                                                     @click="openEditTruckDialog(truck)" 
                                                     :disabled="cfgForm.locked" 
                                                     class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none"
@@ -5812,7 +5885,7 @@ defineExpose({
                                                     <span class="material-symbols-outlined text-[12px]">edit</span>
                                                 </button>
                                                         <button 
-                                                    v-if="(authStore.role === 'admin' || canDelete()) && !isCurrentVesselDone" 
+                                                    v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'delete')) && !isCurrentVesselDone" 
                                                     @click="deleteTruck(truck.id, truck.plateNumber)" 
                                                     :disabled="cfgForm.locked" 
                                                     class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:pointer-events-none"
@@ -5830,7 +5903,7 @@ defineExpose({
                         </div>
 
                         <!-- TAB 2: CONFIGURATION -->
-                        <div v-if="activeTab === 'config' && (authStore.role === 'admin' || canUpdate()) && !isCurrentVesselDone" class="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0 pb-6 pr-1 animate-fade-in custom-scrollbar">
+                        <div v-if="activeTab === 'config' && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'read')) && !isCurrentVesselDone" class="flex-1 flex flex-col gap-4 overflow-y-auto min-h-0 pb-6 pr-1 animate-fade-in custom-scrollbar">
                             <!-- Banner lock warning -->
                             <div v-if="cfgForm.locked" class="bg-red-50 text-red-700 text-xs font-bold p-3 rounded-lg border border-red-200 mb-2 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-sm">warning</span>
@@ -5950,7 +6023,7 @@ defineExpose({
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-end">
+                                    <div v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'update')" class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-end">
                                         <button 
                                             @click="saveBargeConfigImmediately" 
                                             :disabled="cfgForm.locked"
@@ -6862,6 +6935,7 @@ defineExpose({
                     
                     <div class="flex items-center gap-2">
                         <button 
+                            v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'update')"
                             @click="resetGlobalTemplateToDefault"
                             class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold rounded-[12px] border border-red-200 transition-all flex items-center gap-1"
                             title="Khôi phục mẫu in mặc định gốc"
@@ -6876,6 +6950,7 @@ defineExpose({
                             Hủy bỏ
                         </button>
                         <button 
+                            v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'update')"
                             @click="saveGlobalTemplateFromModal"
                             :disabled="saving"
                             class="px-5 py-2 bg-primary text-white hover:bg-primary-dark font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"

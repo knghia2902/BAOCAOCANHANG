@@ -652,6 +652,13 @@ onMounted(() => {
  * - Các xe thuộc Kho 1..4 (IMPORT / EXPORT / DIRECT) tự động cập nhật Báo cáo tồn kho 4 kho (WarehouseInventoryService)
  */
 async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'FILE_1' | 'FILE_2' | 'AUTO') {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
+        addToast('Bạn không có quyền nhập file phiếu cân!', 'error');
+        if (file1InputRef.value) file1InputRef.value.value = '';
+        if (file2InputRef.value) file2InputRef.value.value = '';
+        if (multiFileInputRef.value) multiFileInputRef.value.value = '';
+        return;
+    }
     const fileArr = Array.from(files);
     if (fileArr.length === 0) return;
 
@@ -1134,6 +1141,10 @@ const dialogTicket = ref<CSVRecord>({
 });
 
 function openAddTicketDialog() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
+        addToast('Bạn không có quyền thêm phiếu cân!', 'error');
+        return;
+    }
     editingTicket.value = null;
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -1164,6 +1175,10 @@ function openAddTicketDialog() {
 }
 
 function openEditTicketDialog(ticket: CSVRecord) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'update')) {
+        addToast('Bạn không có quyền sửa phiếu cân!', 'error');
+        return;
+    }
     editingTicket.value = ticket;
     dialogTicket.value = { ...ticket };
     showTicketDialog.value = true;
@@ -1171,7 +1186,7 @@ function openEditTicketDialog(ticket: CSVRecord) {
 
 async function saveTicket() {
     const isNew = !editingTicket.value || !editingTicket.value.id;
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', isNew ? 'create' : 'update')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', isNew ? 'create' : 'update')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1211,7 +1226,7 @@ async function saveTicket() {
 }
 
 async function deleteTicket(ticket: CSVRecord) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', 'delete')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1231,7 +1246,7 @@ async function deleteTicket(ticket: CSVRecord) {
 }
 
 async function clearAllTickets() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', 'delete')) {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1429,6 +1444,10 @@ async function clearHistory() {
 
 // Xuất Excel Tab 1 (Phiếu cân) & Tab 2 (Sổ theo dõi)
 async function exportSourceTickets() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_export', 'read')) {
+        addToast('Bạn không có quyền xuất file Excel!', 'error');
+        return;
+    }
     if (filteredSourceTickets.value.length === 0) {
         addToast('Không có phiếu cân nào để xuất!', 'info');
         return;
@@ -1544,6 +1563,10 @@ const exportPreviewWeightTons = computed(() => {
 });
 
 function openHistoryExportDialog() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_export', 'read')) {
+        addToast('Bạn không có quyền xuất Sổ theo dõi!', 'error');
+        return;
+    }
     if (existingTrips.value.length === 0) {
         addToast('Không có dữ liệu lịch sử để xuất!', 'info');
         return;
@@ -1612,6 +1635,10 @@ function applyExportDateFilterToTable() {
 }
 
 async function exportHistoryTrips() {
+    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_export', 'read')) {
+        addToast('Bạn không có quyền xuất Sổ theo dõi!', 'error');
+        return;
+    }
     const dataToExport = showHistoryExportDialog.value ? exportPreviewTrips.value : filteredHistoryTrips.value;
     if (dataToExport.length === 0) {
         addToast('Không có chuyến xe nào trong khoảng ngày đã chọn để xuất!', 'info');
@@ -1860,6 +1887,7 @@ async function exportHistoryTrips() {
                     </div>
 
                     <label
+                        v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create')"
                         @click.stop
                         class="border-2 border-dashed border-primary/25 hover:border-primary bg-[#f1f5f9]/70 hover:bg-primary/5 rounded-2xl px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 group"
                     >
@@ -1932,6 +1960,7 @@ async function exportHistoryTrips() {
                     </div>
 
                     <label
+                        v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create')"
                         @click.stop
                         class="border-2 border-dashed border-teal-400/50 hover:border-teal-600 bg-teal-50/40 hover:bg-teal-50 rounded-2xl px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 group"
                     >
@@ -2133,6 +2162,7 @@ async function exportHistoryTrips() {
                             />
 
                             <button
+                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create')"
                                 type="button"
                                 @click="saveSourceTicketsToHistory"
                                 :disabled="csvRecords.length === 0 || isSavingToHistory"
@@ -2145,6 +2175,7 @@ async function exportHistoryTrips() {
                             </button>
 
                             <button
+                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_export', 'read')"
                                 type="button"
                                 @click="exportSourceTickets"
                                 :disabled="csvRecords.length === 0 || compiling"
@@ -2156,7 +2187,10 @@ async function exportHistoryTrips() {
                             </button>
 
                             <!-- Nút dấu 3 chấm dọc bên phải ngoài cùng chứa: Nhập file, Thêm, Xóa -->
-                            <div class="relative">
+                            <div
+                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create') || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
+                                class="relative"
+                            >
                                 <div
                                     v-if="showSourceActionsMenu"
                                     class="fixed inset-0 z-20"
@@ -2176,6 +2210,7 @@ async function exportHistoryTrips() {
                                     class="absolute right-0 top-full mt-1.5 z-30 w-40 bg-white rounded-2xl soft-shadow border border-gray-100 py-1.5 flex flex-col overflow-hidden"
                                 >
                                     <button
+                                        v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create')"
                                         type="button"
                                         :disabled="loadingMulti"
                                         @click="
@@ -2188,6 +2223,7 @@ async function exportHistoryTrips() {
                                         <span>{{ loadingMulti ? 'Đang đọc...' : 'Nhập file' }}</span>
                                     </button>
                                     <button
+                                        v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create')"
                                         type="button"
                                         @click="
                                             showSourceActionsMenu = false;
@@ -2198,8 +2234,12 @@ async function exportHistoryTrips() {
                                         <span class="material-symbols-outlined text-sm text-primary">add</span>
                                         <span>Thêm</span>
                                     </button>
-                                    <div class="my-1 border-t border-gray-100"></div>
+                                    <div
+                                        v-if="(authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'create')) && (authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete'))"
+                                        class="my-1 border-t border-gray-100"
+                                    ></div>
                                     <button
+                                        v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                                         type="button"
                                         :disabled="csvRecords.length === 0"
                                         @click="
@@ -2221,7 +2261,7 @@ async function exportHistoryTrips() {
                                 KL: {{ historyTotalWeightTons.toFixed(2) }}t
                             </div>
                             <button
-                                v-if="authStore.role === 'admin'"
+                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                                 type="button"
                                 @click="clearHistory"
                                 :disabled="existingTrips.length === 0"
@@ -2231,6 +2271,7 @@ async function exportHistoryTrips() {
                                 Xóa lịch sử
                             </button>
                             <button
+                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_export', 'read')"
                                 type="button"
                                 @click="openHistoryExportDialog"
                                 :disabled="existingTrips.length === 0 || compiling"
@@ -2538,6 +2579,7 @@ async function exportHistoryTrips() {
                                     <td class="py-2 px-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button
+                                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
                                                 type="button"
                                                 @click="openEditTicketDialog(ticket)"
                                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -2546,6 +2588,7 @@ async function exportHistoryTrips() {
                                                 <span class="material-symbols-outlined text-xs">edit</span>
                                             </button>
                                             <button
+                                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                                                 type="button"
                                                 @click="deleteTicket(ticket)"
                                                 class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -2769,6 +2812,7 @@ async function exportHistoryTrips() {
                                     <td class="py-2 px-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button
+                                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
                                                 type="button"
                                                 @click="editHistoryTripOrderNo(trip)"
                                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -2777,6 +2821,7 @@ async function exportHistoryTrips() {
                                                 <span class="material-symbols-outlined text-xs">edit</span>
                                             </button>
                                             <button
+                                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
                                                 type="button"
                                                 @click="deleteHistoryTrip(trip)"
                                                 class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -3279,6 +3324,7 @@ async function exportHistoryTrips() {
                                 Hủy
                             </button>
                             <button
+                                v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_export', 'read')"
                                 type="button"
                                 :disabled="exportPreviewTrips.length === 0 || compiling"
                                 @click="exportHistoryTrips"
