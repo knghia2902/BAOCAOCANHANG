@@ -146,7 +146,7 @@ onMounted(async () => {
             <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4">
                 <!-- Tạo Nguồn Tàu -->
                 <router-link
-                    v-if="authStore.role === 'admin' || hasPermission('weighbridge')"
+                    v-if="authStore.role === 'admin' || hasPermission('vessel_source')"
                     to="/workspace?tab=vessel-source"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >
@@ -161,7 +161,7 @@ onMounted(async () => {
 
                 <!-- Dữ Liệu Cân Hàng -->
                 <router-link
-                    v-if="authStore.role === 'admin' || hasPermission('allocator') || hasPermission('weighbridge')"
+                    v-if="authStore.role === 'admin' || hasPermission('allocator')"
                     to="/workspace?tab=scale-data"
                     class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
                 >

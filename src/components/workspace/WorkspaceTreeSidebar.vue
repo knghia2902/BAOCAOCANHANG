@@ -137,6 +137,13 @@ const visibleAfterReportItems = computed(() => afterReportItems.filter(item => c
 const visibleCategoryItems = computed(() => categoryItems.filter(item => canAccessWorkspaceTab(item.key)));
 
 const isReportActive = computed(() => visibleReportItems.value.some(r => r.key === props.activeKey));
+const hasAnyVisibleItem = computed(
+    () =>
+        visibleModuleItems.value.length > 0 ||
+        visibleReportItems.value.length > 0 ||
+        visibleAfterReportItems.value.length > 0 ||
+        visibleCategoryItems.value.length > 0
+);
 </script>
 
 <template>
@@ -432,6 +439,17 @@ const isReportActive = computed(() => visibleReportItems.value.some(r => r.key =
                             <span v-if="isExpanded" class="truncate flex-1">{{ item.label }}</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- Empty state when user has no accessible workspace tabs -->
+                <div
+                    v-if="!hasAnyVisibleItem"
+                    class="flex flex-col items-center justify-center text-center py-8 px-3 text-slate-500"
+                >
+                    <span class="material-symbols-outlined text-2xl text-rose-500/70 mb-2" title="Chưa có quyền truy cập">lock</span>
+                    <p v-if="isExpanded" class="text-xs font-semibold leading-relaxed">
+                        Chưa được cấp quyền truy cập phân hệ nào.
+                    </p>
                 </div>
             </div>
 

@@ -376,7 +376,19 @@ const ticketPadding = ref(6);
 const useAutoTicketNo = ref(true);
 
 const canEditRules = computed(() => {
-    return authStore.role === 'admin' || hasDetailPermission('allocator', 'al_rules_manage', 'update');
+    return authStore.role === 'admin' || hasDetailPermission('split', 'split_manage', 'update');
+});
+const canSplitCreate = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('split', 'split_manage', 'create');
+});
+const canSplitUpdate = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('split', 'split_manage', 'update');
+});
+const canSplitDelete = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('split', 'split_manage', 'delete');
+});
+const canSplitExport = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('split', 'split_export', 'read');
 });
 
 const previewTicketNo = computed(() => {
@@ -740,6 +752,10 @@ function getHistoryDuplicates(records: CSVRecord[]): { dupRecords: CSVRecord[], 
 
 // Handle Ticket Import (accepts CSV and Excel)
 async function handleTicketImport(event: Event) {
+    if (!canSplitCreate.value) {
+        addToast('Bạn không có quyền nhập phiếu cân!', 'error');
+        return;
+    }
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
     if (!file) return;
@@ -1202,6 +1218,10 @@ function openAddTicketDialog() {
 void openAddTicketDialog;
 
 function openEditTicketDialog(ticket: CSVRecord) {
+    if (!canSplitUpdate.value) {
+        addToast('Bạn không có quyền chỉnh sửa phiếu cân!', 'error');
+        return;
+    }
     editingTicket.value = ticket;
     dialogTicket.value = { ...ticket };
     showTicketDialog.value = true;
@@ -1209,7 +1229,7 @@ function openEditTicketDialog(ticket: CSVRecord) {
 
 async function saveTicket() {
     const isNew = !editingTicket.value || !editingTicket.value.id;
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', isNew ? 'create' : 'update')) {
+    if ((isNew && !canSplitCreate.value) || (!isNew && !canSplitUpdate.value)) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1252,7 +1272,7 @@ async function saveTicket() {
 }
 
 async function deleteTicket(ticket: CSVRecord) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', 'delete')) {
+    if (!canSplitDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -1273,7 +1293,7 @@ async function deleteTicket(ticket: CSVRecord) {
 
 // Clear all tickets
 async function clearAllTickets() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_barge_manage', 'delete')) {
+    if (!canSplitDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3037,7 +3057,7 @@ function getTripsWithoutMooc(): SplitTrip[] {
 
 // Save generated temporary trips into history
 async function saveToHistory() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'create')) {
+    if (!canSplitCreate.value) {
         addToast('Bạn không có quyền lưu dữ liệu vào Sổ Theo Dõi!', 'error');
         return;
     }
@@ -3180,6 +3200,10 @@ async function saveToHistory() {
 
 
 async function deleteGeneratedTrip(trip: SplitTrip) {
+    if (!canSplitDelete.value) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const confirmDelete = await showConfirm({
         title: 'Xóa chuyến xe phân bổ',
         message: `Bạn có chắc muốn xóa chuyến xe của xe ${trip.plateNumber} này khỏi danh sách phân bổ không?`,
@@ -3198,7 +3222,7 @@ async function deleteGeneratedTrip(trip: SplitTrip) {
 }
 
 async function editHistoryTripOrderNo(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'update')) {
+    if (!canSplitUpdate.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3218,7 +3242,7 @@ async function editHistoryTripOrderNo(trip: SplitTrip) {
 }
 
 async function deleteHistoryTrip(trip: SplitTrip) {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
+    if (!canSplitDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3241,6 +3265,10 @@ async function deleteHistoryTrip(trip: SplitTrip) {
 }
 
 async function editGeneratedTripOrderNo(trip: SplitTrip) {
+    if (!canSplitUpdate.value) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     const currentOrderNo = trip.orderNo || '';
     const newOrderNo = prompt(`Nhập Mã lệnh mới cho xe "${trip.plateNumber}" rời bến lúc ${trip.timeStr || ''}:`, currentOrderNo);
     if (newOrderNo === null) return; // Cancelled
@@ -3257,7 +3285,7 @@ async function editGeneratedTripOrderNo(trip: SplitTrip) {
 }
 
 async function clearAllGeneratedTrips() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
+    if (!canSplitDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3277,7 +3305,7 @@ async function clearAllGeneratedTrips() {
 
 // Clear all history
 async function clearHistory() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', 'delete')) {
+    if (!canSplitDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -3304,7 +3332,7 @@ const historyTotalWeightTons = computed(() => {
 
 // Export source tickets (Tab 1) as Excel
 async function exportSourceTickets() {
-    if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_export', 'read')) {
+    if (!canSplitExport.value) {
         addToast('Bạn không có quyền xuất dữ liệu Excel!', 'error');
         return;
     }
@@ -3370,6 +3398,10 @@ async function exportSourceTickets() {
 
 // Execute Excel update and download
 async function compileAndDownload() {
+    if (!canSplitExport.value) {
+        addToast('Bạn không có quyền xuất dữ liệu Excel!', 'error');
+        return;
+    }
     const dataToExport = activeDataTab.value === 'template' ? filteredTrips.value : filteredHistoryTrips.value;
     if (dataToExport.length === 0) {
         addToast(activeDataTab.value === 'template' ? 'Không có dữ liệu phân bổ để xuất!' : 'Không có dữ liệu lịch sử để xuất!', 'info');
@@ -4231,6 +4263,7 @@ async function compileAndDownload() {
                             </button>
 
                             <button 
+                                v-if="canSplitDelete"
                                 @click="clearAllTickets"
                                 class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 shrink-0"
                             >
@@ -4238,6 +4271,7 @@ async function compileAndDownload() {
                                 Xóa hết
                             </button>
                             <button 
+                                v-if="canSplitExport"
                                 @click="exportSourceTickets"
                                 :disabled="csvRecords.length === 0 || compiling"
                                 class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
@@ -4255,6 +4289,7 @@ async function compileAndDownload() {
                         </div>
 
                         <button 
+                            v-if="canSplitCreate"
                             @click="saveToHistory"
                             :disabled="generatedTrips.length === 0 || isAlreadySaved"
                             class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
@@ -4264,7 +4299,7 @@ async function compileAndDownload() {
                             {{ isAlreadySaved ? 'Đã lưu vào Sổ theo dõi' : 'Lưu vào Sổ theo dõi' }}
                         </button>
                         <button 
-                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
+                            v-if="canSplitDelete"
                             @click="clearAllGeneratedTrips"
                             :disabled="generatedTrips.length === 0"
                             class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -4273,6 +4308,7 @@ async function compileAndDownload() {
                             Xóa tất cả
                         </button>
                         <button 
+                            v-if="canSplitExport"
                             @click="compileAndDownload"
                             :disabled="generatedTrips.length === 0 || compiling"
                             class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -4288,7 +4324,7 @@ async function compileAndDownload() {
                         <div class="h-7 px-2.5 bg-teal-50 rounded-[8px] border border-teal-200 text-teal-700 flex items-center font-bold text-xs">
                             KL: {{ historyTotalWeightTons.toFixed(2) }}t
                         </div>
-                        <button v-if="authStore.role === 'admin'"
+                        <button v-if="canSplitDelete"
                             @click="clearHistory"
                             :disabled="existingTrips.length === 0"
                             class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -4297,6 +4333,7 @@ async function compileAndDownload() {
                             Xóa lịch sử
                         </button>
                         <button 
+                            v-if="canSplitExport"
                             @click="compileAndDownload"
                             :disabled="existingTrips.length === 0 || compiling"
                             class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -4501,7 +4538,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4521,9 +4558,10 @@ async function compileAndDownload() {
                                 <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeInStr }} {{ ticket.dateInStr }}</td>
                                 <td class="py-2 px-3 text-center text-xs text-gray-500 font-mono whitespace-nowrap">{{ ticket.timeOutStr }} {{ ticket.dateOutStr }}</td>
                                 <td class="py-2 px-3 text-gray-500 truncate max-w-[100px]" :title="ticket.driverName">{{ ticket.driverName || '-' }}</td>
-                                <td class="py-2 px-3 text-center">
+                                <td v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
+                                            v-if="canSplitUpdate"
                                             @click="openEditTicketDialog(ticket)" 
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa"
@@ -4531,6 +4569,7 @@ async function compileAndDownload() {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
+                                            v-if="canSplitDelete"
                                             @click="deleteTicket(ticket)" 
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"
@@ -4670,7 +4709,7 @@ async function compileAndDownload() {
                                     </div>
                                 </th>
                                 <th class="py-2 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4716,10 +4755,10 @@ async function compileAndDownload() {
                                     </span>
                                     <span v-else class="text-gray-400 italic text-xs">-</span>
                                 </td>
-                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center">
+                                <td v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
+                                            v-if="canSplitUpdate"
                                             @click="editHistoryTripOrderNo(trip)"
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa Mã lệnh"
@@ -4727,7 +4766,7 @@ async function compileAndDownload() {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
+                                            v-if="canSplitDelete"
                                             @click="deleteHistoryTrip(trip)"
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"
@@ -4896,7 +4935,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center bg-gray-50 font-bold w-[80px] select-none">Thao tác</th>
+                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center bg-gray-50 font-bold w-[80px] select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4933,10 +4972,10 @@ async function compileAndDownload() {
                                 </td>
                                 <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.cargoType">{{ trip.cargoType }}</td>
                                 <td class="py-2 px-3 truncate max-w-[150px]" :title="trip.bargeName">{{ trip.bargeName }}</td>
-                                <td v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center">
+                                <td v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
                                         <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update')"
+                                            v-if="canSplitUpdate"
                                             @click="editGeneratedTripOrderNo(trip)"
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                             title="Sửa Mã lệnh"
@@ -4944,7 +4983,7 @@ async function compileAndDownload() {
                                             <span class="material-symbols-outlined text-[12px]">edit</span>
                                         </button>
                                         <button 
-                                            v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'delete')"
+                                            v-if="canSplitDelete"
                                             @click="deleteGeneratedTrip(trip)"
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa chuyến xe này"

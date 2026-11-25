@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useToast } from '@/composables/useToast';
-import { authStore, canUpdate } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 import {
     WarehouseInventoryService,
     ALL_WAREHOUSES,
@@ -50,7 +50,7 @@ const draggingState = ref<{
 
 // Role-based permission check: Anyone can view, only authorized roles can edit
 const canEditMap = computed<boolean>(() => {
-    return authStore.role === 'admin' || canUpdate();
+    return authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_config', 'update');
 });
 
 // Watch permission changes (e.g. logout)

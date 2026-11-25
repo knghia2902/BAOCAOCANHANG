@@ -4,10 +4,15 @@ import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { SettingsService } from '@/services/storage/SettingsService';
 import { LogService } from '@/services/storage/LogService';
-import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 import { WeighbridgeService, type MasterCargoItem } from '@/services/excel/WeighbridgeService';
 
 const { addToast } = useToast();
+
+// Permissions for Goods Category Management
+const canManageCreate = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', 'cat_goods', 'create'));
+const canManageUpdate = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', 'cat_goods', 'update'));
+const canManageDelete = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', 'cat_goods', 'delete'));
 
 interface ConfirmDialogState {
     show: boolean;
@@ -196,7 +201,7 @@ const filteredGoods = computed(() => {
 
 const handleSubmit = async () => {
     const isNew = editingIndex.value === null;
-    if (authStore.role !== 'admin' && ((isNew && !canCreate()) || (!isNew && !canUpdate()))) {
+    if ((isNew && !canManageCreate.value) || (!isNew && !canManageUpdate.value)) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -232,6 +237,10 @@ const handleSubmit = async () => {
 };
 
 const editItem = (index: number) => {
+    if (!canManageUpdate.value) {
+        addToast('Bạn không có quyền chỉnh sửa loại hàng!', 'error');
+        return;
+    }
     const item = filteredGoods.value[index];
     if (item !== undefined) {
         const realIndex = goodsItems.value.findIndex(g => g.name === item.name);
@@ -244,7 +253,7 @@ const editItem = (index: number) => {
 };
 
 const deleteItem = async (index: number) => {
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (!canManageDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -282,7 +291,7 @@ const cancelEdit = () => {
 };
 
 const clearAll = async () => {
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (!canManageDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -324,7 +333,7 @@ const clearAll = async () => {
             <!-- Actions buttons -->
             <div class="flex items-center gap-2">
                 <button
-                    v-if="goodsItems.length > 0 && (authStore.role === 'admin' || canDelete())"
+                    v-if="goodsItems.length > 0 && canManageDelete"
                     @click="clearAll"
                     class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all cursor-pointer"
                 >
@@ -337,7 +346,7 @@ const clearAll = async () => {
         <!-- Add/Edit form + Search in 1 row grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <!-- Form Card -->
-            <div v-if="authStore.role === 'admin' || canCreate() || canUpdate()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+            <div v-if="canManageCreate || canManageUpdate" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">{{ editingIndex !== null ? 'edit_note' : 'add_circle' }}</span>
                     {{ editingIndex !== null ? 'Cập nhật hàng hóa' : 'Thêm hàng hóa mới' }}
@@ -386,7 +395,7 @@ const clearAll = async () => {
             </div>
 
             <!-- List Card -->
-            <div :class="(authStore.role === 'admin' || canCreate() || canUpdate()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 min-h-[350px]">
+            <div :class="(canManageCreate || canManageUpdate) ? 'lg:col-span-2' : 'lg:col-span-3'" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 min-h-[350px]">
                 <!-- Search bar -->
                 <div class="relative w-full flex items-center">
                     <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
@@ -413,7 +422,7 @@ const clearAll = async () => {
                                 <th class="py-2.5 px-4 w-16 text-center">STT</th>
                                 <th class="py-2.5 px-4">Loại hàng (Tên hàng hóa)</th>
                                 <th class="py-2.5 px-4 w-36">Mã hàng</th>
-                                <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2.5 px-4 w-28 text-center">Thao tác</th>
+                                <th v-if="canManageUpdate || canManageDelete" class="py-2.5 px-4 w-28 text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -433,9 +442,9 @@ const clearAll = async () => {
                                     </span>
                                     <span v-else class="text-gray-400 italic font-normal">--</span>
                                 </td>
-                                <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="py-2.5 px-4 text-center flex items-center justify-center gap-1.5">
+                                <td v-if="canManageUpdate || canManageDelete" class="py-2.5 px-4 text-center flex items-center justify-center gap-1.5">
                                     <button
-                                        v-if="authStore.role === 'admin' || canUpdate()"
+                                        v-if="canManageUpdate"
                                         @click="editItem(idx)"
                                         class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                         title="Chỉnh sửa"
@@ -443,7 +452,7 @@ const clearAll = async () => {
                                         <span class="material-symbols-outlined text-[14px]">edit</span>
                                     </button>
                                     <button
-                                        v-if="authStore.role === 'admin' || canDelete()"
+                                        v-if="canManageDelete"
                                         @click="deleteItem(idx)"
                                         class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                         title="Xóa"

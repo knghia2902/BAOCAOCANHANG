@@ -17,16 +17,29 @@ const syncChannel = new BroadcastChannel('allocator_sync_channel');
 
 // Permission checks for Vessel / Barge Management
 const canManageVesselCreate = computed(() => {
-    return authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'create');
+    return authStore.role === 'admin' || hasDetailPermission('vessel_source', 'vs_vessel_manage', 'create');
 });
 const canManageVesselUpdate = computed(() => {
-    return authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update');
+    return authStore.role === 'admin' || hasDetailPermission('vessel_source', 'vs_vessel_manage', 'update');
 });
 const canManageVesselDelete = computed(() => {
-    return authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'delete');
+    return authStore.role === 'admin' || hasDetailPermission('vessel_source', 'vs_vessel_manage', 'delete');
 });
 const hasAnyVesselAction = computed(() => {
     return canManageVesselUpdate.value || canManageVesselDelete.value;
+});
+
+const canManageBargeCreate = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('vessel_source', 'vs_barge_manage', 'create');
+});
+const canManageBargeUpdate = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('vessel_source', 'vs_barge_manage', 'update');
+});
+const canManageBargeDelete = computed(() => {
+    return authStore.role === 'admin' || hasDetailPermission('vessel_source', 'vs_barge_manage', 'delete');
+});
+const hasAnyBargeAction = computed(() => {
+    return canManageBargeUpdate.value || canManageBargeDelete.value;
 });
 
 const vessels = ref<Vessel[]>([]);
@@ -486,7 +499,7 @@ const handleDeleteVessel = async (vessel: Vessel) => {
 
 // Barge management (Tự động kế thừa Loại hàng, Mã hàng, Chủ hàng từ Tàu mẹ đang chọn)
 const openAddBargeModal = () => {
-    if (!canManageVesselCreate.value) {
+    if (!canManageBargeCreate.value) {
         addToast('Bạn không có quyền thêm sà lan mới!', 'error');
         return;
     }
@@ -502,7 +515,7 @@ const openAddBargeModal = () => {
 };
 
 const openEditBargeModal = (barge: Barge) => {
-    if (!canManageVesselUpdate.value) {
+    if (!canManageBargeUpdate.value) {
         addToast('Bạn không có quyền sửa thông tin sà lan!', 'error');
         return;
     }
@@ -519,11 +532,11 @@ const openEditBargeModal = (barge: Barge) => {
 const handleSaveBarge = async () => {
     if (!selectedVessel.value) return;
     const isEditing = !!editingBarge.value;
-    if (isEditing && !canManageVesselUpdate.value) {
+    if (isEditing && !canManageBargeUpdate.value) {
         addToast('Bạn không có quyền cập nhật sà lan!', 'error');
         return;
     }
-    if (!isEditing && !canManageVesselCreate.value) {
+    if (!isEditing && !canManageBargeCreate.value) {
         addToast('Bạn không có quyền thêm sà lan!', 'error');
         return;
     }
@@ -584,7 +597,7 @@ const handleSaveBarge = async () => {
 };
 
 const handleDeleteBarge = async (barge: Barge) => {
-    if (!canManageVesselDelete.value) {
+    if (!canManageBargeDelete.value) {
         addToast('Bạn không có quyền xóa sà lan!', 'error');
         return;
     }
@@ -832,7 +845,7 @@ onMounted(async () => {
                                 </div>
 
                                 <button
-                                    v-if="canManageVesselCreate"
+                                    v-if="canManageBargeCreate"
                                     type="button"
                                     @click="openAddBargeModal"
                                     class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
@@ -924,7 +937,7 @@ onMounted(async () => {
                                     <th class="py-2.5 px-3.5 text-center w-14">STT</th>
                                     <th class="py-2.5 px-3.5">Tên sà lan</th>
                                     <th class="py-2.5 px-3.5">Mã lệnh (OrderNo)</th>
-                                    <th v-if="hasAnyVesselAction" class="py-2.5 px-3.5 text-center w-24">Thao tác</th>
+                                    <th v-if="hasAnyBargeAction" class="py-2.5 px-3.5 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 text-[#1e293b]">
@@ -948,10 +961,10 @@ onMounted(async () => {
                                         </span>
                                         <span v-else class="text-gray-400 italic font-normal">Chưa gán</span>
                                     </td>
-                                    <td v-if="hasAnyVesselAction" class="py-2.5 px-3.5 text-center">
+                                    <td v-if="hasAnyBargeAction" class="py-2.5 px-3.5 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button
-                                                v-if="canManageVesselUpdate"
+                                                v-if="canManageBargeUpdate"
                                                 type="button"
                                                 @click="openEditBargeModal(barge)"
                                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -960,7 +973,7 @@ onMounted(async () => {
                                                 <span class="material-symbols-outlined text-sm">edit</span>
                                             </button>
                                             <button
-                                                v-if="canManageVesselDelete"
+                                                v-if="canManageBargeDelete"
                                                 type="button"
                                                 @click="handleDeleteBarge(barge)"
                                                 class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
@@ -972,7 +985,7 @@ onMounted(async () => {
                                     </td>
                                 </tr>
                                 <tr v-if="filteredBarges.length === 0">
-                                    <td :colspan="hasAnyVesselAction ? 4 : 3" class="py-12 text-center text-gray-400">
+                                    <td :colspan="hasAnyBargeAction ? 4 : 3" class="py-12 text-center text-gray-400">
                                         <span class="material-symbols-outlined text-3xl text-gray-300 block mb-1">anchor</span>
                                         Chưa có sà lan nào trong danh sách. Bấm <strong>"Thêm sà lan"</strong> để khai báo.
                                     </td>

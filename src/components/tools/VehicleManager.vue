@@ -4,9 +4,14 @@ import { useToast } from '@/composables/useToast';
 import { dbContext } from '@/services/storage/DBContext';
 import { SettingsService } from '@/services/storage/SettingsService';
 import { LogService } from '@/services/storage/LogService';
-import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 
 const { addToast } = useToast();
+
+// Permissions for Vehicle Category Management
+const canManageCreate = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', 'cat_vehicles', 'create'));
+const canManageUpdate = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', 'cat_vehicles', 'update'));
+const canManageDelete = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', 'cat_vehicles', 'delete'));
 
 interface ConfirmDialogState {
     show: boolean;
@@ -232,7 +237,7 @@ const filteredVehicles = computed(() => {
 // Add or edit vehicle
 const handleSubmit = async () => {
     const isNew = editingIndex.value === null;
-    if (authStore.role !== 'admin' && ((isNew && !canCreate()) || (!isNew && !canUpdate()))) {
+    if ((isNew && !canManageCreate.value) || (!isNew && !canManageUpdate.value)) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -281,6 +286,10 @@ const handleSubmit = async () => {
 
 // Start edit
 const startEdit = (index: number) => {
+    if (!canManageUpdate.value) {
+        addToast('Bạn không có quyền chỉnh sửa thông tin xe!', 'error');
+        return;
+    }
     const v = vehicles.value[index];
     if (v) {
         plateInput.value = v.plateNumber;
@@ -300,7 +309,7 @@ const cancelEdit = () => {
 
 // Delete vehicle
 const deleteVehicle = async (index: number) => {
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (!canManageDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -329,7 +338,7 @@ const deleteVehicle = async (index: number) => {
 
 // Clear all
 const clearAll = async () => {
-    if (authStore.role !== 'admin' && !canDelete()) {
+    if (!canManageDelete.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -355,13 +364,17 @@ const clearAll = async () => {
 
 // Import Excel
 const triggerImport = () => {
+    if (!canManageCreate.value) {
+        addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
+        return;
+    }
     if (fileInput.value) {
         fileInput.value.click();
     }
 };
 
 const handleImportExcel = async (e: Event) => {
-    if (authStore.role !== 'admin' && !canCreate()) {
+    if (!canManageCreate.value) {
         addToast('Bạn không có quyền thực hiện thao tác này!', 'error');
         return;
     }
@@ -499,6 +512,7 @@ const handleExportExcel = async () => {
                 />
                 
                 <button 
+                    v-if="canManageCreate"
                     @click="triggerImport"
                     class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
                 >
@@ -515,7 +529,7 @@ const handleExportExcel = async () => {
                 </button>
                 
                 <button 
-                    v-if="vehicles.length > 0 && (authStore.role === 'admin' || canDelete())"
+                    v-if="vehicles.length > 0 && canManageDelete"
                     @click="clearAll"
                     class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all"
                 >
@@ -529,7 +543,7 @@ const handleExportExcel = async () => {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             <!-- Form Card -->
-            <div v-if="authStore.role === 'admin' || canCreate() || canUpdate()" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
+            <div v-if="canManageCreate || canManageUpdate" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
                 <h4 class="text-xs font-black text-primary flex items-center gap-1.5">
                     <span class="material-symbols-outlined text-base">{{ editingIndex !== null ? 'edit_note' : 'add_circle' }}</span>
                     {{ editingIndex !== null ? 'Cập nhật thông tin xe' : 'Thêm xe mới' }}
@@ -592,7 +606,7 @@ const handleExportExcel = async () => {
             </div>
 
             <!-- Table & Search Card -->
-            <div :class="(authStore.role === 'admin' || canCreate() || canUpdate()) ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
+            <div :class="(canManageCreate || canManageUpdate) ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
                 <!-- Search bar -->
                 <div class="relative w-full">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
@@ -614,7 +628,7 @@ const handleExportExcel = async () => {
                                     <th class="px-4 py-3">Biển số xe</th>
                                     <th class="px-4 py-3">Số mooc</th>
                                     <th class="px-4 py-3">Nhà xe</th>
-                                    <th v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center w-24">Thao tác</th>
+                                    <th v-if="canManageUpdate || canManageDelete" class="px-4 py-3 text-center w-24">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -635,16 +649,16 @@ const handleExportExcel = async () => {
                                         </span>
                                         <span v-else class="text-gray-400 italic font-normal text-xs">Chưa gán</span>
                                     </td>
-                                    <td v-if="authStore.role === 'admin' || canUpdate() || canDelete()" class="px-4 py-3 text-center">
+                                    <td v-if="canManageUpdate || canManageDelete" class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
-                                            <button v-if="authStore.role === 'admin' || canUpdate()"
+                                            <button v-if="canManageUpdate"
                                                 @click="startEdit(index)"
                                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
                                                 title="Sửa thông tin"
                                             >
                                                 <span class="material-symbols-outlined text-[12px]">edit</span>
                                             </button>
-                                            <button v-if="authStore.role === 'admin' || canDelete()"
+                                            <button v-if="canManageDelete"
                                                 @click="deleteVehicle(index)"
                                                 class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                                 title="Xóa xe"

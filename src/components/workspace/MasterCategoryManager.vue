@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { dbContext } from '@/services/storage/DBContext';
 import { useToast } from '@/composables/useToast';
 import { WeighbridgeService } from '@/services/excel/WeighbridgeService';
-import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 
 const props = defineProps<{
     categoryKey: string;
@@ -13,9 +13,18 @@ const { addToast } = useToast();
 const syncChannel = new BroadcastChannel('allocator_sync_channel');
 
 // Permissions for Category Management
-const canManageCreate = computed(() => authStore.role === 'admin' || canCreate());
-const canManageUpdate = computed(() => authStore.role === 'admin' || canUpdate());
-const canManageDelete = computed(() => authStore.role === 'admin' || canDelete());
+const categoryPermId = computed(() => {
+    if (props.categoryKey === 'category-warehouses' || props.categoryKey === 'warehouses') {
+        return 'cat_warehouses';
+    }
+    if (props.categoryKey === 'category-customers' || props.categoryKey === 'customers') {
+        return 'cat_customers';
+    }
+    return 'cat_customers';
+});
+const canManageCreate = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', categoryPermId.value, 'create'));
+const canManageUpdate = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', categoryPermId.value, 'update'));
+const canManageDelete = computed(() => authStore.role === 'admin' || hasDetailPermission('categories', categoryPermId.value, 'delete'));
 const canWriteCategory = computed(() => canManageCreate.value || canManageUpdate.value);
 
 const searchQuery = ref('');

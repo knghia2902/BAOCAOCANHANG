@@ -18,6 +18,7 @@ interface AuthState {
     isDemoMode?: boolean;
     rolePermissions: Record<string, { 
         tools: string[]; 
+        description?: string;
         canCreate: boolean; 
         canUpdate: boolean; 
         canDelete: boolean;
@@ -49,55 +50,71 @@ try {
     console.warn('Could not parse saved auth session:', e);
 }
 
-const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
-    admin: { 
-        tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'], 
-        canCreate: true, 
-        canUpdate: true, 
+export const DEFAULT_ROLE_PERMISSIONS: AuthState['rolePermissions'] = {
+    admin: {
+        tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'minutes', 'categories', 'converter', 'merger', 'ocr'],
+        description: 'Quản trị viên toàn quyền hệ thống',
+        canCreate: true,
+        canUpdate: true,
         canDelete: true,
         detailPermissions: {
-            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
+            vessel_source: ['vs_vessel_manage', 'vs_barge_manage'],
             allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
+            warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
+            weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
+            split: ['split_manage', 'split_export'],
             vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
             minutes: ['min_create', 'min_export'],
-            warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
-            split: ['split_manage', 'split_export']
+            categories: ['cat_vehicles', 'cat_customers', 'cat_warehouses', 'cat_goods']
         }
     },
-    staff: { 
-        tools: ['converter', 'merger', 'ocr', 'minutes'], 
-        canCreate: true, 
-        canUpdate: true, 
+    staff: {
+        tools: ['converter', 'merger', 'ocr', 'minutes', 'categories'],
+        description: 'Nhân viên văn phòng, xử lý tài liệu Excel/PDF và biên bản',
+        canCreate: true,
+        canUpdate: true,
         canDelete: false,
         detailPermissions: {
-            weighbridge: ['wb_print_export'],
-            allocator: ['al_export'],
-            vehicles: ['veh_barge_profile', 'veh_crew_profile'],
-            minutes: ['min_create', 'min_export']
+            minutes: ['min_create', 'min_export'],
+            categories: ['cat_vehicles:read', 'cat_customers:read', 'cat_warehouses:read', 'cat_goods:read']
         }
     },
-    operator: { 
-        tools: ['weighbridge', 'allocator', 'vehicles', 'minutes'], 
-        canCreate: true, 
-        canUpdate: true, 
+    operator: {
+        tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'minutes', 'categories'],
+        description: 'Nhân viên vận hành, quản lý nguồn tàu, dữ liệu cân và báo cáo',
+        canCreate: true,
+        canUpdate: true,
         canDelete: false,
         detailPermissions: {
+            vessel_source: ['vs_vessel_manage', 'vs_barge_manage'],
+            allocator: ['al_barge_manage', 'al_data_manage', 'al_export'],
+            warehouse: ['wh_import', 'wh_export', 'wh_customer_manage'],
             weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export'],
-            allocator: ['al_barge_manage', 'al_export'],
+            split: ['split_manage', 'split_export'],
             vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-            minutes: ['min_create', 'min_export']
+            minutes: ['min_create', 'min_export'],
+            categories: [
+                'cat_vehicles:read', 'cat_vehicles:create', 'cat_vehicles:update',
+                'cat_customers:read', 'cat_customers:create', 'cat_customers:update',
+                'cat_warehouses:read', 'cat_warehouses:create', 'cat_warehouses:update',
+                'cat_goods:read', 'cat_goods:create', 'cat_goods:update'
+            ]
         }
     },
-    viewer: { 
-        tools: ['weighbridge', 'allocator', 'vehicles'], 
-        canCreate: false, 
-        canUpdate: false, 
+    viewer: {
+        tools: ['vessel_source', 'allocator', 'warehouse', 'weighbridge', 'split', 'vehicles', 'categories'],
+        description: 'Tài khoản giám sát, chỉ xem dữ liệu và báo cáo sản lượng',
+        canCreate: false,
+        canUpdate: false,
         canDelete: false,
         detailPermissions: {
-            weighbridge: ['wb_print_export'],
-            allocator: ['al_export'],
-            vehicles: ['veh_barge_profile'],
-            minutes: ['min_export']
+            vessel_source: ['vs_vessel_manage:read', 'vs_barge_manage:read'],
+            allocator: ['al_export:read'],
+            warehouse: ['wh_export:read'],
+            weighbridge: ['wb_print_export:read'],
+            split: ['split_export:read'],
+            vehicles: ['veh_barge_profile:read'],
+            categories: ['cat_vehicles:read', 'cat_customers:read', 'cat_warehouses:read', 'cat_goods:read']
         }
     }
 };
@@ -143,20 +160,7 @@ export const loginAsDemo = (): { success: boolean } => {
     authStore.isFirstLogin = false;
     authStore.isDemoMode = true;
     authStore.rolePermissions = {
-        admin: {
-            tools: ['converter', 'merger', 'weighbridge', 'allocator', 'vehicles', 'ocr', 'minutes', 'split', 'warehouse'],
-            canCreate: true,
-            canUpdate: true,
-            canDelete: true,
-            detailPermissions: {
-                weighbridge: ['wb_vessel_manage', 'wb_truck_manage', 'wb_print_export', 'wb_layout_config'],
-                allocator: ['al_barge_manage', 'al_rules_manage', 'al_data_manage', 'al_export'],
-                vehicles: ['veh_barge_profile', 'veh_crew_profile', 'veh_registry_insurance'],
-                minutes: ['min_create', 'min_export'],
-                warehouse: ['wh_import', 'wh_export', 'wh_config', 'wh_customer_manage', 'wh_delete_tickets'],
-                split: ['split_manage', 'split_export']
-            }
-        }
+        admin: JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS.admin))
     };
 
     try {

@@ -22,7 +22,7 @@ const MasterCategoryManager = defineAsyncComponent(() => import('@/components/wo
 const route = useRoute();
 const router = useRouter();
 
-const activeKey = ref<string>('scale-data');
+const activeKey = ref<string>('');
 const isSidebarPinned = ref(false);
 
 const nodeMetaMap: Record<string, { title: string; subtitle: string; icon: string; group: string }> = {
@@ -105,7 +105,12 @@ const currentMeta = computed(() => {
     );
 });
 
-const activeComponent = computed<Component>(() => {
+const hasAccessibleTab = computed(() => {
+    return !!activeKey.value && !!nodeMetaMap[activeKey.value] && canAccessWorkspaceTab(activeKey.value);
+});
+
+const activeComponent = computed<Component | null>(() => {
+    if (!hasAccessibleTab.value) return null;
     switch (activeKey.value) {
         case 'vessel-source':
             return VesselSourceManager;
@@ -129,7 +134,7 @@ const activeComponent = computed<Component>(() => {
             if (activeKey.value.startsWith('category-')) {
                 return MasterCategoryManager;
             }
-            return WeighbridgeDataImporter;
+            return null;
     }
 });
 
@@ -147,13 +152,13 @@ const ALL_WORKSPACE_KEYS = [
     'category-goods'
 ];
 
-const getFirstAccessibleTab = (): string => {
+const getFirstAccessibleTab = (): string | null => {
     for (const key of ALL_WORKSPACE_KEYS) {
         if (canAccessWorkspaceTab(key)) {
             return key;
         }
     }
-    return 'scale-data';
+    return null;
 };
 
 const ensureAccessibleTab = (targetKey?: string) => {
@@ -161,9 +166,14 @@ const ensureAccessibleTab = (targetKey?: string) => {
         activeKey.value = targetKey;
     } else {
         const fallback = getFirstAccessibleTab();
-        activeKey.value = fallback;
-        if (route.query.tab !== fallback) {
-            router.replace({ query: { ...route.query, tab: fallback } });
+        activeKey.value = fallback || '';
+        if (fallback) {
+            if (route.query.tab !== fallback) {
+                router.replace({ query: { ...route.query, tab: fallback } });
+            }
+        } else if (route.query.tab !== undefined) {
+            const { tab: _removed, ...restQuery } = route.query;
+            router.replace({ query: restQuery });
         }
     }
 };
@@ -188,6 +198,15 @@ watch(
             ensureAccessibleTab(newTab);
         }
     }
+);
+
+watch(
+    () => [authStore.role, authStore.rolePermissions],
+    () => {
+        const tabQuery = typeof route.query.tab === 'string' ? route.query.tab : activeKey.value || undefined;
+        ensureAccessibleTab(tabQuery);
+    },
+    { deep: true }
 );
 </script>
 
@@ -255,7 +274,7 @@ watch(
 
             <!-- Right Active Tool / Category View -->
             <main class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto custom-workspace-scroll">
-                <KeepAlive :max="12">
+                <KeepAlive v-if="hasAccessibleTab && activeComponent" :max="12">
                     <component
                         :is="activeComponent"
                         :key="`${activeKey}-${authStore.user || 'guest'}-${authStore.isDemoMode ? 'demo' : 'prod'}`"
@@ -267,6 +286,29 @@ watch(
                         @view-deheus="handleSelectNode('report-deheus')"
                     />
                 </KeepAlive>
+                <div
+                    v-else
+                    class="flex-1 flex items-center justify-center p-6"
+                >
+                    <div class="bg-white rounded-[2rem] border border-primary/10 p-8 md:p-10 shadow-sm max-w-md w-full text-center">
+                        <div class="size-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4">
+                            <span class="material-symbols-outlined text-3xl">lock</span>
+                        </div>
+                        <h2 class="text-xl font-display font-black text-[#1e293b] mb-2">
+                            Chưa được phân quyền truy cập
+                        </h2>
+                        <p class="text-xs font-medium text-slate-500 leading-relaxed mb-6">
+                            Tài khoản của bạn hiện chưa có quyền truy cập vào phân hệ hoặc danh mục nào trong Workspace. Vui lòng liên hệ quản trị viên để được cấp quyền.
+                        </p>
+                        <router-link
+                            to="/"
+                            class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all"
+                        >
+                            <span class="material-symbols-outlined text-base">home</span>
+                            <span>Quay về Trang chủ</span>
+                        </router-link>
+                    </div>
+                </div>
             </main>
         </div>
     </div>

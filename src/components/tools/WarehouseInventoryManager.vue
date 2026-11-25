@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onActivated, onUnmounted, watch, nextTick } from 'vue';
 import { useToast } from '@/composables/useToast';
-import { authStore, canCreate, canUpdate, canDelete } from '@/stores/auth';
+import { authStore, hasDetailPermission } from '@/stores/auth';
 import {
     WarehouseInventoryService,
     computeWarehouseFinalTable,
@@ -36,9 +36,13 @@ const emit = defineEmits<{
 const { addToast } = useToast();
 
 // Permissions for Warehouse operations
-const canWarehouseCreate = computed(() => authStore.role === 'admin' || canCreate());
-const canWarehouseUpdate = computed(() => authStore.role === 'admin' || canUpdate());
-const canWarehouseDelete = computed(() => authStore.role === 'admin' || canDelete());
+const canWhImport = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_import', 'create'));
+const canWhExport = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_export', 'read'));
+const canWhConfig = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_config', 'update'));
+const canWhCustomerCreate = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_customer_manage', 'create'));
+const canWhCustomerUpdate = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_customer_manage', 'update'));
+const canWhCustomerDelete = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_customer_manage', 'delete'));
+const canWhDeleteTickets = computed(() => authStore.role === 'admin' || hasDetailPermission('warehouse', 'wh_delete_tickets', 'delete'));
 
 type ViewWarehouseMode = WarehouseId | 'KHO 4 - BK' | 'COMBINED_123';
 type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT' | 'PORT_DUST';
@@ -160,6 +164,10 @@ const editingTicketWeightsKg = ref<{
 });
 
 function openEditCustomerModal(group: 'KHO_4' | 'KHO_4_BK' | 'KHO_123') {
+    if (!canWhCustomerUpdate.value) {
+        addToast('Bạn không có quyền đổi tên khách hàng!', 'error');
+        return;
+    }
     editingCustomerGroup.value = group;
     if (group === 'KHO_4_BK') {
         editingCustomerName.value = configs.value['KHO 4 - BK']?.currentCustomer || 'BÁCH KHOA';
@@ -172,8 +180,8 @@ function openEditCustomerModal(group: 'KHO_4' | 'KHO_4_BK' | 'KHO_123') {
 }
 
 async function saveCustomerNameModal() {
-    if (!canWarehouseUpdate.value) {
-        addToast('Bạn không có quyền thay đổi cấu hình kho!', 'error');
+    if (!canWhCustomerUpdate.value) {
+        addToast('Bạn không có quyền đổi tên khách hàng!', 'error');
         return;
     }
     const defaultFallback = editingCustomerGroup.value === 'KHO_4_BK'
@@ -244,7 +252,7 @@ function selectCustomCustomer(cust: CustomWarehouseCustomer, tab?: SheetTabMode)
 }
 
 function openAddCustomCustomerModal() {
-    if (!canWarehouseCreate.value) {
+    if (!canWhCustomerCreate.value) {
         addToast('Bạn không có quyền thêm khách hàng mới!', 'error');
         return;
     }
@@ -260,7 +268,7 @@ function openAddCustomCustomerModal() {
 }
 
 function openEditCustomCustomerModal(cust: CustomWarehouseCustomer) {
-    if (!canWarehouseUpdate.value) {
+    if (!canWhCustomerUpdate.value) {
         addToast('Bạn không có quyền sửa thông tin khách hàng!', 'error');
         return;
     }
@@ -277,11 +285,11 @@ function openEditCustomCustomerModal(cust: CustomWarehouseCustomer) {
 
 async function saveCustomCustomerModal() {
     const isEditing = !!customCustomerForm.value.id;
-    if (isEditing && !canWarehouseUpdate.value) {
+    if (isEditing && !canWhCustomerUpdate.value) {
         addToast('Bạn không có quyền cập nhật khách hàng!', 'error');
         return;
     }
-    if (!isEditing && !canWarehouseCreate.value) {
+    if (!isEditing && !canWhCustomerCreate.value) {
         addToast('Bạn không có quyền thêm khách hàng mới!', 'error');
         return;
     }
@@ -318,7 +326,7 @@ async function saveCustomCustomerModal() {
 }
 
 async function handleDeleteCustomCustomer(cust: CustomWarehouseCustomer) {
-    if (!canWarehouseDelete.value) {
+    if (!canWhCustomerDelete.value) {
         addToast('Bạn không có quyền xóa khách hàng!', 'error');
         return;
     }
@@ -555,6 +563,10 @@ const unstandardizedTickets = computed<WarehouseInventoryTicket[]>(() => {
 });
 
 async function handleExportUnstandardizedExcel() {
+    if (!canWhExport.value) {
+        addToast('Bạn không có quyền xuất dữ liệu Excel tồn kho!', 'error');
+        return;
+    }
     if (!unstandardizedTickets.value.length) {
         addToast('Không có chuyến khuyết thông tin nào để xuất!', 'info');
         return;
@@ -587,6 +599,10 @@ async function handleExportUnstandardizedExcel() {
 }
 
 async function handleRestandardizeData() {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền chuẩn hóa dữ liệu kho!', 'error');
+        return;
+    }
     restandardizing.value = true;
     try {
         const res = await WarehouseInventoryService.reapplyVehicleCarriersAndWarehouses();
@@ -885,7 +901,7 @@ async function onFactoryKgChange(t: WarehouseInventoryTicket, e: Event) {
 
 // Trigger CSV import (supports multiple CSV/Excel files at once)
 function triggerCsvImport() {
-    if (!canWarehouseCreate.value) {
+    if (!canWhImport.value) {
         addToast('Bạn không có quyền nạp file CSV trạm cân!', 'error');
         return;
     }
@@ -893,7 +909,7 @@ function triggerCsvImport() {
 }
 
 async function handleCsvFilesSelected(e: Event) {
-    if (!canWarehouseCreate.value) {
+    if (!canWhImport.value) {
         addToast('Bạn không có quyền nạp file CSV trạm cân!', 'error');
         return;
     }
@@ -949,7 +965,7 @@ async function handleCsvFilesSelected(e: Event) {
 
 // Trigger Historical Excel Bootstrap
 function triggerHistoryExcelImport() {
-    if (!canWarehouseCreate.value) {
+    if (!canWhImport.value) {
         addToast('Bạn không có quyền nạp file Excel tồn kho!', 'error');
         return;
     }
@@ -957,7 +973,7 @@ function triggerHistoryExcelImport() {
 }
 
 async function handleHistoryExcelSelected(e: Event) {
-    if (!canWarehouseCreate.value) {
+    if (!canWhImport.value) {
         addToast('Bạn không có quyền nạp file Excel tồn kho!', 'error');
         return;
     }
@@ -1011,7 +1027,7 @@ async function handleHistoryExcelSelected(e: Event) {
 
 async function handleClearCurrentWarehouse() {
     showDeleteMenu.value = false;
-    if (!canWarehouseDelete.value) {
+    if (!canWhDeleteTickets.value) {
         addToast('Bạn không có quyền xóa dữ liệu kho!', 'error');
         return;
     }
@@ -1046,7 +1062,7 @@ async function handleClearCurrentWarehouse() {
 
 async function handleClearAllWarehouses() {
     showDeleteMenu.value = false;
-    if (!canWarehouseDelete.value) {
+    if (!canWhDeleteTickets.value) {
         addToast('Bạn không có quyền xóa dữ liệu toàn bộ kho!', 'error');
         return;
     }
@@ -1064,6 +1080,10 @@ async function handleClearAllWarehouses() {
 
 // Save daily remark inline on FINAL table
 async function handleSaveDailyRemark(whId: ExtendedWarehouseId | WarehouseId, reportDate: string, newRemark: string) {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền cập nhật ghi chú kho!', 'error');
+        return;
+    }
     if (selectedCustomCustomer.value) {
         const cust = selectedCustomCustomer.value;
         if (!cust.dailyRemarks) cust.dailyRemarks = {};
@@ -1081,6 +1101,10 @@ async function handleSaveDailyRemark(whId: ExtendedWarehouseId | WarehouseId, re
 }
 
 function openEditConfigModal(whId?: ExtendedWarehouseId) {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền cấu hình tồn đầu kỳ kho!', 'error');
+        return;
+    }
     const targetWh = whId || activeWarehouseConfigKey.value;
     const cfg = configs.value[targetWh];
     editingConfigForm.value = {
@@ -1093,6 +1117,10 @@ function openEditConfigModal(whId?: ExtendedWarehouseId) {
 }
 
 async function saveConfigModal() {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền cập nhật cấu hình kho!', 'error');
+        return;
+    }
     const f = editingConfigForm.value;
     const cfg = configs.value[f.warehouseId];
     const updated: WarehouseConfig = {
@@ -1116,11 +1144,19 @@ async function saveConfigModal() {
 
 // Inline update ticket fields (Factory Weight, Vessel Name, Carrier Name)
 async function handleUpdateTicketField(ticket: WarehouseInventoryTicket) {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền cập nhật phiếu cân kho!', 'error');
+        return;
+    }
     await WarehouseInventoryService.updateTicket(ticket);
     addToast(`Đã cập nhật phiếu ${ticket.soPhieu || ticket.vehiclePlate}`, 'success');
 }
 
 async function handleDeleteTicket(ticket: WarehouseInventoryTicket) {
+    if (!canWhDeleteTickets.value) {
+        addToast('Bạn không có quyền xóa phiếu cân kho!', 'error');
+        return;
+    }
     if (!window.confirm(`Xóa phiếu cân ${ticket.soPhieu || ticket.vehiclePlate} (${ticket.netWeight} tấn)?`)) return;
     await WarehouseInventoryService.deleteTicket(ticket.id);
     allTickets.value = allTickets.value.filter(t => t.id !== ticket.id);
@@ -1128,6 +1164,10 @@ async function handleDeleteTicket(ticket: WarehouseInventoryTicket) {
 }
 
 function openEditTicketModal(ticket: WarehouseInventoryTicket) {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền sửa phiếu cân kho!', 'error');
+        return;
+    }
     editingTicketForm.value = JSON.parse(JSON.stringify(ticket));
     editingTicketWeightsKg.value = {
         grossKg: Math.round((Number(ticket.grossWeight) || 0) * 1000),
@@ -1148,6 +1188,10 @@ function onModalGrossOrTareChange() {
 }
 
 async function handleDeleteFromEditModal() {
+    if (!canWhDeleteTickets.value) {
+        addToast('Bạn không có quyền xóa phiếu cân kho!', 'error');
+        return;
+    }
     if (!editingTicketForm.value) return;
     const t = editingTicketForm.value;
     showEditTicketModal.value = false;
@@ -1155,6 +1199,10 @@ async function handleDeleteFromEditModal() {
 }
 
 async function saveEditTicketModal() {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền cập nhật phiếu cân kho!', 'error');
+        return;
+    }
     if (!editingTicketForm.value) return;
     try {
         const t = editingTicketForm.value;
@@ -1193,6 +1241,10 @@ async function saveEditTicketModal() {
 }
 
 async function handleBatchAssignVessel() {
+    if (!canWhConfig.value) {
+        addToast('Bạn không có quyền gán tàu cho phiếu xuất!', 'error');
+        return;
+    }
     const vName = batchVesselName.value.trim();
     if (!vName) {
         addToast('Vui lòng nhập tên Tàu cần gán!', 'info');
@@ -1212,6 +1264,10 @@ async function handleBatchAssignVessel() {
 
 // Export Excel (.xlsx)
 async function handleExportExcel() {
+    if (!canWhExport.value) {
+        addToast('Bạn không có quyền xuất file Excel tồn kho!', 'error');
+        return;
+    }
     exportingExcel.value = true;
     try {
         const activeCust = selectedCustomCustomer.value;
@@ -1529,6 +1585,10 @@ async function renderFinalTableToPngBlob(overrideWarehouseId?: ExtendedWarehouse
 }
 
 async function handleCopyZaloImage(overrideWarehouseId?: ExtendedWarehouseId | WarehouseId | Event) {
+    if (!canWhExport.value) {
+        addToast('Bạn không có quyền copy ảnh báo cáo tồn kho!', 'error');
+        return;
+    }
     const whId = typeof overrideWarehouseId === 'string' ? (overrideWarehouseId as ExtendedWarehouseId) : undefined;
     capturingZaloImage.value = true;
     try {
@@ -1549,6 +1609,10 @@ async function handleCopyZaloImage(overrideWarehouseId?: ExtendedWarehouseId | W
 }
 
 async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId | WarehouseId) {
+    if (!canWhExport.value) {
+        addToast('Bạn không có quyền tải ảnh báo cáo tồn kho!', 'error');
+        return;
+    }
     capturingZaloImage.value = true;
     try {
         const blob = await renderFinalTableToPngBlob(overrideWarehouseId);
@@ -1615,7 +1679,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
 
                 <!-- Thêm khách hàng (DESIGN.md Secondary Outline) -->
                 <button
-                    v-if="canWarehouseCreate"
+                    v-if="canWhCustomerCreate"
                     type="button"
                     @click="openAddCustomCustomerModal"
                     class="w-full px-3 py-2 bg-white border border-primary/15 hover:border-primary text-primary font-bold rounded-2xl text-xs hover:bg-primary/5 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
@@ -1650,6 +1714,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 </span>
                                 <!-- Quick edit customer name button -->
                                 <button
+                                    v-if="canWhCustomerUpdate"
                                     @click.stop="openEditCustomerModal('KHO_4')"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -1738,6 +1803,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 </span>
                                 <!-- Quick edit customer name button -->
                                 <button
+                                    v-if="canWhCustomerUpdate"
                                     @click.stop="openEditCustomerModal('KHO_4_BK')"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -1826,6 +1892,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 </span>
                                 <!-- Quick edit customer name button -->
                                 <button
+                                    v-if="canWhCustomerUpdate"
                                     @click.stop="openEditCustomerModal('KHO_123')"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -1922,7 +1989,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     {{ cust.customerName }}
                                 </span>
                                 <button
-                                    v-if="canWarehouseUpdate"
+                                    v-if="canWhCustomerUpdate"
                                     @click.stop="openEditCustomCustomerModal(cust)"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -1935,7 +2002,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     <span class="material-symbols-outlined text-xs">edit</span>
                                 </button>
                                 <button
-                                    v-if="canWarehouseDelete"
+                                    v-if="canWhCustomerDelete"
                                     @click.stop="handleDeleteCustomCustomer(cust)"
                                     :class="[
                                         'size-6 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95',
@@ -2028,7 +2095,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 }})
                             </span>
                             <button
-                                v-if="selectedCustomCustomer"
+                                v-if="selectedCustomCustomer && canWhCustomerUpdate"
                                 @click="openEditCustomCustomerModal(selectedCustomCustomer)"
                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                 title="Sửa Tồn đầu kỳ & Tên khách hàng"
@@ -2036,7 +2103,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
                             <button
-                                v-else-if="selectedWarehouseMode !== 'COMBINED_123'"
+                                v-else-if="!selectedCustomCustomer && selectedWarehouseMode !== 'COMBINED_123' && canWhConfig"
                                 @click="openEditConfigModal(activeWarehouseConfigKey)"
                                 class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                                 title="Sửa Tồn đầu kỳ & Tên khách hàng"
@@ -2115,6 +2182,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     <!-- Primary Actions on the right (DESIGN.md Section 6 Toolbar Spec) -->
                     <div class="flex flex-wrap items-center gap-1.5">
                         <button
+                            v-if="canWhExport"
                             @click="handleCopyZaloImage"
                             :disabled="capturingZaloImage"
                             class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
@@ -2125,6 +2193,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </button>
 
                         <button
+                            v-if="canWhExport"
                             @click="handleExportExcel()"
                             :disabled="exportingExcel"
                             class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -2135,7 +2204,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </button>
 
                         <!-- Nút 3 chấm thu gọn: Nạp CSV Trạm Cân, Nạp từ Excel Tồn Kho Đang Dùng, Delete all -->
-                        <div v-if="canWarehouseCreate || canWarehouseDelete" class="relative inline-block">
+                        <div v-if="canWhImport || canWhDeleteTickets" class="relative inline-block">
                             <button
                                 type="button"
                                 @click="showDeleteMenu = !showDeleteMenu"
@@ -2157,7 +2226,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 v-if="showDeleteMenu"
                                 class="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-40 flex flex-col overflow-hidden text-left"
                             >
-                                <template v-if="canWarehouseCreate">
+                                <template v-if="canWhImport">
                                     <div class="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
                                         Nạp dữ liệu tồn kho
                                     </div>
@@ -2183,9 +2252,9 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     </button>
                                 </template>
 
-                                <div v-if="canWarehouseCreate && canWarehouseDelete" class="h-px bg-slate-100 my-1"></div>
+                                <div v-if="canWhImport && canWhDeleteTickets" class="h-px bg-slate-100 my-1"></div>
 
-                                <template v-if="canWarehouseDelete">
+                                <template v-if="canWhDeleteTickets">
                                     <div class="px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">
                                         Xóa dữ liệu (Delete all)
                                     </div>
@@ -2553,9 +2622,10 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <input
                                     type="text"
                                     :value="row.remark"
+                                    :disabled="!canWhConfig"
                                     placeholder=""
                                     @change="handleSaveDailyRemark(activeWarehouseConfigKey, row.reportDate, ($event.target as HTMLInputElement).value)"
-                                    class="w-full px-2 py-1 rounded-lg bg-transparent hover:bg-slate-100 focus:bg-white focus:border focus:border-primary text-xs font-semibold outline-none transition-all"
+                                    class="w-full px-2 py-1 rounded-lg bg-transparent hover:bg-slate-100 focus:bg-white focus:border focus:border-primary text-xs font-semibold outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                                 />
                             </td>
                         </tr>
@@ -2610,6 +2680,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                     Tồn: {{ formatKg(finalTablesByWarehouse[whId].closingStockTons) }} kg
                                 </span>
                                 <button
+                                    v-if="canWhExport"
                                     @click="handleCopyZaloImage(whId)"
                                     :disabled="capturingZaloImage"
                                     class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer"
@@ -2659,8 +2730,9 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                         <input
                                             type="text"
                                             :value="r.remark"
+                                            :disabled="!canWhConfig"
                                             @change="handleSaveDailyRemark(whId, r.reportDate, ($event.target as HTMLInputElement).value)"
-                                            class="w-full px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none"
+                                            class="w-full px-1.5 py-0.5 rounded bg-transparent hover:bg-slate-100 focus:bg-white text-xs font-semibold outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                                         />
                                     </td>
                                 </tr>
@@ -2793,6 +2865,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <td class="py-2 px-2 text-center">
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
+                                        v-if="canWhConfig"
                                         @click="openEditTicketModal(t)"
                                         class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
@@ -2800,6 +2873,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
+                                        v-if="canWhDeleteTickets"
                                         @click="handleDeleteTicket(t)"
                                         class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
@@ -2906,6 +2980,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <td class="py-2 px-2 text-center">
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
+                                        v-if="canWhConfig"
                                         @click="openEditTicketModal(t)"
                                         class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
@@ -2913,6 +2988,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
+                                        v-if="canWhDeleteTickets"
                                         @click="handleDeleteTicket(t)"
                                         class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
@@ -2948,7 +3024,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 class="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden"
             >
                 <!-- Quick Batch Vessel Bar -->
-                <div class="flex flex-wrap items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 shrink-0 text-xs">
+                <div v-if="canWhConfig" class="flex flex-wrap items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 shrink-0 text-xs">
                     <span class="font-bold text-slate-600">Gán nhanh tên Tàu mẹ cho các chuyến đang lọc:</span>
                     <input
                         v-model="batchVesselName"
@@ -3034,6 +3110,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <td class="py-2 px-2 text-center">
                                     <div class="inline-flex items-center gap-1 justify-center">
                                         <button
+                                            v-if="canWhConfig"
                                             @click="openEditTicketModal(t)"
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                             title="Sửa phiếu cân"
@@ -3041,6 +3118,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                             <span class="material-symbols-outlined text-sm">edit</span>
                                         </button>
                                         <button
+                                            v-if="canWhDeleteTickets"
                                             @click="handleDeleteTicket(t)"
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                             title="Xóa phiếu cân"
@@ -3132,6 +3210,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                 <td class="py-2 px-2 text-center">
                                     <div class="inline-flex items-center gap-1 justify-center">
                                         <button
+                                            v-if="canWhConfig"
                                             @click="openEditTicketModal(t)"
                                             class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                             title="Sửa phiếu cân"
@@ -3139,6 +3218,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                             <span class="material-symbols-outlined text-sm">edit</span>
                                         </button>
                                         <button
+                                            v-if="canWhDeleteTickets"
                                             @click="handleDeleteTicket(t)"
                                             class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                             title="Xóa phiếu cân"
@@ -3282,6 +3362,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <td class="py-2 px-2 text-center">
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
+                                        v-if="canWhConfig"
                                         @click="openEditTicketModal(t)"
                                         class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
@@ -3289,6 +3370,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
+                                        v-if="canWhDeleteTickets"
                                         @click="handleDeleteTicket(t)"
                                         class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
@@ -3396,6 +3478,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <td class="py-2 px-2 text-center">
                                 <div class="inline-flex items-center gap-1 justify-center">
                                     <button
+                                        v-if="canWhConfig"
                                         @click="openEditTicketModal(t)"
                                         class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
@@ -3403,6 +3486,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
+                                        v-if="canWhDeleteTickets"
                                         @click="handleDeleteTicket(t)"
                                         class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
@@ -3504,6 +3588,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <td class="py-2 px-3 text-center">
                                 <div class="inline-flex items-center gap-1.5 justify-center">
                                     <button
+                                        v-if="canWhConfig"
                                         @click="openEditTicketModal(t)"
                                         class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Sửa phiếu cân"
@@ -3511,6 +3596,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                                         <span class="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                     <button
+                                        v-if="canWhDeleteTickets"
                                         @click="handleDeleteTicket(t)"
                                         class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
                                         title="Xóa phiếu cân"
@@ -4005,6 +4091,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 <!-- Footer Actions -->
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
                     <button
+                        v-if="canWhDeleteTickets"
                         type="button"
                         @click="handleDeleteFromEditModal"
                         class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-2xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -4012,6 +4099,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         <span class="material-symbols-outlined text-sm">delete</span>
                         <span>Xóa phiếu này</span>
                     </button>
+                    <div v-else></div>
                     <div class="flex gap-2">
                         <button
                             type="button"
@@ -4074,6 +4162,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             Ghi nhận 100% vào báo cáo • Cột chưa có trong danh mục được để trống
                         </div>
                         <button
+                            v-if="canWhExport"
                             type="button"
                             @click="handleExportUnstandardizedExcel"
                             :disabled="exportingExcludedExcel || !unstandardizedTickets.length"
@@ -4166,6 +4255,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 <div class="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
                     <div class="flex items-center gap-2">
                         <button
+                            v-if="canWhExport"
                             type="button"
                             @click="handleExportUnstandardizedExcel"
                             :disabled="exportingExcludedExcel || !unstandardizedTickets.length"
@@ -4177,6 +4267,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             <span>{{ exportingExcludedExcel ? 'Đang xuất Excel...' : 'Xuất Excel danh sách' }}</span>
                         </button>
                         <button
+                            v-if="canWhConfig"
                             type="button"
                             @click="handleRestandardizeData"
                             :disabled="restandardizing"
