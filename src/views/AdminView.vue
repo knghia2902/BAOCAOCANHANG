@@ -1455,7 +1455,7 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <div v-else-if="currentTab === 'accounts'" class="max-w-5xl mx-auto space-y-8 animate-fade-in">
+            <div v-else-if="currentTab === 'accounts'" class="max-w-7xl mx-auto space-y-8 animate-fade-in">
                  <div class="flex justify-between items-center">
                     <h3 class="text-xl font-black text-primary">Quản Lý Tài Khoản</h3>
                     <button @click="openCreateAccountModal" class="bg-primary text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
@@ -1698,7 +1698,7 @@ onMounted(async () => {
                                                 <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Xem</th>
                                                 <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Thêm</th>
                                                 <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Sửa</th>
-                                                <th class="py-3 px-5 text-xs font-display font-black text-rose-500 uppercase tracking-wider text-center w-[15%]">Xóa</th>
+                                                <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Xóa</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
@@ -1760,7 +1760,7 @@ onMounted(async () => {
                                                             @change="toggleActionPerm(selectedRoleToConfigure, sub.id, act.permId, 'delete')"
                                                             class="sr-only peer"
                                                         />
-                                                        <div class="size-5 bg-white border-2 border-rose-200 rounded-full flex items-center justify-center transition-all peer-checked:bg-rose-500 peer-checked:border-rose-500">
+                                                        <div class="size-5 bg-white border-2 border-slate-300 rounded-full flex items-center justify-center transition-all peer-checked:bg-primary peer-checked:border-primary">
                                                             <span class="material-symbols-outlined text-white text-xs font-bold scale-75">check</span>
                                                         </div>
                                                     </label>
