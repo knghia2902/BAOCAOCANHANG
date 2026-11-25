@@ -3510,25 +3510,26 @@ async function autoSyncAllBarges(isManual = false, preferLocalIdb = false) {
                 const importedTrucks: Truck[] = matchedTrips.map((t: any, idx: number) => {
                     let dIn = '';
                     let dOut = '';
+                    const expectedMonth = extractExpectedMonthFromTicket(t.ticketNo || t.sourceTicketNo);
                     try {
                         if (t.dateInStr && t.timeInStr) {
-                            dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`);
+                            dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`, expectedMonth);
                         }
                         if (!dIn && t.date1Obj) {
-                            dIn = parseExcelDate(t.date1Obj);
+                            dIn = parseExcelDate(t.date1Obj, expectedMonth);
                         }
                         if (!dIn && t.dateInStr) {
-                            dIn = parseExcelDate(t.dateInStr);
+                            dIn = parseExcelDate(t.dateInStr, expectedMonth);
                         }
 
                         if (t.dateOutStr && t.timeOutStr) {
-                            dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`);
+                            dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`, expectedMonth);
                         }
                         if (!dOut && t.date2Obj) {
-                            dOut = parseExcelDate(t.date2Obj);
+                            dOut = parseExcelDate(t.date2Obj, expectedMonth);
                         }
                         if (!dOut && t.dateOutStr) {
-                            dOut = parseExcelDate(t.dateOutStr);
+                            dOut = parseExcelDate(t.dateOutStr, expectedMonth);
                         }
                     } catch (e) {
                         console.warn('Error parsing date:', e);
@@ -3749,25 +3750,26 @@ const syncFromAllocatorActiveBarge = async () => {
         const importedTrucks: Truck[] = matchedTrips.map((t: any, idx: number) => {
             let dIn = '';
             let dOut = '';
+            const expectedMonth = extractExpectedMonthFromTicket(t.ticketNo || t.sourceTicketNo);
             try {
                 if (t.dateInStr && t.timeInStr) {
-                    dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`);
+                    dIn = parseExcelDate(`${t.dateInStr} ${t.timeInStr}`, expectedMonth);
                 }
                 if (!dIn && t.date1Obj) {
-                    dIn = parseExcelDate(t.date1Obj);
+                    dIn = parseExcelDate(t.date1Obj, expectedMonth);
                 }
                 if (!dIn && t.dateInStr) {
-                    dIn = parseExcelDate(t.dateInStr);
+                    dIn = parseExcelDate(t.dateInStr, expectedMonth);
                 }
 
                 if (t.dateOutStr && t.timeOutStr) {
-                    dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`);
+                    dOut = parseExcelDate(`${t.dateOutStr} ${t.timeOutStr}`, expectedMonth);
                 }
                 if (!dOut && t.date2Obj) {
-                    dOut = parseExcelDate(t.date2Obj);
+                    dOut = parseExcelDate(t.date2Obj, expectedMonth);
                 }
                 if (!dOut && t.dateOutStr) {
-                    dOut = parseExcelDate(t.dateOutStr);
+                    dOut = parseExcelDate(t.dateOutStr, expectedMonth);
                 }
             } catch (e) {
                 console.warn('Error parsing date:', e);
@@ -4073,13 +4075,30 @@ const analyzeExcelHeaders = (rawRows: any[][]) => {
     showMappingModal.value = true;
 };
 
-const parseExcelDate = (val: any): string => {
+const extractExpectedMonthFromTicket = (ticketNo?: string): number | undefined => {
+    if (!ticketNo) return undefined;
+    const match = String(ticketNo).trim().match(/\/(\d{2})(\d{2})$/);
+    if (match && match[1]) {
+        const m = parseInt(match[1], 10);
+        if (m >= 1 && m <= 12) return m;
+    }
+    return undefined;
+};
+
+const parseExcelDate = (val: any, expectedMonth?: number): string => {
     if (!val) return '';
     if (val instanceof Date) {
         if (isNaN(val.getTime())) return '';
         const y = val.getFullYear();
-        const m = String(val.getMonth() + 1).padStart(2, '0');
-        const d = String(val.getDate()).padStart(2, '0');
+        let mNum = val.getMonth() + 1;
+        let dNum = val.getDate();
+        if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && dNum <= 12 && mNum <= 12 && dNum !== mNum && mNum !== expectedMonth && dNum === expectedMonth) {
+            const tmp = mNum;
+            mNum = dNum;
+            dNum = tmp;
+        }
+        const m = String(mNum).padStart(2, '0');
+        const d = String(dNum).padStart(2, '0');
         const h = String(val.getHours()).padStart(2, '0');
         const min = String(val.getMinutes()).padStart(2, '0');
         return `${y}-${m}-${d}T${h}:${min}`;
@@ -4087,8 +4106,15 @@ const parseExcelDate = (val: any): string => {
     if (typeof val === 'number') {
         const date = new Date(Math.round((val - 25569) * 86400 * 1000));
         const y = date.getUTCFullYear();
-        const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const d = String(date.getUTCDate()).padStart(2, '0');
+        let mNum = date.getUTCMonth() + 1;
+        let dNum = date.getUTCDate();
+        if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && dNum <= 12 && mNum <= 12 && dNum !== mNum && mNum !== expectedMonth && dNum === expectedMonth) {
+            const tmp = mNum;
+            mNum = dNum;
+            dNum = tmp;
+        }
+        const m = String(mNum).padStart(2, '0');
+        const d = String(dNum).padStart(2, '0');
         const h = String(date.getUTCHours()).padStart(2, '0');
         const min = String(date.getUTCMinutes()).padStart(2, '0');
         return `${y}-${m}-${d}T${h}:${min}`;
@@ -4125,6 +4151,9 @@ const parseExcelDate = (val: any): string => {
         if (p1 <= 12 && p2 > 12) {
             month = p1;
             day = p2;
+        } else if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && p1 <= 12 && p2 <= 12 && p1 !== p2 && month !== expectedMonth && day === expectedMonth) {
+            month = p1;
+            day = p2;
         } else {
             day = p1;
             month = p2;
@@ -4143,6 +4172,8 @@ const parseExcelDate = (val: any): string => {
         let month = parseInt(dMyOnly[2], 10);
         const y = dMyOnly[3];
         if (day <= 12 && month > 12) {
+            const tmp = day; day = month; month = tmp;
+        } else if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && day <= 12 && month <= 12 && day !== month && month !== expectedMonth && day === expectedMonth) {
             const tmp = day; day = month; month = tmp;
         }
         return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00`;
@@ -4198,6 +4229,45 @@ const confirmExcelMapping = async () => {
         
         let currentSeed = cfgForm.ticketSeed || '1';
 
+        // Infer batch-level expected month from ticket suffixes (/MMYY) or unambiguous dates (one part > 12)
+        let batchExpectedMonth: number | undefined;
+        for (let r = startRow; r < pendingExcelData.value.rawRows.length; r++) {
+            const row = pendingExcelData.value.rawRows[r];
+            if (!row || row.length === 0) continue;
+            if (ticketNoCol !== undefined && ticketNoCol !== -1 && row[ticketNoCol] !== undefined && row[ticketNoCol] !== null) {
+                const m = extractExpectedMonthFromTicket(String(row[ticketNoCol]));
+                if (m) {
+                    batchExpectedMonth = m;
+                    break;
+                }
+            }
+            for (const colIdx of [dateInCol, dateOutCol]) {
+                if (colIdx !== undefined && colIdx !== -1 && row[colIdx]) {
+                    const cell = row[colIdx];
+                    if (cell instanceof Date && !isNaN(cell.getTime())) {
+                        if (cell.getDate() > 12) {
+                            batchExpectedMonth = cell.getMonth() + 1;
+                            break;
+                        }
+                    } else if (typeof cell === 'string') {
+                        const dm = cell.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                        if (dm && dm[1] && dm[2]) {
+                            const p1 = parseInt(dm[1], 10);
+                            const p2 = parseInt(dm[2], 10);
+                            if (p1 > 12 && p2 >= 1 && p2 <= 12) {
+                                batchExpectedMonth = p2;
+                                break;
+                            } else if (p2 > 12 && p1 >= 1 && p1 <= 12) {
+                                batchExpectedMonth = p1;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (batchExpectedMonth) break;
+        }
+
         for (let r = startRow; r < pendingExcelData.value.rawRows.length; r++) {
             const row = pendingExcelData.value.rawRows[r];
             if (!row || row.length === 0) continue;
@@ -4217,13 +4287,19 @@ const confirmExcelMapping = async () => {
                 wNet = Math.abs(w1 - w2);
             }
 
+            let rawTicketNo = '';
+            if (ticketNoCol !== undefined && ticketNoCol !== -1 && row[ticketNoCol] !== undefined && row[ticketNoCol] !== null) {
+                rawTicketNo = String(row[ticketNoCol]).trim();
+            }
+            const expectedMonth = extractExpectedMonthFromTicket(rawTicketNo) || batchExpectedMonth;
+
             let dIn = '';
             if (dateInCol !== undefined && dateInCol !== -1 && row[dateInCol]) {
-                dIn = parseExcelDate(row[dateInCol]);
+                dIn = parseExcelDate(row[dateInCol], expectedMonth);
             }
             let dOut = '';
             if (dateOutCol !== undefined && dateOutCol !== -1 && row[dateOutCol]) {
-                dOut = parseExcelDate(row[dateOutCol]);
+                dOut = parseExcelDate(row[dateOutCol], expectedMonth);
             }
 
             if (!dIn) {
@@ -4249,10 +4325,7 @@ const confirmExcelMapping = async () => {
             const driver = driverCol !== undefined && driverCol !== -1 && row[driverCol] ? String(row[driverCol]).trim() : '';
             const note = noteCol !== undefined && noteCol !== -1 && row[noteCol] ? String(row[noteCol]).trim() : '';
 
-            let ticketNo = '';
-            if (ticketNoCol !== undefined && ticketNoCol !== -1 && row[ticketNoCol] !== undefined && row[ticketNoCol] !== null) {
-                ticketNo = String(row[ticketNoCol]).trim();
-            }
+            let ticketNo = rawTicketNo;
             if (!ticketNo) {
                 const tempAllTrucks = [...trucks.value, ...importedTrucks];
                 ticketNo = getNextTicketNumber(dOut || dIn, tempAllTrucks, currentSeed);

@@ -256,15 +256,22 @@ export class WeighbridgeOtherService {
             const valTimeIn = timeInCol !== -1 ? row[timeInCol] : null;
             const valTimeOut = timeOutCol !== -1 ? row[timeOutCol] : null;
 
-            const dIn = dateInCol !== -1 && row[dateInCol] ? this.parseExcelDate(row[dateInCol], valTimeIn) : null;
-            const dOut = dateOutCol !== -1 && row[dateOutCol] ? this.parseExcelDate(row[dateOutCol], valTimeOut) : null;
-
             const driver = driverCol !== -1 && row[driverCol] ? String(row[driverCol]).trim() : null;
             const note = noteCol !== -1 && row[noteCol] ? String(row[noteCol]).trim() : null;
 
             let ticketNo = ticketNoCol !== -1 && row[ticketNoCol] !== undefined && row[ticketNoCol] !== null
                 ? String(row[ticketNoCol]).trim()
                 : '';
+
+            let expectedMonth: number | undefined;
+            const ticketMonthMatch = ticketNo.match(/\/(\d{2})(\d{2})$/);
+            if (ticketMonthMatch && ticketMonthMatch[1]) {
+                const m = parseInt(ticketMonthMatch[1], 10);
+                if (m >= 1 && m <= 12) expectedMonth = m;
+            }
+
+            const dIn = dateInCol !== -1 && row[dateInCol] ? this.parseExcelDate(row[dateInCol], valTimeIn, expectedMonth) : null;
+            const dOut = dateOutCol !== -1 && row[dateOutCol] ? this.parseExcelDate(row[dateOutCol], valTimeOut, expectedMonth) : null;
 
             if (!ticketNo) {
                 // Generate a deterministic temporary unique number
@@ -309,12 +316,20 @@ export class WeighbridgeOtherService {
         return tickets;
     }
 
-    private parseExcelDate(val: any, valTime?: any): string | null {
+    parseExcelDate(val: any, valTime?: any, expectedMonth?: number): string | null {
         if (!val) return null;
         if (val instanceof Date) {
+            if (isNaN(val.getTime())) return null;
             const y = val.getUTCFullYear();
-            const m = String(val.getUTCMonth() + 1).padStart(2, '0');
-            const d = String(val.getUTCDate()).padStart(2, '0');
+            let mNum = val.getUTCMonth() + 1;
+            let dNum = val.getUTCDate();
+            if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && dNum <= 12 && mNum <= 12 && dNum !== mNum && mNum !== expectedMonth && dNum === expectedMonth) {
+                const tmp = mNum;
+                mNum = dNum;
+                dNum = tmp;
+            }
+            const m = String(mNum).padStart(2, '0');
+            const d = String(dNum).padStart(2, '0');
             const h = String(val.getUTCHours()).padStart(2, '0');
             const min = String(val.getUTCMinutes()).padStart(2, '0');
             return `${y}-${m}-${d}T${h}:${min}`;
@@ -322,8 +337,15 @@ export class WeighbridgeOtherService {
         if (typeof val === 'number') {
             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
             const y = date.getUTCFullYear();
-            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-            const d = String(date.getUTCDate()).padStart(2, '0');
+            let mNum = date.getUTCMonth() + 1;
+            let dNum = date.getUTCDate();
+            if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && dNum <= 12 && mNum <= 12 && dNum !== mNum && mNum !== expectedMonth && dNum === expectedMonth) {
+                const tmp = mNum;
+                mNum = dNum;
+                dNum = tmp;
+            }
+            const m = String(mNum).padStart(2, '0');
+            const d = String(dNum).padStart(2, '0');
             const h = String(date.getUTCHours()).padStart(2, '0');
             const min = String(date.getUTCMinutes()).padStart(2, '0');
             return `${y}-${m}-${d}T${h}:${min}`;
@@ -349,7 +371,7 @@ export class WeighbridgeOtherService {
             if (p1 <= 12 && p2 > 12) {
                 month = p1;
                 day = p2;
-            } else if (p1 <= 12 && p2 <= 12) {
+            } else if (expectedMonth && expectedMonth >= 1 && expectedMonth <= 12 && p1 <= 12 && p2 <= 12 && p1 !== p2 && month !== expectedMonth && day === expectedMonth) {
                 month = p1;
                 day = p2;
             }
