@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { contentStore } from '../stores/content';
 import { authStore, logout, updateStoreProfile } from '../stores/auth';
@@ -497,21 +497,14 @@ const getRoleDisplayLabel = (key: string): string => {
     return config?.label?.trim() || DEFAULT_ROLE_LABELS[key] || key;
 };
 
-const selectedRoleLabel = computed({
-    get: () => {
-        const key = selectedRoleToConfigure.value;
-        const config = rolePermissions.value[key];
-        if (!config) return '';
-        return config.label !== undefined ? config.label : (DEFAULT_ROLE_LABELS[key] || key);
-    },
-    set: (val: string) => {
-        const config = rolePermissions.value[selectedRoleToConfigure.value];
-        if (config) {
-            config.label = val;
-            hasUnsavedRoleChanges.value = true;
-        }
-    }
-});
+const getRoleAccountCount = (roleKey: string): number => {
+    return accountsList.value.filter(acc => (acc.role || 'staff') === roleKey).length;
+};
+
+const getRoleEnabledSubsystemsCount = (roleKey: string): number => {
+    if (roleKey === 'admin') return allSubsystemsList.length;
+    return allSubsystemsList.filter(sub => isSubsystemChecked(roleKey, sub.id)).length;
+};
 
 const slugifyRoleKey = (input: string): string => {
     return input
@@ -914,8 +907,98 @@ const toggleActionPerm = (role: string, subsystem: string, permId: string, actio
     hasUnsavedRoleChanges.value = true;
 };
 
-const customRoleName = ref<string>('');
+const showRoleModal = ref(false);
+const roleModalMode = ref<'create' | 'edit'>('create');
+const roleModalForm = reactive({
+    key: '',
+    label: '',
+    description: '',
+    cloneFrom: ''
+});
+
 const roleNames = computed(() => Object.keys(rolePermissions.value).filter(role => role !== 'admin'));
+const allRoleKeys = computed(() => [
+    ...roleNames.value,
+    ...(rolePermissions.value.admin ? ['admin'] : [])
+]);
+
+const openCreateRoleModal = () => {
+    roleModalMode.value = 'create';
+    roleModalForm.key = '';
+    roleModalForm.label = '';
+    roleModalForm.description = '';
+    roleModalForm.cloneFrom = '';
+    showRoleModal.value = true;
+};
+
+const openEditRoleModal = (roleKey: string) => {
+    if (roleKey === 'admin') return;
+    const config = rolePermissions.value[roleKey];
+    if (!config) return;
+    roleModalMode.value = 'edit';
+    roleModalForm.key = roleKey;
+    roleModalForm.label = getRoleDisplayLabel(roleKey);
+    roleModalForm.description = config.description || '';
+    roleModalForm.cloneFrom = '';
+    showRoleModal.value = true;
+};
+
+const submitRoleModal = () => {
+    const rawLabel = roleModalForm.label.trim();
+    if (!rawLabel) {
+        triggerToast('Tên chức vụ không được để trống!');
+        return;
+    }
+
+    if (roleModalMode.value === 'edit') {
+        const config = rolePermissions.value[roleModalForm.key];
+        if (!config) return;
+        config.label = rawLabel;
+        config.description = roleModalForm.description.trim();
+        hasUnsavedRoleChanges.value = true;
+        showRoleModal.value = false;
+        triggerToast(`Đã cập nhật thông tin chức vụ "${rawLabel}". Bấm "Lưu cấu hình" để áp dụng.`);
+        return;
+    }
+
+    const key = slugifyRoleKey(rawLabel);
+    if (!key) {
+        triggerToast('Tên chức vụ không hợp lệ!');
+        return;
+    }
+    if (key === 'admin') {
+        triggerToast('Không thể tạo chức vụ trùng mã với Quản trị viên!');
+        return;
+    }
+    if (rolePermissions.value[key]) {
+        triggerToast('Chức vụ này đã tồn tại!');
+        return;
+    }
+
+    const sourceRole = roleModalForm.cloneFrom ? rolePermissions.value[roleModalForm.cloneFrom] : null;
+    if (sourceRole) {
+        const cloned: RolePermissionConfigLocal = JSON.parse(JSON.stringify(sourceRole));
+        cloned.label = rawLabel;
+        cloned.description = roleModalForm.description.trim() || cloned.description || '';
+        syncRoleDerivedFlags(cloned);
+        rolePermissions.value[key] = cloned;
+    } else {
+        rolePermissions.value[key] = {
+            label: rawLabel,
+            tools: [],
+            description: roleModalForm.description.trim(),
+            canCreate: false,
+            canUpdate: false,
+            canDelete: false,
+            detailPermissions: {}
+        };
+    }
+
+    selectedRoleToConfigure.value = key;
+    hasUnsavedRoleChanges.value = true;
+    showRoleModal.value = false;
+    triggerToast(`Đã tạo chức vụ mới: ${rawLabel}! Hãy kiểm tra quyền và bấm Lưu.`);
+};
 
 const getSubsystemMeta = (id: string) => allSubsystemsList.find(tool => tool.id === id);
 
@@ -957,42 +1040,6 @@ const handleSaveRolePermissions = async () => {
     } else {
         triggerToast('Có lỗi xảy ra khi lưu cấu hình chức vụ.');
     }
-};
-
-const handleCreateCustomRole = () => {
-    const rawLabel = customRoleName.value.trim();
-    if (!rawLabel) {
-        triggerToast('Tên chức vụ không được để trống!');
-        return;
-    }
-    const key = slugifyRoleKey(rawLabel);
-    if (!key) {
-        triggerToast('Tên chức vụ không hợp lệ!');
-        return;
-    }
-    if (key === 'admin') {
-        triggerToast('Không thể tạo chức vụ trùng mã với Quản trị viên!');
-        return;
-    }
-    if (rolePermissions.value[key]) {
-        triggerToast('Chức vụ này đã tồn tại!');
-        return;
-    }
-
-    rolePermissions.value[key] = {
-        label: rawLabel,
-        tools: [],
-        description: '',
-        canCreate: false,
-        canUpdate: false,
-        canDelete: false,
-        detailPermissions: {}
-    };
-
-    selectedRoleToConfigure.value = key;
-    customRoleName.value = '';
-    hasUnsavedRoleChanges.value = true;
-    triggerToast(`Đã tạo chức vụ mới: ${rawLabel}! Hãy cấu hình quyền bên dưới và bấm Lưu.`);
 };
 
 const handleDeleteCustomRole = (role: string) => {
@@ -1540,84 +1587,165 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <!-- Phân Quyền Theo Chức Vụ Card -->
-                <div class="bg-white rounded-[2.5rem] p-8 card-shadow border border-primary/5 flex flex-col gap-6">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-primary/10 pb-6">
+                <!-- Phân Quyền Theo Chức Vụ Card (2-Column Master-Detail IAM Layout) -->
+                <div class="bg-white rounded-[2.5rem] p-6 md:p-8 card-shadow border border-primary/5 flex flex-col gap-6">
+                    <!-- Top Header Bar -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-primary/10 pb-5">
                         <div class="text-left">
                             <div class="flex flex-wrap items-center gap-2.5">
                                 <h4 class="text-xl font-display font-black text-[#1e293b] flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary">settings_accessibility</span>
+                                    <span class="material-symbols-outlined text-primary">admin_panel_settings</span>
                                     Quản Lý & Phân Quyền Chức Vụ
                                 </h4>
-                                <span v-if="hasUnsavedRoleChanges" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold">
-                                    <span class="size-1.5 rounded-full bg-amber-500"></span>
+                                <span v-if="hasUnsavedRoleChanges" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold">
                                     Chưa lưu thay đổi
                                 </span>
                             </div>
-                            <p class="text-xs font-semibold text-slate-500 mt-1">Cấu hình chi tiết quyền thao tác cho từng chức vụ. Bật/tắt trực tiếp trên bảng quyền bên dưới.</p>
+                            <p class="text-xs font-semibold text-slate-500 mt-1">Chọn chức vụ bên trái để xem và tùy chỉnh phạm vi phân hệ, quyền thao tác chi tiết bên phải.</p>
                         </div>
-                        
-                        <!-- Add Custom Role Form -->
-                        <div class="flex items-center gap-2 w-full md:w-auto">
-                            <input
-                                v-model="customRoleName"
-                                @keyup.enter="handleCreateCustomRole"
-                                type="text"
-                                placeholder="Tên chức vụ mới (vd: Kế toán kho)"
-                                class="bg-[#f1f5f9] px-4 py-2.5 rounded-2xl text-xs font-bold text-[#1e293b] border border-transparent focus:border-primary/30 outline-none focus:ring-2 focus:ring-primary/20 flex-1 md:w-56"
-                            />
-                            <button @click="handleCreateCustomRole" class="bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2.5 rounded-2xl font-display font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95">
-                                <span class="material-symbols-outlined text-sm">add</span> Tạo chức vụ
+
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <button
+                                @click="handleSaveRolePermissions"
+                                class="bg-primary text-white px-7 py-2.5 font-display font-bold text-xs rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5"
+                            >
+                                <span class="material-symbols-outlined text-base">save</span>
+                                Lưu cấu hình phân quyền
                             </button>
                         </div>
                     </div>
 
-                    <!-- Role Selector Tabs -->
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="r in roleNames" :key="r"
-                            @click="selectedRoleToConfigure = r"
-                            class="px-4 py-2 rounded-2xl text-xs font-display font-bold transition-all flex items-center gap-1.5 border"
-                            :class="selectedRoleToConfigure === r ? 'bg-primary text-white border-primary shadow-soft' : 'bg-[#f1f5f9] text-slate-600 border-slate-200/80 hover:border-primary/40 hover:text-primary'"
-                        >
-                            <span>{{ getRoleDisplayLabel(r) }}</span>
-                            <span v-if="r !== 'admin'" @click.stop="handleDeleteCustomRole(r)" title="Xóa chức vụ" class="material-symbols-outlined text-xs hover:text-rose-300 transition-colors ml-1">close</span>
-                        </button>
-                    </div>
-
-                    <!-- Configure Permissions for Selected Role -->
-                    <div v-if="rolePermissions[selectedRoleToConfigure]" class="space-y-6">
-                        <!-- Editable Role Label & Description -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-                            <div class="bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2 text-left">
-                                <div class="flex items-center justify-between gap-2">
-                                    <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                                        <span class="material-symbols-outlined text-sm text-primary">badge</span>
-                                        Tên chức vụ
-                                    </label>
-                                    <span class="text-xs font-semibold text-slate-400">Mã: {{ selectedRoleToConfigure }}</span>
+                    <!-- 2-Column Master-Detail Body -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <!-- LEFT COLUMN: Role Directory (Chức vụ) -->
+                        <div class="lg:col-span-4 lg:sticky lg:top-6 bg-[#f1f5f9]/70 border border-slate-200/80 rounded-3xl p-4 space-y-3.5 text-left">
+                            <div class="flex items-center justify-between gap-2 px-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-display font-black text-slate-600 uppercase tracking-wider">Danh sách Chức vụ</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-bold">
+                                        {{ allRoleKeys.length }}
+                                    </span>
                                 </div>
-                                <input
-                                    type="text"
-                                    v-model="selectedRoleLabel"
-                                    placeholder="VD: Kế toán kho"
-                                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary transition-colors placeholder:text-gray-400 placeholder:font-normal"
-                                />
+                                <button
+                                    @click="openCreateRoleModal"
+                                    class="h-8 px-3 bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 rounded-xl font-display font-bold text-xs transition-all flex items-center gap-1 active:scale-95"
+                                >
+                                    <span class="material-symbols-outlined text-sm">add</span>
+                                    Thêm
+                                </button>
                             </div>
 
-                            <div class="bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-2 text-left">
-                                <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-sm text-primary">description</span>
-                                    Mô tả chức vụ
-                                </label>
-                                <input
-                                    type="text"
-                                    v-model="rolePermissions[selectedRoleToConfigure]!.description"
-                                    @input="hasUnsavedRoleChanges = true"
-                                    placeholder="VD: Quyền thực hiện cân và tra cứu báo cáo cân"
-                                    class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-colors placeholder:text-gray-400 placeholder:font-normal"
-                                />
+                            <div class="space-y-2.5">
+                                <button
+                                    v-for="r in allRoleKeys"
+                                    :key="r"
+                                    type="button"
+                                    @click="selectedRoleToConfigure = r"
+                                    class="w-full text-left p-4 rounded-2xl border transition-all flex flex-col gap-2 relative overflow-hidden group"
+                                    :class="selectedRoleToConfigure === r
+                                        ? 'bg-white border-primary ring-1 ring-primary/20 shadow-sm'
+                                        : 'bg-white/80 border-slate-200/80 hover:bg-white hover:border-primary/40'"
+                                >
+                                    <span
+                                        v-if="selectedRoleToConfigure === r"
+                                        class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-primary"
+                                    ></span>
+
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span
+                                            class="font-display font-black text-sm truncate transition-colors"
+                                            :class="selectedRoleToConfigure === r ? 'text-primary' : 'text-[#1e293b] group-hover:text-primary'"
+                                        >
+                                            {{ getRoleDisplayLabel(r) }}
+                                        </span>
+                                        <span
+                                            v-if="r === 'admin'"
+                                            class="shrink-0 px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold"
+                                        >
+                                            Hệ thống
+                                        </span>
+                                    </div>
+
+                                    <p class="text-xs font-semibold text-slate-400 line-clamp-1">
+                                        {{ rolePermissions[r]?.description || (r === 'admin' ? 'Toàn quyền quản trị hệ thống' : 'Chưa có mô tả chức vụ') }}
+                                    </p>
+
+                                    <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-xs font-bold text-slate-500">
+                                        <span class="inline-flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm text-slate-400">group</span>
+                                            {{ getRoleAccountCount(r) }} nhân sự
+                                        </span>
+                                        <span
+                                            class="inline-flex items-center gap-1"
+                                            :class="r === 'admin' ? 'text-teal-600' : 'text-primary'"
+                                        >
+                                            <span class="material-symbols-outlined text-sm">{{ r === 'admin' ? 'verified_user' : 'apps' }}</span>
+                                            {{ r === 'admin' ? 'Toàn quyền' : `${getRoleEnabledSubsystemsCount(r)}/${allSubsystemsList.length} phân hệ` }}
+                                        </span>
+                                    </div>
+                                </button>
                             </div>
                         </div>
+
+                        <!-- RIGHT COLUMN: Selected Role Permission Configuration -->
+                        <div v-if="rolePermissions[selectedRoleToConfigure]" class="lg:col-span-8 space-y-6">
+                            <!-- Selected Role Profile Header -->
+                            <div class="bg-[#f1f5f9]/70 border border-slate-200/80 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+                                <div class="space-y-1 min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h5 class="text-lg font-display font-black text-[#1e293b] truncate">
+                                            {{ getRoleDisplayLabel(selectedRoleToConfigure) }}
+                                        </h5>
+                                        <span class="px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-bold">
+                                            Mã: {{ selectedRoleToConfigure }}
+                                        </span>
+                                        <span class="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-600 text-xs font-bold">
+                                            {{ getRoleAccountCount(selectedRoleToConfigure) }} nhân sự
+                                        </span>
+                                    </div>
+                                    <p class="text-xs font-semibold text-slate-500">
+                                        {{ rolePermissions[selectedRoleToConfigure]?.description || 'Chưa có mô tả cho chức vụ này.' }}
+                                    </p>
+                                </div>
+
+                                <div v-if="selectedRoleToConfigure !== 'admin'" class="flex items-center gap-2 shrink-0">
+                                    <button
+                                        @click="openEditRoleModal(selectedRoleToConfigure)"
+                                        title="Chỉnh sửa tên & mô tả chức vụ"
+                                        class="h-9 px-3.5 rounded-xl bg-white border border-slate-200 hover:border-primary text-[#1e293b] hover:text-primary font-display font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                                    >
+                                        <span class="material-symbols-outlined text-base text-amber-500">edit</span>
+                                        Sửa thông tin
+                                    </button>
+                                    <button
+                                        @click="handleDeleteCustomRole(selectedRoleToConfigure)"
+                                        title="Xóa chức vụ này"
+                                        class="size-9 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 border border-rose-200/70 flex items-center justify-center transition-all active:scale-95"
+                                    >
+                                        <span class="material-symbols-outlined text-base">delete</span>
+                                    </button>
+                                </div>
+                                <div v-else class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-teal-600 text-xs font-display font-bold shrink-0">
+                                    <span class="material-symbols-outlined text-base">verified_user</span>
+                                    Toàn quyền hệ thống
+                                </div>
+                            </div>
+
+                            <!-- Admin Read-only Notice -->
+                            <div v-if="selectedRoleToConfigure === 'admin'" class="bg-primary/[0.04] border border-primary/15 rounded-2xl p-6 text-left flex items-start gap-4">
+                                <div class="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-2xl">shield_person</span>
+                                </div>
+                                <div class="space-y-1">
+                                    <h6 class="text-sm font-display font-black text-[#1e293b]">Chức vụ Quản trị viên mặc định có toàn quyền</h6>
+                                    <p class="text-xs font-semibold text-slate-500 leading-relaxed">
+                                        Tài khoản thuộc chức vụ Quản trị viên luôn được cấp đầy đủ quyền Xem, Thêm, Sửa, Xóa trên toàn bộ {{ allSubsystemsList.length }} phân hệ và trang Quản trị hệ thống. Để giới hạn quyền cho nhân sự, vui lòng chọn hoặc tạo mới một chức vụ khác ở cột bên trái.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Non-Admin Role Permissions -->
+                            <template v-else>
 
                         <!-- Grid for Subsystems (Oct 25 Design) -->
                         <div class="space-y-3.5 text-left">
@@ -1771,6 +1899,8 @@ onMounted(async () => {
                                     </table>
                                 </div>
                             </div>
+                        </div>
+                            </template>
                         </div>
                     </div>
 
@@ -2136,6 +2266,79 @@ onMounted(async () => {
                     <button @click="handleResetPassword" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Đặt Lại Mật Khẩu ✨</button>
                 </div>
              </div>
+        </div>
+
+        <!-- Create / Edit Role (Chức Vụ) Modal -->
+        <div v-if="showRoleModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+            <div class="bg-white w-full max-w-lg rounded-[2rem] p-8 card-shadow border border-primary/10 space-y-6 animate-scale-up relative text-left">
+                <header class="flex justify-between items-start gap-4">
+                    <div>
+                        <h3 class="text-xl font-display font-black text-[#1e293b]">
+                            {{ roleModalMode === 'create' ? 'Tạo Chức Vụ Mới' : 'Chỉnh Sửa Chức Vụ' }}
+                        </h3>
+                        <p class="text-xs font-semibold text-slate-500 mt-1">
+                            {{ roleModalMode === 'create'
+                                ? 'Thiết lập tên, mô tả và sao chép nhanh bộ quyền mẫu nếu cần.'
+                                : `Cập nhật tên hiển thị & mô tả cho mã chức vụ "${roleModalForm.key}".` }}
+                        </p>
+                    </div>
+                    <button @click="showRoleModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all shrink-0">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </header>
+
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider ml-1">Tên chức vụ *</label>
+                        <input
+                            v-model="roleModalForm.label"
+                            @keyup.enter="submitRoleModal"
+                            type="text"
+                            placeholder="Ví dụ: Kế toán kho, Điều độ cảng..."
+                            class="w-full bg-[#f1f5f9] px-4 py-3.5 rounded-2xl text-xs font-bold text-[#1e293b] border border-transparent focus:border-primary/40 outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider ml-1">Mô tả chức vụ</label>
+                        <input
+                            v-model="roleModalForm.description"
+                            @keyup.enter="submitRoleModal"
+                            type="text"
+                            placeholder="Ví dụ: Phụ trách đối chiếu tồn kho và xuất báo cáo hàng ngày"
+                            class="w-full bg-[#f1f5f9] px-4 py-3.5 rounded-2xl text-xs font-semibold text-[#1e293b] border border-transparent focus:border-primary/40 outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                    </div>
+
+                    <div v-if="roleModalMode === 'create'" class="space-y-1.5">
+                        <label class="text-xs font-display font-black text-slate-600 uppercase tracking-wider ml-1">Sao chép quyền từ chức vụ có sẵn (Tùy chọn)</label>
+                        <select
+                            v-model="roleModalForm.cloneFrom"
+                            class="w-full bg-[#f1f5f9] px-4 py-3.5 rounded-2xl text-xs font-bold text-[#1e293b] border border-transparent focus:border-primary/40 outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                            <option value="">Không sao chép (Khởi tạo trống)</option>
+                            <option v-for="r in roleNames" :key="r" :value="r">
+                                Sao chép từ: {{ getRoleDisplayLabel(r) }} ({{ getRoleEnabledSubsystemsCount(r) }} phân hệ)
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button
+                        @click="showRoleModal = false"
+                        class="bg-white border border-primary/10 hover:border-primary text-primary font-display font-bold text-xs px-5 py-2.5 rounded-2xl hover:bg-primary/5 active:scale-95 transition-all"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        @click="submitRoleModal"
+                        class="bg-primary text-white font-display font-bold text-xs px-7 py-2.5 rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all"
+                    >
+                        {{ roleModalMode === 'create' ? 'Tạo chức vụ' : 'Cập nhật chức vụ' }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Toast -->
