@@ -1493,20 +1493,46 @@ onMounted(async () => {
                                         </span>
                                     </td>
                                     <td class="py-4">
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full"
-                                            :class="acc.isActive !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
+                                        <span class="inline-flex items-center px-3 py-1 text-xs font-bold rounded-full"
+                                            :class="acc.isActive !== false ? 'bg-teal-50 text-teal-600' : 'bg-rose-50 text-rose-600'"
                                         >
-                                            <span class="size-1.5 rounded-full" :class="acc.isActive !== false ? 'bg-emerald-500' : 'bg-rose-500'"></span>
                                             {{ acc.isActive !== false ? 'Hoạt động' : 'Đã khóa' }}
                                         </span>
                                     </td>
-                                    <td class="py-4 text-right pr-4 space-x-3">
-                                        <button @click="toggleUserStatus(acc)" class="text-xs font-black hover:underline" :class="acc.isActive !== false ? 'text-rose-500' : 'text-emerald-600'">
-                                            {{ acc.isActive !== false ? 'Khóa' : 'Mở khóa' }}
-                                        </button>
-                                        <button @click="openEditAccountModal(acc)" class="text-xs font-black text-amber-500 hover:underline">Chỉnh sửa</button>
-                                        <button @click="openResetPasswordModal(acc)" class="text-xs font-black text-primary hover:underline">Đổi mật khẩu</button>
-                                        <button @click="deleteAccount(acc.username)" class="text-xs font-black text-red-400 hover:text-red-600 hover:underline">Xóa</button>
+                                    <td class="py-4 text-right pr-4">
+                                        <div class="inline-flex items-center justify-end gap-1.5">
+                                            <button
+                                                @click="toggleUserStatus(acc)"
+                                                :disabled="acc.username === authStore.user"
+                                                :title="acc.username === authStore.user ? 'Không thể tự khóa tài khoản đang đăng nhập' : (acc.isActive !== false ? 'Khóa tài khoản' : 'Mở khóa tài khoản')"
+                                                class="size-8 rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                                :class="acc.isActive !== false ? 'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'bg-teal-50 text-teal-600 hover:bg-teal-100'"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">{{ acc.isActive !== false ? 'lock' : 'lock_open' }}</span>
+                                            </button>
+                                            <button
+                                                @click="openEditAccountModal(acc)"
+                                                title="Chỉnh sửa tài khoản"
+                                                class="size-8 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center active:scale-95 transition-all"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                            </button>
+                                            <button
+                                                @click="openResetPasswordModal(acc)"
+                                                title="Đổi mật khẩu"
+                                                class="size-8 rounded-full bg-primary/5 text-primary hover:bg-primary/15 flex items-center justify-center active:scale-95 transition-all"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">key</span>
+                                            </button>
+                                            <button
+                                                @click="deleteAccount(acc.username)"
+                                                :disabled="acc.username === authStore.user"
+                                                :title="acc.username === authStore.user ? 'Không thể tự xóa tài khoản đang đăng nhập' : 'Xóa tài khoản'"
+                                                class="size-8 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
