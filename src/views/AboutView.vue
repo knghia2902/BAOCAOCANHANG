@@ -22,9 +22,9 @@ const aboutData = computed(() => {
 </script>
 
 <template>
-    <div class="flex-1 w-[95%] max-w-[1000px] mx-auto py-8 flex flex-col gap-8 text-left no-print font-display">
+    <div class="flex-1 w-[95%] max-w-[1000px] mx-auto py-8 flex flex-col gap-8 text-left no-print">
         <!-- Hero Profile Card -->
-        <div class="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-gray-150 flex flex-col md:flex-row items-center gap-8">
+        <div class="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-8">
             <div 
                 class="size-36 md:size-44 bg-center bg-no-repeat bg-cover rounded-full border-4 border-pastel-pink shrink-0 shadow-md"
                 :style="{ backgroundImage: `url(${aboutData.avatar})` }"
@@ -35,7 +35,7 @@ const aboutData = computed(() => {
                 <h2 class="text-xl md:text-3xl font-display font-black text-[#1e293b]">
                     {{ aboutData.name }} ✨
                 </h2>
-                <p class="text-xs md:text-sm font-semibold text-[#1b0d11]/70 leading-relaxed">
+                <p class="text-xs md:text-sm font-semibold text-slate-600 leading-relaxed">
                     {{ aboutData.bio }}
                 </p>
                 
@@ -72,34 +72,34 @@ const aboutData = computed(() => {
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Feature 1 -->
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 space-y-3">
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 space-y-3">
                     <div class="size-10 bg-primary/5 text-primary rounded-xl flex items-center justify-center border border-primary/10 shadow-inner">
                         <span class="material-symbols-outlined text-base font-black">security</span>
                     </div>
                     <h4 class="font-bold text-xs text-[#1e293b]">Bảo Mật Tuyệt Đối</h4>
-                    <p class="text-xs text-gray-400 font-bold leading-relaxed">
+                    <p class="text-xs text-slate-500 font-semibold leading-relaxed">
                         Toàn bộ dữ liệu xử lý trực tiếp tại trình duyệt client-side. Tập tin Excel và tài liệu cân hàng của cảng không bao giờ được gửi lên máy chủ của bên thứ ba, bảo vệ thông tin nội bộ hoàn toàn.
                     </p>
                 </div>
 
                 <!-- Feature 2 -->
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 space-y-3">
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 space-y-3">
                     <div class="size-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center border border-teal-100 shadow-inner">
                         <span class="material-symbols-outlined text-base font-black">offline_bolt</span>
                     </div>
                     <h4 class="font-bold text-xs text-[#1e293b]">Đồng Bộ Thông Minh</h4>
-                    <p class="text-xs text-gray-400 font-bold leading-relaxed">
+                    <p class="text-xs text-slate-500 font-semibold leading-relaxed">
                         Chuyển đổi dữ liệu phân bổ xe sang biểu mẫu phiếu cân A5 chỉ với một chạm. Hệ thống tự động kiểm tra trạng thái khóa của sà lan để ngăn chặn việc ghi đè sai lệch dữ liệu.
                     </p>
                 </div>
 
                 <!-- Feature 3 -->
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-150 space-y-3">
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 space-y-3">
                     <div class="size-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100 shadow-inner">
                         <span class="material-symbols-outlined text-base font-black">update</span>
                     </div>
                     <h4 class="font-bold text-xs text-[#1e293b]">Tối Ưu Vận Hành</h4>
-                    <p class="text-xs text-gray-400 font-bold leading-relaxed">
+                    <p class="text-xs text-slate-500 font-semibold leading-relaxed">
                         Thuật toán tự động tăng số phiếu cân theo chu kỳ tháng và reset tự động vào ngày đầu tháng theo định dạng tiêu chuẩn `xxxxxx/mmyy`, hạn chế tối đa sai sót thủ công.
                     </p>
                 </div>

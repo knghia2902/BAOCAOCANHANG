@@ -86,7 +86,7 @@ onMounted(async () => {
                         <span class="text-primary font-bold tracking-widest uppercase text-xs">Hệ thống vận hành</span>
                         <span class="material-symbols-outlined text-primary text-sm">auto_awesome</span>
                     </div>
-                    <h1 class="text-5xl md:text-7xl font-bold leading-[1.1] tracking-tight text-[#1e293b]">
+                    <h1 class="text-5xl md:text-7xl font-display font-black leading-[1.1] tracking-tight text-[#1e293b]">
                         {{ greeting }}, {{ authStore.displayName }}! ✨
                     </h1>
                     <p class="text-lg md:text-xl text-[#1e293b]/60 max-w-xl mx-auto lg:mx-0 font-medium whitespace-pre-line">
@@ -95,11 +95,11 @@ onMounted(async () => {
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-4 justify-center lg:justify-start">
-                    <router-link to="/workspace" class="min-w-[200px] px-6 h-14 flex items-center justify-center gap-2 rounded-full bg-primary text-white font-bold text-lg glow-primary hover:translate-y-[-2px] transition-all">
+                    <router-link to="/workspace" class="min-w-[200px] px-6 h-14 flex items-center justify-center gap-2 bg-primary text-white font-bold text-base rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all">
                         <span class="material-symbols-outlined text-xl">account_tree</span>
                         <span>Mở Workspace</span>
                     </router-link>
-                    <router-link v-if="authStore.role === 'admin'" to="/admin" class="min-w-[180px] h-14 flex items-center justify-center rounded-full border-2 border-strawberry-cream font-bold text-lg hover:bg-white/50 transition-all text-primary">
+                    <router-link v-if="authStore.role === 'admin'" to="/admin" class="min-w-[180px] h-14 flex items-center justify-center bg-white border border-primary/10 hover:border-primary text-primary font-bold text-base rounded-2xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm">
                         Quản trị
                     </router-link>
                 </div>
@@ -124,12 +124,12 @@ onMounted(async () => {
                         </div>
                         <div class="flex gap-6 mt-2">
                             <div class="flex flex-col items-center">
-                                <span class="text-2xl font-black text-teal-600">{{ loading ? '...' : allBarges.length }}</span>
-                                <span class="text-[10px] font-bold text-[#1e293b]/50">sà lan</span>
+                                <span class="text-2xl font-display font-black text-teal-600">{{ loading ? '...' : allBarges.length }}</span>
+                                <span class="text-xs font-bold text-[#1e293b]/50">sà lan</span>
                             </div>
                             <div class="flex flex-col items-center">
-                                <span class="text-2xl font-black text-amber-600">{{ loading ? '...' : allBarges.filter(b => !b.locked).length }}</span>
-                                <span class="text-[10px] font-bold text-[#1e293b]/50">đang mở</span>
+                                <span class="text-2xl font-display font-black text-amber-600">{{ loading ? '...' : allBarges.filter(b => !b.locked).length }}</span>
+                                <span class="text-xs font-bold text-[#1e293b]/50">đang mở</span>
                             </div>
                         </div>
                     </div>
@@ -138,9 +138,9 @@ onMounted(async () => {
         </section>
 
         <!-- Toolkit Section -->
-        <section class="py-10 bg-white/20 rounded-xl backdrop-blur-sm border border-white/40 mb-20">
+        <section class="py-10 bg-white/40 rounded-[2.5rem] backdrop-blur-sm border border-white/60 shadow-soft mb-20">
             <div class="flex flex-col items-center gap-4 mb-10">
-                <h2 class="text-3xl md:text-4xl font-bold text-center text-[#1e293b]">Tiện ích hệ thống</h2>
+                <h2 class="text-3xl md:text-4xl font-display font-black text-center text-[#1e293b]">Tiện ích hệ thống</h2>
                 <div class="h-1.5 w-24 bg-primary rounded-full glow-primary"></div>
             </div>
             <div class="flex flex-wrap justify-center gap-4 md:gap-6 px-4">
@@ -148,14 +148,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin' || hasPermission('vessel_source')"
                     to="/workspace?tab=vessel-source"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
                         <span class="material-symbols-outlined text-3xl">directions_boat</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Tạo Nguồn Tàu</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Tạo Nguồn Tàu</p>
+                        <p class="text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
@@ -163,14 +163,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin' || hasPermission('allocator')"
                     to="/workspace?tab=scale-data"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
                         <span class="material-symbols-outlined text-3xl">balance</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Dữ Liệu Cân Hàng</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Dữ Liệu Cân Hàng</p>
+                        <p class="text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
@@ -178,14 +178,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin' || hasPermission('warehouse')"
                     to="/workspace?tab=report-inventory"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-amber-600 transition-colors group-hover:bg-amber-600/5">
                         <span class="material-symbols-outlined text-3xl">warehouse</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Báo Cáo Tồn Kho</p>
-                        <p class="text-[10px] text-amber-600 font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Báo Cáo Tồn Kho</p>
+                        <p class="text-xs text-amber-600 font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
@@ -193,14 +193,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin' || hasPermission('weighbridge')"
                     to="/workspace?tab=report-shipment"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
                         <span class="material-symbols-outlined text-3xl">monitoring</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Báo Cáo Lô Hàng</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Báo Cáo Lô Hàng</p>
+                        <p class="text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
@@ -208,14 +208,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin' || hasPermission('vehicles')"
                     to="/workspace?tab=vehicles"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
                         <span class="material-symbols-outlined text-3xl">sailing</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Quản Lý Hồ Sơ Phương Tiện</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Quản Lý Hồ Sơ Phương Tiện</p>
+                        <p class="text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
@@ -223,14 +223,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin' || hasPermission('minutes')"
                     to="/workspace?tab=minutes"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
                         <span class="material-symbols-outlined text-3xl">description</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Biên Bản Sà Lan</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Biên Bản Sà Lan</p>
+                        <p class="text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
 
@@ -238,14 +238,14 @@ onMounted(async () => {
                 <router-link
                     v-if="authStore.role === 'admin'"
                     to="/admin"
-                    class="group flex flex-col items-center gap-3 p-6 bg-white/60 border border-soft-pink/10 rounded-xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white/80"
+                    class="group flex flex-col items-center gap-3 p-6 bg-white/80 border border-soft-pink rounded-3xl transition-all cursor-pointer backdrop-blur-md shadow-sm hover:shadow-md hover:scale-105 hover:border-primary/30 hover:bg-white"
                 >
                     <div class="size-16 rounded-full bg-white flex items-center justify-center shadow-sm text-primary transition-colors group-hover:bg-primary/5">
                         <span class="material-symbols-outlined text-3xl">settings_applications</span>
                     </div>
                     <div class="text-center">
-                        <p class="font-bold text-lg leading-none">Quản trị</p>
-                        <p class="text-[10px] text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
+                        <p class="font-bold text-base leading-none text-[#1e293b]">Quản trị</p>
+                        <p class="text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-tighter">Click to use ✨</p>
                     </div>
                 </router-link>
             </div>
@@ -254,7 +254,7 @@ onMounted(async () => {
         <!-- Quick Stats Section -->
         <section class="py-10">
             <div class="flex items-center justify-between mb-10 px-4">
-                <h2 class="text-3xl md:text-4xl font-bold text-[#1e293b]">Tổng quan hệ thống</h2>
+                <h2 class="text-3xl md:text-4xl font-display font-black text-[#1e293b]">Tổng quan hệ thống</h2>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">

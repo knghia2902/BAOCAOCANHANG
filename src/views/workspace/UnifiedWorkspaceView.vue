@@ -211,7 +211,7 @@ watch(
 </script>
 
 <template>
-    <div class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print font-display">
+    <div class="fixed inset-0 bg-white z-[100] flex flex-col overflow-hidden no-print">
         <!-- Top Workspace Header Bar (Chuẩn ToolLayout.vue & DESIGN.md Mục 5A) -->
         <header class="bg-white px-4 md:px-6 py-3 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0 sticky top-0 z-30">
             <!-- Left: Back Button & Current Module Title -->

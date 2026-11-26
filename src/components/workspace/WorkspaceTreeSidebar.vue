@@ -149,7 +149,7 @@ const hasAnyVisibleItem = computed(
 <template>
     <!-- Outer Wrapper: Preserves column space in layout, captures mouseenter/mouseleave -->
     <div
-        class="h-full relative font-display select-none shrink-0 no-print transition-all duration-300"
+        class="h-full relative select-none shrink-0 no-print transition-all duration-300"
         :class="[
             pinned ? 'w-72' : 'w-[68px]'
         ]"
@@ -159,7 +159,7 @@ const hasAnyVisibleItem = computed(
         <!-- Actual Sidebar: Collapses to w-[68px] with icons; Expands to w-72 / w-80 on hover as overlay -->
         <aside
             :class="[
-                'h-full flex flex-col bg-white rounded-[24px] border border-primary/10 font-display overflow-hidden select-none transition-all duration-300 ease-out',
+                'h-full flex flex-col bg-white rounded-[24px] border border-primary/10 overflow-hidden select-none transition-all duration-300 ease-out',
                 pinned
                     ? 'w-full soft-shadow'
                     : isExpanded
@@ -197,10 +197,10 @@ const hasAnyVisibleItem = computed(
                         type="button"
                         @click="togglePin"
                         :class="[
-                            'size-8 rounded-full flex items-center justify-center transition-all cursor-pointer',
+                            'size-8 rounded-full flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95',
                             pinned
-                                ? 'bg-primary text-white shadow-soft hover:bg-primary/90'
-                                : 'bg-[#f1f5f9] text-gray-400 hover:text-primary hover:scale-105 active:scale-95'
+                                ? 'bg-primary text-white shadow-soft hover:bg-[#3b5e9c]'
+                                : 'bg-[#f1f5f9] text-gray-400 hover:text-primary'
                         ]"
                         :title="pinned ? 'Bỏ ghim (Tự động thu gọn khi di chuột ra)' : 'Ghim cố định sơ đồ cây'"
                     >
@@ -331,8 +331,8 @@ const hasAnyVisibleItem = computed(
                                     @click="handleSelect(rep.key)"
                                     :title="rep.label"
                                     :class="[
-                                        'w-full flex items-center gap-2 rounded-[14px] cursor-pointer transition-all text-xs font-black border text-left group',
-                                        !isExpanded ? 'justify-center px-0 py-2.5 rounded-[16px]' : 'p-2 px-3',
+                                        'w-full flex items-center gap-2 rounded-2xl cursor-pointer transition-all text-xs font-black border text-left group',
+                                        !isExpanded ? 'justify-center px-0 py-2.5' : 'p-2 px-3',
                                         activeKey === rep.key
                                             ? 'bg-primary text-white border-primary shadow-soft'
                                             : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-100 hover:border-primary/20'

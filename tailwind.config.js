@@ -24,16 +24,17 @@ export default {
                 "cream": "#f8fafc",
             },
             fontFamily: {
-                "display": ["Space Grotesk", "Fredoka", "sans-serif"],
-                "body": ["Noto Sans", "Quicksand", "sans-serif"]
+                "display": ['"Space Grotesk"', "sans-serif"],
+                "body": ['"Quicksand"', "sans-serif"]
             },
             borderRadius: {
                 "DEFAULT": "1.5rem",
-                "lg": "2.5rem",
-                "xl": "4rem",
                 "full": "9999px",
                 "puffy": "2rem",
                 "cloud": "3rem"
+            },
+            boxShadow: {
+                "soft": "0 10px 30px -10px rgba(74, 120, 194, 0.12)"
             },
         },
     },

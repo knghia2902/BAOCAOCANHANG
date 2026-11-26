@@ -309,10 +309,10 @@ const selectTool = (id: string) => {
 </script>
 
 <template>
-    <div class="flex-1 flex flex-col min-h-0 bg-[#f8fafc] py-6 px-4 sm:px-6 lg:px-8 font-sans">
+    <div class="flex-1 flex flex-col min-h-0 bg-background-light py-6 px-4 sm:px-6 lg:px-8 font-body">
         <!-- Banner Header -->
         <div
-            class="mx-auto w-full max-w-[1200px] mb-6 bg-gradient-to-r from-primary to-teal-600 rounded-[28px] p-6 sm:p-8 text-white shadow-lg relative overflow-hidden"
+            class="mx-auto w-full max-w-[1200px] mb-6 bg-gradient-to-r from-primary to-teal-600 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-lg relative overflow-hidden"
         >
             <div class="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10 pointer-events-none">
                 <span class="material-symbols-outlined text-[200px]">menu_book</span>
@@ -338,7 +338,7 @@ const selectTool = (id: string) => {
                         <span class="material-symbols-outlined text-base">rocket_launch</span>
                         Mở Không Gian Làm Việc (Workspace)
                     </router-link>
-                    <div class="inline-flex items-center gap-1 text-[11px] text-white/80 font-bold px-3 py-1.5 bg-black/10 rounded-full">
+                    <div class="inline-flex items-center gap-1 text-xs text-white/80 font-bold px-3 py-1.5 bg-black/10 rounded-full">
                         <span class="material-symbols-outlined text-sm text-teal-300">verified</span>
                         Quy chuẩn vận hành nội bộ cảng
                     </div>
@@ -366,7 +366,7 @@ const selectTool = (id: string) => {
                     01
                 </div>
                 <div class="min-w-0">
-                    <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Bước 1</div>
+                    <div class="text-xs font-bold uppercase tracking-wider opacity-75">Bước 1</div>
                     <div class="text-xs font-display font-black truncate">Tạo Nguồn Tàu</div>
                 </div>
             </button>
@@ -389,7 +389,7 @@ const selectTool = (id: string) => {
                     02
                 </div>
                 <div class="min-w-0">
-                    <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Bước 2</div>
+                    <div class="text-xs font-bold uppercase tracking-wider opacity-75">Bước 2</div>
                     <div class="text-xs font-display font-black truncate">Nạp Dữ Liệu Cân</div>
                 </div>
             </button>
@@ -412,7 +412,7 @@ const selectTool = (id: string) => {
                     03
                 </div>
                 <div class="min-w-0">
-                    <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Bước 3</div>
+                    <div class="text-xs font-bold uppercase tracking-wider opacity-75">Bước 3</div>
                     <div class="text-xs font-display font-black truncate">Kiểm Tra Đối Soát</div>
                 </div>
             </button>
@@ -435,7 +435,7 @@ const selectTool = (id: string) => {
                     04
                 </div>
                 <div class="min-w-0">
-                    <div class="text-[10px] font-bold uppercase tracking-wider opacity-75">Bước 4</div>
+                    <div class="text-xs font-bold uppercase tracking-wider opacity-75">Bước 4</div>
                     <div class="text-xs font-display font-black truncate">Xuất Excel & Zalo</div>
                 </div>
             </button>
@@ -466,7 +466,7 @@ const selectTool = (id: string) => {
                 <!-- Navigation List -->
                 <div class="bg-white rounded-2xl border border-primary/10 soft-shadow p-2 flex flex-col gap-1">
                     <span
-                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-1.5 select-none"
+                        class="text-xs font-black text-gray-400 uppercase tracking-widest px-3 py-1.5 select-none"
                     >
                         Danh mục hướng dẫn
                     </span>
@@ -486,7 +486,7 @@ const selectTool = (id: string) => {
                         <span
                             v-if="tool.badge"
                             :class="[
-                                'text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase shrink-0',
+                                'text-xs font-bold px-2 py-0.5 rounded-md uppercase shrink-0',
                                 activeToolId === tool.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                             ]"
                         >
@@ -510,7 +510,7 @@ const selectTool = (id: string) => {
                         <span class="material-symbols-outlined text-base">support</span>
                         Hỗ Trợ Kỹ Thuật & Sửa Lỗi
                     </div>
-                    <p class="text-[11px] text-teal-900/80 leading-relaxed font-medium">
+                    <p class="text-xs text-teal-900/80 leading-relaxed font-medium">
                         Khi phát hiện số liệu cân bị sai lệch, không tự ý chỉnh sửa. Hãy liên hệ ngay với <strong class="font-bold">Quản trị viên (Admin)</strong> của ca để được xử lý trên hệ thống.
                     </p>
                 </div>
@@ -534,7 +534,7 @@ const selectTool = (id: string) => {
                                     </h2>
                                     <span
                                         v-if="activeDoc.badge"
-                                        class="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase"
+                                        class="text-xs font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase"
                                     >
                                         {{ activeDoc.badge }}
                                     </span>
@@ -595,10 +595,10 @@ const selectTool = (id: string) => {
                                         :class="[
                                             'mt-2.5 ml-5 sm:ml-6 p-3 rounded-xl border text-xs font-medium flex gap-2.5 items-start',
                                             step.noteType === 'success'
-                                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                                ? 'bg-teal-50 border-teal-200 text-teal-800'
                                                 : step.noteType === 'warning'
                                                   ? 'bg-amber-50 border-amber-200 text-amber-900'
-                                                  : 'bg-blue-50 border-blue-200 text-blue-900'
+                                                  : 'bg-primary/5 border-primary/20 text-primary'
                                         ]"
                                     >
                                         <span class="material-symbols-outlined text-base shrink-0 mt-0.5">

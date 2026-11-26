@@ -291,3 +291,16 @@ Plans:
 - [x] 24-01 (Wave 1 — Complete 2026-11-12): Thực thi Nhóm 1 (HIGH-1..4: Batch `getTrucksByBargeIds` + Memory Cache loại bỏ N+1 queries, `defineAsyncComponent` cho UnifiedWorkspaceView & UtilitiesView, In-Memory Cache + `Promise.all` + `Map` O(1) cho `WarehouseInventoryService` & `VehicleService`, hợp nhất `SettingsService.updateSettings` 1-RTT) và Nhóm 2 (MED-1..3: `Promise.all` IndexedDB + Debounce deep watchers + O(1) lookups cho Allocator/Importer, tăng `chunkSize=500` & lọc điều kiện `syncScaleHeadByTicketNo`, phân trang 100 dòng/trang cho bảng chi tiết Tồn kho 4 kho). Verified: `npm test` 20/20 files (107/107 tests) PASS, `npm run build` PASS 0 errors.
 - [x] 24-02 (Wave 2 — Complete 2026-11-12): Thực thi Nhóm 3 (LOW-1..3: Migration `20261112_add_performance_composite_indexes.sql` bổ sung Composite Indexes trên PostgreSQL/Supabase cho `warehouse_inventory_tickets`, `weighbridge_allocation_tracking`, `weighbridge_trucks`; tối ưu `AuthService.login()` fast-path cho username nội bộ; song song hóa `Promise.all` trong `DBContext.clearDemoData()` & tra cứu `Map` O(1) trong `DemoSandboxService.addInserted()`).
 
+### Phase 25: Chuẩn hóa toàn bộ giao diện theo DESIGN.md
+
+**Goal:** Chuẩn hóa đồng bộ toàn bộ giao diện web theo 6 quy chuẩn trong `DESIGN.md` (Playful Pastel Blue & Slate): sửa cấu hình gốc `tailwind.config.js` / `style.css` / `index.html` (`borderRadius`, `.shadow-soft`, chỉ 2 font `Space Grotesk` & `Quicksand`), loại bỏ tàn dư màu hồng/tím/lạc tông và class lỗi (`bg-gray-55`, `border-gray-150`), nâng toàn bộ chữ `< 12px` lên tối thiểu `text-xs`, chuẩn hóa nút Puffy / Toolbar `h-7` / Tab Switcher `h-8`, bổ sung `sticky top-0 z-10` cho các bảng dữ liệu và sửa lỗi font tiếng Việt (mojibake) ở các component con `weighbridge/`.
+**Requirements**: DESIGN-01, DESIGN-02, DESIGN-03, DESIGN-04
+**Depends on:** Phase 24
+**Plans:** 4 plans
+
+Plans:
+
+- [ ] 25-01 (Wave 1): Chuẩn hóa cấu hình gốc (`tailwind.config.js`, `style.css`, `index.html`), Shell (`App.vue`, `UnifiedWorkspaceView`, `WorkspaceTreeSidebar`) và toàn bộ Views chính (`HomeView`, `LoginView`, `ChangePasswordView`, `AdminView`, `AboutView`, `DocumentsView`).
+- [ ] 25-02 (Wave 2): Chuẩn hóa Báo Cáo Tồn Kho (`WarehouseInventoryManager`), Báo Cáo Lô Hàng (`WeighbridgePrinter`), 7 sub-component `weighbridge/` (gồm sửa mojibake tiếng Việt), 3 component `settlement/` và tinh chỉnh `VesselSourceManager`, `WeighbridgeDataImporter`.
+- [ ] 25-03 (Wave 2): Chuẩn hóa Phân Bổ (`SingleBargeAllocator`, `CargoAllocator`), Hồ Sơ Phương Tiện (`BargeProfileManager`), Biên Bản (`BargeMinutes`) và Lịch Sử Cân Kho/Cont (`WeighbridgeOtherManager`).
+- [ ] 25-04 (Wave 2): Chuẩn hóa Danh Mục Dùng Chung (`MasterCategoryManager`, `VehicleManager`, `GoodsManager`), bộ Tiện Ích (`FormatConverter`, `ExcelMerger`, `PdfOcrTools`) và `ToolLayout.vue`.

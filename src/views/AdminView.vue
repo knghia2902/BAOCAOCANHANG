@@ -1075,13 +1075,13 @@ const formatLogTime = (iso: string) => {
 };
 
 const getActionColor = (action: string) => {
-    if (action.includes('Đăng nhập')) return 'bg-green-50 text-green-600';
-    if (action.includes('Đăng xuất')) return 'bg-gray-100 text-gray-500';
-    if (action.includes('Xóa')) return 'bg-red-50 text-red-500';
-    if (action.includes('Tạo')) return 'bg-blue-50 text-blue-600';
+    if (action.includes('Đăng nhập')) return 'bg-teal-50 text-teal-600';
+    if (action.includes('Đăng xuất')) return 'bg-slate-100 text-slate-600';
+    if (action.includes('Xóa')) return 'bg-rose-50 text-rose-600';
+    if (action.includes('Tạo')) return 'bg-primary/10 text-primary';
     if (action.includes('Sửa') || action.includes('Cập nhật') || action.includes('Lưu')) return 'bg-amber-50 text-amber-600';
-    if (action.includes('mật khẩu') || action.includes('Đổi')) return 'bg-purple-50 text-purple-600';
-    if (action.includes('Phân quyền')) return 'bg-indigo-50 text-indigo-600';
+    if (action.includes('mật khẩu') || action.includes('Đổi')) return 'bg-slate-100 text-[#1e293b]';
+    if (action.includes('Phân quyền')) return 'bg-primary/10 text-primary';
     return 'bg-primary/10 text-primary';
 };
 
@@ -1114,7 +1114,7 @@ onMounted(async () => {
 
 
 <template>
-    <div class="min-h-screen bg-background-light flex flex-col lg:flex-row font-display text-[#1e293b] p-4 lg:p-6 gap-4 lg:gap-6">
+    <div class="min-h-screen bg-background-light flex flex-col lg:flex-row text-[#1e293b] p-4 lg:p-6 gap-4 lg:gap-6">
         <!-- Top Navigation (Mobile Only) -->
         <div class="flex lg:hidden flex-col gap-3 bg-white rounded-[2rem] p-4 shadow-md border border-white/50 shrink-0">
             <div class="flex items-center justify-between">
@@ -1133,7 +1133,7 @@ onMounted(async () => {
             <div class="flex overflow-x-auto gap-2 scrollbar-none whitespace-nowrap pb-0.5">
                 <button v-for="tab in ['dashboard', 'about', 'messages', 'accounts', 'logs']" :key="tab"
                     @click="currentTab = tab"
-                    :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shrink-0', currentTab === tab ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-gray-150']"
+                    :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border shrink-0', currentTab === tab ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-500 border-slate-200']"
                 >
                     <span class="material-symbols-outlined text-sm">
                         {{ tab === 'dashboard' ? 'grid_view' : tab === 'about' ? 'person' : tab === 'messages' ? 'mail' : tab === 'logs' ? 'history' : 'group' }}
@@ -1150,7 +1150,7 @@ onMounted(async () => {
             <div class="flex flex-col items-center mb-12">
                 <div class="relative mb-4 group">
                     <img :src="authStore.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(authStore.displayName || 'User'))" class="size-24 rounded-full border-4 border-white shadow-xl object-cover transition-transform" />
-                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white px-4 py-1.5 rounded-full border border-soft-pink shadow-[0_5px_15px_-5px_rgba(255,133,162,0.4)] animate-bounce-short whitespace-nowrap z-10">
+                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white px-4 py-1.5 rounded-full border border-soft-pink shadow-[0_5px_15px_-5px_rgba(74,120,194,0.25)] animate-bounce-short whitespace-nowrap z-10">
                         <span class="text-xs font-black text-primary uppercase tracking-widest">ADMIN MODE</span>
                     </div>
                 </div>
@@ -1203,7 +1203,7 @@ onMounted(async () => {
                                     :class="msg.isRead ? 'bg-gray-50 border-transparent opacity-60' : 'bg-white border-primary/10'"
                                 >
                                     <div class="flex items-center gap-2 mb-1">
-                                        <div class="size-2 rounded-full" :class="msg.isRead ? 'bg-gray-300' : 'bg-primary shadow-[0_0_5px_rgba(255,133,162,0.5)]'"></div>
+                                        <div class="size-2 rounded-full" :class="msg.isRead ? 'bg-gray-300' : 'bg-primary shadow-[0_0_5px_rgba(74,120,194,0.5)]'"></div>
                                         <p class="text-xs font-black text-primary">{{ msg.name }}</p>
                                     </div>
                                     <p class="text-xs text-gray-500 line-clamp-2">{{ msg.content }}</p>
@@ -1422,7 +1422,7 @@ onMounted(async () => {
                     :class="{ 'opacity-60 grayscale-[0.3]': m.isRead }">
                     <div class="flex justify-between items-start mb-6">
                         <div class="flex items-center gap-4">
-                            <div class="size-3 rounded-full" :class="m.isRead ? 'bg-gray-200' : 'bg-primary shadow-[0_0_15px_rgba(255,133,162,0.6)]'"></div>
+                            <div class="size-3 rounded-full" :class="m.isRead ? 'bg-gray-200' : 'bg-primary shadow-[0_0_15px_rgba(74,120,194,0.5)]'"></div>
                             <div>
                                 <h4 class="font-black text-xl text-primary">{{ m.name }}</h4>
                                 <p class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ m.email }} • {{ m.date }}</p>
@@ -1443,29 +1443,29 @@ onMounted(async () => {
 
             <div v-else-if="currentTab === 'accounts'" class="max-w-7xl mx-auto space-y-8 animate-fade-in">
                  <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-black text-primary">Quản Lý Tài Khoản</h3>
-                    <button @click="openCreateAccountModal" class="bg-primary text-white px-8 py-3 rounded-full font-black text-sm shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                    <h3 class="text-xl font-display font-black text-primary">Quản Lý Tài Khoản</h3>
+                    <button @click="openCreateAccountModal" class="bg-primary text-white px-7 py-2.5 rounded-full font-bold text-sm shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-2">
                         <span class="material-symbols-outlined">person_add</span> Thêm Tài Khoản
                     </button>
                 </div>
                 
-                <div class="bg-white rounded-[3rem] p-8 card-shadow border border-white/40 overflow-hidden">
-                    <div class="overflow-x-auto">
+                <div class="bg-white rounded-[24px] p-6 card-shadow border border-primary/5 overflow-hidden">
+                    <div class="overflow-auto max-h-[520px]">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
-                            <thead>
-                                <tr class="border-b border-primary/10 text-gray-400 text-xs font-black uppercase tracking-wider">
-                                    <th class="pb-4 pl-4">Tên hiển thị</th>
-                                    <th class="pb-4">Tên đăng nhập</th>
-                                    <th class="pb-4">Chức vụ</th>
-                                    <th class="pb-4">Trạng thái</th>
-                                    <th class="pb-4 text-right pr-4">Hành động</th>
+                            <thead class="sticky top-0 z-10 bg-gray-50">
+                                <tr class="border-b border-primary/10 text-slate-500 text-xs font-display font-black uppercase tracking-wider">
+                                    <th class="py-3 pl-4">Tên hiển thị</th>
+                                    <th class="py-3">Tên đăng nhập</th>
+                                    <th class="py-3">Chức vụ</th>
+                                    <th class="py-3">Trạng thái</th>
+                                    <th class="py-3 text-right pr-4">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-primary/5">
                                 <tr v-if="accountsList.length === 0">
                                     <td colspan="5" class="py-12 text-center text-gray-400 italic font-medium">Chưa có tài khoản nào được tạo.</td>
                                 </tr>
-                                <tr v-for="(acc, idx) in accountsList" :key="idx" class="hover:bg-soft-pink/5 transition-colors">
+                                <tr v-for="(acc, idx) in accountsList" :key="idx" class="hover:bg-gray-50 transition-colors">
                                     <td class="py-4 pl-4 font-bold text-sm text-primary flex items-center gap-3">
                                         <img :src="acc.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(acc.displayName || 'User'))" class="size-8 rounded-full border border-primary/10 object-cover" />
                                         <span>{{ acc.displayName }}</span>
@@ -1738,10 +1738,10 @@ onMounted(async () => {
                                     </span>
                                 </div>
 
-                                <div class="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
+                                <div class="bg-white rounded-[24px] border border-primary/5 overflow-auto max-h-[420px] shadow-sm">
                                     <table class="w-full border-collapse">
-                                        <thead>
-                                            <tr class="bg-slate-50 border-b border-slate-200 text-left">
+                                        <thead class="sticky top-0 z-10 bg-gray-50">
+                                            <tr class="border-b border-slate-200 text-left">
                                                 <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider w-[40%]">Chức năng</th>
                                                 <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Xem</th>
                                                 <th class="py-3 px-5 text-xs font-display font-black text-slate-500 uppercase tracking-wider text-center w-[15%]">Thêm</th>
@@ -1848,26 +1848,26 @@ onMounted(async () => {
                         </h3>
                         <p class="text-xs font-bold text-gray-400 mt-1">Theo dõi lịch sử thao tác, truy cập của người dùng trên hệ thống.</p>
                     </div>
-                    <button @click="loadLogs" :disabled="logsLoading" class="bg-primary text-white px-6 py-2.5 rounded-full font-black text-xs shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50">
+                    <button @click="loadLogs" :disabled="logsLoading" class="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50">
                         <span class="material-symbols-outlined text-sm" :class="logsLoading ? 'animate-spin' : ''">refresh</span>
                         Làm mới
                     </button>
                 </div>
 
                 <!-- Filters -->
-                <div class="bg-white rounded-[2rem] p-5 card-shadow border border-white/40 flex flex-col sm:flex-row gap-3">
+                <div class="bg-white rounded-[2rem] p-5 card-shadow border border-primary/5 flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
-                        <span class="material-symbols-outlined text-gray-300 absolute left-4 top-1/2 -translate-y-1/2 text-base">search</span>
-                        <input v-model="logsSearchQuery" type="text" placeholder="Tìm kiếm theo tên, hành động, chi tiết..." class="w-full bg-[#f1f5f9] pl-11 pr-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
+                        <span class="material-symbols-outlined text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 text-base">search</span>
+                        <input v-model="logsSearchQuery" type="text" placeholder="Tìm kiếm theo tên, hành động, chi tiết..." class="w-full bg-[#f1f5f9] pl-11 pr-4 py-3 rounded-2xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
-                    <select v-model="logsFilterAction" class="bg-[#f1f5f9] px-4 py-3 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[180px]">
+                    <select v-model="logsFilterAction" class="bg-[#f1f5f9] px-4 py-3 rounded-2xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[180px]">
                         <option value="all">Tất cả hành động</option>
                         <option v-for="action in uniqueActions" :key="action" :value="action">{{ action }}</option>
                     </select>
                 </div>
 
                 <!-- Logs Table -->
-                <div class="bg-white rounded-[3rem] p-6 sm:p-8 card-shadow border border-white/40 overflow-hidden">
+                <div class="bg-white rounded-[24px] p-6 sm:p-8 card-shadow border border-primary/5 overflow-hidden">
                     <!-- Loading State -->
                     <div v-if="logsLoading" class="flex flex-col items-center justify-center py-16 gap-4">
                         <div class="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -1886,22 +1886,22 @@ onMounted(async () => {
                     </div>
 
                     <!-- Table -->
-                    <div v-else class="overflow-x-auto">
+                    <div v-else class="overflow-auto max-h-[560px]">
                         <div class="text-right mb-3">
-                            <span class="text-xs font-bold text-gray-300">Hiển thị {{ paginatedLogs.length }} / {{ filteredLogs.length }} bản ghi (Tổng {{ activityLogs.length }})</span>
+                            <span class="text-xs font-bold text-slate-400">Hiển thị {{ paginatedLogs.length }} / {{ filteredLogs.length }} bản ghi (Tổng {{ activityLogs.length }})</span>
                         </div>
                         <table class="w-full text-left border-collapse whitespace-nowrap">
-                            <thead>
-                                <tr class="border-b border-primary/10 text-gray-400 text-xs font-black uppercase tracking-wider">
-                                    <th class="pb-4 pl-4">Thời gian</th>
-                                    <th class="pb-4">Người dùng</th>
-                                    <th class="pb-4">Chức vụ</th>
-                                    <th class="pb-4">Hành động</th>
-                                    <th class="pb-4 pr-4">Chi tiết</th>
+                            <thead class="sticky top-0 z-10 bg-gray-50">
+                                <tr class="border-b border-primary/10 text-slate-500 text-xs font-display font-black uppercase tracking-wider">
+                                    <th class="py-3 pl-4">Thời gian</th>
+                                    <th class="py-3">Người dùng</th>
+                                    <th class="py-3">Chức vụ</th>
+                                    <th class="py-3">Hành động</th>
+                                    <th class="py-3 pr-4">Chi tiết</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-primary/5">
-                                <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-soft-pink/5 transition-colors">
+                                <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-gray-50 transition-colors">
                                     <td class="py-3.5 pl-4 text-xs font-bold text-gray-400">
                                         {{ formatLogTime(log.timestamp) }}
                                     </td>
@@ -1965,8 +1965,8 @@ onMounted(async () => {
 
         <!-- Modals: Toolkit Config -->
         <div v-if="showToolkitManager" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-            <div class="bg-white rounded-[3rem] w-full max-w-xl p-10 shadow-2xl animate-scale-up relative border border-white/50">
-                <button @click="showToolkitManager = false" class="absolute top-6 right-6 size-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-primary transition-all">
+            <div class="bg-white rounded-[2rem] w-full max-w-xl p-8 shadow-2xl animate-scale-up relative border border-primary/10">
+                <button @click="showToolkitManager = false" class="absolute top-6 right-6 size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                     <span class="material-symbols-outlined">close</span>
                 </button>
                 <h2 class="text-xl font-display font-black text-primary mb-2">Toolkit Manager</h2>
@@ -2017,7 +2017,7 @@ onMounted(async () => {
                         <input v-model="newTool.label" placeholder="Skill Label (ví dụ: In Phiếu Cân)" class="bg-gray-50 p-4 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
                     <input v-model="newTool.tool" placeholder="Linked Tool Path (ví dụ: /tools?tool=weighbridge)" class="w-full bg-gray-50 p-4 rounded-xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20" />
-                    <button @click="addTool" class="w-full py-5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm">
+                    <button @click="addTool" class="w-full py-4 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-sm">
                         {{ isEditingTool ? 'Update Magic Skill ✨' : 'Add Magic Skill ✨' }}
                     </button>
                     <button v-if="isEditingTool" @click="cancelEditTool" class="w-full py-2 text-gray-400 text-xs font-black uppercase tracking-widest">Cancel Editing</button>
@@ -2027,19 +2027,19 @@ onMounted(async () => {
 
         <!-- Project Modal -->
         <div v-if="showProjectModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-             <div class="bg-white w-full max-w-xl rounded-[4rem] p-12 card-shadow space-y-8 animate-scale-up relative overflow-hidden">
+             <div class="bg-white w-full max-w-xl rounded-[2rem] p-8 card-shadow border border-primary/10 space-y-6 animate-scale-up relative overflow-hidden">
                 <header class="flex justify-between items-center">
                     <div>
-                        <h3 class="text-3xl font-black text-primary">{{ isEditingProject ? 'Edit Project' : 'New Creation' }}</h3>
-                        <p class="text-xs font-bold text-gray-400">Tweak your magic showcase ✨</p>
+                        <h3 class="text-xl font-display font-black text-primary">{{ isEditingProject ? 'Edit Project' : 'New Creation' }}</h3>
+                        <p class="text-xs font-semibold text-slate-500">Tweak your magic showcase ✨</p>
                     </div>
-                    <button @click="showProjectModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showProjectModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
                 <div class="space-y-6">
                     <div class="flex justify-center">
-                        <div class="relative size-44 rounded-[3rem] bg-gray-50 border-2 border-dashed border-primary/20 flex flex-col items-center justify-center overflow-hidden cursor-pointer group hover:bg-white transition-all shadow-inner" @click="triggerProjectImageUpload">
+                        <div class="relative size-44 rounded-[2rem] bg-gray-50 border-2 border-dashed border-primary/20 flex flex-col items-center justify-center overflow-hidden cursor-pointer group hover:bg-white transition-all shadow-inner" @click="triggerProjectImageUpload">
                             <div v-if="newProject.image" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${newProject.image})` }"></div>
                             <div class="text-center group-hover:scale-110 transition-transform">
                                 <span class="material-symbols-outlined text-4xl text-primary/30">add_photo_alternate</span>
@@ -2050,26 +2050,26 @@ onMounted(async () => {
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Title</label>
-                            <input v-model="newProject.title" placeholder="Project name" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Title</label>
+                            <input v-model="newProject.title" placeholder="Project name" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Type / Tag</label>
-                            <input v-model="newProject.tag" placeholder="e.g. Mobile Design" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Type / Tag</label>
+                            <input v-model="newProject.tag" placeholder="e.g. Mobile Design" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="space-y-1">
-                        <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Description</label>
-                        <textarea v-model="newProject.description" placeholder="Share the story behind this magic..." class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-bold border-none h-28 resize-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm leading-relaxed"></textarea>
+                        <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Description</label>
+                        <textarea v-model="newProject.description" placeholder="Share the story behind this magic..." class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-semibold text-[#1e293b] border-none h-28 resize-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm leading-relaxed"></textarea>
                     </div>
-                    <button @click="addProject" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Confirm Changes ✨</button>
+                    <button @click="addProject" class="w-full py-4 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-sm">Confirm Changes ✨</button>
                 </div>
              </div>
         </div>
 
         <!-- Icon Picker -->
         <div v-if="showIconPickerFor" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[250] flex items-center justify-center p-6" @click="showIconPickerFor = null">
-            <div class="bg-white rounded-[3rem] p-10 max-w-sm w-full grid grid-cols-4 gap-4 shadow-2xl animate-fade-in" @click.stop>
+            <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full grid grid-cols-4 gap-4 shadow-2xl animate-fade-in" @click.stop>
                 <button v-for="icon in iconPresets" :key="icon.name" @click="selectIcon(icon.icon, icon.isSvg)" class="size-16 rounded-2xl bg-[#f1f5f9] flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm border border-gray-100">
                     <div v-if="icon.isSvg && getIconHtml(icon.icon)" v-html="getIconHtml(icon.icon)" class="size-8"></div>
                     <span v-else class="material-symbols-outlined">{{ icon.icon }}</span>
@@ -2079,35 +2079,35 @@ onMounted(async () => {
 
         <!-- Create Account Modal -->
         <div v-if="showAccountModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-             <div class="bg-white w-full max-w-xl rounded-[4rem] p-12 card-shadow space-y-8 animate-scale-up relative overflow-hidden">
+             <div class="bg-white w-full max-w-xl rounded-[2rem] p-8 card-shadow border border-primary/10 space-y-6 animate-scale-up relative overflow-hidden">
                 <header class="flex justify-between items-center">
                     <div>
-                        <h3 class="text-3xl font-black text-primary">Tạo Tài Khoản</h3>
-                        <p class="text-xs font-bold text-gray-400">Tạo thêm tài khoản mới cho nhân viên ✨</p>
+                        <h3 class="text-xl font-display font-black text-primary">Tạo Tài Khoản</h3>
+                        <p class="text-xs font-semibold text-slate-500">Tạo thêm tài khoản mới cho nhân viên ✨</p>
                     </div>
-                    <button @click="showAccountModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showAccountModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
                 <div class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Tên đăng nhập</label>
-                            <input v-model="accountForm.username" placeholder="Ví dụ: nguyenvana" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Tên đăng nhập</label>
+                            <input v-model="accountForm.username" placeholder="Ví dụ: nguyenvana" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
-                            <input v-model="accountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <input v-model="accountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu</label>
-                            <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Mật khẩu</label>
+                            <input v-model="accountForm.password" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Chức vụ</label>
-                            <select v-model="accountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Chức vụ</label>
+                            <select v-model="accountForm.role" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">{{ getRoleDisplayLabel('admin') }}</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
                                     {{ getRoleDisplayLabel(r) }}
@@ -2118,32 +2118,32 @@ onMounted(async () => {
                     
 
 
-                    <button @click="handleCreateAccount" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Xác Nhận Tạo ✨</button>
+                    <button @click="handleCreateAccount" class="w-full py-4 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-sm">Xác Nhận Tạo ✨</button>
                 </div>
              </div>
         </div>
 
         <!-- Edit Account Modal -->
         <div v-if="showEditAccountModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-             <div class="bg-white w-full max-w-xl rounded-[4rem] p-12 card-shadow space-y-8 animate-scale-up relative overflow-hidden">
+             <div class="bg-white w-full max-w-xl rounded-[2rem] p-8 card-shadow border border-primary/10 space-y-6 animate-scale-up relative overflow-hidden">
                 <header class="flex justify-between items-center">
                     <div>
-                        <h3 class="text-3xl font-black text-primary">Chỉnh Sửa Tài Khoản</h3>
-                        <p class="text-xs font-bold text-gray-400">Thay đổi thông tin tài khoản: <span class="text-primary font-black">{{ editAccountForm.username }}</span> ✨</p>
+                        <h3 class="text-xl font-display font-black text-primary">Chỉnh Sửa Tài Khoản</h3>
+                        <p class="text-xs font-semibold text-slate-500">Thay đổi thông tin tài khoản: <span class="text-primary font-black">{{ editAccountForm.username }}</span> ✨</p>
                     </div>
-                    <button @click="showEditAccountModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showEditAccountModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
                 <div class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Tên hiển thị</label>
-                            <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Tên hiển thị</label>
+                            <input v-model="editAccountForm.displayName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Chức vụ</label>
-                            <select v-model="editAccountForm.role" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
+                            <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Chức vụ</label>
+                            <select v-model="editAccountForm.role" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm">
                                 <option value="admin">{{ getRoleDisplayLabel('admin') }}</option>
                                 <option v-for="r in roleNames" :key="r" :value="r">
                                     {{ getRoleDisplayLabel(r) }}
@@ -2160,29 +2160,29 @@ onMounted(async () => {
                     
 
 
-                    <button @click="handleEditAccount" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Lưu Thay Đổi ✨</button>
+                    <button @click="handleEditAccount" class="w-full py-4 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-sm">Lưu Thay Đổi ✨</button>
                 </div>
              </div>
         </div>
 
         <!-- Reset Password Modal -->
         <div v-if="showResetPasswordModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-             <div class="bg-white w-full max-w-md rounded-[4rem] p-12 card-shadow space-y-8 animate-scale-up relative overflow-hidden">
+             <div class="bg-white w-full max-w-md rounded-[2rem] p-8 card-shadow border border-primary/10 space-y-6 animate-scale-up relative overflow-hidden">
                 <header class="flex justify-between items-center">
                     <div>
-                        <h3 class="text-3xl font-black text-primary">Đặt Lại Mật Khẩu</h3>
-                        <p class="text-xs font-bold text-gray-400">Đặt lại mật khẩu cho tài khoản: <span class="text-primary font-black">{{ resetPasswordForm.username }}</span></p>
+                        <h3 class="text-xl font-display font-black text-primary">Đặt Lại Mật Khẩu</h3>
+                        <p class="text-xs font-semibold text-slate-500">Đặt lại mật khẩu cho tài khoản: <span class="text-primary font-black">{{ resetPasswordForm.username }}</span></p>
                     </div>
-                    <button @click="showResetPasswordModal = false" class="size-12 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                    <button @click="showResetPasswordModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                          <span class="material-symbols-outlined">close</span>
                     </button>
                 </header>
                 <div class="space-y-6">
                     <div class="space-y-1">
-                        <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Mật khẩu mới</label>
-                        <input v-model="resetPasswordForm.newPassword" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-5 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                        <label class="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">Mật khẩu mới</label>
+                        <input v-model="resetPasswordForm.newPassword" type="password" placeholder="••••••••" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-sm font-bold text-[#1e293b] border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                     </div>
-                    <button @click="handleResetPassword" class="w-full py-5 bg-primary text-white rounded-[2rem] font-black shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all text-sm">Đặt Lại Mật Khẩu ✨</button>
+                    <button @click="handleResetPassword" class="w-full py-4 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-sm">Đặt Lại Mật Khẩu ✨</button>
                 </div>
              </div>
         </div>
@@ -2261,7 +2261,7 @@ onMounted(async () => {
         </div>
 
         <!-- Toast -->
-        <div v-if="showToast" class="fixed bottom-12 left-1/2 -translate-x-1/2 bg-[#1b0d11] text-white px-10 py-5 rounded-full font-black text-xs shadow-2xl z-[300] animate-bounce-short tracking-wide border border-white/10 backdrop-blur-xl">
+        <div v-if="showToast" class="fixed bottom-12 left-1/2 -translate-x-1/2 bg-[#1e293b] text-white px-10 py-5 rounded-full font-black text-xs shadow-2xl z-[300] animate-bounce-short tracking-wide border border-white/10 backdrop-blur-xl">
             {{ toastMessage }}
         </div>
     </div>
@@ -2269,11 +2269,11 @@ onMounted(async () => {
 
 
 <style scoped>
-.card-shadow { box-shadow: 0 20px 60px -15px rgba(255, 133, 162, 0.15); }
+.card-shadow { box-shadow: 0 20px 60px -15px rgba(74, 120, 194, 0.12); }
 .blob-shape { border-radius: 64% 36% 27% 73% / 55% 23% 77% 45%; }
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 133, 162, 0.2); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(74, 120, 194, 0.2); border-radius: 10px; }
 @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
 @keyframes scale-up { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }

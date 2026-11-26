@@ -42,21 +42,21 @@ const handleChangePassword = async () => {
             <div class="size-16 bg-pastel-lavender rounded-full flex items-center justify-center text-primary mx-auto mb-6 animate-bounce">
                 <span class="material-symbols-outlined text-3xl">verified_user</span>
             </div>
-            <h2 class="text-xl font-bold font-display text-primary mb-2">Change Password</h2>
-            <p class="text-[#1b0d11]/60 mb-8 text-sm font-medium">Vì lý do bảo mật, vui lòng đổi mật khẩu trong lần đăng nhập đầu tiên nhé!</p>
+            <h2 class="text-xl font-black font-display text-primary mb-2">Change Password</h2>
+            <p class="text-slate-500 mb-8 text-sm font-medium">Vì lý do bảo mật, vui lòng đổi mật khẩu trong lần đăng nhập đầu tiên nhé!</p>
 
             <form v-if="!success" @submit.prevent="handleChangePassword" class="space-y-4">
-                <input v-model="newPassword" type="password" class="w-full bg-background-light border-none rounded-2xl py-4 px-6 font-bold text-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="New Password" required />
-                <input v-model="confirmPassword" type="password" class="w-full bg-background-light border-none rounded-2xl py-4 px-6 font-bold text-primary focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Confirm Password" required />
+                <input v-model="newPassword" type="password" class="w-full bg-[#f1f5f9] border-none rounded-2xl py-4 px-6 font-bold text-sm text-[#1e293b] placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="New Password" required />
+                <input v-model="confirmPassword" type="password" class="w-full bg-[#f1f5f9] border-none rounded-2xl py-4 px-6 font-bold text-sm text-[#1e293b] placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Confirm Password" required />
                 
-                <div v-if="error" class="text-red-500 text-xs font-bold">{{ error }}</div>
+                <div v-if="error" class="text-rose-600 bg-rose-50 p-3 rounded-xl text-xs font-bold">{{ error }}</div>
 
-                <button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-full hover:scale-[1.02] transition-all">
+                <button type="submit" class="w-full bg-primary text-white font-bold py-4 rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-base">
                     Update Password
                 </button>
             </form>
 
-            <div v-else class="text-green-500 font-bold flex flex-col items-center gap-2">
+            <div v-else class="text-teal-600 font-bold flex flex-col items-center gap-2">
                 <span class="material-symbols-outlined text-4xl">check_circle</span>
                 <p>Đổi mật khẩu thành công! <br> Đang chuyển hướng...</p>
             </div>

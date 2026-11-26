@@ -140,7 +140,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="layout-container flex h-full grow flex-col min-h-screen font-display">
+  <div class="layout-container flex h-full grow flex-col min-h-screen">
     <!-- Demo Mode Top Alert Banner -->
     <div
       v-if="authStore.isDemoMode"
@@ -172,12 +172,12 @@ onUnmounted(() => {
     </div>
 
     <!-- Top global floating header (only if logged in) -->
-    <header v-if="authStore.isAuthenticated" class="mx-auto mt-6 w-[95%] max-w-[1200px] flex items-center justify-between whitespace-nowrap bg-white px-8 py-4 rounded-full shadow-sm sticky top-6 z-50 border border-soft-pink no-print">
+    <header v-if="authStore.isAuthenticated" class="mx-auto mt-6 w-[95%] max-w-[1200px] flex items-center justify-between whitespace-nowrap backdrop-blur bg-white/80 px-8 py-4 rounded-full shadow-sm sticky top-6 z-50 border border-soft-pink no-print">
       <div class="flex items-center gap-3">
-        <router-link to="/" class="size-10 bg-soft-rose rounded-full flex items-center justify-center text-white glow-primary">
+        <router-link to="/" class="size-10 bg-primary rounded-full flex items-center justify-center text-white glow-primary">
           <span class="material-symbols-outlined text-xl">magic_button</span>
         </router-link>
-        <router-link to="/" class="text-xl font-display font-bold tracking-tight text-soft-rose hover:text-primary transition-colors">Cảng Nguyên Ngọc</router-link>
+        <router-link to="/" class="text-xl font-display font-black tracking-tight text-primary hover:text-[#3b5e9c] transition-colors">Cảng Nguyên Ngọc</router-link>
       </div>
       
       <nav class="hidden md:flex items-center gap-8">
@@ -212,7 +212,7 @@ onUnmounted(() => {
             <div 
               v-if="showDropdown" 
               @click.stop 
-              class="absolute right-0 top-14 w-60 bg-white rounded-3xl shadow-xl border border-primary/10 py-3 z-50 overflow-hidden font-display flex flex-col"
+              class="absolute right-0 top-14 w-60 bg-white rounded-3xl shadow-xl border border-primary/10 py-3 z-50 overflow-hidden flex flex-col"
             >
               <!-- User Info Header inside Dropdown -->
               <div class="px-4 py-3 border-b border-primary/5 bg-[#f1f5f9]/50 flex items-center gap-3 mb-2">
@@ -322,13 +322,13 @@ onUnmounted(() => {
 
     <!-- Edit Profile Modal -->
     <div v-if="showProfileModal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-         <div class="bg-white w-full max-w-md rounded-[3rem] p-10 card-shadow space-y-6 animate-scale-up relative">
+         <div class="bg-white w-full max-w-md rounded-[2rem] p-8 shadow-soft border border-primary/10 space-y-6 animate-scale-up relative">
             <header class="flex justify-between items-center">
                 <div>
-                    <h3 class="text-xl font-black text-primary">Chỉnh Sửa Hồ Sơ</h3>
-                    <p class="text-xs font-bold text-gray-400">Cập nhật tên hiển thị và ảnh đại diện của bạn ✨</p>
+                    <h3 class="text-xl font-display font-black text-primary">Chỉnh Sửa Hồ Sơ</h3>
+                    <p class="text-xs font-semibold text-slate-500">Cập nhật tên hiển thị và ảnh đại diện của bạn ✨</p>
                 </div>
-                <button @click="showProfileModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400">
+                <button @click="showProfileModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                      <span class="material-symbols-outlined">close</span>
                 </button>
             </header>
@@ -337,7 +337,7 @@ onUnmounted(() => {
                 <div class="flex flex-col items-center gap-3">
                     <img :src="profileForm.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(profileForm.displayName || 'User'))" class="size-24 rounded-full border-4 border-pastel-pink shadow-md object-cover" />
                     
-                    <label class="px-4 py-2 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-black rounded-full cursor-pointer transition-colors">
+                    <label class="px-4 py-2 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-bold rounded-full cursor-pointer transition-colors">
                         Tải ảnh lên
                         <input type="file" accept="image/*" @change="handleProfileAvatarUpload" class="hidden" />
                     </label>
@@ -345,11 +345,11 @@ onUnmounted(() => {
                 </div>
 
                 <div class="space-y-1">
-                    <label class="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Tên hiển thị</label>
-                    <input v-model="profileForm.displayName" placeholder="Tên hiển thị" class="w-full bg-[#f1f5f9] p-4 rounded-2xl text-xs font-black border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tên hiển thị</label>
+                    <input v-model="profileForm.displayName" placeholder="Tên hiển thị" class="w-full bg-[#f1f5f9] text-[#1e293b] p-4 rounded-2xl text-sm font-bold border-none outline-none focus:ring-2 focus:ring-primary/20 shadow-sm" />
                 </div>
 
-                <button @click="handleSaveProfile" class="w-full py-4 bg-primary text-white rounded-[2rem] font-black shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all text-xs">Lưu Thay Đổi ✨</button>
+                <button @click="handleSaveProfile" class="w-full py-3.5 bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all text-sm">Lưu Thay Đổi ✨</button>
             </div>
          </div>
     </div>
