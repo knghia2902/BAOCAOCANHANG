@@ -25,9 +25,15 @@ import type {
     WarehouseConfig,
     WarehouseVehicleMap,
     WarehouseFinalRow,
-    CustomWarehouseCustomer
+    CustomWarehouseCustomer,
+    EastwoodContainerYardSummary
 } from '@/types/excel';
+import {
+    EastwoodContainerService,
+    computeContainerStatuses
+} from '@/services/excel/EastwoodContainerService';
 import WarehouseVisualMap from './WarehouseVisualMap.vue';
+import EastwoodContainerManager from './EastwoodContainerManager.vue';
 
 const emit = defineEmits<{
     (e: 'synced-to-allocator', payload: { syncedTicketsCount: number; matchedBargesCount: number }): void;
@@ -50,6 +56,13 @@ type SheetTabMode = 'FINAL' | 'IMPORT' | 'EXPORT' | 'DIRECT' | 'PORT_DUST';
 const selectedWarehouseMode = ref<ViewWarehouseMode>('KHO 4');
 const activeSheetTab = ref<SheetTabMode>('IMPORT');
 const isVisualMapOpen = ref(true);
+const isContainerYardOpen = ref(false);
+const eastwoodContainerSummary = ref<EastwoodContainerYardSummary>({
+    loadedCount: 0,
+    emptyCount: 0,
+    returnedCount: 0,
+    totalTracked: 0
+});
 const loading = ref(false);
 const importingCsv = ref(false);
 const importingHistoryExcel = ref(false);
@@ -75,8 +88,17 @@ syncChannel.onmessage = async (event) => {
         event.data?.type === 'master_data'
     ) {
         await loadAllData();
+    } else if (event.data?.type === 'eastwood_containers_updated') {
+        await refreshEastwoodContainerSummary();
     }
 };
+
+async function refreshEastwoodContainerSummary() {
+    try {
+        const contEvents = await EastwoodContainerService.getEvents();
+        eastwoodContainerSummary.value = computeContainerStatuses(contEvents).summary;
+    } catch (_) {}
+}
 
 onUnmounted(() => {
     try {
@@ -235,13 +257,21 @@ const selectedCustomCustomer = computed<CustomWarehouseCustomer | null>(() => {
 
 function selectBuiltInMode(mode: ViewWarehouseMode, tab?: SheetTabMode) {
     isVisualMapOpen.value = false;
+    isContainerYardOpen.value = false;
     selectedCustomCustomerId.value = null;
     selectedWarehouseMode.value = mode;
     if (tab) activeSheetTab.value = tab;
 }
 
+function openEastwoodContainerYard() {
+    isVisualMapOpen.value = false;
+    selectedCustomCustomerId.value = null;
+    isContainerYardOpen.value = true;
+}
+
 function selectCustomCustomer(cust: CustomWarehouseCustomer, tab?: SheetTabMode) {
     isVisualMapOpen.value = false;
+    isContainerYardOpen.value = false;
     selectedCustomCustomerId.value = cust.id;
     selectedWarehouseMode.value = cust.warehouseId;
     if (tab) {
@@ -475,6 +505,7 @@ async function loadAllData(silent = false, forceRefresh = false) {
                 selectedCustomCustomerId.value = null;
             }
             hasInitialLoaded = true;
+            refreshEastwoodContainerSummary();
 
             // Tự động đối soát và điền Nhà xe từ Danh mục xe cho các phiếu chưa có hoặc khuyết nhà xe
             const ticketsWithUpdatedCarrier: WarehouseInventoryTicket[] = [];
@@ -1664,7 +1695,7 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                 <!-- Sơ đồ kho (nằm trên danh sách khách hàng) -->
                 <button
                     type="button"
-                    @click="isVisualMapOpen = true"
+                    @click="isVisualMapOpen = true; isContainerYardOpen = false"
                     :class="[
                         'w-full px-3 py-2.5 rounded-2xl border text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] shrink-0',
                         isVisualMapOpen
@@ -1753,13 +1784,13 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                         </div>
                     </div>
 
-                    <!-- Child Warehouses of EASTWOOD: Kho 4 with subdirectory_arrow_right -->
+                    <!-- Child Warehouses of EASTWOOD: Kho 4 + Bãi Container -->
                     <div v-if="expandedCustomer['EASTWOOD']" class="bg-white p-1.5 flex flex-col gap-1 border-t border-slate-100">
                         <button
                             @click="selectBuiltInMode('KHO 4')"
                             :class="[
                                 'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
-                                !isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
+                                !isVisualMapOpen && !isContainerYardOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL'
                                     ? 'bg-primary text-white font-black shadow-sm'
                                     : 'hover:bg-slate-50 text-slate-700 font-bold'
                             ]"
@@ -1770,9 +1801,31 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                             </span>
                             <span
                                 class="text-xs font-mono font-black shrink-0"
-                                :class="!isVisualMapOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
+                                :class="!isVisualMapOpen && !isContainerYardOpen && !selectedCustomCustomerId && selectedWarehouseMode === 'KHO 4' && activeSheetTab !== 'FINAL' ? 'text-white' : 'text-slate-600'"
                             >
                                 {{ formatTons(finalTablesByWarehouse['KHO 4'].closingStockTons) }} T
+                            </span>
+                        </button>
+
+                        <button
+                            @click="openEastwoodContainerYard"
+                            :class="[
+                                'w-full px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 pl-4',
+                                !isVisualMapOpen && isContainerYardOpen
+                                    ? 'bg-primary text-white font-black shadow-sm'
+                                    : 'hover:bg-slate-50 text-slate-700 font-bold'
+                            ]"
+                            title="Theo dõi Hạ Cont, Load Cont lên Sà lan & Trả Cont rỗng (Eastwood)"
+                        >
+                            <span class="flex items-center gap-1.5 text-xs truncate">
+                                <span class="material-symbols-outlined text-xs">inventory_2</span>
+                                <span>BÃI CONT</span>
+                            </span>
+                            <span
+                                class="text-xs font-mono font-black shrink-0"
+                                :class="!isVisualMapOpen && isContainerYardOpen ? 'text-white' : 'text-primary'"
+                            >
+                                {{ eastwoodContainerSummary.loadedCount }}H / {{ eastwoodContainerSummary.emptyCount }}R
                             </span>
                         </button>
                     </div>
@@ -2074,7 +2127,14 @@ async function handleDownloadZaloImage(overrideWarehouseId?: ExtendedWarehouseId
                     v-if="isVisualMapOpen"
                     :configs="configs"
                     :closing-stocks="closingStocksByWarehouse"
+                    :auto-container-stats="eastwoodContainerSummary"
                     @close="isVisualMapOpen = false"
+                />
+
+                <!-- EASTWOOD CONTAINER YARD MODE -->
+                <EastwoodContainerManager
+                    v-else-if="isContainerYardOpen"
+                    @summary-updated="eastwoodContainerSummary = $event"
                 />
 
                 <template v-else>

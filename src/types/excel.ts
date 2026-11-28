@@ -279,3 +279,78 @@ export interface WarehouseVisualMapState {
     updatedAt?: string;
     updatedBy?: string;
 }
+
+/**
+ * Eastwood Container Tracking Types (Hạ Cont / Load Cont / Trả Cont)
+ */
+export type EastwoodContainerFlowType = 'HA_CONT' | 'LOAD_CONT' | 'TRA_CONT';
+
+export type EastwoodContainerStatus = 'LOADED' | 'EMPTY_YARD' | 'RETURNED';
+
+export interface EastwoodContainerEvent {
+    id: string;
+    flowType: EastwoodContainerFlowType;
+    containerNo: string;
+    soPhieu: string;
+    maLenh?: string;
+    plateNumber: string;
+    romoocNo?: string;
+    sealNo?: string;
+    boardType?: 'Có ván' | 'Không ván' | '';
+    grossWeightKg: number;
+    tareWeightKg: number;
+    netWeightKg: number;
+    actualDate: string; // YYYY-MM-DD (Ngày thực tế cân ra)
+    reportDate: string; // YYYY-MM-DD (Ngày báo cáo theo ca 06:00 sáng)
+    weighInDate?: string;
+    weighInTime?: string;
+    weighOutDate: string;
+    weighOutTime: string;
+    eventDatetime: string; // YYYY-MM-DDTHH:mm:ss (Ngày giờ thực tế)
+    bargeInfo?: string;
+    vesselName?: string;
+    sourceFactory?: string;
+    warehouseNote?: string;
+    remark?: string;
+    rawNote?: string;
+    customerName?: string;
+    cargoType?: string;
+    createdAt?: string;
+}
+
+export interface EastwoodContainerStatusRow {
+    containerNo: string;
+    latestHaContDatetime: string;
+    latestLoadContDatetime: string;
+    latestTraContDatetime: string;
+    status: EastwoodContainerStatus;
+    statusLabel: string;
+    latestEventDatetime: string;
+    latestActualDate: string;
+    latestBoardType: string;
+    latestVesselName: string;
+    latestBargeInfo: string;
+    latestPlateNumber: string;
+    latestNetWeightKg: number;
+    cycleCount: number;
+    hasWarning: boolean;
+    warningText?: string;
+}
+
+export interface EastwoodContainerDailyReportRow {
+    reportDate: string; // YYYY-MM-DD (Ngày theo ca)
+    displayDate: string; // DD/MM/YYYY
+    containerIn: number;
+    containerOut: number;
+    containerLoad: number;
+    haWeightKg: number;
+    loadWeightKg: number;
+    loadWeightTons: number;
+}
+
+export interface EastwoodContainerYardSummary {
+    loadedCount: number;
+    emptyCount: number;
+    returnedCount: number;
+    totalTracked: number;
+}

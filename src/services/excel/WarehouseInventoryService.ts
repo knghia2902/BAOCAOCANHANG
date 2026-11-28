@@ -728,6 +728,30 @@ export function classifyWeighbridgeRow(
         };
     }
 
+    // 0.5. Exclude Eastwood Container operations (Hạ Cont / Load Cont / Trả Cont Rỗng)
+    // so they are tracked exclusively in EastwoodContainerService and never pollute Kho 4 or DIRECT
+    if (isEastwoodCustomer(row.khachHang)) {
+        const salanClean = stripAccents(row.loaiSalan || '').toUpperCase().trim();
+        const hasIsoCont = /[A-Z]{4}\s*\d{7}/.test(String(row.ghiChu || '').toUpperCase());
+        const driverBoardNorm = driverClean.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+        const hasBoardKeyword = /\b(KHONG\s*VAN|KO\s*VAN|K\s*VAN|CO\s*VAN|VAN)\b/.test(driverBoardNorm);
+
+        if (
+            salanClean.includes('HA CONT') ||
+            salanClean.includes('BAI CONT') ||
+            salanClean.includes('LAY CONT RONG') ||
+            salanClean.includes('TRA CONT') ||
+            salanClean.includes('CONT RONG')
+        ) {
+            return null;
+        }
+        if (dirClean.includes('XUAT') && !normalizeWarehouseId(row.taiXe) && !normalizeWarehouseId(row.loaiSalan)) {
+            if (hasBoardKeyword || hasIsoCont || driverClean.includes('CONT')) {
+                return null;
+            }
+        }
+    }
+
     // 1. Check IMPORT: Xuat/Nhap = Nhap AND Loai Salan = KHO 1..4
     if (dirClean.includes('NHAP')) {
         const targetWh = normalizeWarehouseId(row.loaiSalan) || normalizeWarehouseId(row.taiXe);
@@ -3636,8 +3660,15 @@ export const WarehouseInventoryService = {
 
         const classifiedTickets: WarehouseInventoryTicket[] = [];
         const updatedWhSet = new Set<WarehouseId>();
+        const { EastwoodContainerService, classifyEastwoodContainerRow } = await import('@/services/excel/EastwoodContainerService');
+        const containerEvents: import('@/types/excel').EastwoodContainerEvent[] = [];
 
         for (const raw of allRawRows) {
+            const ewConts = classifyEastwoodContainerRow(raw, vessels);
+            if (ewConts.length > 0) {
+                containerEvents.push(...ewConts);
+                continue;
+            }
             const ticket = classifyWeighbridgeRow(raw, vehicleMap, vessels);
             if (!ticket) {
                 summary.ignoredCount++;
@@ -3668,6 +3699,10 @@ export const WarehouseInventoryService = {
                     configs[ticket.warehouseId]!.currentCustomer = ticket.customerName;
                 }
             }
+        }
+
+        if (containerEvents.length > 0) {
+            await EastwoodContainerService.saveEventsBulk(containerEvents);
         }
 
         if (classifiedTickets.length > 0) {

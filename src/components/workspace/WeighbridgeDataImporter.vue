@@ -20,7 +20,12 @@ import {
     isBachKhoaTicket,
     type RawWeighbridgeRow
 } from '@/services/excel/WarehouseInventoryService';
-import type { WarehouseId, WarehouseInventoryTicket } from '@/types/excel';
+import {
+    EastwoodContainerService,
+    classifyEastwoodContainerRow,
+    detectEastwoodContainerFlow
+} from '@/services/excel/EastwoodContainerService';
+import type { WarehouseId, WarehouseInventoryTicket, EastwoodContainerEvent } from '@/types/excel';
 import WeighbridgeOtherManager from '@/components/tools/WeighbridgeOtherManager.vue';
 
 const emit = defineEmits<{
@@ -705,18 +710,33 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
             return;
         }
 
-        // 1. Phân loại vào Báo cáo Tồn kho 4 Kho (IMPORT / EXPORT / DIRECT)
+        // 1. Phân loại vào Báo cáo Tồn kho 4 Kho (IMPORT / EXPORT / DIRECT) & Container Eastwood (HẠ / LOAD / TRẢ CONT)
         const classifiedWhTickets: WarehouseInventoryTicket[] = [];
+        const eastwoodContainerEvents: EastwoodContainerEvent[] = [];
         const updatedWhSet = new Set<WarehouseId>();
         let impCount = 0;
         let expCount = 0;
         let dirCount = 0;
+        let contHaCount = 0;
+        let contLoadCount = 0;
+        let contTraCount = 0;
 
         for (const item of allRawRows) {
             const raw = { ...item.row };
             // Nếu người dùng nạp qua ô File 1 hoặc File 2 mà cột Xuat/Nhap bị trống, gán mặc định theo luồng file
             if (!String(raw.xuatNhap || '').trim()) {
                 raw.xuatNhap = item.tag === 'FILE_1' ? 'Nhap' : 'Xuat';
+            }
+
+            // 1a. Kiểm tra luồng Container riêng của Eastwood (bao gồm cả phiếu LẤY CONT RỖNG có KL = 0)
+            const ewEvents = classifyEastwoodContainerRow(raw, vessels);
+            if (ewEvents.length > 0) {
+                eastwoodContainerEvents.push(...ewEvents);
+                ewEvents.forEach(ev => {
+                    if (ev.flowType === 'HA_CONT') contHaCount++;
+                    else if (ev.flowType === 'LOAD_CONT') contLoadCount++;
+                    else if (ev.flowType === 'TRA_CONT') contTraCount++;
+                });
             }
 
             const whTicket = classifyWeighbridgeRow(raw, vehicleMap, vessels);
@@ -759,6 +779,11 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
             }
         }
 
+        if (eastwoodContainerEvents.length > 0) {
+            await EastwoodContainerService.saveEventsBulk(eastwoodContainerEvents);
+            syncChannel.postMessage({ type: 'eastwood_containers_updated' });
+        }
+
         // 2. Chuyển đổi các dòng sang CSVRecord cho Bảng Phiếu Cân & Báo cáo lô hàng
         // Quy tắc của người dùng:
         // - Các xe có cột "Ma lenh" (Mã lệnh) từ cả File 1 (nhập kho & nhập thẳng từ sà lan tại Cảng về nhà máy)
@@ -770,6 +795,8 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
         let totalNetKg = 0;
 
         for (const item of allRawRows) {
+            // Bỏ qua phiếu LẤY CONT RỖNG (kể cả khi lệch cân nhỏ vài chục kg) khỏi bảng Phiếu cân hàng
+            if (detectEastwoodContainerFlow(item.row) === 'TRA_CONT') continue;
             const rec = convertRawRowToCSVRecord(item.row, item.tag);
             if (!rec) continue;
             if ((!rec.orderNo || !rec.orderNo.trim()) && rec.bargeName) {
@@ -832,6 +859,11 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
         if (classifiedWhTickets.length > 0) {
             summaryParts.push(
                 `Tồn kho: ${classifiedWhTickets.length} xe (Nhập kho: ${impCount}, Xuất kho: ${expCount}, Đi thẳng: ${dirCount}${whDupCount > 0 ? `, gộp trùng: ${whDupCount}` : ''})`
+            );
+        }
+        if (eastwoodContainerEvents.length > 0) {
+            summaryParts.push(
+                `Container EW: ${eastwoodContainerEvents.length} cont (Hạ: ${contHaCount}, Load: ${contLoadCount}, Trả rỗng: ${contTraCount})`
             );
         }
         if (skipped > 0) {

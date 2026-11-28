@@ -20,6 +20,7 @@ import type {
 const props = defineProps<{
     configs: Record<WarehouseId, WarehouseConfig>;
     closingStocks: Record<WarehouseId, number>;
+    autoContainerStats?: { loadedCount: number; emptyCount: number; totalTracked: number } | null;
 }>();
 
 defineEmits<{
@@ -77,12 +78,38 @@ const WAREHOUSE_COLS: Record<WarehouseId, { x: number; w: number; numberSide: 'l
     'KHO 4': { x: 1068, w: COL_W, numberSide: 'right' }
 };
 
+const effectiveLoadedConts = computed<number>(() => {
+    const cy = mapState.value.containerYard;
+    if (
+        props.autoContainerStats &&
+        props.autoContainerStats.totalTracked > 0 &&
+        cy.overrideTotalConts == null &&
+        !isEditing.value
+    ) {
+        return props.autoContainerStats.loadedCount;
+    }
+    return Number(cy.loadedConts) || 0;
+});
+
+const effectiveEmptyConts = computed<number>(() => {
+    const cy = mapState.value.containerYard;
+    if (
+        props.autoContainerStats &&
+        props.autoContainerStats.totalTracked > 0 &&
+        cy.overrideTotalConts == null &&
+        !isEditing.value
+    ) {
+        return props.autoContainerStats.emptyCount;
+    }
+    return Number(cy.emptyConts) || 0;
+});
+
 const totalContainers = computed<number>(() => {
     const cy = mapState.value.containerYard;
     if (cy.overrideTotalConts != null && !isNaN(Number(cy.overrideTotalConts))) {
         return Number(cy.overrideTotalConts);
     }
-    return (Number(cy.loadedConts) || 0) + (Number(cy.emptyConts) || 0);
+    return effectiveLoadedConts.value + effectiveEmptyConts.value;
 });
 
 const activeZoneConfig = computed(() => {
@@ -798,7 +825,7 @@ onMounted(() => {
                         font-weight="bold"
                         fill="#111827"
                     >
-                        Cont có hàng: {{ mapState.containerYard.loadedConts }}
+                        Cont có hàng: {{ effectiveLoadedConts }}
                     </text>
                     <text
                         :x="CONT_COL_X + COL_W / 2"
@@ -809,7 +836,7 @@ onMounted(() => {
                         font-weight="bold"
                         fill="#111827"
                     >
-                        Cont rỗng: {{ mapState.containerYard.emptyConts }}
+                        Cont rỗng: {{ effectiveEmptyConts }}
                     </text>
                     <text
                         :x="CONT_COL_X + COL_W / 2"
