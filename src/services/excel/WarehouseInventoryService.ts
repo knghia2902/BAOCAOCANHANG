@@ -2713,11 +2713,16 @@ export const WarehouseInventoryService = {
 
                             const existingRemote = findMatchingExistingTicket(remoteDedupIndex, t);
                             if (existingRemote) {
-                                // Tránh nhân đôi phiếu cân cùng số phiếu trên Cloud (ví dụ 1 bản từ Excel _row và 1 bản từ CSV _HH:mm:ss)
-                                const keepIncoming =
+                                // Tránh nhân đôi phiếu cân cùng số phiếu trên Cloud (ví dụ 1 bản từ Excel _row và 1 bản từ CSV _HH:mm:ss,
+                                // hoặc bản cũ IMPORT vs bản mới EXPORT sau khi người dùng sửa phiếu)
+                                const upgradedTime =
                                     existingRemote.id.endsWith('_00:00:00') &&
                                     Boolean(t.weighOutTime) &&
                                     !t.id.endsWith('_00:00:00');
+                                const newerFlowOrWh =
+                                    (existingRemote.flowType !== t.flowType || existingRemote.warehouseId !== t.warehouseId) &&
+                                    Boolean(t.createdAt && existingRemote.createdAt && t.createdAt > existingRemote.createdAt);
+                                const keepIncoming = upgradedTime || newerFlowOrWh;
                                 const winnerId = keepIncoming ? t.id : existingRemote.id;
                                 const loserId = keepIncoming ? existingRemote.id : t.id;
                                 const mergedTicket: WarehouseInventoryTicket = {
@@ -3006,7 +3011,8 @@ export const WarehouseInventoryService = {
         if (!cleanSp) return 0;
         const cleanPlate = normalizePlateKey(vehiclePlate || '');
 
-        const current = await this.getAllTickets(false);
+        // Always force-refresh from Supabase so we never miss remote tickets due to stale memory/local cache
+        const current = await this.getAllTickets(true);
         const matchedIds: string[] = [];
         const remaining: WarehouseInventoryTicket[] = [];
 
@@ -3026,17 +3032,52 @@ export const WarehouseInventoryService = {
             }
         }
 
-        if (matchedIds.length === 0) return 0;
-
-        await dbContext.set(LOCAL_TICKETS_KEY, remaining);
-        if (!isInventoryTestEnv) {
-            ticketsMemoryCache = { data: remaining, timestamp: Date.now() };
+        if (matchedIds.length > 0) {
+            await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+            if (!isInventoryTestEnv) {
+                ticketsMemoryCache = { data: remaining, timestamp: Date.now() };
+            }
         }
+
         try {
             if (!dedicatedTablesMissing) {
-                await supabase.from('warehouse_inventory_tickets').delete().in('id', matchedIds);
+                if (matchedIds.length > 0) {
+                    const { error } = await supabase
+                        .from('warehouse_inventory_tickets')
+                        .delete()
+                        .in('id', matchedIds);
+                    if (error) {
+                        console.warn('Supabase deleteTicketsByScaleTicket by id warning:', error.message);
+                    }
+                } else {
+                    // Fallback: query Supabase directly by so_phieu in case local list didn't contain it
+                    const { data: remoteMatches } = await supabase
+                        .from('warehouse_inventory_tickets')
+                        .select('id, vehicle_plate')
+                        .ilike('so_phieu', cleanSp);
+                    const remoteIds = (remoteMatches || [])
+                        .filter((r: any) => {
+                            const rPlate = normalizePlateKey(r.vehicle_plate || '');
+                            return (
+                                !cleanPlate ||
+                                !rPlate ||
+                                rPlate === cleanPlate ||
+                                rPlate.includes(cleanPlate) ||
+                                cleanPlate.includes(rPlate)
+                            );
+                        })
+                        .map((r: any) => r.id);
+                    if (remoteIds.length > 0) {
+                        await supabase.from('warehouse_inventory_tickets').delete().in('id', remoteIds);
+                        return remoteIds.length;
+                    }
+                }
+            } else if (matchedIds.length > 0) {
+                await syncFallbackStateToContentSettings();
             }
-        } catch (_) {}
+        } catch (err) {
+            console.warn('Supabase deleteTicketsByScaleTicket error:', err);
+        }
 
         return matchedIds.length;
     },

@@ -1250,12 +1250,24 @@ async function syncSingleTicketToInventoryAndContainers(
     let contSynced = false;
 
     try {
-        // 1. Remove old record(s) matched by previous ticketNo + plateNumber (handles warehouse/flow/container changes cleanly)
+        // 1. Remove old record(s) matched by previous & next ticketNo + plateNumber (handles warehouse/flow/container changes cleanly)
+        const targetsToPurge: Array<{ sp: string; plate: string }> = [];
         if (previousTicket && (previousTicket.ticketNo || previousTicket.sourceTicketNo)) {
-            const oldSp = String(previousTicket.ticketNo || previousTicket.sourceTicketNo || '').trim();
+            targetsToPurge.push({
+                sp: String(previousTicket.ticketNo || previousTicket.sourceTicketNo || '').trim(),
+                plate: previousTicket.plateNumber
+            });
+        }
+        if (nextTicket && (nextTicket.ticketNo || nextTicket.sourceTicketNo)) {
+            const nextSp = String(nextTicket.ticketNo || nextTicket.sourceTicketNo || '').trim();
+            if (!targetsToPurge.some(t => t.sp.toUpperCase() === nextSp.toUpperCase())) {
+                targetsToPurge.push({ sp: nextSp, plate: nextTicket.plateNumber });
+            }
+        }
+        for (const target of targetsToPurge) {
             const [delWh, delCont] = await Promise.all([
-                WarehouseInventoryService.deleteTicketsByScaleTicket(oldSp, previousTicket.plateNumber),
-                EastwoodContainerService.deleteEventsByScaleTicket(oldSp, previousTicket.plateNumber)
+                WarehouseInventoryService.deleteTicketsByScaleTicket(target.sp, target.plate),
+                EastwoodContainerService.deleteEventsByScaleTicket(target.sp, target.plate)
             ]);
             if (delWh > 0) whSynced = true;
             if (delCont > 0) contSynced = true;
