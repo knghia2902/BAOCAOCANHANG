@@ -8,7 +8,7 @@ import { LogService } from '@/services/storage/LogService';
 import { AllocatorService } from '@/services/excel/AllocatorService';
 import { VehicleService } from '@/services/excel/VehicleService';
 import { SettingsService } from '@/services/storage/SettingsService';
-import { WeighbridgeService, normalizeMainPlate, isSameScaleTicket, deduplicateBargeTrucks } from '@/services/excel/WeighbridgeService';
+import { WeighbridgeService, isSameScaleTicket, deduplicateBargeTrucks } from '@/services/excel/WeighbridgeService';
 import {
     WarehouseInventoryService,
     classifyWeighbridgeRow,
@@ -351,13 +351,6 @@ function toLocalISOString(date: Date): string {
     return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
 }
 
-function formatExcelDate(date: any): string {
-    const d = ensureDate(date);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}/${month}/${d.getFullYear()}`;
-}
-
 function formatExcelDateTimeCombined(date: any): string {
     const d = ensureDate(date);
     const day = String(d.getDate()).padStart(2, '0');
@@ -421,19 +414,7 @@ function convertRawRowToCSVRecord(r: RawWeighbridgeRow, sourceTag: 'FILE_1' | 'F
 function getHistoryDuplicates(records: CSVRecord[]): { dupRecords: CSVRecord[]; description: string } {
     const dupRecords: CSVRecord[] = [];
     records.forEach(rec => {
-        const isDup = existingTrips.value.some(et => {
-            if (isSameScaleTicket(rec, et)) return true;
-            if (rec.plateNumber && et.plateNumber) {
-                const recDate = parseDateTime(rec.dateInStr, rec.timeInStr);
-                const etDate = ensureDate(et.date1Obj);
-                return (
-                    normalizeMainPlate(rec.plateNumber) === normalizeMainPlate(et.plateNumber) &&
-                    Math.abs(Number(rec.weightNet || 0) - Number(et.weightNet || 0)) <= 0.01 &&
-                    formatExcelDate(recDate) === formatExcelDate(etDate)
-                );
-            }
-            return false;
-        });
+        const isDup = existingTrips.value.some(et => isSameScaleTicket(rec, et));
         if (isDup) dupRecords.push(rec);
     });
 

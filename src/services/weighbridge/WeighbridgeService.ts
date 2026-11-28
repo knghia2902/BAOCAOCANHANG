@@ -375,6 +375,16 @@ export function isSameScaleTicket(a: Partial<any>, b: Partial<any>): boolean {
                     return true;
                 }
             }
+        } else {
+            // Nếu cả 2 bản ghi đều có số phiếu cân thật (VD: 008262/26A và 008278/26A — không phải số thứ tự ngắn hay số tự động 000001/1026)
+            // mà khác nhau hoàn toàn -> chắc chắn là 2 phiếu cân khác nhau, tuyệt đối không gộp trùng!
+            const isRealScaleSerial = (code: string) =>
+                Boolean(code) && !SHORT_SEQ_TICKET_RE.test(code) && !AUTO_SERIAL_TICKET_RE.test(code);
+            const hasRealA = ticketsA.some(isRealScaleSerial);
+            const hasRealB = ticketsB.some(isRealScaleSerial);
+            if (hasRealA && hasRealB) {
+                return false;
+            }
         }
     }
 

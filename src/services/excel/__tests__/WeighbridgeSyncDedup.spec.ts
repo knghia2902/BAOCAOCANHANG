@@ -130,6 +130,35 @@ describe('WeighbridgeSyncDedup', () => {
         expect(isSameScaleTicket(trip1, trip3DifferentWeight)).toBe(false);
     });
 
+    it('never merges two tickets with distinct real scale serial numbers even when plate, weight, and date match', () => {
+        const ticketA = {
+            ticketNo: '008262/26A',
+            plateNumber: '60H 38171',
+            weight1: 62060,
+            weight2: 20600,
+            weightNet: 41460,
+            dateIn: '2026-11-26T03:06:47',
+            dateOut: '2026-11-26T04:06:36'
+        };
+        const ticketB = {
+            ticketNo: '008278/26A',
+            plateNumber: '60H 38171',
+            weight1: 62060,
+            weight2: 20600,
+            weightNet: 41460,
+            dateIn: '2026-11-26T13:57:47',
+            dateOut: '2026-11-26T14:15:26'
+        };
+        const ticketBSameTime = {
+            ...ticketB,
+            dateIn: ticketA.dateIn,
+            dateOut: ticketA.dateOut
+        };
+
+        expect(isSameScaleTicket(ticketA, ticketB)).toBe(false);
+        expect(isSameScaleTicket(ticketA, ticketBSameTime)).toBe(false);
+    });
+
     it('deduplicates barge trucks, preserves yard and sourceTicketNo, and returns exact removedIds', () => {
         const rawTrucks: Array<Record<string, any>> = [
             {
