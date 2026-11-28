@@ -86,18 +86,17 @@ const handleDemoLogin = () => {
                 </div>
 
                 <!-- Nút Vào Thử Nghiệm Sandbox 1-Click -->
-                <button
-                    type="button"
-                    @click="handleDemoLogin"
-                    class="w-full bg-white border border-primary/10 hover:border-primary text-primary font-bold py-3.5 rounded-2xl hover:bg-primary/5 active:scale-95 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm group"
-                    title="Trải nghiệm full tính năng nhưng an toàn 100% cho dữ liệu"
-                >
-                    <span class="material-symbols-outlined text-lg text-primary group-hover:scale-110 transition-transform">science</span>
-                    <span>Vào Chế Độ Thử Nghiệm (Demo Sandbox)</span>
-                </button>
-                <p class="text-xs text-center text-slate-500 font-medium leading-tight">
-                    🔒 Dành cho người test: Trải nghiệm full tính năng, không ghi đè dữ liệu gốc.
-                </p>
+                <div class="flex justify-center">
+                    <button
+                        type="button"
+                        @click="handleDemoLogin"
+                        class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-primary/15 hover:border-primary text-primary font-bold rounded-full hover:bg-primary/5 active:scale-95 transition-all text-xs cursor-pointer shadow-sm group"
+                        title="Trải nghiệm full tính năng nhưng an toàn 100% cho dữ liệu"
+                    >
+                        <span class="material-symbols-outlined text-sm text-primary group-hover:scale-110 transition-transform">science</span>
+                        <span>Chế Độ Thử Nghiệm (Demo Sandbox)</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>

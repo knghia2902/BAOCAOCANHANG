@@ -84,7 +84,8 @@ Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt l
 
 ### C. Vùng Dữ Liệu Bảng (Data Table Container)
 *   **Bao bọc bảng**: Bảng dữ liệu luôn phải nằm trong một thẻ div có nền trắng (`bg-white`), bo góc vừa (`rounded-[24px]`), viền mỏng (`border-primary/5`).
-*   **Cuộn bảng (Scroll)**: Phải giới hạn chiều cao tối đa của vùng chứa bảng và đặt `overflow-auto` để tự động xuất hiện thanh cuộn ngang/dọc trên màn hình nhỏ.
+*   **Cuộn bảng & Ẩn thanh Scrollbar (Scroll)**: Phải giới hạn chiều cao tối đa của vùng chứa bảng và đặt `overflow-auto scrollbar-none` để ẩn thanh cuộn thô mặc định của trình duyệt (người dùng cuộn mượt bằng con lăn chuột hoặc trackpad).
+*   **Phân trang cố định (Pinned Pagination)**: Bộ đếm bản ghi và thanh phân trang (`Trước` / `Trang X / Y` / `Sau`) **bắt buộc đặt bên ngoài** vùng `overflow-auto` (ghim cố định ở đầu/đáy thẻ) để người dùng chuyển trang tức thì mà không phải cuộn xuống cuối bảng.
 *   **Hàng tiêu đề (thead)**: Tiêu đề cột dùng nền xám nhạt (`bg-gray-50`), luôn cố định trên cùng khi cuộn dọc (`sticky top-0 z-10`).
 *   **Các hàng dữ liệu (tbody tr)**: Đệm dòng rộng rãi (`py-2.5` hoặc `py-3`), hover vào dòng sẽ đổi nền xám dịu mắt (`hover:bg-gray-50`) để dễ theo dõi số liệu.
 

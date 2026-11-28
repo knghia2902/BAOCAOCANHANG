@@ -1450,7 +1450,7 @@ onMounted(async () => {
                 </div>
                 
                 <div class="bg-white rounded-[24px] p-6 card-shadow border border-primary/5 overflow-hidden">
-                    <div class="overflow-auto max-h-[520px]">
+                    <div class="overflow-auto scrollbar-none max-h-[520px]">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead class="sticky top-0 z-10 bg-gray-50">
                                 <tr class="border-b border-primary/10 text-slate-500 text-xs font-display font-black uppercase tracking-wider">
@@ -1738,7 +1738,7 @@ onMounted(async () => {
                                     </span>
                                 </div>
 
-                                <div class="bg-white rounded-[24px] border border-primary/5 overflow-auto max-h-[420px] shadow-sm">
+                                <div class="bg-white rounded-[24px] border border-primary/5 overflow-auto scrollbar-none max-h-[420px] shadow-sm">
                                     <table class="w-full border-collapse">
                                         <thead class="sticky top-0 z-10 bg-gray-50">
                                             <tr class="border-b border-slate-200 text-left">
@@ -1886,58 +1886,60 @@ onMounted(async () => {
                     </div>
 
                     <!-- Table -->
-                    <div v-else class="overflow-auto max-h-[560px]">
-                        <div class="text-right mb-3">
+                    <div v-else class="flex flex-col">
+                        <div class="text-right mb-3 shrink-0">
                             <span class="text-xs font-bold text-slate-400">Hiển thị {{ paginatedLogs.length }} / {{ filteredLogs.length }} bản ghi (Tổng {{ activityLogs.length }})</span>
                         </div>
-                        <table class="w-full text-left border-collapse whitespace-nowrap">
-                            <thead class="sticky top-0 z-10 bg-gray-50">
-                                <tr class="border-b border-primary/10 text-slate-500 text-xs font-display font-black uppercase tracking-wider">
-                                    <th class="py-3 pl-4">Thời gian</th>
-                                    <th class="py-3">Người dùng</th>
-                                    <th class="py-3">Chức vụ</th>
-                                    <th class="py-3">Hành động</th>
-                                    <th class="py-3 pr-4">Chi tiết</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-primary/5">
-                                <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-gray-50 transition-colors">
-                                    <td class="py-3.5 pl-4 text-xs font-bold text-gray-400">
-                                        {{ formatLogTime(log.timestamp) }}
-                                    </td>
-                                    <td class="py-3.5">
-                                        <div class="flex items-center gap-2">
-                                            <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <span class="text-xs font-black text-primary">{{ (log.displayName || log.username || '?').charAt(0).toUpperCase() }}</span>
+                        <div class="overflow-auto scrollbar-none max-h-[520px]">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="sticky top-0 z-10 bg-gray-50">
+                                    <tr class="border-b border-primary/10 text-slate-500 text-xs font-display font-black uppercase tracking-wider">
+                                        <th class="py-3 pl-4">Thời gian</th>
+                                        <th class="py-3">Người dùng</th>
+                                        <th class="py-3">Chức vụ</th>
+                                        <th class="py-3">Hành động</th>
+                                        <th class="py-3 pr-4">Chi tiết</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-primary/5">
+                                    <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-gray-50 transition-colors">
+                                        <td class="py-3.5 pl-4 text-xs font-bold text-gray-400">
+                                            {{ formatLogTime(log.timestamp) }}
+                                        </td>
+                                        <td class="py-3.5">
+                                            <div class="flex items-center gap-2">
+                                                <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span class="text-xs font-black text-primary">{{ (log.displayName || log.username || '?').charAt(0).toUpperCase() }}</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-black text-[#1e293b]">{{ log.displayName }}</p>
+                                                    <p class="text-xs font-bold text-gray-300">@{{ log.username }}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p class="text-xs font-black text-[#1e293b]">{{ log.displayName }}</p>
-                                                <p class="text-xs font-bold text-gray-300">@{{ log.username }}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="py-3.5">
-                                        <span class="px-2.5 py-1 text-xs font-black rounded-full"
-                                            :class="log.role === 'admin' ? 'bg-rose-50 text-rose-600' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-teal-50 text-teal-600'"
-                                        >
-                                            {{ log.role === 'system' ? 'Hệ thống' : getRoleDisplayLabel(log.role) }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3.5">
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black" :class="getActionColor(log.action)">
-                                            <span class="material-symbols-outlined text-xs">{{ getActionIcon(log.action) }}</span>
-                                            {{ log.action }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3.5 pr-4 text-xs font-bold text-gray-500 max-w-xs truncate">
-                                        {{ log.details }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                        </td>
+                                        <td class="py-3.5">
+                                            <span class="px-2.5 py-1 text-xs font-black rounded-full"
+                                                :class="log.role === 'admin' ? 'bg-rose-50 text-rose-600' : log.role === 'system' ? 'bg-gray-100 text-gray-500' : 'bg-teal-50 text-teal-600'"
+                                            >
+                                                {{ log.role === 'system' ? 'Hệ thống' : getRoleDisplayLabel(log.role) }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black" :class="getActionColor(log.action)">
+                                                <span class="material-symbols-outlined text-xs">{{ getActionIcon(log.action) }}</span>
+                                                {{ log.action }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 pr-4 text-xs font-bold text-gray-500 max-w-xs truncate">
+                                            {{ log.details }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <!-- Pagination controls -->
-                        <div v-if="filteredLogs.length > 0" class="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 text-xs">
+                        <!-- Pagination controls (Pinned outside scroll area) -->
+                        <div v-if="filteredLogs.length > 0" class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-xs shrink-0">
                             <button 
                                 @click="logsPrevPage" 
                                 :disabled="logsCurrentPage === 1"
