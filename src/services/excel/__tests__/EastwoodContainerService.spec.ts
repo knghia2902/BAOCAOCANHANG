@@ -11,6 +11,7 @@ import {
 } from '../EastwoodContainerService';
 import {
     classifyWeighbridgeRow,
+    parseWeighbridgeCsvText,
     type RawWeighbridgeRow
 } from '../WarehouseInventoryService';
 
@@ -319,5 +320,37 @@ describe('EastwoodContainerService', () => {
         expect(nextReport.rows[0]!.containerIn).toBe(1);
         expect(nextReport.rows[0]!.containerOut).toBe(1);
         expect(nextReport.rows[0]!.containerLoad).toBe(0);
+    });
+
+    it('parses Scale Head 1 single-date-column format ("Ngay can" without 1/2) for both KHO 4 imports and Eastwood HẠ CONT / LẤY CONT RỖNG', () => {
+        const csvText = [
+            'So phieu,So xe,Khach hang,KL can lan 1,KL can lan 2,KL hang,Ngay can,Gio can lan 1,Gio can lan 2,Xuat/Nhap,Loai Hang,Loai Salan,Tai Xe,Ghi Chu',
+            '019093/26,50H 11173,CÔNG TY EASTWOOD,60170,20070,40100,26/11/2026,7:14:44,7:56:06,Nhap,Viên Nén Gỗ (FSC Mix 1%),KHO 4,CT07,39920',
+            '019094/26,61H 08373,CÔNG TY EASTWOOD,61320,20170,41150,26/11/2026,7:34:12,7:47:20,Nhap,Viên Nén Gỗ (FSC Mix 1%),4 - Hạ Cont- Không Ván,CT03,WHLU2904564/TTLU2975023',
+            '019096/26,61H 08373,CÔNG TY EASTWOOD,20170,20170,0,26/11/2026,7:48:40,7:48:49,Xuat,Viên Nén Gỗ (FSC Mix 1%),LẤY CONT RỖNG,,OOLU2904703/WHLU2791196'
+        ].join('\n');
+
+        const parsedRows = parseWeighbridgeCsvText(csvText);
+        expect(parsedRows).toHaveLength(3);
+        expect(parsedRows[0]!.ngay1).toBe('26/11/2026');
+        expect(parsedRows[0]!.ngay2).toBe('26/11/2026');
+
+        // Row 1 -> WarehouseInventory KHO 4 IMPORT
+        const wh0 = classifyWeighbridgeRow(parsedRows[0]!);
+        expect(wh0?.flowType).toBe('IMPORT');
+        expect(wh0?.warehouseId).toBe('KHO 4');
+        expect(wh0?.reportDate).toBe('2026-11-26');
+
+        // Row 2 -> 2 HA_CONT events
+        const contHa = classifyEastwoodContainerRow(parsedRows[1]!);
+        expect(contHa).toHaveLength(2);
+        expect(contHa[0]!.flowType).toBe('HA_CONT');
+        expect(contHa[0]!.actualDate).toBe('2026-11-26');
+
+        // Row 3 -> 2 TRA_CONT events
+        const contTra = classifyEastwoodContainerRow(parsedRows[2]!);
+        expect(contTra).toHaveLength(2);
+        expect(contTra[0]!.flowType).toBe('TRA_CONT');
+        expect(contTra[0]!.actualDate).toBe('2026-11-26');
     });
 });

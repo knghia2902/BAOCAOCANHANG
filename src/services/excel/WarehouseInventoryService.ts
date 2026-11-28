@@ -1185,18 +1185,35 @@ export function parseWeighbridgeCsvText(text: string): RawWeighbridgeRow[] {
         headers = parseLine(lines[0]!).map(c => stripAccents(c).toLowerCase());
     }
 
-    const findCol = (pred: (h: string) => boolean) => headers.findIndex(pred);
+    const findCol = (pred: (h: string) => boolean, startIdx = 0) => {
+        for (let idx = startIdx; idx < headers.length; idx++) {
+            if (pred(headers[idx]!)) return idx;
+        }
+        return -1;
+    };
     const idxSoPhieu = findCol(h => h.includes('so phieu') || h.includes('phieu'));
     const idxMaLenh = findCol(h => h.includes('ma lenh') || h.includes('lenh'));
     const idxSoXe = findCol(h => h.includes('so xe') || h.includes('bien so'));
     const idxKhachHang = findCol(h => h.includes('khach hang') || h.includes('khach'));
-    const idxKl1 = findCol(h => h.includes('lan 1') && (h.includes('kl') || h.includes('tl') || h.includes('can')));
-    const idxKl2 = findCol(h => h.includes('lan 2') && (h.includes('kl') || h.includes('tl') || h.includes('can')));
+    const idxKl1 = findCol(h => (h.includes('lan 1') || h.includes('can 1') || h.includes('kl 1')) && (h.includes('kl') || h.includes('tl') || h.includes('can')));
+    const idxKl2 = findCol(h => (h.includes('lan 2') || h.includes('can 2') || h.includes('kl 2')) && (h.includes('kl') || h.includes('tl') || h.includes('can')));
     const idxKlHang = findCol(h => h.includes('kl hang') || h.includes('tl hang') || h.includes('khoi luong hang'));
-    const idxNgay1 = findCol(h => h.includes('ngay') && h.includes('1'));
-    const idxGio1 = findCol(h => h.includes('gio') && h.includes('1'));
-    const idxNgay2 = findCol(h => h.includes('ngay') && h.includes('2'));
-    const idxGio2 = findCol(h => h.includes('gio') && h.includes('2'));
+
+    // Date & Time columns: support BOTH 2-date format ("Ngay can lan 1" / "Ngay can lan 2")
+    // AND 1-date format ("Ngay can" + "Gio can lan 1" + "Gio can lan 2") used by Scale Head 1!
+    let idxNgay1 = findCol(h => h.includes('ngay') && (h.includes('1') || h.includes('vao')));
+    let idxNgay2 = findCol(h => h.includes('ngay') && (h.includes('2') || h.includes('ra')));
+    if (idxNgay1 < 0) idxNgay1 = findCol(h => h.includes('ngay'));
+    if (idxNgay2 < 0) idxNgay2 = idxNgay1 >= 0 ? (findCol(h => h.includes('ngay'), idxNgay1 + 1) >= 0 ? findCol(h => h.includes('ngay'), idxNgay1 + 1) : idxNgay1) : -1;
+
+    let idxGio1 = findCol(h => h.includes('gio') && (h.includes('1') || h.includes('vao')));
+    let idxGio2 = findCol(h => h.includes('gio') && (h.includes('2') || h.includes('ra')));
+    if (idxGio1 < 0) idxGio1 = findCol(h => h.includes('gio'));
+    if (idxGio2 < 0 && idxGio1 >= 0) {
+        const secondGio = findCol(h => h.includes('gio'), idxGio1 + 1);
+        idxGio2 = secondGio >= 0 ? secondGio : idxGio1;
+    }
+
     const idxXuatNhap = findCol(h => h.includes('xuat/nhap') || h.includes('xuat nhap'));
     const idxLoaiHang = findCol(h => h.includes('loai hang') || h.includes('ten hang'));
     const idxLoaiSalan = findCol(h => h.includes('salan') || h.includes('sa lan'));
