@@ -42,8 +42,8 @@ When writing Tailwind CSS classes or CSS variables:
     - Tab Button: `px-3 py-1 rounded-lg text-xs font-display font-bold transition-all flex items-center gap-1.5 h-6.5` (`bg-primary text-white shadow-soft` active, `text-slate-600 hover:text-slate-800 hover:bg-white/50` inactive)
 
 ### 3. Layout Grid Alignment
-- Floating headers must use sticky styling (`sticky top-6 z-50`) with backdrop blur (`backdrop-blur bg-white/80`) and width `w-[95%] max-w-[1200px]`.
-- Tables must have sticky headers (`sticky top-0 z-10`) with table row hover transitions (`hover:bg-gray-50`).
+- Floating headers must use sticky styling (`sticky top-6 z-50`) with backdrop blur (`backdrop-blur bg-white/80`) and width `w-[95%] max-w-[1200px]`. Do not duplicate the user name/avatar pill inside the inner Workspace header.
+- Tables must have sticky headers (`sticky top-0 z-10`), hidden native scrollbars (`overflow-auto scrollbar-none` so mouse wheel/trackpad scrolls cleanly), table row hover transitions (`hover:bg-gray-50`), and pinned pagination/counters placed **outside** the scrollable table wrapper.
 
 ## Common Mistakes
 - **Hardcoding Old Pink Colors**: Reintroducing `#f0426e`, `#faebee`, or `#fb6f92` instead of using the new blue/slate values.

@@ -62,8 +62,9 @@ Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt l
 | :--- | :--- | :--- | :--- |
 | **Primary (Puffy)** | Nền `primary` (`#4a78c2`), chữ trắng, bóng dưới `#6495ed` dày 4px. | **Hover**: dịch xuống 2px, bóng mỏng 2px.<br>**Active**: co lại 95%, dịch xuống 4px, mất bóng. | `bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all` |
 | **Secondary (Outline)**| Nền trắng, viền mỏng màu `primary/10`, chữ màu `primary`. | **Hover**: Nền chuyển sang màu xanh pastel nhạt (`bg-primary/5`), viền đổi sang màu `primary`. | `bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl hover:bg-primary/5 active:scale-95 transition-all shadow-sm` |
+| **Hero Secondary (Pill)**| Nền trong suốt mờ, viền `border-2 border-strawberry-cream`, bo tròn `rounded-full`, chữ `text-primary`. | **Hover**: Nền trắng mờ (`hover:bg-white/50`). | `rounded-full border-2 border-strawberry-cream font-bold text-lg hover:bg-white/50 transition-all text-primary` |
 | **Icon Button (Tròn)** | Nền `bg-[#f1f5f9]`, chữ xám nhạt (`text-gray-400`). | **Hover**: Biểu tượng đổi sang đỏ hoặc xanh lá, phóng to nhẹ (`scale-105`). | `size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all` |
-| **Table Action (Chữ)** | Nền `bg-[#f1f5f9]`, chữ `text-primary`, viền `border-soft-pink`. | **Hover**: Đảo ngược thành nền `bg-primary` chữ trắng (`text-white`). | `px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-[10px] transition-all whitespace-nowrap shadow-sm` |
+| **Table Action (Chữ)** | Nền `bg-[#f1f5f9]`, chữ `text-primary`, viền `border-soft-pink`. | **Hover**: Đảo ngược thành nền `bg-primary` chữ trắng (`text-white`). | `px-2.5 py-1 bg-[#f1f5f9] hover:bg-primary hover:text-white border border-soft-pink text-primary font-black rounded-xl text-xs transition-all whitespace-nowrap shadow-sm` |
 | **Table Action Icon (Edit)** | Nền xanh nhạt `bg-primary/5`, chữ `text-primary`, kích thước `32x32px` hình tròn. | **Hover**: Nền `bg-primary/10`. <br>**Active**: co lại 95%. | `size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95` |
 | **Table Action Icon (Delete)** | Nền đỏ nhạt `bg-red-50`, chữ `text-red-500`, kích thước `32x32px` hình tròn. | **Hover**: Nền `bg-red-100`. <br>**Active**: co lại 95%. | `size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95` |
 | **Table Action Icon (Print)** | Nền xanh lá nhạt `bg-teal-50`, chữ `text-teal-600`, kích thước `32x32px` hình tròn. | **Hover**: Nền `bg-teal-100`. <br>**Active**: co lại 95%. | `size-8 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-600 flex items-center justify-center transition-all active:scale-95` |
@@ -76,6 +77,7 @@ Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt l
 *   **Vị trí**: Cố định trên cùng (Sticky), rộng `95%` tổng chiều ngang, chiều rộng tối đa (`max-w-[1200px]`), căn giữa (`mx-auto`), khoảng cách trên cách đỉnh `mt-6`.
 *   **Thiết kế**: Nền trắng đục có hiệu ứng mờ kính (`backdrop-blur bg-white/80`), bo góc tròn tuyệt đối (`rounded-full`), có viền mỏng màu xanh nhạt (`border-soft-pink`).
 *   **z-index**: Phải luôn đặt `z-index: 50` để không bị đè bởi các popover bên dưới.
+*   **Thanh tiêu đề nội bộ Workspace**: Không lặp lại cụm tên/avatar tài khoản ở góc phải bên trong Workspace vì đã hiển thị tại Global Floating Header bên ngoài (chỉ giữ nhãn Demo Sandbox khi đang ở chế độ thử nghiệm).
 
 ### B. Thanh Bên Tiêu Chuẩn (Sidebar - Desktop Only)
 *   **Chiều rộng**: Cố định `w-72` (288px), bo góc lớn (`rounded-[3rem]`).
@@ -104,4 +106,4 @@ Giao diện web được tối ưu hóa đồng bộ về **5 cỡ chữ cốt l
   - Nút **Xóa hết**: `h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98]`.
 - **Căn Chỉnh Chiều Cao Đáy (Flex Height Alignment)**:
   - Thẻ wrapper chính nhận `h-full flex-1 flex flex-col gap-4 min-h-0`. Card 3 nhận `flex-1 min-h-0` để kéo giãn vừa khít mép đáy của Sidebar bên trái.
-  - Bảng dữ liệu bên trong Card 3 nhận `flex-1 min-h-0 overflow-y-auto` với sticky header, chân trang phân trang ghim cố định bên dưới.
+  - Bảng dữ liệu bên trong Card 3 nhận `flex-1 min-h-0 overflow-y-auto scrollbar-none` với sticky header, chân trang phân trang ghim cố định bên ngoài vùng cuộn ở đáy thẻ.
