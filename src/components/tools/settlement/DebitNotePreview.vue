@@ -81,7 +81,7 @@ const activeWordsEn = computed(() => {
             <!-- Price Tier Badge -->
             <div class="flex items-center gap-2">
                 <span class="text-xs text-slate-500 font-semibold">Khung giá dầu áp dụng:</span>
-                <span class="h-6.5 px-2.5 bg-blue-50 text-primary border border-blue-200 rounded-[8px] text-xs font-bold font-mono flex items-center gap-1">
+                <span class="h-6.5 px-2.5 bg-primary/10 text-primary border border-primary/20 rounded-[8px] text-xs font-bold font-mono flex items-center gap-1">
                     <span class="material-symbols-outlined text-[13px]">local_gas_station</span>
                     <span>{{ summary.fuelTier.label }} (VNĐ/lít)</span>
                 </span>
@@ -104,7 +104,7 @@ const activeWordsEn = computed(() => {
                     <div class="text-base font-display font-black text-slate-900 tracking-wide uppercase">
                         ĐỀ NGHỊ THANH TOÁN
                     </div>
-                    <div class="text-xs italic text-blue-600 font-medium tracking-wider">
+                    <div class="text-xs italic text-primary font-medium tracking-wider">
                         DEBIT NOTE ({{ activeTab === 'DNTT1' ? 'PHẦN CẢNG & SÀ LAN' : 'PHẦN CƯỚC XE BỘ' }})
                     </div>
                     <div class="text-xs font-mono font-bold text-slate-600">
@@ -142,9 +142,9 @@ const activeWordsEn = computed(() => {
             </div>
 
             <!-- Service Items Table -->
-            <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <div class="overflow-auto scrollbar-none rounded-[24px] border border-primary/5">
                 <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
-                    <thead class="bg-slate-50 text-[11px] font-black uppercase text-slate-600 tracking-wider border-b border-slate-200">
+                    <thead class="sticky top-0 z-10 bg-slate-50 text-xs font-black uppercase text-slate-600 tracking-wider border-b border-slate-200">
                         <tr>
                             <th class="px-3 py-2 text-center w-10">Bật</th>
                             <th class="px-3 py-2 text-center w-8">STT</th>
@@ -174,8 +174,8 @@ const activeWordsEn = computed(() => {
                             <td class="px-3 py-2 text-center text-slate-400 font-mono font-bold">{{ item.stt }}</td>
                             <td class="px-3 py-2 whitespace-normal leading-relaxed">
                                 <div class="font-bold text-slate-900">{{ item.serviceName }}</div>
-                                <div v-if="item.subTitle" class="text-[11px] text-slate-500 italic">{{ item.subTitle }}</div>
-                                <div v-if="item.contractRef" class="text-[10px] text-primary/80 font-mono mt-0.5">
+                                <div v-if="item.subTitle" class="text-xs text-slate-500 italic">{{ item.subTitle }}</div>
+                                <div v-if="item.contractRef" class="text-xs text-primary/80 font-mono mt-0.5">
                                     Căn cứ: {{ item.contractRef }}
                                 </div>
                             </td>
@@ -199,7 +199,7 @@ const activeWordsEn = computed(() => {
                             </td>
 
                             <!-- Fuel Tier Label -->
-                            <td class="px-3 py-2 text-center font-mono text-[11px] text-slate-500">
+                            <td class="px-3 py-2 text-center font-mono text-xs text-slate-500">
                                 {{ item.fuelTierLabel }}
                             </td>
                         </tr>
@@ -244,7 +244,7 @@ const activeWordsEn = computed(() => {
                     <span class="font-bold text-slate-600">Số tiền bằng chữ: </span>
                     <span class="font-bold italic text-slate-900">{{ activeWordsVi }}</span>
                 </div>
-                <div class="text-xs text-blue-700">
+                <div class="text-xs text-primary">
                     <span class="font-semibold text-slate-500">In words: </span>
                     <span class="italic font-medium">{{ activeWordsEn }}</span>
                 </div>
@@ -252,7 +252,7 @@ const activeWordsEn = computed(() => {
 
             <!-- Beneficiary Banking Details -->
             <div class="border-t border-slate-200 pt-3 text-xs space-y-1 text-slate-600">
-                <div class="font-bold text-slate-700 uppercase tracking-wider text-[11px]">Thông tin thụ hưởng / Beneficiary details:</div>
+                <div class="font-bold text-slate-700 uppercase tracking-wider text-xs">Thông tin thụ hưởng / Beneficiary details:</div>
                 <div class="flex items-baseline gap-2">
                     <span class="font-semibold">Tài khoản thụ hưởng / Beneficiary:</span>
                     <span class="font-black text-[#1e293b]">{{ summary.beneficiaryInfo.name }}</span>

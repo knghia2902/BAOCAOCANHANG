@@ -1513,7 +1513,7 @@ onUnmounted(() => {
                         <!-- Dropdown list -->
                         <div 
                             v-if="isSiteDropdownOpen"
-                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                            class="absolute right-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded shadow-lg py-1 z-50 overflow-hidden"
                         >
                             <div 
                                 @click="selectSite('NguyenNgoc')"
@@ -1544,7 +1544,7 @@ onUnmounted(() => {
                             v-model="searchQuery" 
                             type="text" 
                             placeholder="Tìm sà lan, tàu, chủ hàng..." 
-                            class="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary/50 text-[#1e293b] font-semibold"
+                            class="w-full h-7 pl-8 pr-3 text-xs bg-white border border-slate-200 rounded-[8px] focus:outline-none focus:border-primary/50 text-[#1e293b] font-semibold"
                         />
                     </div>
                     
@@ -1554,7 +1554,7 @@ onUnmounted(() => {
                         <button 
                             v-if="activeSite === 'PhuMy' && (authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'create'))"
                             @click="newBargeName = ''; showAddBargeModal = true"
-                            class="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/10 shrink-0"
+                            class="h-7 px-3 bg-teal-600 hover:bg-teal-700 text-white border border-teal-600 font-bold rounded-[8px] text-xs transition-all active:scale-[0.98] flex items-center gap-1.5 shadow-sm shrink-0"
                             title="Tạo sà lan mới thuộc khu vực Phú Mỹ"
                         >
                             <span class="material-symbols-outlined text-sm">add</span>
@@ -1563,7 +1563,7 @@ onUnmounted(() => {
                         <button 
                             v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'read')"
                             @click="exportToExcel"
-                            class="h-8 px-3.5 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-primary/10 shrink-0"
+                            class="h-7 px-3 bg-primary hover:scale-[1.02] active:scale-[0.98] text-white border border-primary font-bold rounded-[8px] text-xs transition-all flex items-center gap-1.5 shrink-0"
                             title="Xuất dữ liệu hồ sơ sà lan sang file Excel"
                         >
                             <span class="material-symbols-outlined text-sm">download</span>
@@ -1573,7 +1573,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Table Content -->
-                <div class="flex-grow overflow-auto p-6 min-h-0 flex flex-col">
+                <div class="flex-grow overflow-auto scrollbar-none p-6 min-h-0 flex flex-col">
                     <div v-if="loading" class="flex-grow flex flex-col justify-center items-center text-gray-400 text-xs gap-2">
                         <span class="material-symbols-outlined text-3xl animate-spin text-primary">sync</span>
                         <span>Đang tải thông tin sà lan...</span>
@@ -1582,7 +1582,7 @@ onUnmounted(() => {
                         <span class="material-symbols-outlined text-3xl text-gray-300">sailing</span>
                         <span>Không tìm thấy sà lan nào. Vui lòng thêm sà lan mới bên tab "In Phiếu Cân Xe".</span>
                     </div>
-                    <div v-else class="flex-grow overflow-auto rounded-[16px] border border-gray-100 min-h-0">
+                    <div v-else class="flex-grow overflow-auto scrollbar-none rounded-[24px] border border-primary/5 min-h-0">
                         <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
@@ -1604,7 +1604,7 @@ onUnmounted(() => {
                                     <td class="px-3 py-2.5 text-center text-gray-400 font-bold">{{ idx + 1 }}</td>
                                     <td class="px-3 py-2.5 font-bold text-gray-900">{{ item.barge.name }}</td>
                                     <td v-if="activeSite === 'NguyenNgoc'" class="px-3 py-2.5 text-center">
-                                        <span v-if="item.barge.config?.orderNo" class="size-[22px] rounded-full inline-flex items-center justify-center text-[10px] bg-teal-50 text-teal-600 border border-teal-200 font-black uppercase leading-none select-none">
+                                        <span v-if="item.barge.config?.orderNo" class="min-w-[24px] h-[24px] px-1.5 rounded-full inline-flex items-center justify-center text-xs bg-teal-50 text-teal-600 border border-teal-200 font-black uppercase leading-none select-none">
                                             {{ item.barge.config.orderNo }}
                                         </span>
                                         <span v-else class="text-gray-400 italic text-xs">-</span>
@@ -1753,11 +1753,11 @@ onUnmounted(() => {
                                         </div>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="isDocComplete(item.barge.config || {}) && getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" class="inline-flex text-emerald-600 text-xs font-bold">Cho phép</span>
+                                        <span v-if="isDocComplete(item.barge.config || {}) && getCrewStatus(item.barge.config || {}).status === 'ĐỦ'" class="inline-flex text-teal-600 text-xs font-bold">Cho phép</span>
                                         <span v-else class="inline-flex text-rose-600 text-xs font-bold">Không cho phép</span>
                                     </td>
                                     <td class="px-3 py-2.5 text-center">
-                                        <span v-if="item.barge.config?.khaihethong === 'Có'" class="inline-flex text-blue-600 text-xs font-bold">Có</span>
+                                        <span v-if="item.barge.config?.khaihethong === 'Có'" class="inline-flex text-primary text-xs font-bold">Có</span>
                                         <span v-else-if="item.barge.config?.khaihethong === 'Không'" class="inline-flex text-amber-600 text-xs font-bold">Không</span>
                                         <span v-else-if="item.barge.config?.khaihethong" class="text-gray-700 font-bold text-xs">{{ item.barge.config.khaihethong }}</span>
                                         <span v-else class="text-gray-400 italic text-xs">-</span>
@@ -1862,7 +1862,7 @@ onUnmounted(() => {
                             :class="[
                                 'p-3 rounded-2xl border space-y-2 transition-all duration-300',
                                 isCrewCardValid 
-                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    ? 'bg-teal-50/40 border-teal-300' 
                                     : 'bg-rose-50/40 border-rose-300'
                             ]"
                         >
@@ -1901,7 +1901,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isCaptainGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectCaptainGrade('')"
@@ -1952,7 +1952,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isChiefEngineerGradeDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectChiefEngineerGrade('')"
@@ -2013,7 +2013,7 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Crew File list and Upload -->
-                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                            <div class="mt-2 pt-2 border-t border-dashed border-slate-200 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                         <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editCrewImages.length }})</span>
                                     <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
@@ -2039,7 +2039,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Arrival / Departure movement -->
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-2">
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                             <span class="text-xs font-black text-[#1e293b] uppercase tracking-wider flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm text-primary">schedule</span>
                                 Thời gian cập / rời bến
@@ -2064,7 +2064,7 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Results & Declaration -->
-                        <div class="p-3 bg-slate-50 rounded-2xl border border-gray-150 space-y-3">
+                        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                             <span class="text-xs font-black text-[#1e293b] uppercase tracking-wider flex items-center gap-1 select-none">
                                 <span class="material-symbols-outlined text-sm text-primary">fact_check</span>
                                 Kết quả & Khai báo hệ thống
@@ -2097,7 +2097,7 @@ onUnmounted(() => {
                                         </button>
                                         <div 
                                             v-if="isKhaiHethongDropdownOpen"
-                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-150 rounded shadow-lg py-1 z-50 overflow-hidden"
+                                            class="absolute left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded shadow-lg py-1 z-50 overflow-hidden"
                                         >
                                             <div 
                                                 @click="selectKhaiHethong('')"
@@ -2153,7 +2153,7 @@ onUnmounted(() => {
                             :class="[
                                 'p-3 rounded-2xl border space-y-2 transition-all duration-300',
                                 isGcnCardValid 
-                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    ? 'bg-teal-50/40 border-teal-300' 
                                     : 'bg-rose-50/40 border-rose-300'
                             ]"
                         >
@@ -2198,7 +2198,7 @@ onUnmounted(() => {
                             </div>
 
                             <!-- GCN File list and Upload -->
-                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                            <div class="mt-2 pt-2 border-t border-dashed border-slate-200 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editGcnImages.length }})</span>
                                     <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
@@ -2228,7 +2228,7 @@ onUnmounted(() => {
                             :class="[
                                 'p-3 rounded-2xl border space-y-2 transition-all duration-300',
                                 isDkCardValid 
-                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    ? 'bg-teal-50/40 border-teal-300' 
                                     : 'bg-rose-50/40 border-rose-300'
                             ]"
                         >
@@ -2252,7 +2252,7 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Đăng kiểm File list and Upload -->
-                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                            <div class="mt-2 pt-2 border-t border-dashed border-slate-200 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editDkImages.length }})</span>
                                     <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
@@ -2282,7 +2282,7 @@ onUnmounted(() => {
                             :class="[
                                 'p-3 rounded-2xl border space-y-2 transition-all duration-300',
                                 isBhCardValid 
-                                    ? 'bg-emerald-50/40 border-emerald-300' 
+                                    ? 'bg-teal-50/40 border-teal-300' 
                                     : 'bg-rose-50/40 border-rose-300'
                             ]"
                         >
@@ -2306,7 +2306,7 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Bảo hiểm File list and Upload -->
-                            <div class="mt-2 pt-2 border-t border-dashed border-gray-150 space-y-1.5">
+                            <div class="mt-2 pt-2 border-t border-dashed border-slate-200 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-400 uppercase">Hình ảnh đính kèm ({{ editBhImages.length }})</span>
                                     <label v-if="authStore.role === 'admin' || hasDetailPermission('vehicles', 'veh_barge_profile', 'update')" class="cursor-pointer text-xs font-black text-primary hover:text-primary/80 flex items-center gap-0.5 select-none">
@@ -2364,7 +2364,7 @@ onUnmounted(() => {
                 <div class="px-8 py-5 border-t border-primary/10 flex items-center justify-end gap-3 bg-slate-50 shrink-0">
                     <button 
                         @click="activeBargeId = null"
-                        class="h-9 px-6 bg-white hover:bg-gray-150 text-[#1e293b] font-black rounded-xl text-xs active:scale-95 transition-all border border-gray-200"
+                        class="h-9 px-6 bg-white hover:bg-slate-100 text-[#1e293b] font-black rounded-xl text-xs active:scale-95 transition-all border border-gray-200"
                     >
                         Hủy
                     </button>
@@ -2407,7 +2407,7 @@ onUnmounted(() => {
         <!-- Add Barge Modal -->
         <div v-if="showAddBargeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
             <div class="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
-                <div class="flex items-center justify-between border-b border-gray-150 pb-3">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
                     <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
                         <span class="material-symbols-outlined text-lg">add_box</span>
                         Thêm sà lan Phú Mỹ mới
@@ -2430,7 +2430,7 @@ onUnmounted(() => {
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-end gap-2 border-t border-gray-150 pt-4 mt-2">
+                <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
                     <button 
                         @click="showAddBargeModal = false"
                         class="px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs transition-all"
@@ -2453,7 +2453,7 @@ onUnmounted(() => {
         <!-- Sync Historical Barge Modal -->
         <div v-if="showSyncConfirmModal && syncCandidate" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
             <div class="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
-                <div class="flex items-center justify-between border-b border-gray-150 pb-3">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
                     <h3 class="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-1.5 select-none">
                         <span class="material-symbols-outlined text-lg">history</span>
                         Đồng bộ hồ sơ sà lan cũ
@@ -2464,13 +2464,13 @@ onUnmounted(() => {
                 </div>
                 
                 <div class="space-y-3 text-xs">
-                    <div class="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-start gap-3">
-                        <span class="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">info</span>
+                    <div class="p-3.5 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-xl shrink-0 mt-0.5">info</span>
                         <div class="space-y-1">
                             <div class="font-bold text-[#1e293b]">
                                 Tìm thấy hồ sơ sà lan <span class="text-primary font-black uppercase text-sm">"{{ syncCandidate.barge.name }}"</span>
                             </div>
-                            <div class="text-gray-600 flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                            <div class="text-gray-600 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                                 <span>Tàu mẹ: <strong class="text-gray-800">{{ syncCandidate.vesselName }}</strong></span>
                                 <span>Ngày cập nhật: <strong class="text-gray-800">{{ syncCandidate.formattedDate }}</strong></span>
                             </div>
@@ -2478,42 +2478,42 @@ onUnmounted(() => {
                     </div>
 
                     <div class="space-y-2">
-                        <div class="font-bold text-gray-700 uppercase tracking-wider text-[11px]">Các dữ liệu sẽ được đồng bộ:</div>
-                        <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+                        <div class="font-bold text-gray-700 uppercase tracking-wider text-xs">Các dữ liệu sẽ được đồng bộ:</div>
+                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
                             <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
-                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span class="material-symbols-outlined text-teal-600 text-sm">check_circle</span>
                                 <span>Trọng tải &amp; Công suất</span>
                             </div>
                             <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
-                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span class="material-symbols-outlined text-teal-600 text-sm">check_circle</span>
                                 <span>Hồ sơ Giấy chứng nhận (GCN)</span>
                             </div>
                             <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
-                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span class="material-symbols-outlined text-teal-600 text-sm">check_circle</span>
                                 <span>Hồ sơ Đăng kiểm (ĐK)</span>
                             </div>
                             <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
-                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span class="material-symbols-outlined text-teal-600 text-sm">check_circle</span>
                                 <span>Hồ sơ Bảo hiểm (BH)</span>
                             </div>
                             <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
-                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span class="material-symbols-outlined text-teal-600 text-sm">check_circle</span>
                                 <span>Thông tin Thuyền bộ (CCCD, sổ)</span>
                             </div>
                             <div class="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-gray-100">
-                                <span class="material-symbols-outlined text-emerald-600 text-sm">check_circle</span>
+                                <span class="material-symbols-outlined text-teal-600 text-sm">check_circle</span>
                                 <span>Toàn bộ hình ảnh đính kèm</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="p-2.5 bg-amber-50/60 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 flex items-center gap-2">
+                    <div class="p-2.5 bg-amber-50/60 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
                         <span class="material-symbols-outlined text-amber-600 text-base shrink-0">lock</span>
                         <span>Thông tin chuyến mới (Số lệnh, Hàng hóa, Giờ cập/rời) sẽ được giữ nguyên.</span>
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-end gap-2 border-t border-gray-150 pt-4 mt-1">
+                <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-1">
                     <button 
                         @click="showSyncConfirmModal = false"
                         class="px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 font-bold rounded-xl text-xs transition-all"
@@ -2534,7 +2534,7 @@ onUnmounted(() => {
         <!-- Empty Historical Barge Info Modal -->
         <div v-if="showEmptyProfileModal && emptyCandidateInfo" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
             <div class="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl p-6 flex flex-col gap-4 animate-scale-up" @click.stop>
-                <div class="flex items-center justify-between border-b border-gray-150 pb-3">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
                     <h3 class="text-sm font-black text-amber-600 uppercase tracking-wider flex items-center gap-1.5 select-none">
                         <span class="material-symbols-outlined text-lg">info</span>
                         Chưa có dữ liệu hồ sơ cũ
@@ -2551,14 +2551,14 @@ onUnmounted(() => {
                             <div class="font-bold text-[#1e293b]">
                                 Tìm thấy sà lan <span class="text-primary font-black uppercase text-sm">"{{ emptyCandidateInfo.barge.name }}"</span> trong hệ thống!
                             </div>
-                            <div class="text-gray-600 space-y-1 text-[11px]">
+                            <div class="text-gray-600 space-y-1 text-xs">
                                 <div>Chuyến gần nhất: <strong class="text-gray-800">{{ emptyCandidateInfo.vesselName }}</strong> ({{ emptyCandidateInfo.formattedDate }})</div>
                                 <div v-if="emptyCandidateInfo.vesselNames.length > 1">Các tàu đã xuất hiện ({{ emptyCandidateInfo.totalTrips }} chuyến): <strong class="text-gray-800">{{ emptyCandidateInfo.vesselNames.join(', ') }}</strong></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="p-3 bg-slate-50 border border-gray-150 rounded-2xl space-y-2 text-gray-600 text-[11px] leading-relaxed">
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-gray-600 text-xs leading-relaxed">
                         <p class="font-semibold text-gray-700">
                             ⚠️ <strong>Lý do không thể sao chép:</strong>
                         </p>
@@ -2571,7 +2571,7 @@ onUnmounted(() => {
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-end border-t border-gray-150 pt-4 mt-1">
+                <div class="flex items-center justify-end border-t border-slate-200 pt-4 mt-1">
                     <button 
                         @click="showEmptyProfileModal = false"
                         class="px-5 py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-primary/10"

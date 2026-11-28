@@ -2792,28 +2792,28 @@ async function compileAndDownload() {
             <div class="flex md:hidden bg-white border border-primary/5 rounded-[20px] p-2 overflow-x-auto gap-2 shrink-0 scrollbar-none whitespace-nowrap mb-1">
                 <button 
                     @click="activeSubViewMode = 'allocator'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'allocator' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'allocator' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-slate-200']"
                 >
                     <span class="material-symbols-outlined text-sm">analytics</span>
                     <span>Phân bổ tải trọng</span>
                 </button>
                 <button 
                     @click="activeSubViewMode = 'vehicles'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'vehicles' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'vehicles' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-slate-200']"
                 >
                     <span class="material-symbols-outlined text-sm">local_shipping</span>
                     <span>Danh sách xe</span>
                 </button>
                 <button 
                     @click="activeSubViewMode = 'goods'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'goods' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'goods' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-slate-200']"
                 >
                     <span class="material-symbols-outlined text-sm">inventory_2</span>
                     <span>Danh sách hàng hóa</span>
                 </button>
                 <button 
                     @click="activeSubViewMode = 'other_tickets'"
-                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'other_tickets' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-gray-150']"
+                    :class="['flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border', activeSubViewMode === 'other_tickets' ? 'bg-primary text-white border-primary shadow-soft' : 'bg-slate-50 text-gray-700 border-slate-200']"
                 >
                     <span class="material-symbols-outlined text-sm">history</span>
                     <span>Cân Kho & Container</span>
@@ -2981,14 +2981,14 @@ async function compileAndDownload() {
             <!-- Tabs Header -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <!-- Tabs Navigation Strip -->
-                <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 xl:pb-0 shrink-0">
+                <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center overflow-x-auto scrollbar-none gap-1">
                     <button 
                         @click="activeDataTab = 'source'"
                         :class="[
-                            'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+                            'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all shrink-0 h-6.5',
                             activeDataTab === 'source' 
-                                ? 'bg-primary/10 text-primary border border-primary/20' 
-                                : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-primary text-white shadow-soft' 
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                         ]"
                     >
                         1. Phiếu cân ({{ csvRecords.length }})
@@ -2996,10 +2996,10 @@ async function compileAndDownload() {
                     <button 
                         @click="activeDataTab = 'generated'"
                         :class="[
-                            'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+                            'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all shrink-0 h-6.5',
                             activeDataTab === 'generated' 
-                                ? 'bg-primary/10 text-primary border border-primary/20' 
-                                : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-primary text-white shadow-soft' 
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                         ]"
                     >
                         2. Theo dõi ({{ existingTrips.length }})
@@ -3133,12 +3133,12 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'source'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Source Tickets Table -->
-                <div v-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                <div v-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto scrollbar-none">
                     <table class="w-full text-left border-collapse text-xs font-bold min-w-[1400px] whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
-                                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
-                                <th @click="toggleSourceSort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                        <thead class="sticky top-0 z-10 bg-gray-50">
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                                <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
+                                <th @click="toggleSourceSort('ticketNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số phiếu</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3146,7 +3146,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3154,7 +3154,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('plateNumber')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số xe</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3162,7 +3162,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('customer')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Khách hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3170,7 +3170,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('cargoType')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Loại hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3178,7 +3178,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('weight1')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>TL1 (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3186,7 +3186,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('weight2')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>TL2 (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3194,7 +3194,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>KL hàng (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3202,7 +3202,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Ngày vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3210,7 +3210,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('timeInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('timeInStr')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Giờ vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3218,7 +3218,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Ngày ra</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3226,7 +3226,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('timeOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('timeOutStr')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Giờ ra</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3234,7 +3234,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('driverName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('driverName')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Tài xế</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3242,7 +3242,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th class="py-2 px-3 text-center w-24 bg-gray-50 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -3344,12 +3344,12 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'generated'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto scrollbar-none">
                     <table class="w-full text-left border-collapse text-xs font-bold min-w-[1300px] whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
-                                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
-                                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                        <thead class="sticky top-0 z-10 bg-gray-50">
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                                <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
+                                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số phiếu</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3357,7 +3357,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3365,7 +3365,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('plateNumber')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số xe</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3373,7 +3373,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('customer')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Khách hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3381,7 +3381,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Loại hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3389,7 +3389,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('weight1')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('weight1')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>TL1 (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3397,7 +3397,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('weight2')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>TL2 (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3405,7 +3405,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('weightNet')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('weightNet')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>KL hàng (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3413,7 +3413,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('date1Obj')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('date1Obj')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3421,7 +3421,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('date2Obj')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('date2Obj')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian ra</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3429,7 +3429,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('bargeName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('bargeName')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Tên sà lan</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -3437,8 +3437,8 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 bg-gray-55 font-bold select-none">Ghi chú</th>
-                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th class="py-2 px-3 bg-gray-50 font-bold select-none">Ghi chú</th>
+                                <th v-if="authStore.role === 'admin' || hasDetailPermission('allocator', 'al_data_manage', 'update') || hasDetailPermission('allocator', 'al_data_manage', 'delete')" class="py-2 px-3 text-center w-20 bg-gray-50 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">

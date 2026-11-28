@@ -369,11 +369,11 @@ onMounted(() => {
         <!-- Header Section (Đồng bộ 100% với VehicleManager.vue & GoodsManager.vue) -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
-                <h3 class="text-base font-black text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-xl">{{ categoryIcon }}</span>
+                <h3 class="text-xl font-display font-black text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-2xl">{{ categoryIcon }}</span>
                     {{ categoryTitle }}
                 </h3>
-                <p class="text-xs text-gray-500 font-semibold mt-1">
+                <p class="text-xs text-slate-500 font-semibold mt-1">
                     {{ categoryDescription }} Tổng cộng:
                     <span class="text-teal-600 font-bold font-mono">{{ items.length }}</span> mục.
                 </p>
@@ -409,7 +409,7 @@ onMounted(() => {
 
                 <form @submit.prevent="handleSaveItem" class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">
                             {{ categoryKey === 'category-warehouses' ? 'Tên kho hàng *' : 'Tên khách hàng / Đối tác *' }}
                         </label>
                         <input
@@ -417,59 +417,59 @@ onMounted(() => {
                             type="text"
                             :placeholder="categoryKey === 'category-warehouses' ? 'Ví dụ: KHO 1 hoặc GREEN WOOD' : 'Ví dụ: DE HEUS'"
                             required
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all"
                         />
                     </div>
 
                     <div v-if="categoryKey === 'category-warehouses'" class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Khu vực *</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Khu vực *</label>
                         <input
                             v-model="form.area"
                             type="text"
                             placeholder="Ví dụ: Phường Tân Hiệp, Phường Đồng Xoài, Cảng..."
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all"
                         />
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">
                             {{ categoryKey === 'category-warehouses' ? 'Mã hiệu / Nơi xuất nhận diện' : 'Mã quy chuẩn' }}
                         </label>
                         <input
                             v-model="form.code"
                             type="text"
                             :placeholder="categoryKey === 'category-warehouses' ? 'Ví dụ: GREEN WOOD hoặc HUNG PHAT, NANG LUONG HUNG PHAT' : 'Ví dụ: DH'"
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all font-mono"
                         />
-                        <p v-if="categoryKey === 'category-warehouses'" class="text-[11px] text-gray-400">
+                        <p v-if="categoryKey === 'category-warehouses'" class="text-xs text-slate-500">
                             Có thể nhập nhiều mã / nơi xuất trên phiếu cân, phân tách bằng dấu phẩy.
                         </p>
                     </div>
 
                     <div v-if="categoryKey === 'category-warehouses'" class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Sức chứa định mức (tấn)</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sức chứa định mức (tấn)</label>
                         <input
                             v-model.number="form.capacityTons"
                             type="number"
                             placeholder="Ví dụ: 25000"
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all font-mono"
                         />
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Ghi chú / Mô tả</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ghi chú / Mô tả</label>
                         <textarea
                             v-model="form.note"
                             rows="2"
                             placeholder="Ghi chú chi tiết..."
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all"
                         ></textarea>
                     </div>
 
                     <div class="flex items-center gap-2 mt-2">
                         <button
                             type="submit"
-                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-[12px] text-xs shadow-soft hover:opacity-90 transition-all cursor-pointer"
+                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
                         >
                             {{ editingId !== null ? 'Cập nhật' : 'Thêm mới' }}
                         </button>
@@ -478,7 +478,7 @@ onMounted(() => {
                             v-if="editingId !== null"
                             type="button"
                             @click="resetForm"
-                            class="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-[12px] text-xs transition-all cursor-pointer"
+                            class="px-4 py-2.5 bg-[#f1f5f9] hover:bg-slate-200 text-[#1e293b] font-bold rounded-2xl text-xs transition-all cursor-pointer"
                         >
                             Hủy
                         </button>
@@ -490,20 +490,20 @@ onMounted(() => {
             <div :class="canWriteCategory ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
                 <!-- Search bar -->
                 <div class="relative w-full">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
                         search
                     </span>
                     <input
                         v-model="searchQuery"
                         type="text"
                         placeholder="Tìm theo tên, mã hiệu hoặc ghi chú..."
-                        class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                        class="w-full h-7 pl-8 pr-3 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all"
                     />
                 </div>
 
-                <!-- Sticky Header Table (Chuẩn DESIGN.md Mục 6) -->
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto max-h-[420px]">
+                <!-- Sticky Header Table (Chuẩn DESIGN.md Mục 5C & 6) -->
+                <div class="bg-white rounded-[24px] border border-primary/5 shadow-sm overflow-hidden">
+                    <div class="overflow-auto scrollbar-none max-h-[420px]">
                         <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-xs font-black text-gray-500 uppercase tracking-wider select-none">
                                 <tr>

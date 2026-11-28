@@ -132,7 +132,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
             </div>
             <div class="text-left">
                 <div class="text-xs font-display font-black text-slate-800">Tệp đã nạp: {{ fileName }}</div>
-                <div class="text-[11px] text-slate-600 font-semibold mt-0.5">
+                <div class="text-xs text-slate-600 font-semibold mt-0.5">
                     Phân tích thành công <span class="text-teal-700 font-bold">{{ previewCount }}</span> phiếu cân. Dữ liệu đang ở chế độ xem trước.
                 </div>
             </div>
@@ -204,13 +204,13 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
 
     <!-- Table / List view with sticky header and inner vertical scrolling -->
     <div class="flex-1 min-h-0 flex flex-col justify-between">
-        <div class="overflow-x-auto overflow-y-auto flex-1 min-h-0 border border-slate-200/80 rounded-2xl">
+        <div class="overflow-auto scrollbar-none flex-1 min-h-0 border border-primary/5 rounded-[24px]">
             <table class="min-w-full divide-y divide-slate-100 text-left border-collapse">
                 <thead class="bg-slate-50 sticky top-0 z-10">
                     <tr>
-                        <th class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider w-12 text-center select-none">STT</th>
+                        <th class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider w-12 text-center select-none">STT</th>
                         
-                        <th @click="toggleSort('ticketNo')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('ticketNo')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Mã / Số Phiếu</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -219,7 +219,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('plateNumber')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('plateNumber')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Biển Số Xe</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -228,7 +228,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('driver')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('driver')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center gap-1">
                                 <span>Tài Xế</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -237,7 +237,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('weight1')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('weight1')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Cân Lần 1 (kg)</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -246,7 +246,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('weight2')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('weight2')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Cân Lần 2 (kg)</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -255,7 +255,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('weightNet')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('weightNet')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Khối Lượng Tịnh (kg)</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -264,7 +264,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('dateIn')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('dateIn')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Ngày Vào</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -273,7 +273,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('dateOut')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('dateOut')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Ngày Ra</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -282,7 +282,7 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th @click="toggleSort('goodsName')" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group">
+                        <th @click="toggleSort('goodsName')" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group">
                             <div class="flex items-center gap-1">
                                 <span>Loại Hàng</span>
                                 <span class="material-symbols-outlined text-[12px] text-slate-400 group-hover:text-slate-700 transition-colors">
@@ -291,9 +291,9 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                             </div>
                         </th>
 
-                        <th v-if="activeTab === 'container'" class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center select-none">Số Container</th>
-                        <th class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider select-none">Ghi Chú</th>
-                        <th class="px-3 py-2.5 text-[10px] font-black uppercase text-slate-500 tracking-wider text-center w-16 select-none">Thao tác</th>
+                        <th v-if="activeTab === 'container'" class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center select-none">Số Container</th>
+                        <th class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider select-none">Ghi Chú</th>
+                        <th class="px-3 py-2.5 text-xs font-black uppercase text-slate-500 tracking-wider text-center w-16 select-none">Thao tác</th>
                     </tr>
                 </thead>
                 
@@ -326,8 +326,8 @@ const showDeleteAllBtn = computed(() => (authStore.role === 'admin' || canDelete
                         <td class="px-3 py-2.5 text-center font-mono text-slate-600">{{ formatWeight(t.weight1) }}</td>
                         <td class="px-3 py-2.5 text-center font-mono text-slate-600">{{ formatWeight(t.weight2) }}</td>
                         <td class="px-3 py-2.5 text-center font-mono font-bold text-primary">{{ formatWeight(t.weightNet) }}</td>
-                        <td class="px-3 py-2.5 text-center font-mono text-[11px] text-slate-500">{{ formatDate(t.dateIn) }}</td>
-                        <td class="px-3 py-2.5 text-center font-mono text-[11px] text-slate-500">{{ formatDate(t.dateOut) }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono text-xs text-slate-500">{{ formatDate(t.dateIn) }}</td>
+                        <td class="px-3 py-2.5 text-center font-mono text-xs text-slate-500">{{ formatDate(t.dateOut) }}</td>
                         <td class="px-3 py-2.5 text-slate-600 uppercase">{{ t.goodsName || '-' }}</td>
                         <td v-if="activeTab === 'container'" class="px-3 py-2.5 text-center font-mono font-bold text-slate-700">{{ (t as any).containerNo || '-' }}</td>
                         <td class="px-3 py-2.5 text-slate-500 max-w-[180px] truncate" :title="t.note">{{ t.note || '-' }}</td>

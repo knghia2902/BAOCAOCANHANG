@@ -930,7 +930,7 @@ onMounted(async () => {
                     </div>
 
                     <!-- Bảng dữ liệu sà lan tinh gọn (Chỉ giữ các cột cốt lõi: STT, Tên sà lan, Mã lệnh, Thao tác) -->
-                    <div class="flex-1 overflow-auto border border-gray-100 rounded-[16px] min-h-0 custom-scroll">
+                    <div class="flex-1 overflow-auto scrollbar-none border border-primary/5 rounded-[24px] min-h-0">
                         <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-xs font-black text-gray-500 uppercase tracking-wider select-none">
                                 <tr>
@@ -1185,7 +1185,7 @@ onMounted(async () => {
                     <div>
                         <div class="flex items-center justify-between mb-1">
                             <label class="block text-xs font-bold text-slate-700">Mã lệnh (Order No)</label>
-                            <span class="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 flex items-center gap-0.5">
+                            <span class="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 flex items-center gap-0.5">
                                 <span class="material-symbols-outlined text-xs">auto_awesome</span>
                                 Tự động gán số tiếp theo
                             </span>

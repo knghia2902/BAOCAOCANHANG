@@ -31,8 +31,8 @@ defineProps<{
         </div>
 
         <!-- Phương tiện đã cân -->
-        <div class="bg-white rounded-2xl p-4 border border-indigo-200/60 shadow-soft flex items-center gap-3.5">
-            <div class="size-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+        <div class="bg-white rounded-2xl p-4 border border-primary/10 shadow-soft flex items-center gap-3.5">
+            <div class="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <span class="material-symbols-outlined text-2xl">local_shipping</span>
             </div>
             <div>

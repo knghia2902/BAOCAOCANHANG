@@ -110,7 +110,7 @@ const reset = () => {
 </script>
 
 <template>
-  <div class="bg-white rounded-cloud p-8 shadow-xl shadow-primary/5 border-2 border-soft-pink flex flex-col gap-6 relative overflow-hidden h-full">
+  <div class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-primary/5 border border-soft-pink flex flex-col gap-6 relative overflow-hidden h-full">
     <!-- Icon Background -->
     <div class="absolute -right-4 -top-4 opacity-10">
       <span class="material-symbols-outlined text-9xl">swap_horiz</span>
@@ -118,12 +118,12 @@ const reset = () => {
 
     <!-- Header -->
     <div class="flex items-center gap-4 relative z-10">
-      <div class="size-16 bg-cute-peach rounded-puffy flex items-center justify-center text-primary">
+      <div class="size-16 bg-[#f1f5f9] rounded-2xl flex items-center justify-center text-primary">
         <span class="material-symbols-outlined text-4xl">format_list_bulleted</span>
       </div>
       <div>
-        <h3 class="text-xl font-display font-bold">Format Converter</h3>
-        <p class="text-sm opacity-60">Chuyển đổi Excel ↔ CSV ↔ JSON</p>
+        <h3 class="text-xl font-display font-black text-[#1e293b]">Format Converter</h3>
+        <p class="text-sm text-slate-500 font-semibold">Chuyển đổi Excel ↔ CSV ↔ JSON</p>
       </div>
     </div>
 
@@ -145,30 +145,30 @@ const reset = () => {
         </div>
         <div>
           <p class="font-bold text-primary text-base">Thả file vào mây nhé!</p>
-          <p class="text-xs opacity-50 mt-1">Hỗ trợ .xlsx, .csv, .json (Tối đa 10MB)</p>
+          <p class="text-xs text-slate-500 mt-1">Hỗ trợ .xlsx, .csv, .json (Tối đa 10MB)</p>
         </div>
       </div>
 
       <!-- File Active Info -->
       <div v-else class="space-y-6">
-        <div class="bg-pastel-pink/30 rounded-2xl p-6 flex items-center justify-between border border-soft-pink/50">
+        <div class="bg-[#f1f5f9] rounded-2xl p-6 flex items-center justify-between border border-soft-pink">
           <div class="flex items-center gap-4">
             <div class="size-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm">
               <span class="material-symbols-outlined">{{ sourceFormat === 'xlsx' ? 'table_chart' : 'description' }}</span>
             </div>
             <div>
               <p class="font-bold text-primary truncate max-w-[150px]">{{ selectedFile.name }}</p>
-              <p class="text-xs opacity-50 uppercase font-mono">{{ sourceFormat }} • {{ (selectedFile.size / 1024).toFixed(1) }} KB</p>
+              <p class="text-xs text-slate-500 uppercase font-mono">{{ sourceFormat }} • {{ (selectedFile.size / 1024).toFixed(1) }} KB</p>
             </div>
           </div>
-          <button @click="reset" class="size-10 rounded-full hover:bg-white flex items-center justify-center text-red-400 transition-colors">
+          <button @click="reset" class="size-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all shadow-sm">
             <span class="material-symbols-outlined text-xl">close</span>
           </button>
         </div>
 
         <!-- Format Selector -->
         <div class="grid grid-cols-1 gap-4">
-          <label class="text-sm font-bold opacity-60 ml-2">Chuyển sang định dạng:</label>
+          <label class="text-sm font-bold text-[#1e293b] ml-2">Chuyển sang định dạng:</label>
           <div class="flex flex-wrap gap-2">
             <button 
               v-for="format in [ConversionFormat.EXCEL, ConversionFormat.CSV, ConversionFormat.JSON]"
@@ -192,7 +192,7 @@ const reset = () => {
           <button 
             v-if="!conversionResult"
             @click="convertFile" 
-            class="puffy-button py-4 w-full flex items-center justify-center gap-2 group relative overflow-hidden"
+            class="py-4 w-full bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 group relative overflow-hidden disabled:opacity-50"
             :disabled="isLoading"
           >
             <span v-if="isLoading" class="animate-spin material-symbols-outlined">progress_activity</span>
@@ -204,7 +204,7 @@ const reset = () => {
           <button 
             v-else
             @click="download" 
-            class="puffy-button py-4 w-full flex items-center justify-center gap-2 group bg-gradient-to-r from-primary to-[#ff85a2] shadow-lg shadow-primary/20"
+            class="py-4 w-full bg-primary text-white font-bold rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center justify-center gap-2 group"
           >
             <span class="material-symbols-outlined group-hover:bounce transition-transform">download</span>
             <span>Tải file về máy ✨</span>
@@ -213,11 +213,11 @@ const reset = () => {
       </div>
 
       <!-- Result Logs -->
-      <div v-if="logs.length > 0" class="mt-4 pt-4 border-t border-soft-pink/20">
-        <div class="max-h-24 overflow-y-auto space-y-1 pr-2">
+      <div v-if="logs.length > 0" class="mt-4 pt-4 border-t border-soft-pink">
+        <div class="max-h-24 overflow-y-auto scrollbar-none space-y-1 pr-2">
           <div v-for="(log, idx) in logs" :key="idx" 
             class="text-xs font-bold flex items-center gap-1.5"
-            :class="{ 'text-green-500': log.type === 'success', 'text-red-500': log.type === 'error', 'text-primary/60': log.type === 'info' }"
+            :class="{ 'text-teal-600': log.type === 'success', 'text-rose-600': log.type === 'error', 'text-primary': log.type === 'info' }"
           >
             <span class="material-symbols-outlined text-[12px]">{{ log.type === 'success' ? 'check_circle' : log.type === 'error' ? 'error' : 'info' }}</span>
             {{ log.message }}
@@ -231,6 +231,6 @@ const reset = () => {
 
 <style scoped>
 .dashed-cloud {
-  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='40' ry='40' stroke='%23C1E1C1' stroke-width='3' stroke-dasharray='10%2c 10' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='40' ry='40' stroke='%234a78c2' stroke-opacity='0.25' stroke-width='3' stroke-dasharray='10%2c 10' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
 }
 </style>

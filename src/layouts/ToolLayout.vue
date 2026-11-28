@@ -42,17 +42,18 @@ onUnmounted(() => {
           <span class="material-symbols-outlined text-[20px]">{{ icon }}</span>
         </div>
         <div class="flex flex-col gap-0.5">
-          <h2 class="text-base font-black text-primary leading-tight">{{ title }}</h2>
-          <p class="text-xs font-semibold text-[#1b0d11]/50 leading-none">{{ subtitle }}</p>
+          <h2 class="text-xl font-display font-black text-primary leading-tight">{{ title }}</h2>
+          <p class="text-xs font-semibold text-slate-500 leading-none">{{ subtitle }}</p>
         </div>
       </div>
       
       <button 
         @click="closeTool"
-        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-full text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-[0.98]"
+        title="Đóng"
+        aria-label="Đóng"
+        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all"
       >
-        <span class="material-symbols-outlined text-sm font-black">close</span>
-        Đóng
+        <span class="material-symbols-outlined text-xl">close</span>
       </button>
     </header>
 

@@ -491,11 +491,11 @@ const handleExportExcel = async () => {
         <!-- Header Section -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
-                <h3 class="text-base font-black text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-xl">local_shipping</span>
+                <h3 class="text-xl font-display font-black text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-2xl">local_shipping</span>
                     Danh sách xe
                 </h3>
-                <p class="text-xs text-gray-500 font-semibold mt-1">
+                <p class="text-xs text-slate-500 font-semibold mt-1">
                     Quản lý danh sách biển số xe, số mooc và nhà xe vận tải tương ứng. Tổng cộng: 
                     <span class="text-teal-600 font-bold font-mono">{{ vehicles.length }}</span> xe.
                 </p>
@@ -514,7 +514,7 @@ const handleExportExcel = async () => {
                 <button 
                     v-if="canManageCreate"
                     @click="triggerImport"
-                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
+                    class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">upload_file</span>
                     Nhập Excel
@@ -522,7 +522,7 @@ const handleExportExcel = async () => {
                 
                 <button 
                     @click="handleExportExcel"
-                    class="px-3.5 py-2 bg-white border border-primary/20 text-primary hover:bg-primary/10 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all shadow-sm"
+                    class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">download</span>
                     Xuất Excel
@@ -531,7 +531,7 @@ const handleExportExcel = async () => {
                 <button 
                     v-if="vehicles.length > 0 && canManageDelete"
                     @click="clearAll"
-                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all"
+                    class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
                     Xóa sạch
@@ -551,34 +551,34 @@ const handleExportExcel = async () => {
                 
                 <form @submit.prevent="handleSubmit" class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Biển số xe *</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Biển số xe *</label>
                         <input 
                             type="text" 
                             v-model="plateInput"
                             placeholder="Ví dụ: 29C-12345"
                             required
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all font-mono"
                         />
                     </div>
                     
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Số mooc</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Số mooc</label>
                         <input 
                             type="text" 
                             v-model="moocInput"
                             placeholder="Ví dụ: 29R-01234"
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all font-mono"
                         />
                     </div>
                     
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Nhà xe / Đơn vị vận tải</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nhà xe / Đơn vị vận tải</label>
                         <input 
                             type="text" 
                             v-model="carrierInput"
                             list="carrier-datalist"
                             placeholder="Ví dụ: NGUYÊN NGỌC, TẤN PHÁT..."
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all uppercase font-bold"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all uppercase font-bold"
                         />
                         <datalist id="carrier-datalist">
                             <option v-for="c in existingCarriers" :key="c" :value="c" />
@@ -588,7 +588,7 @@ const handleExportExcel = async () => {
                     <div class="flex items-center gap-2 mt-2">
                         <button 
                             type="submit"
-                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-[12px] text-xs shadow-soft hover:opacity-90 transition-all"
+                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all"
                         >
                             {{ editingIndex !== null ? 'Cập nhật' : 'Thêm mới' }}
                         </button>
@@ -597,7 +597,7 @@ const handleExportExcel = async () => {
                             v-if="editingIndex !== null"
                             type="button"
                             @click="cancelEdit"
-                            class="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-[12px] text-xs transition-all"
+                            class="px-4 py-2.5 bg-[#f1f5f9] hover:bg-slate-200 text-[#1e293b] font-bold rounded-2xl text-xs transition-all"
                         >
                             Hủy
                         </button>
@@ -609,18 +609,18 @@ const handleExportExcel = async () => {
             <div :class="(canManageCreate || canManageUpdate) ? 'lg:col-span-2' : 'lg:col-span-3'" class="flex flex-col gap-4">
                 <!-- Search bar -->
                 <div class="relative w-full">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
                     <input 
                         type="text" 
                         v-model="searchQuery" 
                         placeholder="Tìm theo biển số xe, số mooc hoặc nhà xe..." 
-                        class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-semibold focus:outline-none focus:border-primary transition-all"
+                        class="w-full h-7 pl-8 pr-3 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all"
                     />
                 </div>
 
                 <!-- Vehicles Table -->
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto max-h-[400px]">
+                <div class="bg-white rounded-[24px] border border-primary/5 shadow-sm overflow-hidden">
+                    <div class="overflow-auto scrollbar-none max-h-[400px]">
                         <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-xs text-gray-500 uppercase tracking-wider select-none">
                                 <tr>
@@ -704,8 +704,8 @@ const handleExportExcel = async () => {
                         <div 
                             class="size-10 rounded-full flex items-center justify-center"
                             :class="[
-                                confirmDialog.type === 'danger' ? 'bg-red-50 text-red-600' :
-                                confirmDialog.type === 'warning' ? 'bg-amber-50 text-amber-600' :
+                                confirmDialog.type === 'danger' ? 'bg-rose-50 text-rose-600' :
+                                confirmDialog.type === 'warning' ? 'bg-rose-50 text-rose-600' :
                                 confirmDialog.type === 'success' ? 'bg-teal-50 text-teal-600' :
                                 'bg-primary/10 text-primary'
                             ]"
@@ -719,13 +719,13 @@ const handleExportExcel = async () => {
                                 }}
                             </span>
                         </div>
-                        <h3 class="text-sm font-black text-gray-900 leading-tight">
+                        <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                             {{ confirmDialog.title }}
                         </h3>
                     </div>
                     
                     <!-- Message Content -->
-                    <div class="text-xs font-semibold text-gray-600 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto pr-1">
+                    <div class="text-xs font-semibold text-slate-600 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto scrollbar-none pr-1">
                         {{ confirmDialog.message }}
                     </div>
                     
@@ -733,18 +733,18 @@ const handleExportExcel = async () => {
                     <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-50">
                         <button 
                             @click="handleConfirmCancel"
-                            class="h-9 px-4 rounded-[12px] text-xs font-bold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100"
+                            class="h-9 px-4 rounded-2xl text-xs font-bold text-slate-500 hover:bg-[#f1f5f9] active:scale-95 transition-all border border-slate-200"
                         >
                             {{ confirmDialog.cancelText }}
                         </button>
                         <button 
                             @click="handleConfirmOk"
-                            class="h-9 px-4 rounded-[12px] text-xs font-bold text-white active:scale-95 transition-all"
+                            class="h-9 px-4 rounded-2xl text-xs font-bold text-white active:scale-95 transition-all"
                             :class="[
-                                confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' :
-                                confirmDialog.type === 'warning' ? 'bg-amber-500 hover:bg-amber-600' :
+                                confirmDialog.type === 'danger' ? 'bg-rose-600 hover:bg-rose-700' :
+                                confirmDialog.type === 'warning' ? 'bg-rose-600 hover:bg-rose-700' :
                                 confirmDialog.type === 'success' ? 'bg-teal-600 hover:bg-teal-700' :
-                                'bg-primary hover:bg-primary/95'
+                                'bg-primary hover:bg-[#3b5e9c]'
                             ]"
                         >
                             {{ confirmDialog.okText }}

@@ -671,11 +671,11 @@ async function generateMinutes() {
 <template>
     <div class="flex flex-col gap-6 w-full max-w-[1200px] mx-auto pb-8 fade-in">
         <!-- Header Banner -->
-        <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-5 soft-shadow border border-primary/5 gap-4">
+        <div class="flex flex-wrap items-center justify-between bg-white rounded-[24px] p-5 shadow-soft border border-primary/5 gap-4">
             <div>
-                <div class="text-xs uppercase font-black tracking-widest text-emerald-600 mb-0.5">Tiện ích cảng biển</div>
-                <h1 class="text-base font-black text-[#1e293b] flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-emerald-600 text-base">description</span>
+                <div class="text-xs uppercase font-black tracking-widest text-teal-600 mb-0.5">Tiện ích cảng biển</div>
+                <h1 class="text-xl font-display font-black text-[#1e293b] flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-xl">description</span>
                     Tạo Biên Bản Giao Nhận Sà Lan Tự Động
                 </h1>
                 <p class="text-xs opacity-60 mt-0.5">Tự động tính toán số liệu xuất kho, xá thẳng và lập bộ 4 biên bản làm hàng.</p>
@@ -688,8 +688,8 @@ async function generateMinutes() {
             <!-- Left Side: Upload & Voyage Selection (4 Cols) -->
             <div class="lg:col-span-4 flex flex-col gap-6">
                 <!-- Weight List Card -->
-                <div class="bg-white rounded-[24px] p-5 border border-primary/5 soft-shadow flex flex-col gap-4">
-                    <h3 class="text-xs font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
+                <div class="bg-white rounded-[24px] p-5 border border-primary/5 shadow-soft flex flex-col gap-4">
+                    <h3 class="text-xs font-display font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-sm font-bold">upload_file</span>
                         1. Tải lên tệp Weight List
                     </h3>
@@ -723,9 +723,9 @@ async function generateMinutes() {
                 </div>
 
                 <!-- Template Upload (Optional) -->
-                <div class="bg-white rounded-[24px] p-5 border border-primary/5 soft-shadow flex flex-col gap-4">
-                    <h3 class="text-xs font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-emerald-600 text-sm font-bold">settings</span>
+                <div class="bg-white rounded-[24px] p-5 border border-primary/5 shadow-soft flex flex-col gap-4">
+                    <h3 class="text-xs font-display font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-teal-600 text-sm font-bold">settings</span>
                         Biên bản mẫu (Template)
                     </h3>
                     <div class="flex flex-col gap-3">
@@ -752,8 +752,8 @@ async function generateMinutes() {
                 </div>
 
                 <!-- Voyage Selector Card -->
-                <div v-if="detectedVoyages.length > 0" class="bg-white rounded-[24px] p-5 border border-primary/5 soft-shadow flex flex-col gap-4">
-                    <h3 class="text-xs font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
+                <div v-if="detectedVoyages.length > 0" class="bg-white rounded-[24px] p-5 border border-primary/5 shadow-soft flex flex-col gap-4">
+                    <h3 class="text-xs font-display font-black text-[#1e293b] border-b border-primary/5 pb-2 flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-primary text-sm font-bold">directions_boat</span>
                         2. Chọn chuyến sà lan
                     </h3>
@@ -763,7 +763,7 @@ async function generateMinutes() {
                         <select 
                             v-model="selectedVoyage" 
                             @change="handleVoyageChange"
-                            class="w-full bg-[#fcedf0]/40 border border-primary/10 rounded-[12px] p-2 text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary"
+                            class="w-full bg-[#f1f5f9] border border-primary/10 rounded-2xl px-3 py-2 text-xs font-bold text-[#1e293b] focus:outline-none focus:border-primary"
                         >
                             <option v-for="voy in detectedVoyages" :key="voy.rawName" :value="voy.rawName">
                                 {{ voy.rawName }}
@@ -796,8 +796,8 @@ async function generateMinutes() {
 
             <!-- Right Side: BB Parameters Form (8 Cols) -->
             <div class="lg:col-span-8 flex flex-col gap-6">
-                <div class="bg-white rounded-[24px] p-6 border border-primary/5 soft-shadow flex flex-col gap-5">
-                    <h3 class="text-sm font-black text-[#1e293b] border-b border-primary/5 pb-3 flex items-center justify-between">
+                <div class="bg-white rounded-[24px] p-6 border border-primary/5 shadow-soft flex flex-col gap-5">
+                    <h3 class="text-sm font-display font-black text-[#1e293b] border-b border-primary/5 pb-3 flex items-center justify-between">
                         <span class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-primary">edit_note</span>
                             3. Thông tin Biên Bản và Làm Hàng
@@ -812,7 +812,7 @@ async function generateMinutes() {
                                 type="text" 
                                 v-model="soBienBan" 
                                 placeholder="Ví dụ: JUN/EW-NN/17000000-NB/07"
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -822,7 +822,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="tenSaLan" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -832,7 +832,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="chuHang" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -842,7 +842,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="tenHang" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -852,7 +852,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="tauQuocTe" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -862,7 +862,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="quocTich" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -872,7 +872,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="cangNhan" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -882,7 +882,7 @@ async function generateMinutes() {
                             <input 
                                 type="text" 
                                 v-model="cangGiao" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -892,7 +892,7 @@ async function generateMinutes() {
                             <input 
                                 type="number" 
                                 v-model="soSeal" 
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
 
@@ -903,25 +903,25 @@ async function generateMinutes() {
                                 type="text" 
                                 v-model="soHam" 
                                 placeholder="Để trống nếu không dùng"
-                                class="border border-gray-200 rounded-[12px] p-2 text-xs font-semibold focus:outline-none focus:border-primary bg-gray-50/50"
+                                class="border border-slate-200 rounded-2xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary bg-[#f1f5f9]"
                             />
                         </div>
                     </div>
 
                     <!-- Date and Time Matrix -->
                     <div class="border-t border-primary/5 pt-4 flex flex-col gap-3">
-                        <h4 class="text-xs font-black text-primary">Các mốc thời gian hành trình & làm hàng</h4>
+                        <h4 class="text-xs font-display font-black text-primary">Các mốc thời gian hành trình & làm hàng</h4>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Đến cảng nhận hàng -->
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ đến</label>
-                                    <input type="time" v-model="timeIn" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeIn" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày đến</label>
-                                    <input type="date" v-model="dateIn" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateIn" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">1. Đến cảng nhận</span>
                             </div>
@@ -930,11 +930,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ KT</label>
-                                    <input type="time" v-model="timeInspection" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeInspection" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày KT</label>
-                                    <input type="date" v-model="dateInspection" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateInspection" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">2. Kiểm tra hầm hàng</span>
                             </div>
@@ -943,11 +943,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ BĐ</label>
-                                    <input type="time" v-model="timeCommenced" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeCommenced" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày BĐ</label>
-                                    <input type="date" v-model="dateCommenced" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateCommenced" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">3. Bắt đầu xếp hàng (Chuyến đầu)</span>
                             </div>
@@ -956,11 +956,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ KT</label>
-                                    <input type="time" v-model="timeCompleted" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeCompleted" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày KT</label>
-                                    <input type="date" v-model="dateCompleted" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateCompleted" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">4. Hoàn thành xếp hàng (Chuyến cuối)</span>
                             </div>
@@ -969,11 +969,11 @@ async function generateMinutes() {
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="col-span-1 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Giờ rời</label>
-                                    <input type="time" v-model="timeDepart" class="border border-gray-200 rounded p-1.5 text-xs font-semibold" />
+                                    <input type="time" v-model="timeDepart" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary" />
                                 </div>
                                 <div class="col-span-2 flex flex-col gap-1">
                                     <label class="text-xs font-bold text-gray-400">Ngày rời</label>
-                                    <input type="date" v-model="dateDepart" class="border border-gray-200 rounded p-1.5 text-xs font-semibold w-full" />
+                                    <input type="date" v-model="dateDepart" class="border border-slate-200 rounded-2xl px-2.5 py-1.5 text-xs font-semibold bg-[#f1f5f9] focus:outline-none focus:border-primary w-full" />
                                 </div>
                                 <span class="text-xs text-gray-400 col-span-3 -mt-1 font-semibold">5. Rời cảng giao nhận</span>
                             </div>
@@ -985,7 +985,7 @@ async function generateMinutes() {
                         <button 
                             @click="generateMinutes"
                             :disabled="processing || detectedVoyages.length === 0"
-                            class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-black text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+                            class="px-6 py-2.5 bg-primary hover:bg-[#3b5e9c] disabled:bg-gray-300 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed text-white font-bold text-xs rounded-full shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none flex items-center gap-1.5 transition-all"
                         >
                             <span v-if="processing" class="size-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                             <span v-else class="material-symbols-outlined text-sm">download</span>
@@ -1004,8 +1004,8 @@ async function generateMinutes() {
                 v-if="toast" 
                 :class="[
                     'fixed bottom-6 right-6 z-[110] px-4 py-3 rounded-xl shadow-lg border text-xs font-bold flex items-center gap-2 animate-slide-in',
-                    toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                    toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+                    toast.type === 'success' ? 'bg-teal-50 border-teal-200 text-teal-800' :
+                    toast.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' :
                     toast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
                     'bg-sky-50 border-sky-200 text-sky-800'
                 ]"
@@ -1026,8 +1026,5 @@ async function generateMinutes() {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
-}
-.soft-shadow {
-    box-shadow: 0 10px 30px -10px rgba(128, 0, 32, 0.05);
 }
 </style>

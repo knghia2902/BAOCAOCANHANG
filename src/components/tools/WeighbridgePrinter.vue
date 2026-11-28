@@ -4936,7 +4936,7 @@ defineExpose({
             </div>
             <div>
                 <h3 class="text-2xl font-display font-black text-primary mb-3">Báo Cáo Tổng Quan 🚢</h3>
-                <p class="text-sm font-bold text-[#1b0d11]/60 leading-relaxed mb-6">
+                <p class="text-sm font-bold text-slate-500 leading-relaxed mb-6">
                     Báo cáo tổng quan tiến độ làm hàng của các tàu mẹ, theo dõi danh sách sà lan và thống kê khối lượng toàn cảng.
                 </p>
                 <div class="flex flex-wrap gap-2 mb-6">
@@ -4956,7 +4956,7 @@ defineExpose({
         </div>
 
         <!-- Fullscreen Workspace Overlay -->
-        <div v-if="isOpen" :class="[hideCard ? 'flex-1 flex flex-col overflow-y-auto md:overflow-hidden font-display' : 'fixed inset-0 bg-cute-gradient z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print animate-fade-in font-display']">
+        <div v-if="isOpen" :class="[hideCard ? 'flex-1 flex flex-col overflow-y-auto md:overflow-hidden font-display' : 'fixed inset-0 bg-background-light z-[100] flex flex-col overflow-y-auto md:overflow-hidden no-print animate-fade-in font-display']">
             <!-- Header bar of Workspace -->
             <header v-if="!hideCard" class="bg-white px-6 py-4 border-b border-primary/10 flex items-center justify-between shadow-sm shrink-0">
                 <div class="flex items-center gap-3">
@@ -4965,7 +4965,7 @@ defineExpose({
                     </div>
                     <div class="flex flex-col gap-0.5">
                         <h2 class="text-base font-black text-primary leading-tight">BÁO CÁO TỔNG QUAN 🚢</h2>
-                        <p class="text-xs font-semibold text-[#1b0d11]/50 leading-none">Cảng Nguyên Ngọc - Đồng bộ đám mây</p>
+                        <p class="text-xs font-semibold text-slate-500 leading-none">Cảng Nguyên Ngọc - Đồng bộ đám mây</p>
                     </div>
                 </div>
                 
@@ -4987,7 +4987,7 @@ defineExpose({
             </header>
 
             <!-- Main area -->
-            <div :class="['flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-4', hideCard ? 'p-2 md:p-4' : 'p-2 md:p-4 bg-cute-gradient']">
+            <div :class="['flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-4', hideCard ? 'p-2 md:p-4' : 'p-2 md:p-4 bg-background-light']">
                 <!-- Sidebar (left): Vessels -> Barges tree -->
                 <aside 
                     :class="[
@@ -5013,34 +5013,34 @@ defineExpose({
 
                     <!-- Vessel Status 2-Tabs -->
                     <div class="px-2 pt-2 pb-1 border-b border-primary/5">
-                        <div class="grid grid-cols-2 p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
+                        <div class="grid grid-cols-2 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60 h-8 items-center text-xs font-bold">
                             <button 
                                 @click="selectedVesselStatusTab = 'in_progress'"
                                 :class="[
-                                    'py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs',
+                                    'px-2 py-0.5 h-6.5 rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs font-display font-bold',
                                     selectedVesselStatusTab === 'in_progress' 
-                                        ? 'bg-white text-primary shadow-sm' 
-                                        : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-primary text-white shadow-soft' 
+                                        : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                                 ]"
                             >
                                 <span class="material-symbols-outlined text-sm">schedule</span>
                                 <span>Đang làm</span>
-                                <span class="px-1.5 py-0.2 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'in_progress' ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-600'">
+                                <span class="px-1.5 py-0.2 text-xs rounded-full font-bold" :class="selectedVesselStatusTab === 'in_progress' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'">
                                     {{ inProgressVessels.length }}
                                 </span>
                             </button>
                             <button 
                                 @click="selectedVesselStatusTab = 'done'"
                                 :class="[
-                                    'py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs',
+                                    'px-2 py-0.5 h-6.5 rounded-lg flex items-center justify-center gap-1.5 transition-all text-xs font-display font-bold',
                                     selectedVesselStatusTab === 'done' 
-                                        ? 'bg-white text-emerald-600 shadow-sm' 
-                                        : 'text-gray-500 hover:text-gray-700'
+                                        ? 'bg-primary text-white shadow-soft' 
+                                        : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                                 ]"
                             >
                                 <span class="material-symbols-outlined text-sm">check_circle</span>
                                 <span>Đã xong</span>
-                                <span class="px-1.5 py-0.2 text-[10px] rounded-full font-bold" :class="selectedVesselStatusTab === 'done' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'">
+                                <span class="px-1.5 py-0.2 text-xs rounded-full font-bold" :class="selectedVesselStatusTab === 'done' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'">
                                     {{ doneVessels.length }}
                                 </span>
                             </button>
@@ -5130,7 +5130,7 @@ defineExpose({
                                         </div>
                                         <!-- Thứ tự & Khóa (Cố định sát mép phải) -->
                                         <div class="min-w-[24px] flex justify-center items-center shrink-0">
-                                            <span v-if="barge.config?.orderNo" :class="['size-[22px] rounded-full inline-flex items-center justify-center text-[10px] border font-black uppercase leading-none shrink-0 select-none', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
+                                            <span v-if="barge.config?.orderNo" :class="['size-[22px] rounded-full inline-flex items-center justify-center text-xs border font-black uppercase leading-none shrink-0 select-none', activeBargeId === barge.id ? 'bg-white/20 text-white border-white/30' : 'bg-teal-50 text-teal-600 border-teal-200']">
                                                 {{ barge.config.orderNo }}
                                             </span>
                                         </div>
@@ -5232,7 +5232,7 @@ defineExpose({
                             <div class="bg-white rounded-[24px] p-4 soft-shadow border border-primary/5 flex items-center gap-4">
                                 <div 
                                     class="size-11 rounded-[12px] flex items-center justify-center flex-shrink-0 transition-all"
-                                    :class="isOnline ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'"
+                                    :class="isOnline ? 'bg-teal-500/10 text-teal-600' : 'bg-amber-500/10 text-amber-600'"
                                 >
                                     <span class="material-symbols-outlined text-xl">{{ isOnline ? 'cloud' : 'cloud_off' }}</span>
                                 </div>
@@ -5240,7 +5240,7 @@ defineExpose({
                                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Đồng bộ đám mây</p>
                                     <h4 
                                         class="text-lg font-black transition-colors"
-                                        :class="isOnline ? 'text-emerald-600' : 'text-amber-600'"
+                                        :class="isOnline ? 'text-teal-600' : 'text-amber-600'"
                                     >
                                         {{ isOnline ? 'Đã kết nối' : 'Ngoại tuyến' }}
                                     </h4>
@@ -5259,7 +5259,7 @@ defineExpose({
                                     v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                     @click="exportAllBargesToExcel" 
                                     :disabled="exportingGlobalBarges || filteredAllBarges.length === 0"
-                                    class="h-8 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="h-7 px-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-[8px] text-xs transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Xuất danh sách sà lan hiện tại ra Excel"
                                 >
                                     <span v-if="exportingGlobalBarges" class="material-symbols-outlined text-xs animate-spin">sync</span>
@@ -5323,13 +5323,13 @@ defineExpose({
 
                                     <!-- Custom Date Range picker -->
                                     <div v-if="globalFilterType === 'custom'" class="flex items-center gap-1.5 bg-white border border-gray-200 px-2.5 py-1 rounded-[12px] shadow-sm">
-                                        <span class="text-[11px] font-bold text-gray-400">Từ</span>
+                                        <span class="text-xs font-bold text-gray-400">Từ</span>
                                         <input 
                                             type="date" 
                                             v-model="globalFilterStartDate"
                                             class="bg-transparent border-0 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-0 p-0"
                                         />
-                                        <span class="text-[11px] font-bold text-gray-400">đến</span>
+                                        <span class="text-xs font-bold text-gray-400">đến</span>
                                         <input 
                                             type="date" 
                                             v-model="globalFilterEndDate"
@@ -5357,9 +5357,9 @@ defineExpose({
                             <div v-else-if="filteredAllBarges.length === 0" class="text-center py-10 text-gray-400 text-xs italic">
                                 Không tìm thấy sà lan phù hợp với từ khóa tìm kiếm hoặc bộ lọc.
                             </div>
-                            <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100 min-h-[250px] md:min-h-0">
+                            <div v-else class="flex-1 overflow-auto scrollbar-none rounded-[24px] border border-primary/5 min-h-[250px] md:min-h-0">
                                 <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
-                                    <thead>
+                                    <thead class="sticky top-0 z-10">
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
                                             <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
@@ -5451,7 +5451,7 @@ defineExpose({
                                     v-if="activeVessel?.status !== 'done' && !isDeHeusVessel(activeVessel) && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update'))"
                                     @click="handleCloseVessel(activeVesselId!)"
                                     :disabled="isUpdatingVesselStatus"
-                                    class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                    class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-[12px] shadow-soft hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
                                     title="Chốt số liệu và khóa chỉnh sửa tàu"
                                 >
                                     <span class="material-symbols-outlined text-sm">lock</span>
@@ -5582,9 +5582,9 @@ defineExpose({
                             <div v-else-if="filteredVesselBarges.length === 0" class="text-center py-10 text-gray-400 text-xs italic">
                                 Không có sà lan nào hoạt động trong thời gian được lọc.
                             </div>
-                            <div v-else class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100 min-h-[250px] md:min-h-0">
+                            <div v-else class="flex-1 overflow-auto scrollbar-none rounded-[24px] border border-primary/5 min-h-[250px] md:min-h-0">
                                 <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
-                                    <thead>
+                                    <thead class="sticky top-0 z-10">
                                         <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold">
                                             <th class="px-3 py-2 w-12 text-center bg-gray-50">STT</th>
                                             <th class="px-3 py-2 bg-gray-50">Tên sà lan</th>
@@ -5650,7 +5650,7 @@ defineExpose({
                                     <button 
                                         v-if="!isCurrentVesselDone && (authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_vessel_manage', 'update'))"
                                         @click="activeVessel && activeBarge && openMoveBargeModal(activeVessel, activeBarge)" 
-                                        class="ml-2 px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 text-[11px] font-bold transition-all bg-gray-100 text-gray-700 hover:bg-teal-50 hover:text-teal-700 border border-gray-200 hover:border-teal-300 shadow-xs"
+                                        class="ml-2 px-2.5 py-0.5 rounded-full flex items-center justify-center gap-1 text-xs font-bold transition-all bg-gray-100 text-gray-700 hover:bg-teal-50 hover:text-teal-700 border border-gray-200 hover:border-teal-300 shadow-xs"
                                         title="Chuyển sà lan này sang tàu mẹ khác"
                                     >
                                         <span class="material-symbols-outlined text-[13px] text-teal-600">swap_horiz</span>
@@ -5694,21 +5694,23 @@ defineExpose({
                         </div>
 
                         <!-- Tab Navigation -->
-                        <div class="flex gap-1.5 border-b border-primary/15 pb-1.5">
-                            <button 
-                                @click="activeTab = 'data'"
-                                :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'data' ? 'bg-primary text-white shadow-soft' : 'text-[#1e293b]/60 hover:bg-white/50']"
-                            >
-                                <span class="material-symbols-outlined text-sm">local_shipping</span>
-                                Danh sách xe & In ấn
-                            </button>
-                            <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'read')) && !isCurrentVesselDone"
-                                @click="activeTab = 'config'"
-                                :class="['px-4 py-1.5 rounded-[12px] font-bold text-xs transition-all flex items-center gap-1', activeTab === 'config' ? 'bg-primary text-white shadow-soft' : 'text-[#1e293b]/60 hover:bg-white/50']"
-                            >
-                                <span class="material-symbols-outlined text-sm">settings</span>
-                                Cấu hình mẫu phiếu
-                            </button>
+                        <div class="flex border-b border-primary/15 pb-2">
+                            <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center gap-1">
+                                <button 
+                                    @click="activeTab = 'data'"
+                                    :class="['px-3 py-1 rounded-lg font-display font-bold text-xs h-6.5 transition-all flex items-center gap-1', activeTab === 'data' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
+                                >
+                                    <span class="material-symbols-outlined text-sm">local_shipping</span>
+                                    Danh sách xe & In ấn
+                                </button>
+                                <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_layout_config', 'read')) && !isCurrentVesselDone"
+                                    @click="activeTab = 'config'"
+                                    :class="['px-3 py-1 rounded-lg font-display font-bold text-xs h-6.5 transition-all flex items-center gap-1', activeTab === 'config' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50']"
+                                >
+                                    <span class="material-symbols-outlined text-sm">settings</span>
+                                    Cấu hình mẫu phiếu
+                                </button>
+                            </div>
                         </div>
 
                         <!-- TAB 1: DATA & PRINT -->
@@ -5722,7 +5724,7 @@ defineExpose({
                                             <span class="material-symbols-outlined text-sm sm:text-lg">local_shipping</span>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-[7px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider truncate">Tổng số xe</p>
+                                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider truncate">Tổng số xe</p>
                                             <h4 class="text-xs sm:text-base font-black text-[#1e293b] truncate">{{ filteredTrucks.length }} <span class="text-xs sm:text-xs text-gray-400 font-bold">xe</span></h4>
                                         </div>
                                     </div>
@@ -5731,7 +5733,7 @@ defineExpose({
                                             <span class="material-symbols-outlined text-sm sm:text-lg">scale</span>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-[7px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider truncate">Tổng Net</p>
+                                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider truncate">Tổng Net</p>
                                             <h4 class="text-xs sm:text-base font-black text-teal-600 truncate">{{ formatNumber(totalNetWeight) }} <span class="text-xs sm:text-xs font-bold">kg</span></h4>
                                         </div>
                                     </div>
@@ -5740,7 +5742,7 @@ defineExpose({
                                             <span class="material-symbols-outlined text-sm sm:text-lg">monitoring</span>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-[7px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider truncate">Trung bình</p>
+                                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider truncate">Trung bình</p>
                                             <h4 class="text-xs sm:text-base font-black text-amber-600 truncate">{{ formatNumber(avgNetWeight) }} <span class="text-xs sm:text-xs font-bold">kg</span></h4>
                                         </div>
                                     </div>
@@ -5816,7 +5818,7 @@ defineExpose({
                                         <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone"
                                             @click="openAddTruckDialog"
                                             :disabled="cfgForm.locked"
-                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
+                                            class="h-7 px-3 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
                                             <span class="material-symbols-outlined !text-[15px] leading-none">add</span>
                                             Thêm xe
@@ -5824,7 +5826,7 @@ defineExpose({
                                         <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'create')) && !isCurrentVesselDone"
                                             @click="fileInput?.click()"
                                             :disabled="cfgForm.locked"
-                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
+                                            class="h-7 px-3 bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
                                             <span class="material-symbols-outlined !text-[15px] leading-none">upload_file</span>
                                             Nhập Excel
@@ -5832,7 +5834,7 @@ defineExpose({
                                         <button v-if="(authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_truck_manage', 'delete')) && !isCurrentVesselDone"
                                             @click="clearTrucks"
                                             :disabled="cfgForm.locked"
-                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none shrink-0 box-border border-0"
+                                            class="h-7 px-3 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none shrink-0 box-border border-0"
                                         >
                                             <span class="material-symbols-outlined !text-[15px] leading-none">delete_sweep</span>
                                             Xóa tất cả
@@ -5840,7 +5842,7 @@ defineExpose({
                                         <button 
                                             v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                             @click="triggerPrint()"
-                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
+                                            class="h-7 px-3 bg-primary text-white hover:bg-primary/90 font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
                                             <span class="material-symbols-outlined !text-[15px] leading-none">print</span>
                                             In hàng loạt (A5)
@@ -5849,7 +5851,7 @@ defineExpose({
                                             v-if="authStore.role === 'admin' || hasDetailPermission('weighbridge', 'wb_print_export', 'read')"
                                             @click="exportActiveBargeTrucksToExcel"
                                             :disabled="exportingActiveBargeTrucks || filteredTrucks.length === 0"
-                                            class="h-[32px] min-h-[32px] max-h-[32px] px-3 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
+                                            class="h-7 px-3 bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-bold rounded-[8px] text-xs leading-none inline-flex items-center justify-center gap-1.5 transition-all shrink-0 box-border border-0"
                                         >
                                             <span v-if="exportingActiveBargeTrucks" class="material-symbols-outlined !text-[15px] leading-none animate-spin">sync</span>
                                             <span v-else class="material-symbols-outlined !text-[15px] leading-none">download</span>
@@ -5859,7 +5861,7 @@ defineExpose({
                                 </div>
 
                                 <!-- Table -->
-                                <div class="flex-1 overflow-y-auto overflow-x-auto rounded-[16px] border border-gray-100 min-h-[250px] md:min-h-0">
+                                <div class="flex-1 overflow-auto scrollbar-none rounded-[24px] border border-primary/5 min-h-[250px] md:min-h-0">
                                     <table class="w-full text-left border-collapse text-xs font-bold whitespace-nowrap">
                                         <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
                                             <tr class="text-gray-500 border-b border-gray-100 font-bold select-none">
@@ -5992,7 +5994,7 @@ defineExpose({
                                                 <span class="material-symbols-outlined text-base">settings_applications</span>
                                                 Cấu hình thông tin in chung
                                             </span>
-                                            <span class="text-[11px] font-bold text-gray-400">Sà lan: {{ activeBarge?.name }}</span>
+                                            <span class="text-xs font-bold text-gray-400">Sà lan: {{ activeBarge?.name }}</span>
                                         </h3>
                                         
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -6000,8 +6002,8 @@ defineExpose({
                                             <div class="flex flex-col gap-1">
                                                 <div class="flex items-center justify-between">
                                                     <label class="text-xs font-bold text-gray-500">Tên hàng hóa</label>
-                                                    <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200 flex items-center gap-0.5">
-                                                        <span class="material-symbols-outlined text-[10px]">lock</span> Nguồn tàu
+                                                    <span class="text-xs px-1.5 py-0.2 bg-primary/10 text-primary font-bold rounded border border-primary/20 flex items-center gap-0.5">
+                                                        <span class="material-symbols-outlined text-xs">lock</span> Nguồn tàu
                                                     </span>
                                                 </div>
                                                 <input 
@@ -6015,8 +6017,8 @@ defineExpose({
                                             <div class="flex flex-col gap-1">
                                                 <div class="flex items-center justify-between">
                                                     <label class="text-xs font-bold text-gray-500">Mã hàng hóa</label>
-                                                    <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200 flex items-center gap-0.5">
-                                                        <span class="material-symbols-outlined text-[10px]">lock</span> Nguồn tàu
+                                                    <span class="text-xs px-1.5 py-0.2 bg-primary/10 text-primary font-bold rounded border border-primary/20 flex items-center gap-0.5">
+                                                        <span class="material-symbols-outlined text-xs">lock</span> Nguồn tàu
                                                     </span>
                                                 </div>
                                                 <input 
@@ -6030,8 +6032,8 @@ defineExpose({
                                             <div class="flex flex-col gap-1 md:col-span-2">
                                                 <div class="flex items-center justify-between">
                                                     <label class="text-xs font-bold text-gray-500">Tên khách hàng / Chủ hàng</label>
-                                                    <span class="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded border border-blue-200 flex items-center gap-0.5">
-                                                        <span class="material-symbols-outlined text-[10px]">lock</span> Kế thừa 100% Nguồn tàu
+                                                    <span class="text-xs px-1.5 py-0.2 bg-primary/10 text-primary font-bold rounded border border-primary/20 flex items-center gap-0.5">
+                                                        <span class="material-symbols-outlined text-xs">lock</span> Kế thừa 100% Nguồn tàu
                                                     </span>
                                                 </div>
                                                 <input 
@@ -6040,7 +6042,7 @@ defineExpose({
                                                     type="text" 
                                                     class="px-3 py-2 rounded-[8px] border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-not-allowed opacity-90"
                                                 >
-                                                <p class="text-[10px] text-gray-400 italic">
+                                                <p class="text-xs text-gray-400 italic">
                                                     * Khách hàng, Loại hàng & Mã hàng được đồng bộ tuyệt đối từ Nguồn tàu: <strong>{{ activeVessel?.name }}</strong>.
                                                 </p>
                                             </div>
@@ -6118,7 +6120,7 @@ defineExpose({
                                     <div>
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <h4 class="text-sm font-black text-[#1e293b]">Mẫu in phiếu cân chuẩn toàn cảng Nguyên Ngọc</h4>
-                                            <span class="text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 bg-teal-100 text-teal-800 rounded-full border border-teal-200">Đang áp dụng đồng nhất 100%</span>
+                                            <span class="text-xs uppercase font-black tracking-wider px-2.5 py-0.5 bg-teal-100 text-teal-800 rounded-full border border-teal-200">Đang áp dụng đồng nhất 100%</span>
                                         </div>
                                         <p class="text-xs text-gray-600 mt-1.5 leading-relaxed max-w-2xl">
                                             Tất cả sà lan trên toàn cảng đều tự động áp dụng thống nhất mẫu in phiếu cân chuẩn A5 (210mm x 148mm) cấp Hệ thống. Bấm nút bên cạnh để mở bộ thiết kế mẫu phiếu cân toàn cảng.
@@ -6148,7 +6150,7 @@ defineExpose({
             <div class="bg-white rounded-2xl max-w-xl w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6 max-h-[85vh]">
                 <div>
                     <h3 class="text-xl font-black text-primary mb-1">Cấu hình ánh xạ cột Excel</h3>
-                    <p class="text-xs text-[#1b0d11]/60">Hệ thống đã nhận diện các cột. Vui lòng kiểm tra và sửa lại nếu chưa khớp.</p>
+                    <p class="text-xs text-slate-500">Hệ thống đã nhận diện các cột. Vui lòng kiểm tra và sửa lại nếu chưa khớp.</p>
                 </div>
 
                 <!-- Fields grid -->
@@ -6192,7 +6194,7 @@ defineExpose({
             <div class="bg-white rounded-[16px] max-w-md w-full p-6 md:p-8 soft-shadow border border-primary/10 flex flex-col gap-6">
                 <div>
                     <h3 class="text-xl font-black text-primary mb-1">{{ dialogTruck.id ? 'Sửa thông tin xe cân' : 'Thêm thông tin xe cân thủ công' }}</h3>
-                    <p class="text-xs text-[#1b0d11]/60">Nhập đầy đủ thông tin chi tiết xe cân bên dưới.</p>
+                    <p class="text-xs text-slate-500">Nhập đầy đủ thông tin chi tiết xe cân bên dưới.</p>
                 </div>
 
                 <!-- Form Inputs -->
@@ -6368,7 +6370,7 @@ defineExpose({
                             }}
                         </span>
                     </div>
-                    <h3 class="text-sm font-black text-gray-900 leading-tight">
+                    <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                         {{ confirmDialog.title }}
                     </h3>
                 </div>
@@ -6428,7 +6430,7 @@ defineExpose({
                         <span class="material-symbols-outlined text-2xl">swap_horiz</span>
                     </div>
                     <div>
-                        <h3 class="text-base font-black text-gray-900 leading-tight">
+                        <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                             Chuyển sà lan sang tàu khác 🚢
                         </h3>
                         <p class="text-xs font-semibold text-gray-500 mt-0.5">
@@ -6448,7 +6450,7 @@ defineExpose({
 
                     <div class="grid grid-cols-5 items-center gap-2 py-2">
                         <div class="col-span-2 flex flex-col gap-1">
-                            <span class="text-[11px] font-bold text-gray-400 uppercase">Tàu hiện tại</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase">Tàu hiện tại</span>
                             <div class="p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-black text-primary truncate" :title="moveBargeTarget.sourceVesselName">
                                 {{ moveBargeTarget.sourceVesselName }}
                             </div>
@@ -6459,7 +6461,7 @@ defineExpose({
                         </div>
 
                         <div class="col-span-2 flex flex-col gap-1">
-                            <span class="text-[11px] font-bold text-gray-400 uppercase">Tàu đích đến *</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase">Tàu đích đến *</span>
                             <select 
                                 v-model="moveBargeTarget.targetVesselId" 
                                 class="p-2.5 bg-white border-2 border-teal-500 rounded-xl text-xs font-black text-teal-700 focus:outline-none cursor-pointer"
@@ -6481,7 +6483,7 @@ defineExpose({
                         Hiện không có tàu mẹ nào khác đang mở làm hàng để chuyển đến!
                     </div>
 
-                    <div class="text-[11px] text-gray-500 font-semibold leading-relaxed bg-teal-50/50 p-3 rounded-xl border border-teal-100 flex items-start gap-2">
+                    <div class="text-xs text-gray-500 font-semibold leading-relaxed bg-teal-50/50 p-3 rounded-xl border border-teal-100 flex items-start gap-2">
                         <span class="material-symbols-outlined text-teal-600 text-base shrink-0 mt-0.5">info</span>
                         <div>
                             Toàn bộ dữ liệu phiếu cân, số lượng xe, khối lượng hàng và cấu hình biên bản bên trong sà lan sẽ được <strong>bảo lưu 100%</strong> và tự động tính sang cho tàu đích.
@@ -6536,7 +6538,7 @@ defineExpose({
                     <div class="size-10 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-xl">edit_note</span>
                     </div>
-                    <h3 class="text-sm font-black text-gray-900 leading-tight">
+                    <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                         {{ inputDialog.title }}
                     </h3>
                 </div>
@@ -6596,7 +6598,7 @@ defineExpose({
                     <div class="size-10 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-xl">layers</span>
                     </div>
-                    <h3 class="text-sm font-black text-gray-900 leading-tight">
+                    <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                         {{ bargeDialog.title }}
                     </h3>
                 </div>
@@ -6669,7 +6671,7 @@ defineExpose({
                             <span class="material-symbols-outlined text-2xl">directions_boat</span>
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-gray-900 leading-tight">
+                            <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                                 {{ vesselForm.isEdit ? 'Chỉnh sửa thông tin Nguồn tàu' : 'Thêm Nguồn tàu mới' }}
                             </h3>
                             <p class="text-xs text-gray-400 font-semibold mt-0.5">
@@ -6677,7 +6679,7 @@ defineExpose({
                             </p>
                         </div>
                     </div>
-                    <button @click="showVesselModal = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-50 transition-colors">
+                    <button @click="showVesselModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                         <span class="material-symbols-outlined text-lg">close</span>
                     </button>
                 </div>
@@ -6702,7 +6704,7 @@ defineExpose({
                             <button 
                                 type="button" 
                                 @click="vesselForm.customCustomer = !vesselForm.customCustomer"
-                                class="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                                class="text-xs font-bold text-primary hover:underline flex items-center gap-0.5"
                             >
                                 <span class="material-symbols-outlined text-xs">{{ vesselForm.customCustomer ? 'list' : 'add_circle' }}</span>
                                 {{ vesselForm.customCustomer ? 'Chọn từ danh mục' : '+ Nhập mới' }}
@@ -6732,7 +6734,7 @@ defineExpose({
                             <button 
                                 type="button" 
                                 @click="vesselForm.customGoods = !vesselForm.customGoods"
-                                class="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                                class="text-xs font-bold text-primary hover:underline flex items-center gap-0.5"
                             >
                                 <span class="material-symbols-outlined text-xs">{{ vesselForm.customGoods ? 'list' : 'add_circle' }}</span>
                                 {{ vesselForm.customGoods ? 'Chọn từ danh mục' : '+ Nhập mới' }}
@@ -6768,8 +6770,8 @@ defineExpose({
                     </div>
 
                     <!-- Informative Banner -->
-                    <div class="bg-blue-50/70 border border-blue-200/60 rounded-[14px] p-3 text-[11px] font-semibold text-blue-800 flex items-start gap-2">
-                        <span class="material-symbols-outlined text-base text-blue-600 shrink-0 mt-0.5">info</span>
+                    <div class="bg-primary/5 border border-primary/20 rounded-[14px] p-3 text-xs font-semibold text-primary flex items-start gap-2">
+                        <span class="material-symbols-outlined text-base text-primary shrink-0 mt-0.5">info</span>
                         <div>
                             <strong>Quy định Cảng:</strong> Tất cả các sà lan con thuộc Nguồn tàu này bắt buộc kế thừa 100% Khách hàng, Loại hàng và Mã hàng đã chọn. Không được phép chỉnh sửa riêng lẻ ở cấp sà lan.
                         </div>
@@ -6821,7 +6823,7 @@ defineExpose({
                             <span class="material-symbols-outlined text-2xl">category</span>
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-gray-900 leading-tight">
+                            <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                                 Danh mục chuẩn toàn cảng
                             </h3>
                             <p class="text-xs text-gray-400 font-semibold mt-0.5">
@@ -6829,25 +6831,25 @@ defineExpose({
                             </p>
                         </div>
                     </div>
-                    <button @click="showMasterDataModal = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-50 transition-colors">
+                    <button @click="showMasterDataModal = false" class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all">
                         <span class="material-symbols-outlined text-lg">close</span>
                     </button>
                 </div>
 
                 <!-- Tabs switcher -->
-                <div class="flex items-center gap-2 p-1 bg-gray-100/70 rounded-[14px]">
+                <div class="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60 h-8">
                     <button 
                         @click="masterDataTab = 'customers'"
-                        class="flex-1 py-2 rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                        :class="masterDataTab === 'customers' ? 'bg-white text-primary shadow-xs font-black' : 'text-gray-500 hover:text-gray-900'"
+                        class="flex-1 px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all flex items-center justify-center gap-1.5"
+                        :class="masterDataTab === 'customers' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
                     >
                         <span class="material-symbols-outlined text-sm">business</span>
                         Khách hàng ({{ masterData.customers.length }})
                     </button>
                     <button 
                         @click="masterDataTab = 'goods'"
-                        class="flex-1 py-2 rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                        :class="masterDataTab === 'goods' ? 'bg-white text-primary shadow-xs font-black' : 'text-gray-500 hover:text-gray-900'"
+                        class="flex-1 px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all flex items-center justify-center gap-1.5"
+                        :class="masterDataTab === 'goods' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
                     >
                         <span class="material-symbols-outlined text-sm">inventory_2</span>
                         Hàng hóa &amp; Mã hàng ({{ masterData.goods.length }})
@@ -6882,12 +6884,12 @@ defineExpose({
                             class="flex items-center justify-between p-3 hover:bg-gray-50/80 transition-colors"
                         >
                             <div class="flex items-center gap-2.5">
-                                <span class="size-6 bg-primary/10 text-primary rounded-full text-[10px] font-black flex items-center justify-center">{{ idx + 1 }}</span>
+                                <span class="size-6 bg-primary/10 text-primary rounded-full text-xs font-black flex items-center justify-center">{{ idx + 1 }}</span>
                                 <span class="text-xs font-bold text-gray-800">{{ c }}</span>
                             </div>
                             <button 
                                 @click="removeMasterCustomer(idx)"
-                                class="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
                                 title="Xóa khỏi danh mục"
                             >
                                 <span class="material-symbols-outlined text-sm">delete</span>
@@ -6925,9 +6927,9 @@ defineExpose({
                     </div>
 
                     <!-- Goods Table -->
-                    <div class="flex-1 overflow-y-auto max-h-[360px] border border-gray-100 rounded-[16px] custom-scrollbar">
+                    <div class="flex-1 overflow-auto scrollbar-none max-h-[360px] border border-primary/5 rounded-[24px]">
                         <table class="w-full text-left text-xs">
-                            <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 border-b border-gray-100">
+                            <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 z-10 border-b border-gray-100">
                                 <tr>
                                     <th class="p-3 w-12 text-center">STT</th>
                                     <th class="p-3">Tên loại hàng</th>
@@ -6943,7 +6945,7 @@ defineExpose({
                                     <td class="p-3 text-center">
                                         <button 
                                             @click="removeMasterGoods(idx)"
-                                            class="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                            class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 inline-flex items-center justify-center transition-all active:scale-95"
                                             title="Xóa"
                                         >
                                             <span class="material-symbols-outlined text-sm">delete</span>
@@ -6995,10 +6997,10 @@ defineExpose({
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="text-base font-black text-gray-900 leading-tight">
+                                <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                                     Mẫu phiếu cân chuẩn toàn cảng Nguyên Ngọc
                                 </h3>
-                                <span class="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">Hệ thống / Admin</span>
+                                <span class="text-xs uppercase font-black tracking-wider px-2 py-0.5 bg-primary/10 text-primary rounded-full border border-primary/20">Hệ thống / Admin</span>
                             </div>
                             <p class="text-xs text-gray-500 font-semibold mt-0.5">
                                 Bố cục chuẩn khổ A5 (210mm x 148mm) - Cấu hình 1 lần áp dụng ngay cho 100% sà lan
@@ -7047,20 +7049,20 @@ defineExpose({
                             </h4>
                             <div class="flex flex-col gap-2.5 text-xs font-bold text-gray-600">
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[11px] text-gray-500">Tên đơn vị cảng</label>
+                                    <label class="text-xs text-gray-500">Tên đơn vị cảng</label>
                                     <input v-model="cfgForm.companyName" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary">
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[11px] text-gray-500">Địa chỉ</label>
+                                    <label class="text-xs text-gray-500">Địa chỉ</label>
                                     <input v-model="cfgForm.companyAddress" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary">
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div class="flex flex-col gap-1">
-                                        <label class="text-[11px] text-gray-500">Điện thoại / Fax</label>
+                                        <label class="text-xs text-gray-500">Điện thoại / Fax</label>
                                         <input v-model="cfgForm.companyPhone" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary">
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <label class="text-[11px] text-gray-500">Tiêu đề phiếu</label>
+                                        <label class="text-xs text-gray-500">Tiêu đề phiếu</label>
                                         <input v-model="cfgForm.ticketTitle" type="text" class="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary uppercase">
                                     </div>
                                 </div>
@@ -7101,7 +7103,7 @@ defineExpose({
                             </div>
 
                             <div class="flex flex-col gap-1 mt-1">
-                                <label class="text-[11px] font-bold text-gray-500">Thêm trường dữ liệu xe cân:</label>
+                                <label class="text-xs font-bold text-gray-500">Thêm trường dữ liệu xe cân:</label>
                                 <select 
                                     @change="(e) => {
                                         const target = e.target as HTMLSelectElement;
@@ -7148,41 +7150,41 @@ defineExpose({
 
                             <div class="grid grid-cols-2 gap-2 text-xs font-bold text-gray-600">
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Vị trí X (mm)</label>
+                                    <label class="text-xs text-gray-400">Vị trí X (mm)</label>
                                     <input v-model.number="selectedElement.x" type="number" min="0" max="210" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Vị trí Y (mm)</label>
+                                    <label class="text-xs text-gray-400">Vị trí Y (mm)</label>
                                     <input v-model.number="selectedElement.y" type="number" min="0" max="148" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Rộng (mm)</label>
+                                    <label class="text-xs text-gray-400">Rộng (mm)</label>
                                     <input v-model.number="selectedElement.width" type="number" min="1" max="210" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Cao (mm)</label>
+                                    <label class="text-xs text-gray-400">Cao (mm)</label>
                                     <input v-model.number="selectedElement.height" type="number" min="1" max="148" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
                                 </div>
 
                                 <!-- Field Label -->
                                 <div v-if="selectedElement.type === 'field'" class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Tiêu đề (Label)</label>
+                                    <label class="text-xs text-gray-400">Tiêu đề (Label)</label>
                                     <input v-model="selectedElement.label" type="text" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary">
                                 </div>
                                 <div v-if="selectedElement.type === 'field'" class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Độ rộng tiêu đề (mm)</label>
+                                    <label class="text-xs text-gray-400">Độ rộng tiêu đề (mm)</label>
                                     <input v-model.number="selectedElement.labelWidth" type="number" min="0" max="100" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
                                 </div>
 
                                 <!-- Text content -->
                                 <div v-if="selectedElement.type === 'text'" class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Nội dung chữ</label>
+                                    <label class="text-xs text-gray-400">Nội dung chữ</label>
                                     <textarea v-model="selectedElement.text" rows="2" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary resize-none"></textarea>
                                 </div>
 
                                 <!-- Rect Border style -->
                                 <div v-if="selectedElement.type === 'rect'" class="col-span-2 flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Kiểu viền</label>
+                                    <label class="text-xs text-gray-400">Kiểu viền</label>
                                     <select v-model="selectedElement.borderStyle" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary">
                                         <option value="solid">Nét liền (Solid)</option>
                                         <option value="dashed">Nét đứt (Dashed)</option>
@@ -7192,11 +7194,11 @@ defineExpose({
 
                                 <!-- Font size & styles -->
                                 <div v-if="['text', 'field'].includes(selectedElement.type)" class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Cỡ chữ (pt)</label>
+                                    <label class="text-xs text-gray-400">Cỡ chữ (pt)</label>
                                     <input v-model.number="selectedElement.fontSize" type="number" min="6" max="24" step="0.5" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none focus:border-primary">
                                 </div>
                                 <div v-if="['text', 'field'].includes(selectedElement.type)" class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-gray-400">Căn lề</label>
+                                    <label class="text-xs text-gray-400">Căn lề</label>
                                     <select v-model="selectedElement.align" class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-bold focus:outline-none focus:border-primary">
                                         <option value="left">Trái</option>
                                         <option value="center">Giữa</option>
@@ -7225,7 +7227,7 @@ defineExpose({
                             </h4>
                             <div class="space-y-1.5">
                                 <div v-for="(_, sIdx) in (cfgForm.signatures || ['NV TRẠM CÂN', 'BẢO VỆ', 'CHỦ HÀNG', 'THỦ KHO', 'TÀI XẾ'])" :key="sIdx" class="flex items-center gap-2">
-                                    <span class="text-[10px] font-black text-gray-400 w-4">{{ sIdx + 1 }}.</span>
+                                    <span class="text-xs font-black text-gray-400 w-4">{{ sIdx + 1 }}.</span>
                                     <input 
                                         v-model="cfgForm.signatures![sIdx]"
                                         class="flex-1 px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-primary"
@@ -7243,7 +7245,7 @@ defineExpose({
                                 <span class="material-symbols-outlined text-base text-primary">square_foot</span>
                                 Bản vẽ in chuẩn A5 (210mm x 148mm)
                             </span>
-                            <span class="text-[11px] font-bold text-gray-400">Kéo thả phần tử | Phím mũi tên để căn chỉnh mịn</span>
+                            <span class="text-xs font-bold text-gray-400">Kéo thả phần tử | Phím mũi tên để căn chỉnh mịn</span>
                         </div>
 
                         <!-- Canvas Container -->
@@ -7332,7 +7334,7 @@ defineExpose({
                                     ></div>
 
                                     <!-- Selected Indicator Badge -->
-                                    <div v-if="selectedElementIds.includes(el.id)" class="absolute -top-4 left-0 text-white text-[10px] px-1 py-0.5 rounded font-mono uppercase font-bold tracking-wider pointer-events-none shadow-sm z-40" :class="selectedElementId === el.id ? 'bg-primary' : 'bg-teal-500'">
+                                    <div v-if="selectedElementIds.includes(el.id)" class="absolute -top-4 left-0 text-white text-xs px-1 py-0.5 rounded font-mono uppercase font-bold tracking-wider pointer-events-none shadow-sm z-40" :class="selectedElementId === el.id ? 'bg-primary' : 'bg-teal-500'">
                                         {{ el.type === 'field' ? el.fieldId : el.type }}
                                     </div>
                                 </div>

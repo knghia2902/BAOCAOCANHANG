@@ -86,32 +86,34 @@ const onFileSelected = async (file: File) => {
 </script>
 
 <template>
-  <div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-8 shadow-sm border border-primary/10">
-    <div class="flex gap-4 border-b border-primary/10 pb-4 mb-6">
-      <button 
-        @click="selectTab('pdf')" 
-        class="px-4 py-2 rounded-xl transition-colors"
-        :class="activeTab === 'pdf' ? 'bg-primary/10 border border-primary font-bold text-primary' : 'hover:bg-gray-100'"
-      >
-        PDF Extract
-      </button>
-      <button 
-        @click="selectTab('ocr')" 
-        class="px-4 py-2 rounded-xl transition-colors"
-        :class="activeTab === 'ocr' ? 'bg-primary/10 border border-primary font-bold text-primary' : 'hover:bg-gray-100'"
-      >
-        Image OCR
-      </button>
-      <button 
-        @click="selectTab('convert')" 
-        class="px-4 py-2 rounded-xl transition-colors"
-        :class="activeTab === 'convert' ? 'bg-primary/10 border border-primary font-bold text-primary' : 'hover:bg-gray-100'"
-      >
-        Doc Convert
-      </button>
+  <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-primary/5">
+    <div class="border-b border-primary/10 pb-4 mb-6">
+      <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center w-fit gap-1">
+        <button 
+          @click="selectTab('pdf')" 
+          class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all flex items-center"
+          :class="activeTab === 'pdf' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+        >
+          PDF Extract
+        </button>
+        <button 
+          @click="selectTab('ocr')" 
+          class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all flex items-center"
+          :class="activeTab === 'ocr' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+        >
+          Image OCR
+        </button>
+        <button 
+          @click="selectTab('convert')" 
+          class="px-3 py-1 rounded-lg text-xs font-display font-bold h-6.5 transition-all flex items-center"
+          :class="activeTab === 'convert' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'"
+        >
+          Doc Convert
+        </button>
+      </div>
     </div>
 
-    <div v-if="activeTab === 'pdf' || activeTab === 'ocr'" class="mb-6 flex gap-4">
+    <div v-if="activeTab === 'pdf' || activeTab === 'ocr'" class="mb-6 flex gap-4 text-sm font-bold text-[#1e293b]">
       <label class="flex items-center gap-2 cursor-pointer">
         <input type="radio" value="docx" v-model="targetFormat" @change="clearPreview" /> Word (.docx)
       </label>
@@ -130,7 +132,7 @@ const onFileSelected = async (file: File) => {
       </div>
       <div class="mt-4">
         <p class="font-bold text-primary text-base">Upload file</p>
-        <p class="text-xs opacity-50 mt-1">Maximum 15MB</p>
+        <p class="text-xs text-slate-500 mt-1">Maximum 15MB</p>
       </div>
     </FileDropzone>
 
@@ -141,17 +143,17 @@ const onFileSelected = async (file: File) => {
     <!-- Preview Section -->
     <div v-if="previewResult && downloadUrl" class="mt-8 border-t border-primary/10 pt-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <h4 class="text-sm font-black text-primary flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-base">preview</span>
+        <h4 class="text-xl font-display font-black text-primary flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-2xl">preview</span>
           Xem trước kết quả trích xuất
         </h4>
         
         <div class="flex items-center gap-2">
-          <!-- Download Button -->
+          <!-- Download Button (Puffy) -->
           <a 
             :href="downloadUrl" 
             :download="previewResult.filename"
-            class="px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md"
+            class="px-5 py-2 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-1.5"
           >
             <span class="material-symbols-outlined text-sm">download</span>
             Tải xuống file ({{ targetFormat === 'xlsx' ? 'Excel' : 'Word' }})
@@ -159,7 +161,7 @@ const onFileSelected = async (file: File) => {
           <!-- Close Preview Button -->
           <button 
             @click="clearPreview"
-            class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs flex items-center gap-1 transition-all"
+            class="px-3.5 py-2 bg-[#f1f5f9] hover:bg-slate-200 text-[#1e293b] font-bold rounded-2xl text-xs flex items-center gap-1 transition-all"
           >
             <span class="material-symbols-outlined text-sm">close</span>
             Đóng xem trước
@@ -168,42 +170,60 @@ const onFileSelected = async (file: File) => {
       </div>
 
       <!-- Preview Box -->
-      <div class="bg-gray-50/50 border border-primary/10 rounded-2xl p-4 overflow-hidden max-h-[500px] flex flex-col shadow-sm">
+      <div class="bg-white border border-primary/5 rounded-[24px] p-4 overflow-hidden max-h-[500px] flex flex-col shadow-sm">
         <!-- Excel Preview -->
-        <div v-if="targetFormat === 'xlsx' && previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto flex-1 max-w-full select-text scrollbar-thin">
+        <div v-if="targetFormat === 'xlsx' && previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto scrollbar-none flex-1 max-w-full select-text">
           <div v-for="(grid, pageIdx) in previewResult.pagesGrids" :key="pageIdx" class="mb-8 last:mb-0">
-            <div v-if="previewResult.pagesGrids.length > 1" class="text-xs font-black text-primary/60 uppercase tracking-wider mb-3">
+            <div v-if="previewResult.pagesGrids.length > 1" class="text-xs font-display font-black text-primary/60 uppercase tracking-wider mb-3">
               Trang {{ pageIdx + 1 }}
             </div>
             
-            <table class="border-collapse text-xs font-display min-w-full bg-white shadow-sm rounded-xl overflow-hidden border border-primary/5 whitespace-nowrap">
-              <tbody>
-                <tr 
-                  v-for="(row, rowIdx) in grid" 
-                  :key="rowIdx"
-                  class="hover:bg-primary/10 transition-colors border-b border-gray-100 last:border-b-0"
-                >
-                  <td 
-                    v-for="(cell, cellIdx) in row" 
-                    :key="cellIdx"
-                    class="px-4 py-2.5 border-r border-gray-100 last:border-r-0 whitespace-nowrap min-w-[80px]"
-                    :class="[
-                      rowIdx === 0 && row.length > 2 ? 'bg-gray-50 font-bold text-[#1e293b] text-center' : 'text-[#1b0d11]/70',
-                      row.length === 1 && rowIdx <= 2 ? 'text-center font-bold text-sm text-primary bg-primary/5 py-3' : ''
-                    ]"
-                  >
-                    {{ cell }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="bg-white rounded-[24px] border border-primary/5 shadow-sm overflow-hidden">
+              <div class="overflow-auto scrollbar-none max-h-[400px]">
+                <table class="border-collapse text-xs font-body min-w-full bg-white whitespace-nowrap">
+                  <thead v-if="grid.length > 0" class="bg-gray-50 sticky top-0 z-10 border-b border-gray-100">
+                    <tr>
+                      <th 
+                        v-for="(cell, cellIdx) in grid[0]" 
+                        :key="cellIdx"
+                        class="px-4 py-2.5 border-r border-gray-100 last:border-r-0 whitespace-nowrap min-w-[80px] font-bold text-[#1e293b]"
+                        :class="[
+                          grid[0] && grid[0].length > 2 ? 'text-center' : 'text-left',
+                          grid[0] && grid[0].length === 1 ? 'text-center text-sm text-primary bg-primary/5 py-3' : ''
+                        ]"
+                      >
+                        {{ cell }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50">
+                    <tr 
+                      v-for="(row, rowIdx) in grid.slice(1)" 
+                      :key="rowIdx"
+                      class="hover:bg-gray-50 transition-colors"
+                    >
+                      <td 
+                        v-for="(cell, cellIdx) in row" 
+                        :key="cellIdx"
+                        class="px-4 py-2.5 border-r border-gray-100 last:border-r-0 whitespace-nowrap min-w-[80px]"
+                        :class="[
+                          row.length === 1 && rowIdx < 2 ? 'text-center font-bold text-sm text-primary bg-primary/5 py-3' : 'text-[#1e293b]/80'
+                        ]"
+                      >
+                        {{ cell }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Word Preview -->
-        <div v-else-if="previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto flex-1 p-6 bg-white rounded-2xl border border-primary/5 text-xs text-[#1b0d11]/80 font-serif leading-relaxed select-text text-left max-w-full scrollbar-thin">
+        <div v-else-if="previewResult.pagesGrids && previewResult.pagesGrids.length > 0" class="overflow-auto scrollbar-none flex-1 p-6 bg-white rounded-[24px] border border-primary/5 text-xs text-[#1e293b]/80 font-body leading-relaxed select-text text-left max-w-full">
           <div v-for="(grid, pageIdx) in previewResult.pagesGrids" :key="pageIdx" class="mb-8 last:mb-0">
-            <div v-if="previewResult.pagesGrids.length > 1" class="text-xs font-sans font-black text-primary/60 uppercase tracking-wider mb-4 border-b border-primary/10 pb-1.5">
+            <div v-if="previewResult.pagesGrids.length > 1" class="text-xs font-body font-black text-primary/60 uppercase tracking-wider mb-4 border-b border-primary/10 pb-1.5">
               Trang {{ pageIdx + 1 }}
             </div>
             <div 
@@ -211,8 +231,8 @@ const onFileSelected = async (file: File) => {
               :key="rowIdx"
               class="mb-3"
               :class="[
-                row.length === 1 && rowIdx <= 2 ? 'text-center font-bold text-base text-primary my-5 font-sans' : '',
-                row.length > 1 && rowIdx === 0 ? 'font-sans font-bold text-[#1e293b]' : ''
+                row.length === 1 && rowIdx <= 2 ? 'text-center font-bold text-base text-primary my-5 font-body' : '',
+                row.length > 1 && rowIdx === 0 ? 'font-body font-bold text-[#1e293b]' : ''
               ]"
             >
               {{ row.join('   ') }}

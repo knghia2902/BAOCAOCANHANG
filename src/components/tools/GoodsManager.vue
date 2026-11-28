@@ -320,11 +320,11 @@ const clearAll = async () => {
         <!-- Header Section -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
             <div>
-                <h3 class="text-base font-black text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-xl">inventory_2</span>
+                <h3 class="text-xl font-display font-black text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-2xl">inventory_2</span>
                     Danh mục hàng hóa &amp; Mã hàng
                 </h3>
-                <p class="text-xs text-gray-500 font-semibold mt-1">
+                <p class="text-xs text-slate-500 font-semibold mt-1">
                     Quản lý danh mục Loại hàng và Mã hàng dùng chung cho Khai báo Nguồn tàu, Sà lan và Phiếu cân. Tổng cộng:
                     <span class="text-teal-600 font-bold font-mono">{{ goodsItems.length }}</span> mặt hàng.
                 </p>
@@ -335,7 +335,7 @@ const clearAll = async () => {
                 <button
                     v-if="goodsItems.length > 0 && canManageDelete"
                     @click="clearAll"
-                    class="px-3.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-black rounded-[14px] flex items-center gap-1.5 transition-all cursor-pointer"
+                    class="h-7 px-3 bg-red-50 text-red-600 border border-red-200 text-xs font-bold rounded-[8px] hover:bg-red-100 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                     <span class="material-symbols-outlined text-sm font-bold">delete_forever</span>
                     Xóa sạch
@@ -354,30 +354,30 @@ const clearAll = async () => {
 
                 <form @submit.prevent="handleSubmit" class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Loại hàng (Tên hàng hóa) *</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Loại hàng (Tên hàng hóa) *</label>
                         <input
                             type="text"
                             v-model="goodsNameInput"
                             placeholder="Ví dụ: LÚA MÌ, BẮP HẠT, VIÊN NÉN GỖ..."
                             required
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary transition-all uppercase"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all uppercase"
                         />
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Mã hàng</label>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Mã hàng</label>
                         <input
                             type="text"
                             v-model="goodsCodeInput"
                             placeholder="Ví dụ: LM, BH, 01..."
-                            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-[12px] text-xs font-semibold font-mono focus:outline-none focus:border-primary transition-all uppercase"
+                            class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-[#1e293b] font-mono focus:outline-none focus:border-primary transition-all uppercase"
                         />
                     </div>
 
                     <div class="flex items-center gap-2 mt-2">
                         <button
                             type="submit"
-                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-[12px] text-xs shadow-soft hover:opacity-90 transition-all cursor-pointer"
+                            class="flex-1 py-2.5 bg-primary text-white font-bold rounded-full text-xs shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer"
                         >
                             {{ editingIndex !== null ? 'Cập nhật' : 'Thêm mới' }}
                         </button>
@@ -386,7 +386,7 @@ const clearAll = async () => {
                             v-if="editingIndex !== null"
                             type="button"
                             @click="cancelEdit"
-                            class="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-[12px] text-xs transition-all cursor-pointer"
+                            class="px-4 py-2.5 bg-[#f1f5f9] hover:bg-slate-200 text-[#1e293b] font-bold rounded-2xl text-xs transition-all cursor-pointer"
                         >
                             Hủy
                         </button>
@@ -398,25 +398,26 @@ const clearAll = async () => {
             <div :class="(canManageCreate || canManageUpdate) ? 'lg:col-span-2' : 'lg:col-span-3'" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 min-h-[350px]">
                 <!-- Search bar -->
                 <div class="relative w-full flex items-center">
-                    <span class="material-symbols-outlined absolute left-3 text-gray-400 text-sm">search</span>
+                    <span class="material-symbols-outlined absolute left-2.5 text-slate-400 text-sm">search</span>
                     <input
                         type="text"
                         v-model="searchQuery"
                         placeholder="Tìm kiếm theo loại hàng hoặc mã hàng..."
-                        class="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-100 rounded-[12px] text-xs font-semibold focus:outline-none focus:border-primary focus:bg-white transition-all placeholder:text-gray-400"
+                        class="w-full h-7 pl-8 pr-8 bg-white border border-slate-200 rounded-[8px] text-xs font-semibold text-[#1e293b] focus:outline-none focus:border-primary transition-all placeholder:text-gray-400"
                     />
                     <button
                         v-if="searchQuery"
                         @click="searchQuery = ''"
-                        class="absolute right-3 text-gray-400 hover:text-primary flex items-center cursor-pointer"
+                        class="absolute right-2.5 text-gray-400 hover:text-primary flex items-center cursor-pointer"
                     >
                         <span class="material-symbols-outlined text-xs">close</span>
                     </button>
                 </div>
 
                 <!-- Table Container -->
-                <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[380px] border border-gray-100 rounded-[16px]">
-                    <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
+                <div class="flex-1 bg-white border border-primary/5 rounded-[24px] overflow-hidden shadow-sm">
+                    <div class="overflow-auto scrollbar-none max-h-[380px]">
+                        <table class="w-full text-left border-collapse text-xs font-semibold whitespace-nowrap">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap sticky top-0 z-10">
                                 <th class="py-2.5 px-4 w-16 text-center">STT</th>
@@ -468,6 +469,7 @@ const clearAll = async () => {
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -492,8 +494,8 @@ const clearAll = async () => {
                             <div
                                 class="size-10 rounded-full flex items-center justify-center"
                                 :class="[
-                                    confirmDialog.type === 'danger' ? 'bg-red-50 text-red-600' :
-                                    confirmDialog.type === 'warning' ? 'bg-amber-50 text-amber-600' :
+                                    confirmDialog.type === 'danger' ? 'bg-rose-50 text-rose-600' :
+                                    confirmDialog.type === 'warning' ? 'bg-rose-50 text-rose-600' :
                                     confirmDialog.type === 'success' ? 'bg-teal-50 text-teal-600' :
                                     'bg-primary/10 text-primary'
                                 ]"
@@ -507,28 +509,28 @@ const clearAll = async () => {
                                     }}
                                 </span>
                             </div>
-                            <h3 class="text-sm font-black text-gray-900 leading-tight">
+                            <h3 class="text-xl font-display font-black text-[#1e293b] leading-tight">
                                 {{ confirmDialog.title }}
                             </h3>
                         </div>
-                        <div class="text-xs font-semibold text-gray-600 leading-relaxed whitespace-pre-wrap">
+                        <div class="text-xs font-semibold text-slate-600 leading-relaxed whitespace-pre-wrap">
                             {{ confirmDialog.message }}
                         </div>
                         <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-50">
                             <button
                                 @click="handleConfirmCancel"
-                                class="h-9 px-4 rounded-[12px] text-xs font-bold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100 cursor-pointer"
+                                class="h-9 px-4 rounded-2xl text-xs font-bold text-slate-500 hover:bg-[#f1f5f9] active:scale-95 transition-all border border-slate-200 cursor-pointer"
                             >
                                 {{ confirmDialog.cancelText }}
                             </button>
                             <button
                                 @click="handleConfirmOk"
-                                class="h-9 px-4 rounded-[12px] text-xs font-bold text-white active:scale-95 transition-all cursor-pointer"
+                                class="h-9 px-4 rounded-2xl text-xs font-bold text-white active:scale-95 transition-all cursor-pointer"
                                 :class="[
-                                    confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' :
-                                    confirmDialog.type === 'warning' ? 'bg-amber-500 hover:bg-amber-600' :
+                                    confirmDialog.type === 'danger' ? 'bg-rose-600 hover:bg-rose-700' :
+                                    confirmDialog.type === 'warning' ? 'bg-rose-600 hover:bg-rose-700' :
                                     confirmDialog.type === 'success' ? 'bg-teal-600 hover:bg-teal-700' :
-                                    'bg-primary hover:bg-primary/95'
+                                    'bg-primary hover:bg-[#3b5e9c]'
                                 ]"
                             >
                                 {{ confirmDialog.okText }}

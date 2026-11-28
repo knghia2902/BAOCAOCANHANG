@@ -49,83 +49,83 @@ const paginatedTrucks = computed(() => {
 </script>
 
 <template>
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden flex flex-col">
+    <div class="bg-white rounded-[24px] border border-primary/5 shadow-xs overflow-hidden flex flex-col">
         <!-- Table Toolbar -->
         <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50">
             <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-gray-700">T?ng c?ng:</span>
-                <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-black text-xs">{{ filteredTrucks.length }} phi?u</span>
+                <span class="text-xs font-bold text-gray-700">Tổng cộng:</span>
+                <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-black text-xs">{{ filteredTrucks.length }} phiếu</span>
             </div>
 
             <!-- Search input -->
-            <div class="relative w-full sm:w-64">
+            <div class="relative w-full sm:w-64 h-7 flex items-center">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
                 <input 
                     v-model="searchQuery"
                     type="text" 
-                    placeholder="T?m bi?n s?, s? phi?u..."
-                    class="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-1.5 text-xs outline-none focus:border-primary/50 text-gray-800"
+                    placeholder="Tìm biển số, số phiếu..."
+                    class="w-full h-7 bg-white border border-slate-200 rounded-[8px] pl-9 pr-3 text-xs font-semibold outline-none focus:border-primary text-slate-700 placeholder:text-slate-400"
                 />
             </div>
         </div>
 
         <!-- Table Data -->
-        <div class="overflow-x-auto">
+        <div class="overflow-auto scrollbar-none flex-1 min-h-0">
             <table class="w-full text-left text-xs text-gray-600">
-                <thead class="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider text-[10px] border-b border-gray-100">
+                <thead class="sticky top-0 z-10 bg-gray-50 text-gray-500 font-bold uppercase tracking-wider text-xs border-b border-gray-100">
                     <tr>
                         <th class="px-4 py-3 text-center w-12">STT</th>
-                        <th class="px-4 py-3">Bi?n s?</th>
-                        <th class="px-4 py-3">S? phi?u</th>
+                        <th class="px-4 py-3">Biển số</th>
+                        <th class="px-4 py-3">Số phiếu</th>
                         <th class="px-4 py-3 text-right">KL 1 (kg)</th>
                         <th class="px-4 py-3 text-right">KL 2 (kg)</th>
-                        <th class="px-4 py-3 text-right">H�ng (kg)</th>
-                        <th class="px-4 py-3 text-right">T?n</th>
-                        <th class="px-4 py-3 text-center">Thao t�c</th>
+                        <th class="px-4 py-3 text-right">Hàng (kg)</th>
+                        <th class="px-4 py-3 text-right">Tấn</th>
+                        <th class="px-4 py-3 text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     <tr v-if="paginatedTrucks.length === 0">
                         <td colspan="8" class="px-4 py-8 text-center text-gray-400">
-                            Kh�ng c� d? li?u phi?u c�n
+                            Không có dữ liệu phiếu cân
                         </td>
                     </tr>
                     <tr 
                         v-for="(t, idx) in paginatedTrucks" 
                         :key="t.so_phieu || idx"
-                        class="hover:bg-gray-50/80 transition-colors"
+                        class="hover:bg-gray-50 transition-colors"
                     >
                         <td class="px-4 py-2.5 text-center font-medium text-gray-400">
                             {{ (currentPage - 1) * pageSize + idx + 1 }}
                         </td>
-                        <td class="px-4 py-2.5 font-bold text-gray-900">{{ t.so_xe }}</td>
-                        <td class="px-4 py-2.5 font-mono text-primary font-medium">{{ t.so_phieu || '�' }}</td>
+                        <td class="px-4 py-2.5 font-bold text-[#1e293b]">{{ t.so_xe }}</td>
+                        <td class="px-4 py-2.5 font-mono text-primary font-medium">{{ t.so_phieu || '—' }}</td>
                         <td class="px-4 py-2.5 text-right font-mono">{{ (t.khoi_luong_1 || 0).toLocaleString() }}</td>
                         <td class="px-4 py-2.5 text-right font-mono">{{ (t.khoi_luong_2 || 0).toLocaleString() }}</td>
-                        <td class="px-4 py-2.5 text-right font-mono font-bold text-emerald-600">{{ (t.khoi_luong_hang || 0).toLocaleString() }}</td>
+                        <td class="px-4 py-2.5 text-right font-mono font-bold text-teal-600">{{ (t.khoi_luong_hang || 0).toLocaleString() }}</td>
                         <td class="px-4 py-2.5 text-right font-mono font-bold text-primary">{{ ((t.khoi_luong_hang || 0) / 1000).toFixed(2) }}</td>
                         <td class="px-4 py-2.5 text-center">
-                            <div class="flex items-center justify-center gap-1">
+                            <div class="flex items-center justify-center gap-1.5">
                                 <button 
                                     @click="emit('printTruck', t)"
-                                    class="p-1 rounded-lg hover:bg-primary/10 text-primary transition-colors"
-                                    title="In phi?u"
+                                    class="size-8 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-600 flex items-center justify-center transition-all active:scale-95"
+                                    title="In phiếu"
                                 >
                                     <span class="material-symbols-outlined text-sm">print</span>
                                 </button>
                                 <button 
                                     v-if="!isReadOnly"
                                     @click="emit('editTruck', t)"
-                                    class="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-                                    title="Ch?nh s?a"
+                                    class="size-8 rounded-full bg-primary/5 hover:bg-primary/10 text-primary flex items-center justify-center transition-all active:scale-95"
+                                    title="Chỉnh sửa"
                                 >
                                     <span class="material-symbols-outlined text-sm">edit</span>
                                 </button>
                                 <button 
                                     v-if="!isReadOnly"
                                     @click="emit('deleteTruck', t)"
-                                    class="p-1 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                                    title="X�a"
+                                    class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all active:scale-95"
+                                    title="Xóa"
                                 >
                                     <span class="material-symbols-outlined text-sm">delete</span>
                                 </button>
@@ -136,8 +136,8 @@ const paginatedTrucks = computed(() => {
             </table>
         </div>
 
-        <!-- Pagination Bar -->
-        <div v-if="totalPages > 1" class="p-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/30">
+        <!-- Pagination Bar (pinned outside scrollable table) -->
+        <div v-if="totalPages > 1" class="p-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/30 shrink-0">
             <span>Trang {{ currentPage }} / {{ totalPages }}</span>
             <div class="flex items-center gap-1">
                 <button 
@@ -145,7 +145,7 @@ const paginatedTrucks = computed(() => {
                     :disabled="currentPage === 1"
                     class="px-2.5 py-1 rounded-lg border border-gray-200 bg-white disabled:opacity-40 hover:bg-gray-50 font-bold"
                 >
-                    Tr�?c
+                    Trước
                 </button>
                 <button 
                     @click="currentPage = Math.min(totalPages, currentPage + 1)"

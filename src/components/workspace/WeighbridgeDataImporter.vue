@@ -2322,7 +2322,7 @@ async function exportHistoryTrips() {
                 <div v-if="activeMainTab === 'source'" class="flex-1 flex flex-col gap-3 min-h-0">
                     <div
                         v-if="filteredSourceTickets.length > 0"
-                        class="flex-1 overflow-auto border border-gray-100 rounded-[16px] min-h-0 custom-scroll"
+                        class="flex-1 overflow-auto scrollbar-none border border-primary/5 rounded-[24px] min-h-0"
                     >
                         <table class="w-full text-left border-collapse text-xs font-bold min-w-[1480px] whitespace-nowrap">
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-gray-500 select-none">
@@ -2700,7 +2700,7 @@ async function exportHistoryTrips() {
                 <div v-else class="flex-1 flex flex-col gap-3 min-h-0">
                     <div
                         v-if="filteredHistoryTrips.length > 0"
-                        class="flex-1 overflow-auto border border-gray-100 rounded-[16px] min-h-0 custom-scroll"
+                        class="flex-1 overflow-auto scrollbar-none border border-primary/5 rounded-[24px] min-h-0"
                     >
                         <table class="w-full text-left border-collapse text-xs font-bold min-w-[1350px] whitespace-nowrap">
                             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 text-gray-500 select-none">
@@ -2940,7 +2940,7 @@ async function exportHistoryTrips() {
                 <div class="bg-white rounded-[24px] soft-shadow border border-primary/5 w-full max-w-lg overflow-hidden flex flex-col">
                     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                         <div>
-                            <h3 class="text-sm font-black text-[#1e293b] flex items-center gap-1.5">
+                            <h3 class="text-xl font-display font-black text-[#1e293b] flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-primary text-base">receipt_long</span>
                                 {{ editingTicket ? 'Chỉnh sửa phiếu cân' : 'Thêm phiếu cân thủ công' }}
                             </h3>
@@ -2951,7 +2951,7 @@ async function exportHistoryTrips() {
                         <button
                             type="button"
                             @click="showTicketDialog = false"
-                            class="size-8 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-all"
+                            class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                         >
                             <span class="material-symbols-outlined text-base">close</span>
                         </button>

@@ -87,9 +87,9 @@ const totalAmount = computed(() => {
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-soft">
+        <div class="overflow-auto scrollbar-none rounded-[24px] border border-primary/5 bg-white shadow-soft">
             <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
-                <thead class="bg-slate-50 text-[11px] font-black uppercase text-slate-600 tracking-wider border-b border-slate-200">
+                <thead class="sticky top-0 z-10 bg-slate-50 text-xs font-black uppercase text-slate-600 tracking-wider border-b border-slate-200">
                     <tr>
                         <th class="px-3 py-2.5 text-center w-10">STT</th>
                         <th class="px-3 py-2.5">Số phương tiện</th>

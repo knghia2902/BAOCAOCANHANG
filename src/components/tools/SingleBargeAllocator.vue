@@ -3764,7 +3764,7 @@ async function compileAndDownload() {
                     <span class="text-xs font-black text-gray-800 truncate">
                         {{ activeBarge ? activeBarge.name : 'Chưa chọn sà lan' }}
                     </span>
-                    <span v-if="activeBarge?.config?.orderNo" class="text-[10px] font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                    <span v-if="activeBarge?.config?.orderNo" class="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                         {{ activeBarge.config.orderNo }}
                     </span>
                 </div>
@@ -3791,7 +3791,7 @@ async function compileAndDownload() {
                             <span class="material-symbols-outlined text-base">tune</span>
                         </div>
                         <div>
-                            <div class="text-[10px] uppercase font-black tracking-wider text-primary">Phân bổ tải trọng</div>
+                            <div class="text-xs uppercase font-black tracking-wider text-primary">Phân bổ tải trọng</div>
                             <h3 class="text-xs font-black text-[#1e293b]">Cài đặt & Chọn sà lan</h3>
                         </div>
                     </div>
@@ -3824,7 +3824,7 @@ async function compileAndDownload() {
                                 <span class="material-symbols-outlined text-[15px]">directions_boat</span>
                                 Sà lan Nông Sản De Heus
                             </h4>
-                            <span v-if="allDeHeusBarges.length > 0" class="text-[10px] font-bold text-gray-500 bg-white px-1.5 py-0.5 rounded-full border border-gray-200">
+                            <span v-if="allDeHeusBarges.length > 0" class="text-xs font-bold text-gray-500 bg-white px-1.5 py-0.5 rounded-full border border-gray-200">
                                 {{ allocatedBarges.length }}/{{ allDeHeusBarges.length }} đã xong
                             </span>
                         </div>
@@ -3843,7 +3843,7 @@ async function compileAndDownload() {
                             >
                                 <span class="material-symbols-outlined text-[14px]">pending</span>
                                 <span>Chưa phân bổ</span>
-                                <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-bold', selectedBargeStatusTab === 'pending' ? 'bg-black/20 text-white' : 'bg-white text-gray-700 shadow-2xs']">
+                                <span :class="['text-xs px-1.5 py-0.2 rounded-full font-bold', selectedBargeStatusTab === 'pending' ? 'bg-black/20 text-white' : 'bg-white text-gray-700 shadow-2xs']">
                                     {{ unallocatedBarges.length }}
                                 </span>
                             </button>
@@ -3853,13 +3853,13 @@ async function compileAndDownload() {
                                 :class="[
                                     'py-1.5 px-2 rounded-lg text-xs font-black flex items-center justify-center gap-1 transition-all',
                                     selectedBargeStatusTab === 'completed'
-                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        ? 'bg-teal-600 text-white shadow-xs'
                                         : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                                 ]"
                             >
                                 <span class="material-symbols-outlined text-[14px]">check_circle</span>
                                 <span>Đã phân bổ</span>
-                                <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-bold', selectedBargeStatusTab === 'completed' ? 'bg-black/20 text-white' : 'bg-white text-gray-700 shadow-2xs']">
+                                <span :class="['text-xs px-1.5 py-0.2 rounded-full font-bold', selectedBargeStatusTab === 'completed' ? 'bg-black/20 text-white' : 'bg-white text-gray-700 shadow-2xs']">
                                     {{ allocatedBarges.length }}
                                 </span>
                             </button>
@@ -3873,11 +3873,11 @@ async function compileAndDownload() {
                             @click="isConfigExpanded = !isConfigExpanded"
                             class="w-full py-2 px-3 bg-slate-50/90 hover:bg-slate-100 border border-gray-200/80 rounded-xl text-gray-500 hover:text-primary text-xs font-bold flex items-center justify-between transition-all select-none shadow-2xs"
                         >
-                            <span class="flex items-center gap-1.5 text-[11px]">
+                            <span class="flex items-center gap-1.5 text-xs">
                                 <span class="material-symbols-outlined text-[16px] text-gray-400">tune</span>
                                 <span>Cài đặt phân bổ & Số phiếu</span>
                             </span>
-                            <div class="flex items-center gap-1 text-[10px] text-gray-400 font-semibold">
+                            <div class="flex items-center gap-1 text-xs text-gray-400 font-semibold">
                                 <span>{{ isConfigExpanded ? 'Thu gọn' : 'Mở rộng' }}</span>
                                 <span class="material-symbols-outlined text-[15px] transition-transform duration-200" :class="{ 'rotate-180': isConfigExpanded }">
                                     expand_more
@@ -3889,7 +3889,7 @@ async function compileAndDownload() {
                     <!-- Khu vực Cài đặt cấu hình (Mặc định ẩn) -->
                     <div v-show="isConfigExpanded" class="space-y-3.5 pt-0.5 animate-fade-in">
                         <!-- Khối 2: Số phiếu tự động -->
-                    <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
+                    <div class="bg-slate-50/80 border border-slate-200 rounded-[18px] p-3 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                                 <span class="material-symbols-outlined text-[14px]">tag</span>
@@ -3900,7 +3900,7 @@ async function compileAndDownload() {
 
                         <div class="space-y-2">
                             <div class="flex flex-col gap-0.5">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Tiền tố số phiếu</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Tiền tố số phiếu</span>
                                 <input 
                                     type="text" 
                                     v-model="ticketPrefix" 
@@ -3911,7 +3911,7 @@ async function compileAndDownload() {
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col gap-0.5">
-                                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Số bắt đầu</span>
+                                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số bắt đầu</span>
                                     <input 
                                         type="number" 
                                         v-model.number="ticketStart" 
@@ -3921,7 +3921,7 @@ async function compileAndDownload() {
                                     >
                                 </div>
                                 <div class="flex flex-col gap-0.5">
-                                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Số chữ số</span>
+                                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Số chữ số</span>
                                     <input 
                                         type="number" 
                                         v-model.number="ticketPadding" 
@@ -3933,7 +3933,7 @@ async function compileAndDownload() {
                                 </div>
                             </div>
                             <div class="flex flex-col gap-0.5">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Hậu tố số phiếu</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Hậu tố số phiếu</span>
                                 <input 
                                     type="text" 
                                     v-model="ticketSuffix" 
@@ -3942,7 +3942,7 @@ async function compileAndDownload() {
                                     class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all font-mono disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                                 >
                             </div>
-                            <div class="text-[11px] text-gray-500 font-semibold italic flex items-center gap-1 pt-1 select-none">
+                            <div class="text-xs text-gray-500 font-semibold italic flex items-center gap-1 pt-1 select-none">
                                 <span class="material-symbols-outlined text-xs">visibility</span>
                                 Xem trước: <span class="font-bold text-teal-600 font-mono">{{ previewTicketNo }}</span>
                             </div>
@@ -3950,7 +3950,7 @@ async function compileAndDownload() {
                     </div>
 
                     <!-- Khối 3: Quy tắc phân bổ -->
-                    <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
+                    <div class="bg-slate-50/80 border border-slate-200 rounded-[18px] p-3 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                                 <span class="material-symbols-outlined text-[14px]">tune</span>
@@ -3961,7 +3961,7 @@ async function compileAndDownload() {
 
                         <div class="space-y-2">
                             <div class="flex flex-col gap-0.5">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Chiến lược chia</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Chiến lược chia</span>
                                 <select v-model="distStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
                                     <option value="random">Phân bổ ngẫu nhiên</option>
                                     <option value="even">Chia đều</option>
@@ -3969,7 +3969,7 @@ async function compileAndDownload() {
                                 </select>
                             </div>
                             <div class="flex flex-col gap-0.5">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Định thời gian</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Định thời gian</span>
                                 <select v-model="spacingStrategy" :disabled="!canEditRules" class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-[8px] text-xs font-semibold focus:outline-none focus:border-primary transition-all cursor-pointer disabled:bg-slate-50 disabled:text-gray-400 disabled:cursor-not-allowed">
                                     <option value="even">Phân đều chu kỳ</option>
                                     <option value="forward">Tịnh tiến (+ Phút)</option>
@@ -3977,7 +3977,7 @@ async function compileAndDownload() {
                                 </select>
                             </div>
                             <div v-if="spacingStrategy !== 'even'" class="flex items-center gap-1.5 bg-primary/5 p-1 rounded-lg border border-primary/10">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Giãn cách:</span>
                                 <input 
                                     type="number" 
                                     v-model.number="timeIntervalMinutes" 
@@ -3992,7 +3992,7 @@ async function compileAndDownload() {
                     </div>
 
                     <!-- Khối 4: Hạn mức tải trọng -->
-                    <div class="bg-slate-50/80 border border-gray-150 rounded-[18px] p-3 space-y-2.5">
+                    <div class="bg-slate-50/80 border border-slate-200 rounded-[18px] p-3 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-black text-primary flex items-center gap-1.5 select-none">
                                 <span class="material-symbols-outlined text-[14px]">shield</span>
@@ -4003,7 +4003,7 @@ async function compileAndDownload() {
 
                         <div class="space-y-2">
                             <div class="flex flex-col gap-0.5">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Trọng tải cho phép (tấn)</span>
                                 <input 
                                     type="number" 
                                     v-model.number="standardTTTPLimit" 
@@ -4012,7 +4012,7 @@ async function compileAndDownload() {
                                 >
                             </div>
                             <div class="flex flex-col gap-0.5">
-                                <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Xác xe tiêu chuẩn (tấn)</span>
                                 <div class="flex items-center gap-1.5">
                                     <input 
                                         type="number" 
@@ -4031,7 +4031,7 @@ async function compileAndDownload() {
                                     >
                                 </div>
                             </div>
-                            <div class="text-[11px] text-gray-500 font-bold flex items-center justify-between mt-1 pt-1 border-t border-gray-200/60">
+                            <div class="text-xs text-gray-500 font-bold flex items-center justify-between mt-1 pt-1 border-t border-gray-200/60">
                                 <span>Hạn mức hàng:</span>
                                 <span class="text-primary font-mono bg-primary/10 px-2 py-0.5 rounded font-black">
                                     {{ Math.max(0, standardTTTPLimit - standardCurbMax).toFixed(1) }} - {{ Math.max(0, standardTTTPLimit - standardCurbMin).toFixed(1) }} tấn
@@ -4053,7 +4053,7 @@ async function compileAndDownload() {
                             <span class="material-symbols-outlined text-primary text-base">balance</span>
                             Phân bổ tải trọng xếp hàng lên phương tiện
                         </h1>
-                        <p class="text-[11px] text-gray-500 mt-0.5">
+                        <p class="text-xs text-gray-500 mt-0.5">
                             Tự động chia tách trọng lượng xe quá tải vượt hạn mức thành nhiều chuyến hợp lệ và kết xuất tệp theo mẫu chuẩn.
                         </p>
                     </div>
@@ -4062,7 +4062,7 @@ async function compileAndDownload() {
                         <button
                             type="button"
                             @click="backToBargeList"
-                            class="px-2 py-0.5 bg-white hover:bg-primary/10 text-primary border border-primary/20 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-all shadow-2xs"
+                            class="px-2 py-0.5 bg-white hover:bg-primary/10 text-primary border border-primary/20 rounded-lg font-bold text-xs flex items-center gap-1 transition-all shadow-2xs"
                             title="Quay lại danh sách tàu / sà lan"
                         >
                             <span class="material-symbols-outlined text-[13px]">arrow_back</span>
@@ -4073,7 +4073,7 @@ async function compileAndDownload() {
                             <span class="text-gray-400 font-bold">Sà lan nguồn:</span>
                             <span class="font-black text-gray-800">{{ activeBarge.name }}</span>
                             <span v-if="activeBarge.config?.orderNo" class="text-amber-700 font-mono font-bold">({{ activeBarge.config.orderNo }})</span>
-                            <span v-if="activeBarge.config?.goods" class="text-emerald-700 font-bold">| {{ activeBarge.config.goods }}</span>
+                            <span v-if="activeBarge.config?.goods" class="text-teal-700 font-bold">| {{ activeBarge.config.goods }}</span>
                         </div>
                     </div>
                 </div>
@@ -4083,14 +4083,14 @@ async function compileAndDownload() {
             <!-- Tabs Header -->
             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <!-- Tabs Navigation Strip (Chỉ hiện 3 tab khi đã click chọn tàu) -->
-                <div v-if="activeBargeId" class="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 xl:pb-0 shrink-0">
+                <div v-if="activeBargeId" class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0 h-8 items-center overflow-x-auto scrollbar-none gap-1">
                     <button 
                         @click="activeDataTab = 'source'"
                         :class="[
-                            'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+                            'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all shrink-0 h-6.5',
                             activeDataTab === 'source' 
-                                ? 'bg-primary/10 text-primary border border-primary/20' 
-                                : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-primary text-white shadow-soft' 
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                         ]"
                     >
                         1. Phiếu cân ({{ csvRecords.length }})
@@ -4098,10 +4098,10 @@ async function compileAndDownload() {
                     <button 
                         @click="activeDataTab = 'template'"
                         :class="[
-                            'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+                            'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all shrink-0 h-6.5',
                             activeDataTab === 'template' 
-                                ? 'bg-primary/10 text-primary border border-primary/20' 
-                                : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-primary text-white shadow-soft' 
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                         ]"
                     >
                         2. Phân bổ ({{ generatedTrips.length }})
@@ -4109,10 +4109,10 @@ async function compileAndDownload() {
                     <button 
                         @click="activeDataTab = 'generated'"
                         :class="[
-                            'px-3 py-1.5 text-xs font-black rounded-lg transition-all shrink-0',
+                            'px-3 py-1 rounded-lg text-xs font-display font-bold transition-all shrink-0 h-6.5',
                             activeDataTab === 'generated' 
-                                ? 'bg-primary/10 text-primary border border-primary/20' 
-                                : 'text-gray-500 hover:bg-gray-50'
+                                ? 'bg-primary text-white shadow-soft' 
+                                : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                         ]"
                     >
                         3. Theo dõi ({{ filteredHistoryTrips.length }})
@@ -4122,7 +4122,7 @@ async function compileAndDownload() {
                 <div v-else class="flex items-center gap-2 shrink-0">
                     <span :class="[
                         'material-symbols-outlined text-lg',
-                        selectedBargeStatusTab === 'pending' ? 'text-amber-500' : 'text-emerald-600'
+                        selectedBargeStatusTab === 'pending' ? 'text-amber-500' : 'text-teal-600'
                     ]">
                         directions_boat
                     </span>
@@ -4130,10 +4130,10 @@ async function compileAndDownload() {
                         {{ selectedBargeStatusTab === 'pending' ? 'Danh sách tàu / sà lan chờ phân bổ' : 'Danh sách tàu / sà lan đã phân bổ' }}
                     </h2>
                     <span :class="[
-                        'text-[11px] font-black px-2 py-0.5 rounded-full border',
+                        'text-xs font-black px-2 py-0.5 rounded-full border',
                         selectedBargeStatusTab === 'pending'
                             ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-teal-50 text-teal-700 border-teal-200'
                     ]">
                         {{ filteredRightPanelBarges.length }} tàu
                     </span>
@@ -4204,7 +4204,7 @@ async function compileAndDownload() {
                         <div v-if="activeDataTab === 'generated'" class="flex items-center gap-1.5 w-full sm:w-auto">
                             <select 
                                 v-model="historyBargeFilter"
-                                class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-xs cursor-pointer max-w-[150px] truncate"
+                                class="h-7 px-2 bg-white border border-gray-200 rounded-[8px] text-xs font-bold text-gray-700 focus:outline-none focus:border-primary shadow-xs cursor-pointer max-w-[150px] truncate"
                             >
                                 <option value="all">Tất cả sà lan</option>
                                 <option value="current" :disabled="!activeBarge">
@@ -4254,7 +4254,7 @@ async function compileAndDownload() {
                             <button 
                                 @click="loadTicketsFromSourceBarge(true)"
                                 :disabled="!activeBargeId || isLoadingSourceBargeTrucks"
-                                class="h-7 px-3 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-[8px] hover:bg-blue-100 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                class="h-7 px-3 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-[8px] hover:bg-primary/20 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                 :title="activeBarge ? `Nạp lại dữ liệu phiếu cân từ sà lan nguồn ${activeBarge.name}` : 'Chọn sà lan nguồn'"
                             >
                                 <span v-if="isLoadingSourceBargeTrucks" class="material-symbols-outlined text-[14px] animate-spin">sync</span>
@@ -4292,7 +4292,7 @@ async function compileAndDownload() {
                             v-if="canSplitCreate"
                             @click="saveToHistory"
                             :disabled="generatedTrips.length === 0 || isAlreadySaved"
-                            class="h-7 px-3 bg-primary text-white border border-primary text-xs font-bold rounded-[8px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             title="Lưu các chuyến xe đã phân bổ vào Sổ theo dõi (Tab 3)"
                         >
                             <span class="material-symbols-outlined text-[14px]">save</span>
@@ -4351,17 +4351,17 @@ async function compileAndDownload() {
 
                 <!-- 1A. KHI CHƯA CLICK VÀO TÀU: Hiển thị Danh sách Tàu / Sà lan -->
                 <template v-if="!activeBargeId">
-                    <div v-if="filteredRightPanelBarges.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                    <div v-if="filteredRightPanelBarges.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto scrollbar-none">
                         <table class="w-full text-left border-collapse text-xs font-bold min-w-[800px] whitespace-nowrap">
-                            <thead>
-                                <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
-                                    <th class="py-2.5 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
-                                    <th class="py-2.5 px-3 bg-gray-55 font-bold">Tên tàu / Sà lan</th>
-                                    <th class="py-2.5 px-3 text-center bg-gray-55 font-bold">Mã lệnh</th>
-                                    <th class="py-2.5 px-3 bg-gray-55 font-bold">Tàu chủ quản</th>
-                                    <th class="py-2.5 px-3 bg-gray-55 font-bold">Loại hàng</th>
-                                    <th class="py-2.5 px-3 text-center bg-gray-55 font-bold">Trạng thái</th>
-                                    <th class="py-2.5 px-3 text-center w-44 bg-gray-55 font-bold select-none">Thao tác</th>
+                            <thead class="sticky top-0 z-10 bg-gray-50">
+                                <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                                    <th class="py-2.5 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
+                                    <th class="py-2.5 px-3 bg-gray-50 font-bold">Tên tàu / Sà lan</th>
+                                    <th class="py-2.5 px-3 text-center bg-gray-50 font-bold">Mã lệnh</th>
+                                    <th class="py-2.5 px-3 bg-gray-50 font-bold">Tàu chủ quản</th>
+                                    <th class="py-2.5 px-3 bg-gray-50 font-bold">Loại hàng</th>
+                                    <th class="py-2.5 px-3 text-center bg-gray-50 font-bold">Trạng thái</th>
+                                    <th class="py-2.5 px-3 text-center w-44 bg-gray-50 font-bold select-none">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4378,7 +4378,7 @@ async function compileAndDownload() {
                                         <div class="flex items-center gap-2">
                                             <span :class="[
                                                 'material-symbols-outlined text-[18px]',
-                                                selectedBargeStatusTab === 'pending' ? 'text-amber-500' : 'text-emerald-600'
+                                                selectedBargeStatusTab === 'pending' ? 'text-amber-500' : 'text-teal-600'
                                             ]">
                                                 {{ selectedBargeStatusTab === 'pending' ? 'directions_boat' : 'verified' }}
                                             </span>
@@ -4386,7 +4386,7 @@ async function compileAndDownload() {
                                         </div>
                                     </td>
                                     <td class="py-2.5 px-3 text-center">
-                                        <span v-if="barge.config?.orderNo" class="font-mono text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md">
+                                        <span v-if="barge.config?.orderNo" class="font-mono text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md">
                                             {{ barge.config.orderNo }}
                                         </span>
                                         <span v-else class="text-gray-400">-</span>
@@ -4400,14 +4400,14 @@ async function compileAndDownload() {
                                     <td class="py-2.5 px-3 text-center">
                                         <span
                                             v-if="selectedBargeStatusTab === 'pending'"
-                                            class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70"
+                                            class="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/70"
                                         >
                                             <span class="material-symbols-outlined text-[13px]">pending</span>
                                             Chờ phân bổ
                                         </span>
                                         <span
                                             v-else
-                                            class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/70"
+                                            class="inline-flex items-center gap-1 text-xs font-black text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/70"
                                         >
                                             <span class="material-symbols-outlined text-[13px]">check_circle</span>
                                             {{ getBargeAllocatedSummary(barge).tripCount }} chuyến • {{ formatNumber(getBargeAllocatedSummary(barge).totalTons) }}t
@@ -4418,7 +4418,7 @@ async function compileAndDownload() {
                                             <button
                                                 type="button"
                                                 @click.stop="selectBargeFromSidebar(barge, selectedBargeStatusTab === 'completed', 'source')"
-                                                class="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                                                class="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-bold inline-flex items-center gap-1 transition-all"
                                             >
                                                 <span class="material-symbols-outlined text-[14px]">receipt_long</span>
                                                 <span>Xem phiếu cân</span>
@@ -4427,7 +4427,7 @@ async function compileAndDownload() {
                                                 v-if="selectedBargeStatusTab === 'completed'"
                                                 type="button"
                                                 @click.stop="selectBargeFromSidebar(barge, true, 'generated')"
-                                                class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                                                class="px-2 py-1 rounded-lg bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-200 text-xs font-bold inline-flex items-center gap-1 transition-all"
                                                 title="Xem trong Sổ theo dõi (Tab 3)"
                                             >
                                                 <span class="material-symbols-outlined text-[14px]">fact_check</span>
@@ -4439,7 +4439,7 @@ async function compileAndDownload() {
                         </table>
                     </div>
                     <div v-else class="flex-1 min-h-[400px] md:min-h-0 flex flex-col items-center justify-center p-8 text-gray-400 italic text-center gap-2">
-                        <span class="material-symbols-outlined text-4xl" :class="selectedBargeStatusTab === 'pending' ? 'text-emerald-400' : 'text-gray-300'">
+                        <span class="material-symbols-outlined text-4xl" :class="selectedBargeStatusTab === 'pending' ? 'text-teal-400' : 'text-gray-300'">
                             {{ selectedBargeStatusTab === 'pending' ? 'task_alt' : 'directions_boat' }}
                         </span>
                         <p class="text-xs font-semibold max-w-[340px] leading-relaxed">
@@ -4455,7 +4455,7 @@ async function compileAndDownload() {
                             <span>Tổng số tàu:</span>
                             <span class="font-black text-gray-700">{{ filteredRightPanelBarges.length }}</span>
                         </div>
-                        <div class="text-[11px] text-gray-400 italic flex items-center gap-1">
+                        <div class="text-xs text-gray-400 italic flex items-center gap-1">
                             <span class="material-symbols-outlined text-[14px] text-primary">touch_app</span>
                             <span>Nhấn vào tàu để xem danh sách phiếu cân</span>
                         </div>
@@ -4469,12 +4469,12 @@ async function compileAndDownload() {
                     <p class="text-xs font-bold text-gray-500">Đang tải phiếu cân của sà lan {{ activeBarge?.name }}...</p>
                 </div>
                 <!-- Source Tickets Table -->
-                <div v-else-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                <div v-else-if="filteredSourceTickets.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto scrollbar-none">
                     <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
-                                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
-                                <th @click="toggleSourceSort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                        <thead class="sticky top-0 z-10 bg-gray-50">
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                                <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
+                                <th @click="toggleSourceSort('ticketNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số phiếu</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4482,7 +4482,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('orderNo')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4490,7 +4490,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('plateNumber')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số xe</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4498,7 +4498,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('cargoType')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('cargoType')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Loại hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4506,7 +4506,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('weightNet')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Khối lượng (kg)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4514,7 +4514,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('dateInStr')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4522,7 +4522,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('dateOutStr')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian ra</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4530,7 +4530,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleSourceSort('driverName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleSourceSort('driverName')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Tài xế</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4538,7 +4538,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center w-24 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center w-24 bg-gray-50 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4638,12 +4638,12 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'generated'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                <div v-if="filteredHistoryTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto scrollbar-none">
                     <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
-                                <th class="py-2 px-3 w-12 text-center bg-gray-55 font-bold">STT</th>
-                                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                        <thead class="sticky top-0 z-10 bg-gray-50">
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                                <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
+                                <th @click="toggleHistorySort('orderNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4651,8 +4651,8 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 bg-gray-55 font-bold">Sà lan</th>
-                                <th @click="toggleHistorySort('dateObj')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th class="py-2 px-3 bg-gray-50 font-bold">Sà lan</th>
+                                <th @click="toggleHistorySort('dateObj')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Thời gian rời bến (Giờ/Ngày)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4660,7 +4660,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('plateNumber')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('plateNumber')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số xe</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4668,7 +4668,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('tttp')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('tttp')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>TTTP (tấn)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4676,7 +4676,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('limit')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('limit')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Trọng lượng hàng CP (tấn)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4684,7 +4684,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('ticketNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số phiếu</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4692,7 +4692,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 text-center w-28 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('cargoType')" class="py-2 px-3 text-center w-28 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Loại hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4700,7 +4700,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleHistorySort('weightTons')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleHistorySort('weightTons')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>Khối lượng (tấn)</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4708,8 +4708,8 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th class="py-2 px-3 text-center w-16 bg-gray-55 font-bold select-none">Trạng thái</th>
-                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center w-20 bg-gray-55 font-bold select-none">Thao tác</th>
+                                <th class="py-2 px-3 text-center w-16 bg-gray-50 font-bold select-none">Trạng thái</th>
+                                <th v-if="canSplitUpdate || canSplitDelete" class="py-2 px-3 text-center w-20 bg-gray-50 font-bold select-none">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-[#1e293b]/90">
@@ -4723,7 +4723,7 @@ async function compileAndDownload() {
                                 </td>
                                 <td class="py-2 px-3 font-semibold text-teal-600 font-mono">{{ trip.orderNo || '-' }}</td>
                                 <td class="py-2 px-3 whitespace-nowrap">
-                                    <span v-if="trip.bargeName" class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/60 rounded text-[11px] font-bold">
+                                    <span v-if="trip.bargeName" class="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-bold">
                                         {{ trip.bargeName }}
                                     </span>
                                     <span v-else class="text-gray-400 text-xs">-</span>
@@ -4741,7 +4741,7 @@ async function compileAndDownload() {
                                 <td class="py-2 px-3 text-center">
                                     <span 
                                         v-if="typeof trip.weightTons === 'number' && typeof trip.limit === 'number' && trip.weightTons <= trip.limit" 
-                                        class="size-5 rounded-full bg-teal-50 text-teal-655 border border-teal-200 flex items-center justify-center mx-auto"
+                                        class="size-5 rounded-full bg-teal-50 text-teal-600 border border-teal-200 flex items-center justify-center mx-auto"
                                         title="Hợp lệ - Dưới hạn mức"
                                     >
                                         <span class="material-symbols-outlined text-[13px] font-black">check</span>
@@ -4834,12 +4834,12 @@ async function compileAndDownload() {
             <div v-if="activeDataTab === 'template'" class="flex-1 flex flex-col gap-3 min-h-0">
 
                 <!-- Preview Data Table -->
-                <div v-if="filteredTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto">
+                <div v-if="filteredTrips.length > 0" class="flex-1 min-h-[400px] md:min-h-0 overflow-y-auto overflow-x-auto scrollbar-none">
                     <table class="w-full text-left border-collapse text-xs font-bold min-w-[1200px] whitespace-nowrap">
-                        <thead>
-                            <tr class="bg-gray-55 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
+                        <thead class="sticky top-0 z-10 bg-gray-50">
+                            <tr class="bg-gray-50 text-gray-500 border-b border-gray-100 font-bold whitespace-nowrap">
                                 <th class="py-2 px-3 w-12 text-center bg-gray-50 font-bold">STT</th>
-                                <th @click="toggleTemplateSort('ticketNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleTemplateSort('ticketNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Số phiếu</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4847,7 +4847,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleTemplateSort('orderNo')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleTemplateSort('orderNo')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Mã lệnh</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4863,7 +4863,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleTemplateSort('customer')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleTemplateSort('customer')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Khách hàng</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4879,7 +4879,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleTemplateSort('weight2')" class="py-2 px-3 text-right bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleTemplateSort('weight2')" class="py-2 px-3 text-right bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-end gap-1">
                                         <span>KL cân lần 2</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4895,7 +4895,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleTemplateSort('date1Obj')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group" colspan="3">
+                                <th @click="toggleTemplateSort('date1Obj')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group" colspan="3">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>Thời gian vào</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4911,7 +4911,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleTemplateSort('direction')" class="py-2 px-3 text-center bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleTemplateSort('direction')" class="py-2 px-3 text-center bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center justify-center gap-1">
                                         <span>X/N</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">
@@ -4927,7 +4927,7 @@ async function compileAndDownload() {
                                         </span>
                                     </div>
                                 </th>
-                                <th @click="toggleTemplateSort('bargeName')" class="py-2 px-3 bg-gray-55 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
+                                <th @click="toggleTemplateSort('bargeName')" class="py-2 px-3 bg-gray-50 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none group">
                                     <div class="flex items-center gap-1">
                                         <span>Loại Sà lan</span>
                                         <span class="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-gray-700 transition-colors">

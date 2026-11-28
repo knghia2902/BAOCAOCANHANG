@@ -270,7 +270,7 @@ onMounted(() => {
                         <span class="material-symbols-outlined text-xl">receipt_long</span>
                     </div>
                     <div>
-                        <h2 class="text-base font-display font-black text-[#1e293b] flex items-center gap-2">
+                        <h2 class="text-xl font-display font-black text-[#1e293b] flex items-center gap-2">
                             <span>QUYẾT TOÁN LÔ HÀNG & ĐỀ NGHỊ THANH TOÁN</span>
                             <span class="px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-mono font-bold">
                                 {{ vessel?.name || 'EPOCH WIND' }}
@@ -286,7 +286,7 @@ onMounted(() => {
                     <button
                         type="button"
                         @click="emit('close')"
-                        class="size-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all cursor-pointer"
+                        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                         title="Đóng"
                     >
                         <span class="material-symbols-outlined text-base">close</span>
@@ -346,7 +346,7 @@ onMounted(() => {
                     <button
                         type="button"
                         @click="autoSelectFuelTier"
-                        class="h-7 px-2.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-[8px] text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        class="h-7 px-2.5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 rounded-[8px] text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
                         title="Tự động chọn bậc theo giá dầu DO trung bình của các ngày làm hàng"
                     >
                         <span class="material-symbols-outlined text-[13px]">auto_mode</span>
@@ -413,9 +413,9 @@ onMounted(() => {
                     </div>
 
                     <!-- Daily prices table -->
-                    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white max-w-xl">
+                    <div class="overflow-auto scrollbar-none rounded-[24px] border border-primary/5 bg-white max-w-xl">
                         <table class="w-full text-left text-xs whitespace-nowrap">
-                            <thead class="bg-slate-50 text-[11px] font-black uppercase text-slate-600 border-b border-slate-200">
+                            <thead class="sticky top-0 z-10 bg-slate-50 text-xs font-black uppercase text-slate-600 border-b border-slate-200">
                                 <tr>
                                     <th class="px-3 py-2 w-10 text-center">STT</th>
                                     <th class="px-3 py-2">Ngày áp dụng</th>
@@ -434,7 +434,7 @@ onMounted(() => {
                                         <button
                                             type="button"
                                             @click="handleRemoveFuelPrice(idx)"
-                                            class="size-6 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors inline-flex items-center justify-center cursor-pointer"
+                                            class="size-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 transition-all active:scale-95 inline-flex items-center justify-center cursor-pointer"
                                             title="Xóa dòng"
                                         >
                                             <span class="material-symbols-outlined text-[14px]">delete</span>

@@ -21,64 +21,63 @@ const filteredVessels = computed(() => {
     if (props.filterStatus === 'all') return props.vessels;
     return props.vessels.filter(v => (v.status || 'in_progress') === props.filterStatus);
 });
-
 </script>
 
 <template>
-    <div class="w-72 bg-white border-r border-gray-100 flex flex-col h-full shrink-0 shadow-sm">
+    <div class="w-72 bg-white border-r border-primary/5 flex flex-col h-full shrink-0 shadow-sm">
         <!-- Header & Status Tabs -->
         <div class="p-4 border-b border-gray-100">
             <div class="flex items-center justify-between mb-3">
-                <h2 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                <h2 class="font-display font-bold text-sm text-[#1e293b] flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-base">sailing</span>
-                    Danh s�ch T�u & S� lan
+                    Danh sách Tàu &amp; Sà lan
                 </h2>
                 <button 
                     @click="emit('createVessel')"
-                    class="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
-                    title="Th�m t�u m?i"
+                    class="size-7 rounded-[8px] bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
+                    title="Thêm tàu mới"
                 >
                     <span class="material-symbols-outlined text-sm">add</span>
                 </button>
             </div>
 
-            <!-- Status Switcher Tabs -->
-            <div class="flex p-1 bg-gray-50 rounded-xl text-xs font-bold">
+            <!-- Status Switcher Tabs (DESIGN.md Mục 6) -->
+            <div class="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 h-8 items-center text-xs font-bold">
                 <button 
                     @click="emit('setFilterStatus', 'in_progress')"
                     :class="[
-                        'flex-1 py-1.5 rounded-lg transition-all text-center',
-                        filterStatus === 'in_progress' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'
+                        'flex-1 px-2 py-0.5 h-6.5 rounded-lg font-display font-bold transition-all text-center',
+                        filterStatus === 'in_progress' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                     ]"
                 >
-                    �ang l�m h�ng
+                    Đang làm
                 </button>
                 <button 
                     @click="emit('setFilterStatus', 'done')"
                     :class="[
-                        'flex-1 py-1.5 rounded-lg transition-all text-center',
-                        filterStatus === 'done' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'
+                        'flex-1 px-2 py-0.5 h-6.5 rounded-lg font-display font-bold transition-all text-center',
+                        filterStatus === 'done' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                     ]"
                 >
-                    �? xong
+                    Đã xong
                 </button>
                 <button 
                     @click="emit('setFilterStatus', 'all')"
                     :class="[
-                        'flex-1 py-1.5 rounded-lg transition-all text-center',
-                        filterStatus === 'all' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'
+                        'flex-1 px-2 py-0.5 h-6.5 rounded-lg font-display font-bold transition-all text-center',
+                        filterStatus === 'all' ? 'bg-primary text-white shadow-soft' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                     ]"
                 >
-                    T?t c?
+                    Tất cả
                 </button>
             </div>
         </div>
 
         <!-- Vessel & Barge List -->
-        <div class="flex-1 overflow-y-auto p-3 space-y-2">
+        <div class="flex-1 overflow-y-auto scrollbar-none p-3 space-y-2">
             <div v-if="filteredVessels.length === 0" class="text-center py-8 text-gray-400 text-xs">
                 <span class="material-symbols-outlined text-3xl mb-1 block">directions_boat</span>
-                Kh�ng c� t�u n�o ph� h?p
+                Không có tàu nào phù hợp
             </div>
 
             <div 
@@ -98,11 +97,11 @@ const filteredVessels = computed(() => {
                     </div>
                     <span 
                         :class="[
-                            'text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider',
-                            vessel.status === 'done' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            'text-xs px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0',
+                            vessel.status === 'done' ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'
                         ]"
                     >
-                        {{ vessel.status === 'done' ? 'Xong' : '�ang l�m' }}
+                        {{ vessel.status === 'done' ? 'Xong' : 'Đang làm' }}
                     </span>
                 </div>
 
@@ -118,7 +117,7 @@ const filteredVessels = computed(() => {
                         ]"
                     >
                         <span class="truncate">{{ barge.name }}</span>
-                        <span v-if="barge.goods" class="text-[10px] text-gray-400 truncate max-w-[80px]">{{ barge.goods }}</span>
+                        <span v-if="barge.goods" class="text-xs text-gray-400 truncate max-w-[80px]">{{ barge.goods }}</span>
                     </div>
                 </div>
             </div>

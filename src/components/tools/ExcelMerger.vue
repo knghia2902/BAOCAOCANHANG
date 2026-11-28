@@ -113,7 +113,7 @@ const downloadResult = () => {
                 <span class="material-symbols-outlined text-[100px]">hub</span>
             </div>
             <h2 class="text-3xl font-display font-black text-primary mb-4 relative z-10">Excel Smart Merge 🧩</h2>
-            <p class="text-sm font-medium text-[#1b0d11]/60 max-w-2xl mx-auto relative z-10 leading-relaxed">
+            <p class="text-sm font-semibold text-slate-500 max-w-2xl mx-auto relative z-10 leading-relaxed">
                 Trộn nhiều tệp Excel thành một cách thông minh mà không làm mất định dạng. 
                 Bạn chỉ cần chọn một tệp gốc, hệ thống sẽ tự động gộp dữ liệu từ các tệp khác dựa trên một khóa chung (như ID hoặc Email). ✨
             </p>
@@ -121,33 +121,33 @@ const downloadResult = () => {
 
         <!-- Step 1: Upload -->
         <div class="bg-white rounded-[2.5rem] p-10 soft-shadow border border-primary/5">
-            <h3 class="text-xl font-display font-bold mb-6 flex items-center gap-3">
+            <h3 class="text-xl font-display font-black text-[#1e293b] mb-6 flex items-center gap-3">
                 <span class="size-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-sm font-black">1</span>
                 Tải tệp Excel lên
             </h3>
             
-            <div class="border-4 border-dashed border-soft-pink/20 rounded-[2rem] p-12 text-center hover:border-primary/20 transition-all cursor-pointer group" @click="fileInput?.click()">
+            <div class="border-4 border-dashed border-soft-pink rounded-[2rem] p-12 text-center hover:border-primary/40 transition-all cursor-pointer group" @click="fileInput?.click()">
                 <input type="file" ref="fileInput" class="hidden" multiple accept=".xlsx,.xls" @change="handleFileSelect" />
-                <span class="material-symbols-outlined text-6xl text-primary/20 group-hover:scale-110 group-hover:text-primary/40 transition-all mb-4 block">upload_file</span>
-                <p class="font-bold text-gray-400">Kéo thả hoặc nhấn để chọn các tệp Excel cần trộn</p>
-                <p class="text-xs text-gray-300 mt-2">Hỗ trợ .xlsx, .xls</p>
+                <span class="material-symbols-outlined text-6xl text-primary/30 group-hover:scale-110 group-hover:text-primary/60 transition-all mb-4 block">upload_file</span>
+                <p class="font-bold text-slate-500">Kéo thả hoặc nhấn để chọn các tệp Excel cần trộn</p>
+                <p class="text-xs text-slate-400 mt-2">Hỗ trợ .xlsx, .xls</p>
             </div>
 
             <!-- File List -->
             <div v-if="files.length > 0" class="mt-8 space-y-3">
                 <div v-for="(file, idx) in files" :key="idx" 
-                    :class="['flex items-center justify-between p-4 rounded-2xl border transition-all', masterFileIndex === idx ? 'bg-primary/5 border-primary/20' : 'bg-gray-50 border-transparent']"
+                    :class="['flex items-center justify-between p-4 rounded-2xl border transition-all', masterFileIndex === idx ? 'bg-primary/5 border-primary/20' : 'bg-[#f1f5f9] border-transparent']"
                 >
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-primary">{{ masterFileIndex === idx ? 'stars' : 'description' }}</span>
                         <div>
-                            <p class="text-sm font-bold truncate max-w-xs">{{ file.name }}</p>
-                            <p class="text-xs text-gray-400 uppercase font-black tracking-widest">{{ (file.size / 1024).toFixed(1) }} KB</p>
+                            <p class="text-sm font-bold text-[#1e293b] truncate max-w-xs">{{ file.name }}</p>
+                            <p class="text-xs text-slate-500 uppercase font-black tracking-widest">{{ (file.size / 1024).toFixed(1) }} KB</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <button v-if="masterFileIndex !== idx" @click="masterFileIndex = idx; extractHeaders(file)" class="text-xs font-black uppercase text-primary hover:underline px-3 py-1">Đặt làm gốc</button>
-                        <button @click="removeFile(idx)" class="size-8 rounded-full flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all">
+                        <button @click="removeFile(idx)" class="size-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all shadow-sm">
                             <span class="material-symbols-outlined text-xl">close</span>
                         </button>
                     </div>
@@ -157,31 +157,31 @@ const downloadResult = () => {
 
         <!-- Step 2: Config -->
         <div v-if="files.length >= 2" class="bg-white rounded-[2.5rem] p-10 soft-shadow border border-primary/5">
-            <h3 class="text-xl font-display font-bold mb-6 flex items-center gap-3">
+            <h3 class="text-xl font-display font-black text-[#1e293b] mb-6 flex items-center gap-3">
                 <span class="size-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-sm font-black">2</span>
                 Cấu hình Trộn Thông Minh
             </h3>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
                 <div class="space-y-4">
-                    <label class="text-xs font-bold text-gray-400 uppercase ml-2 tracking-widest">Khóa trùng khớp (Match Key)</label>
+                    <label class="text-xs font-bold text-slate-500 uppercase ml-2 tracking-widest">Khóa trùng khớp (Match Key)</label>
                     <div class="relative">
-                        <select v-model="matchKey" class="w-full bg-soft-pink/5 p-4 rounded-2xl font-bold text-sm border-none ring-1 ring-primary/10 focus:ring-primary/40 outline-none appearance-none">
+                        <select v-model="matchKey" class="w-full bg-[#f1f5f9] p-4 rounded-2xl font-bold text-sm text-[#1e293b] border-none ring-1 ring-primary/10 focus:ring-primary/40 outline-none appearance-none">
                             <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
                         </select>
-                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none">expand_more</span>
+                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-primary/40 pointer-events-none">expand_more</span>
                     </div>
-                    <p class="text-xs text-gray-400 italic ml-2">* Dữ liệu sẽ được gộp dựa trên cột ID chung này.</p>
+                    <p class="text-xs text-slate-500 italic ml-2">* Dữ liệu sẽ được gộp dựa trên cột ID chung này.</p>
                 </div>
 
                 <div class="space-y-4">
-                    <label class="text-xs font-bold text-gray-400 uppercase ml-2 tracking-widest">Dòng tiêu đề (Header Row)</label>
-                    <input type="number" v-model="headerRow" min="1" class="w-full bg-soft-pink/5 p-4 rounded-2xl font-bold text-sm border-none ring-1 ring-primary/10 focus:ring-primary/40 outline-none" @change="updateMasterHeader" />
-                    <p class="text-xs text-gray-400 italic ml-2">* Vị trí dòng chứa tên các cột (thường là 1).</p>
+                    <label class="text-xs font-bold text-slate-500 uppercase ml-2 tracking-widest">Dòng tiêu đề (Header Row)</label>
+                    <input type="number" v-model="headerRow" min="1" class="w-full bg-[#f1f5f9] p-4 rounded-2xl font-bold text-sm text-[#1e293b] border-none ring-1 ring-primary/10 focus:ring-primary/40 outline-none" @change="updateMasterHeader" />
+                    <p class="text-xs text-slate-500 italic ml-2">* Vị trí dòng chứa tên các cột (thường là 1).</p>
                 </div>
             </div>
 
-            <button @click="startMerge" :disabled="isMerging" class="w-full mt-10 bg-primary text-white py-5 rounded-2xl font-black text-base shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
+            <button @click="startMerge" :disabled="isMerging" class="w-full mt-10 bg-primary text-white py-4 rounded-full font-bold text-base shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-3">
                 <span v-if="isMerging" class="size-5 border-4 border-white/30 border-t-white rounded-full animate-spin"></span>
                 <span v-else class="material-symbols-outlined">auto_fix_high</span>
                 {{ isMerging ? 'Đang thực hiện phép thuật...' : 'Bắt đầu Trộn Thông Minh ✨' }}
@@ -189,30 +189,23 @@ const downloadResult = () => {
         </div>
 
         <!-- Step 3: Result -->
-        <div v-if="results || logs.length > 0" class="bg-background-dark rounded-[2.5rem] p-10 soft-shadow border border-white/5 relative overflow-hidden">
-            <div class="absolute -right-20 -top-20 size-64 bg-primary/10 rounded-full blur-3xl"></div>
+        <div v-if="results || logs.length > 0" class="bg-white rounded-[2.5rem] p-10 soft-shadow border border-primary/5 relative overflow-hidden">
+            <div class="absolute -right-20 -top-20 size-64 bg-primary/5 rounded-full blur-3xl"></div>
             
-            <h3 class="text-xl font-display font-bold text-white mb-6 flex items-center justify-between relative z-10">
+            <h3 class="text-xl font-display font-black text-[#1e293b] mb-6 flex items-center justify-between relative z-10">
                 Log Công việc
-                <button v-if="results" @click="downloadResult" class="px-6 py-2 bg-primary text-white rounded-full text-xs font-black shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                <button v-if="results" @click="downloadResult" class="px-6 py-2.5 bg-primary text-white rounded-full text-xs font-bold shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">download</span> Tải tệp kết quả
                 </button>
             </h3>
 
-            <div class="bg-black/20 rounded-2xl p-6 font-mono text-xs text-gray-400 space-y-2 max-h-[300px] overflow-y-auto relative z-10 custom-scrollbar">
+            <div class="bg-[#f1f5f9] rounded-2xl p-6 font-mono text-xs text-slate-600 space-y-2 max-h-[300px] overflow-y-auto scrollbar-none relative z-10 border border-soft-pink">
                 <div v-for="(log, i) in logs" :key="i" class="flex gap-3">
-                    <span class="text-primary/40">{{ i + 1 }}</span>
-                    <span :class="log.includes('❌') ? 'text-red-400' : log.includes('⚠️') ? 'text-yellow-400' : 'text-gray-300'">{{ log }}</span>
+                    <span class="text-primary/60 font-bold">{{ i + 1 }}</span>
+                    <span :class="log.includes('❌') ? 'text-rose-600 font-bold' : log.includes('⚠️') ? 'text-primary font-bold' : log.includes('hoàn tất') || log.includes('tải xuống') ? 'text-teal-600 font-bold' : 'text-[#1e293b]'">{{ log }}</span>
                 </div>
-                <div v-if="logs.length === 0" class="text-center py-4 text-gray-600 italic">Hệ thống sẵn sàng...</div>
+                <div v-if="logs.length === 0" class="text-center py-4 text-slate-400 italic">Hệ thống sẵn sàng...</div>
             </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,133,162,0.2); border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,133,162,0.4); }
-</style>

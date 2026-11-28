@@ -70,7 +70,7 @@ const handleDrop = (e: DragEvent) => {
                 <span class="material-symbols-outlined text-2xl">cloud_upload</span>
             </div>
             <div class="text-xs font-display font-black text-slate-800">Kéo & Thả tệp Excel / CSV chứa phiếu cân vào đây</div>
-            <div class="text-[11px] text-slate-500 font-semibold">hoặc click để chọn file từ máy tính. Hỗ trợ file .xlsx, .xls, .csv &lt; 20MB.</div>
+            <div class="text-xs text-slate-500 font-semibold">hoặc click để chọn file từ máy tính. Hỗ trợ file .xlsx, .xls, .csv &lt; 20MB.</div>
         </div>
 
         <!-- Preview panel if loaded -->
@@ -81,7 +81,7 @@ const handleDrop = (e: DragEvent) => {
                 </div>
                 <div class="text-left">
                     <div class="text-xs font-display font-black text-slate-800">Tệp đã nạp: {{ fileName }}</div>
-                    <div class="text-[11px] text-slate-600 font-semibold mt-0.5">
+                    <div class="text-xs text-slate-600 font-semibold mt-0.5">
                         Phân tích thành công <span class="text-teal-700 font-bold">{{ previewCount }}</span> phiếu cân. Dữ liệu đang ở chế độ xem trước (chưa lưu).
                     </div>
                 </div>

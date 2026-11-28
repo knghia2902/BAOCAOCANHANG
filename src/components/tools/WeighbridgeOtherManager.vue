@@ -274,9 +274,9 @@ const clearAllTickets = async () => {
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-primary/60 bg-primary/5 px-2.5 py-1 rounded-lg">Dữ liệu cân hàng</span>
+                        <span class="text-xs font-black uppercase tracking-widest text-primary/60 bg-primary/5 px-2.5 py-1 rounded-lg">Dữ liệu cân hàng</span>
                     </div>
-                    <h3 class="text-lg font-display font-black text-primary flex items-center gap-2">
+                    <h3 class="text-xl font-display font-black text-primary flex items-center gap-2">
                         <span class="material-symbols-outlined text-2xl">history</span>
                         Lịch sử cân Kho & Container
                     </h3>
