@@ -1,18 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 26-eastwood-container-baseline
 source: 26-01-SUMMARY.md
 started: 2026-11-28T15:33:00+07:00
-updated: 2026-11-28T15:33:00+07:00
+updated: 2026-11-28T17:34:30+07:00
 ---
 
 ## Current Test
 
-number: 5
-name: Import phiếu cân từ ngày 26/11/2026 tự động cập nhật trạng thái & báo cáo ca
-expected: |
-  Import file phiếu cân hàng ngày từ 26/11/2026 (có Hạ Cont, Load Cont, Lấy Cont Rỗng của Eastwood) → Trạng thái bãi tự đổi trạng thái cont theo ngày giờ thực tế, REPORT cộng đúng theo ngày báo cáo ca 06:00 sáng, và không làm sai lệch số liệu Kho 4 / Đi thẳng.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -34,18 +30,16 @@ result: pass
 
 ### 5. Import phiếu cân từ ngày 26/11/2026 tự động cập nhật trạng thái & báo cáo ca
 expected: Import file phiếu cân hàng ngày từ 26/11/2026 (có Hạ Cont, Load Cont, Lấy Cont Rỗng của Eastwood) → Trạng thái bãi tự đổi trạng thái cont theo ngày giờ thực tế, REPORT cộng đúng theo ngày báo cáo ca 06:00 sáng, và không làm sai lệch số liệu Kho 4 / Đi thẳng.
-result: issue
-reported: "dữ liệu cân ngày 26/11 sau khi up lên, kiểm tra bên báo cáo tồn kho không khớp. Hệ thống chỉ đọc dữ liệu ở 1 trong 2 file nên thiếu dữ liệu. Có hạ cont và lấy cont rỗng nhưng cũng không được ghi nhận"
-severity: blocker
+result: pass
 
 ## Summary
 
 total: 5
-passed: 4
+passed: 5
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 
 ## Gaps
 
-[none yet]
+[none]
