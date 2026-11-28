@@ -99,6 +99,8 @@ Implement serverless, client-side PDF document parsing, Optical Character Recogn
 | 22. Sơ đồ cây điều hướng & Workspace hợp nhất | v1.2 | 3/3 | Complete    | 2026-11-05 |
 | 23. Quyết toán Lô hàng, DNTT & Lưu sà lan | v1.2 | 3/3 | Complete    | 2026-11-11 |
 | 24. Tối ưu hóa Tốc độ Truy vấn Web & Hiệu năng (GSD + GitNexus) | v1.2 | 1/2 | In Progress (Wave 1 Complete) | - |
+| 25. Chuẩn hóa toàn bộ giao diện theo DESIGN.md | v1.2 | 5/5 | Complete | 2026-11-26 |
+| 26. Khởi tạo Tồn đầu Bãi Container Eastwood (Baseline Excel/CSV) | v1.2 | 1/1 | Complete | 2026-11-28 |
 
 ### Phase 9: allocator-database-migration-and-recovery
 
@@ -304,3 +306,14 @@ Plans:
 - [ ] 25-02 (Wave 2): Chuẩn hóa Báo Cáo Tồn Kho (`WarehouseInventoryManager`), Báo Cáo Lô Hàng (`WeighbridgePrinter`), 7 sub-component `weighbridge/` (gồm sửa mojibake tiếng Việt), 3 component `settlement/` và tinh chỉnh `VesselSourceManager`, `WeighbridgeDataImporter`.
 - [ ] 25-03 (Wave 2): Chuẩn hóa Phân Bổ (`SingleBargeAllocator`, `CargoAllocator`), Hồ Sơ Phương Tiện (`BargeProfileManager`), Biên Bản (`BargeMinutes`) và Lịch Sử Cân Kho/Cont (`WeighbridgeOtherManager`).
 - [ ] 25-04 (Wave 2): Chuẩn hóa Danh Mục Dùng Chung (`MasterCategoryManager`, `VehicleManager`, `GoodsManager`), bộ Tiện Ích (`FormatConverter`, `ExcelMerger`, `PdfOcrTools`) và `ToolLayout.vue`.
+
+### Phase 26: Khởi tạo Tồn đầu Bãi Container Eastwood (Baseline Excel/CSV 1 cột & Mốc 26/11/2026)
+
+**Goal:** Bổ sung tính năng **Nạp tồn đầu kỳ Bãi Container Eastwood** bằng cách upload file Excel/CSV chỉ cần 1 cột mã Container (cho 2 nhóm: `782` cont rỗng và `122` cont đã trả nhà máy, tổng `904` cont chốt tại mốc cuối ngày `25/11/2026`), để bắt đầu theo dõi phát sinh hàng ngày sạch sẽ từ ngày `26/11/2026` trở đi qua phiếu cân: bản ghi tồn đầu kỳ hiển thị và tự cập nhật trạng thái trên tab `Trạng thái bãi` & `Sơ đồ kho`, nhưng **tự động loại trừ** khỏi bảng `Báo cáo ngày (REPORT)` và 3 tab chi tiết (`Hạ / Load / Trả`) để không làm nhiễu số liệu phát sinh ngày.
+**Requirements**: CONT-BASE-01, CONT-BASE-02, CONT-BASE-03
+**Depends on:** Phase 20, Phase 21
+**Plans:** 1 plan
+
+Plans:
+
+- [x] 26-01: Triển khai parser upload file Excel/CSV 1 cột mã container & cờ tồn đầu kỳ (`isBaseline` / `BASELINE_`) trong `EastwoodContainerService.ts`, loại trừ bản ghi tồn đầu khỏi `REPORT` & tab chi tiết, xây dựng Modal "Nạp tồn đầu kỳ" chuẩn `DESIGN.md` trong `EastwoodContainerManager.vue`, và bổ sung unit test xác minh toàn bộ kịch bản 782 rỗng + 122 đã trả + phát sinh từ 26/11/2026.

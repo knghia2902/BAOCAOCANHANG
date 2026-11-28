@@ -25,6 +25,107 @@ import type {
 const LOCAL_EVENTS_KEY = 'eastwood_container_events';
 const CONTAINER_ISO_RE = /[A-Z]{4}\s*\d{7}/g;
 
+export function isBaselineContainerEvent(ev: EastwoodContainerEvent | null | undefined): boolean {
+    if (!ev) return false;
+    return String(ev.id || '').startsWith('BASELINE_') || String(ev.soPhieu || '').trim().toUpperCase() === 'TON_DAU';
+}
+
+/**
+ * Parse a 1-column (or multi-column) CSV/text list of container numbers.
+ * Automatically ignores header lines / blank lines, normalizes uppercase, and deduplicates.
+ */
+export function parseContainerListFromText(text: string): {
+    containers: string[];
+    duplicateCount: number;
+    ignoredCount: number;
+} {
+    const cleanText = String(text || '').replace(/^\uFEFF/, '');
+    const lines = cleanText.split(/\r?\n/);
+    const containers: string[] = [];
+    const seen = new Set<string>();
+    let duplicateCount = 0;
+    let ignoredCount = 0;
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const extracted = extractContainerNumbers(trimmed);
+        if (extracted.length === 0) {
+            ignoredCount++;
+            continue;
+        }
+        for (const c of extracted) {
+            if (seen.has(c)) {
+                duplicateCount++;
+            } else {
+                seen.add(c);
+                containers.push(c);
+            }
+        }
+    }
+
+    return { containers, duplicateCount, ignoredCount };
+}
+
+/**
+ * Build deterministic baseline container events anchored at cutoffDateIso (default 2026-11-25 23:59:59)
+ * so any weighbridge ticket on/after 2026-11-26 naturally supersedes the baseline state.
+ */
+export function buildBaselineContainerEvents(
+    containers: string[],
+    targetStatus: EastwoodContainerStatus,
+    cutoffDateIso = '2026-11-25'
+): EastwoodContainerEvent[] {
+    const safeDate = parseToIsoDate(cutoffDateIso) || '2026-11-25';
+    const flowType: EastwoodContainerFlowType =
+        targetStatus === 'LOADED'
+            ? 'HA_CONT'
+            : targetStatus === 'RETURNED'
+                ? 'TRA_CONT'
+                : 'LOAD_CONT';
+
+    const seen = new Set<string>();
+    const results: EastwoodContainerEvent[] = [];
+
+    for (const raw of containers) {
+        const contNo = normalizeContainerToken(raw);
+        if (!contNo || seen.has(contNo)) continue;
+        seen.add(contNo);
+
+        results.push({
+            id: `BASELINE_${flowType}_${contNo}`,
+            flowType,
+            containerNo: contNo,
+            soPhieu: 'TON_DAU',
+            maLenh: '',
+            plateNumber: '',
+            romoocNo: '',
+            sealNo: '',
+            boardType: '',
+            grossWeightKg: 0,
+            tareWeightKg: 0,
+            netWeightKg: 0,
+            actualDate: safeDate,
+            reportDate: safeDate,
+            weighInDate: safeDate,
+            weighInTime: '',
+            weighOutDate: safeDate,
+            weighOutTime: '23:59:59',
+            eventDatetime: `${safeDate}T23:59:59`,
+            bargeInfo: '',
+            vesselName: '',
+            sourceFactory: '',
+            warehouseNote: '',
+            remark: 'Tồn đầu kỳ',
+            rawNote: contNo,
+            customerName: 'EASTWOOD',
+            cargoType: targetStatus === 'EMPTY_YARD' ? 'Cont rỗng' : 'Viên Nén Gỗ'
+        });
+    }
+
+    return results;
+}
+
 function normalizeContainerToken(raw: string): string {
     return String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
 }
@@ -339,13 +440,13 @@ export function computeContainerStatuses(
             loadedCount++;
         }
 
-        // Detect minor sequence anomalies for operator visibility
+        // Detect minor sequence anomalies for operator visibility (skip baseline opening records)
         let hasWarning = false;
         let warningText = '';
-        if (status === 'EMPTY_YARD' && !dtHa) {
+        if (status === 'EMPTY_YARD' && !dtHa && !isBaselineContainerEvent(latestLoad)) {
             hasWarning = true;
             warningText = 'Đã Load nhưng chưa có phiếu Hạ Cont';
-        } else if (status === 'RETURNED' && dtHa && (!dtLoad || dtLoad < dtHa)) {
+        } else if (status === 'RETURNED' && dtHa && (!dtLoad || dtLoad < dtHa) && !isBaselineContainerEvent(latestTra)) {
             hasWarning = true;
             warningText = 'Trả cont rỗng khi chưa ghi nhận Load Cont';
         }
@@ -417,6 +518,7 @@ export function computeContainerDailyReport(
     const byDate = new Map<string, EastwoodContainerDailyReportRow>();
 
     for (const ev of events) {
+        if (isBaselineContainerEvent(ev)) continue;
         const d = ev.reportDate || ev.actualDate;
         if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
         if (options?.fromDate && d < options.fromDate) continue;
@@ -745,6 +847,67 @@ export const EastwoodContainerService = {
         } catch {
             return false;
         }
+    },
+
+    async clearBaselineEvents(): Promise<boolean> {
+        const existing = (await dbContext.get<EastwoodContainerEvent[]>(LOCAL_EVENTS_KEY)) || [];
+        const next = existing.filter(e => !isBaselineContainerEvent(e));
+        await dbContext.set(LOCAL_EVENTS_KEY, next);
+        try {
+            const { error } = await supabase
+                .from('eastwood_container_events')
+                .delete()
+                .like('id', 'BASELINE_%');
+            if (error) {
+                console.warn('Supabase clearBaselineEvents error:', error.message);
+                return false;
+            }
+            return true;
+        } catch {
+            return false;
+        }
+    },
+
+    /**
+     * Parse an uploaded Excel (.xlsx) or CSV (.csv) file containing a column of container numbers.
+     */
+    async parseContainerListFile(file: File): Promise<{
+        containers: string[];
+        duplicateCount: number;
+        ignoredCount: number;
+    }> {
+        const ext = file.name.split('.').pop()?.toLowerCase() || '';
+        if (ext === 'csv' || ext === 'txt') {
+            const text = await file.text();
+            return parseContainerListFromText(text);
+        }
+
+        const ExcelJS = await import('exceljs');
+        const buffer = await file.arrayBuffer();
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(buffer);
+
+        const ws = wb.worksheets[0];
+        if (!ws) {
+            return { containers: [], duplicateCount: 0, ignoredCount: 0 };
+        }
+
+        const lines: string[] = [];
+        ws.eachRow((row) => {
+            const parts: string[] = [];
+            const maxCol = Math.min(15, row.cellCount || 10);
+            for (let c = 1; c <= maxCol; c++) {
+                const rawVal = unwrapExcelCell(row.getCell(c).value);
+                if (rawVal !== null && rawVal !== undefined && String(rawVal).trim() !== '') {
+                    parts.push(String(rawVal).trim());
+                }
+            }
+            if (parts.length > 0) {
+                lines.push(parts.join(' '));
+            }
+        });
+
+        return parseContainerListFromText(lines.join('\n'));
     },
 
     /**
@@ -1227,10 +1390,11 @@ export const EastwoodContainerService = {
             { width: 8 }, { width: 18 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 24 }, { width: 15 }, { width: 28 }, { width: 30 }
         ];
 
-        // Filter detail events by reportDate if range provided
+        // Filter detail events by reportDate if range provided (exclude baseline opening records)
         const filterDetail = (flow: EastwoodContainerFlowType) =>
             events
                 .filter(e => {
+                    if (isBaselineContainerEvent(e)) return false;
                     if (e.flowType !== flow) return false;
                     if (options?.fromDate && e.reportDate < options.fromDate) return false;
                     if (options?.toDate && e.reportDate > options.toDate) return false;

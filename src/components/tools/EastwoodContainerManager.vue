@@ -7,7 +7,9 @@ import {
     classifyEastwoodContainerRow,
     computeContainerStatuses,
     computeContainerDailyReport,
-    formatEventDatetimeDisplay
+    formatEventDatetimeDisplay,
+    isBaselineContainerEvent,
+    buildBaselineContainerEvents
 } from '@/services/excel/EastwoodContainerService';
 import {
     parseWeighbridgeFile,
@@ -53,6 +55,20 @@ const scaleFileInputRef = ref<HTMLInputElement | null>(null);
 const showEditModal = ref(false);
 const editingEvent = ref<EastwoodContainerEvent | null>(null);
 const savingEdit = ref(false);
+
+// Baseline (Tồn đầu kỳ) upload modal state
+const showBaselineModal = ref(false);
+const baselineTargetStatus = ref<EastwoodContainerStatus>('EMPTY_YARD');
+const baselineCutoffDate = ref('2026-11-25');
+const baselineFileInputRef = ref<HTMLInputElement | null>(null);
+const baselineFileName = ref('');
+const baselineParsedContainers = ref<string[]>([]);
+const baselineDuplicateCount = ref(0);
+const baselineIgnoredCount = ref(0);
+const parsingBaseline = ref(false);
+const savingBaseline = ref(false);
+
+const baselineEventCount = computed(() => events.value.filter(isBaselineContainerEvent).length);
 
 const syncChannel = new BroadcastChannel('allocator_sync_channel');
 syncChannel.onmessage = async (ev) => {
@@ -107,6 +123,7 @@ const filteredDetailEvents = computed(() => {
     const q = searchQuery.value.trim().toUpperCase();
     return events.value
         .filter(e => {
+            if (isBaselineContainerEvent(e)) return false;
             if (e.flowType !== activeTab.value) return false;
             if (fromDate.value && e.reportDate < fromDate.value) return false;
             if (toDate.value && e.reportDate > toDate.value) return false;
@@ -318,6 +335,88 @@ async function handleClearAll() {
     addToast('Đã xóa toàn bộ dữ liệu Bãi Container Eastwood.', 'success');
 }
 
+function openBaselineModal() {
+    if (!canImport.value) {
+        addToast('Bạn không có quyền nạp tồn đầu kỳ container!', 'error');
+        return;
+    }
+    baselineFileName.value = '';
+    baselineParsedContainers.value = [];
+    baselineDuplicateCount.value = 0;
+    baselineIgnoredCount.value = 0;
+    showBaselineModal.value = true;
+}
+
+async function handleBaselineFileSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    parsingBaseline.value = true;
+    baselineFileName.value = file.name;
+    try {
+        const parsed = await EastwoodContainerService.parseContainerListFile(file);
+        baselineParsedContainers.value = parsed.containers;
+        baselineDuplicateCount.value = parsed.duplicateCount;
+        baselineIgnoredCount.value = parsed.ignoredCount;
+        if (parsed.containers.length === 0) {
+            addToast('Không tìm thấy mã Container hợp lệ (4 chữ + 7 số) trong tệp vừa chọn.', 'info');
+        }
+    } catch (err: any) {
+        console.error('Lỗi đọc file tồn đầu container:', err);
+        addToast('Lỗi đọc file danh sách container: ' + (err?.message || err), 'error');
+        baselineParsedContainers.value = [];
+    } finally {
+        parsingBaseline.value = false;
+        input.value = '';
+    }
+}
+
+async function confirmSaveBaseline() {
+    if (baselineParsedContainers.value.length === 0) return;
+    savingBaseline.value = true;
+    try {
+        const baselineEvents = buildBaselineContainerEvents(
+            baselineParsedContainers.value,
+            baselineTargetStatus.value,
+            baselineCutoffDate.value
+        );
+        const res = await EastwoodContainerService.saveEventsBulk(baselineEvents);
+        await loadEvents();
+        syncChannel.postMessage({ type: 'eastwood_containers_updated' });
+
+        const label =
+            baselineTargetStatus.value === 'EMPTY_YARD'
+                ? 'Cont rỗng (đang nằm bãi)'
+                : baselineTargetStatus.value === 'RETURNED'
+                    ? 'Đã trả nhà máy'
+                    : 'Cont có hàng';
+        addToast(
+            `Đã nạp ${baselineEvents.length} ${label} vào Tồn đầu kỳ (+${res.added} mới, ${res.updated} cập nhật)`,
+            res.cloudError ? 'info' : 'success'
+        );
+        showBaselineModal.value = false;
+    } catch (err: any) {
+        addToast('Lỗi lưu tồn đầu kỳ: ' + (err?.message || err), 'error');
+    } finally {
+        savingBaseline.value = false;
+    }
+}
+
+async function handleClearBaselineOnly() {
+    if (!canDelete.value) {
+        addToast('Bạn không có quyền xóa dữ liệu tồn đầu kỳ!', 'error');
+        return;
+    }
+    if (!confirm(`Xóa riêng ${baselineEventCount.value} bản ghi Tồn đầu kỳ?\n(Các phiếu cân hàng ngày từ 26/11/2026 trở đi vẫn được giữ nguyên)`)) {
+        return;
+    }
+    await EastwoodContainerService.clearBaselineEvents();
+    await loadEvents();
+    syncChannel.postMessage({ type: 'eastwood_containers_updated' });
+    addToast('Đã xóa riêng dữ liệu Tồn đầu kỳ Container.', 'success');
+}
+
 function selectStatusQuickFilter(st: 'ALL' | EastwoodContainerStatus) {
     activeTab.value = 'STATUS';
     statusFilter.value = st;
@@ -362,6 +461,17 @@ onMounted(() => {
 
                 <!-- Compact Toolbar Actions (DESIGN.md Section 6) -->
                 <div class="flex flex-wrap items-center gap-1.5">
+                    <button
+                        v-if="canImport"
+                        type="button"
+                        @click="openBaselineModal"
+                        class="h-7 px-3 bg-teal-600 text-white border border-teal-600 text-xs font-bold rounded-[8px] hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        title="Upload file Excel/CSV 1 cột mã Container để chốt tồn đầu kỳ (Cont rỗng / Đã trả)"
+                    >
+                        <span class="material-symbols-outlined text-sm">playlist_add_check</span>
+                        <span>Nạp tồn đầu kỳ</span>
+                    </button>
+
                     <button
                         v-if="canImport"
                         type="button"
@@ -821,6 +931,178 @@ onMounted(() => {
                     >
                         Sau
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Baseline Upload Modal (Nạp tồn đầu kỳ Excel/CSV 1 cột mã cont) -->
+        <div
+            v-if="showBaselineModal"
+            class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+            @click.self="showBaselineModal = false"
+        >
+            <div class="bg-white rounded-[2rem] p-6 w-full max-w-xl border border-primary/10 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-display font-black text-[#1e293b]">Nạp tồn đầu kỳ Container</h3>
+                        <p class="text-xs font-semibold text-slate-500 mt-0.5">
+                            Upload file Excel (.xlsx) hoặc CSV chỉ cần 1 cột Số Container. Không ảnh hưởng Báo cáo ngày (REPORT).
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="showBaselineModal = false"
+                        class="size-10 bg-[#f1f5f9] rounded-full flex items-center justify-center text-gray-400 hover:text-red-400 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
+                    >
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Hidden file input -->
+                <input
+                    ref="baselineFileInputRef"
+                    type="file"
+                    accept=".xlsx,.xls,.csv,.txt"
+                    class="hidden"
+                    @change="handleBaselineFileSelected"
+                />
+
+                <!-- Step 1: Choose Target Status -->
+                <div class="flex flex-col gap-1.5">
+                    <span class="text-xs font-bold text-slate-500">1. Chọn trạng thái danh sách cần nạp</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button
+                            type="button"
+                            @click="baselineTargetStatus = 'EMPTY_YARD'"
+                            :class="[
+                                'px-3 py-2.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer text-left',
+                                baselineTargetStatus === 'EMPTY_YARD'
+                                    ? 'bg-amber-50 border-amber-500 text-amber-800 ring-2 ring-amber-200'
+                                    : 'bg-[#f1f5f9] border-transparent text-slate-600 hover:bg-slate-200/70'
+                            ]"
+                        >
+                            <div class="font-black">Cont rỗng</div>
+                            <div class="text-slate-500 font-semibold mt-0.5">Đang nằm bãi</div>
+                        </button>
+                        <button
+                            type="button"
+                            @click="baselineTargetStatus = 'RETURNED'"
+                            :class="[
+                                'px-3 py-2.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer text-left',
+                                baselineTargetStatus === 'RETURNED'
+                                    ? 'bg-teal-50 border-teal-600 text-teal-800 ring-2 ring-teal-200'
+                                    : 'bg-[#f1f5f9] border-transparent text-slate-600 hover:bg-slate-200/70'
+                            ]"
+                        >
+                            <div class="font-black">Đã trả</div>
+                            <div class="text-slate-500 font-semibold mt-0.5">Trả nhà máy</div>
+                        </button>
+                        <button
+                            type="button"
+                            @click="baselineTargetStatus = 'LOADED'"
+                            :class="[
+                                'px-3 py-2.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer text-left',
+                                baselineTargetStatus === 'LOADED'
+                                    ? 'bg-primary/10 border-primary text-primary ring-2 ring-primary/20'
+                                    : 'bg-[#f1f5f9] border-transparent text-slate-600 hover:bg-slate-200/70'
+                            ]"
+                        >
+                            <div class="font-black">Cont có hàng</div>
+                            <div class="text-slate-500 font-semibold mt-0.5">Chờ xá sà lan</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Cutoff Date -->
+                <div class="flex flex-col gap-1.5">
+                    <span class="text-xs font-bold text-slate-500">2. Ngày chốt tồn đầu kỳ</span>
+                    <div class="flex items-center gap-3">
+                        <input
+                            v-model="baselineCutoffDate"
+                            type="date"
+                            class="px-3 py-2 bg-[#f1f5f9] rounded-2xl text-sm font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <span class="text-xs font-semibold text-slate-500">
+                            Phiếu cân phát sinh từ ngày hôm sau (VD: 26/11/2026) sẽ tự động cập nhật trạng thái cont.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Step 3: Upload File -->
+                <div class="flex flex-col gap-1.5">
+                    <span class="text-xs font-bold text-slate-500">3. Chọn file Excel / CSV danh sách mã Container</span>
+                    <button
+                        type="button"
+                        :disabled="parsingBaseline"
+                        @click="baselineFileInputRef?.click()"
+                        class="w-full py-4 px-4 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold text-xs flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                        <span class="material-symbols-outlined text-2xl">upload_file</span>
+                        <span v-if="parsingBaseline">Đang đọc danh sách container...</span>
+                        <span v-else-if="baselineFileName">{{ baselineFileName }} (Bấm để chọn file khác)</span>
+                        <span v-else>Bấm để chọn file .xlsx / .csv chứa cột Số Container</span>
+                    </button>
+                </div>
+
+                <!-- Preview Box -->
+                <div
+                    v-if="baselineParsedContainers.length > 0"
+                    class="rounded-2xl bg-[#f1f5f9] p-3.5 flex flex-col gap-2"
+                >
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+                        <span class="text-teal-700">
+                            Tìm thấy {{ baselineParsedContainers.length.toLocaleString('en-US') }} mã container hợp lệ
+                        </span>
+                        <span v-if="baselineDuplicateCount > 0" class="text-amber-700">
+                            Đã gộp trùng: {{ baselineDuplicateCount }}
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span
+                            v-for="c in baselineParsedContainers.slice(0, 12)"
+                            :key="c"
+                            class="px-2 py-0.5 rounded-xl bg-white border border-slate-200 font-mono text-xs font-bold text-[#1e293b]"
+                        >
+                            {{ c }}
+                        </span>
+                        <span
+                            v-if="baselineParsedContainers.length > 12"
+                            class="px-2 py-0.5 rounded-xl bg-primary/10 text-primary text-xs font-bold"
+                        >
+                            +{{ (baselineParsedContainers.length - 12).toLocaleString('en-US') }} cont khác
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <div>
+                        <button
+                            v-if="canDelete && baselineEventCount > 0"
+                            type="button"
+                            @click="handleClearBaselineOnly"
+                            class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl text-xs transition-all cursor-pointer"
+                        >
+                            Xóa tồn đầu cũ ({{ baselineEventCount }})
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            @click="showBaselineModal = false"
+                            class="px-4 py-2 bg-white border border-primary/10 hover:border-primary text-primary font-bold rounded-2xl text-sm hover:bg-primary/5 active:scale-95 transition-all cursor-pointer"
+                        >
+                            Đóng
+                        </button>
+                        <button
+                            type="button"
+                            :disabled="savingBaseline || baselineParsedContainers.length === 0"
+                            @click="confirmSaveBaseline"
+                            class="px-5 py-2 bg-primary text-white font-bold rounded-full text-sm shadow-[0_4px_0_0_#6495ed] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#6495ed] active:translate-y-[4px] active:shadow-none transition-all cursor-pointer disabled:opacity-40"
+                        >
+                            {{ savingBaseline ? 'Đang lưu...' : `Lưu tồn đầu (${baselineParsedContainers.length})` }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

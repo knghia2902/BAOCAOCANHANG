@@ -4,7 +4,10 @@ import {
     detectBoardType,
     classifyEastwoodContainerRow,
     computeContainerStatuses,
-    computeContainerDailyReport
+    computeContainerDailyReport,
+    parseContainerListFromText,
+    buildBaselineContainerEvents,
+    isBaselineContainerEvent
 } from '../EastwoodContainerService';
 import {
     classifyWeighbridgeRow,
@@ -221,5 +224,100 @@ describe('EastwoodContainerService', () => {
         expect(report.rows[0]!.containerIn).toBe(1);
         expect(report.rows[0]!.containerLoad).toBe(1);
         expect(report.rows[0]!.loadWeightKg).toBe(21000);
+    });
+
+    it('parses 1-column CSV/text container list with header, duplicates, and whitespace', () => {
+        const csv = [
+            'ContainerNo.',
+            'WHLU2904564',
+            '  oolu 1218606  ',
+            'WHLU2904564',
+            '',
+            'INVALID_HEADER',
+            'CBHU5778748'
+        ].join('\n');
+
+        const res = parseContainerListFromText(csv);
+        expect(res.containers).toEqual(['WHLU2904564', 'OOLU1218606', 'CBHU5778748']);
+        expect(res.duplicateCount).toBe(1);
+        expect(res.ignoredCount).toBe(2);
+    });
+
+    it('tracks baseline EMPTY_YARD & RETURNED containers in TRẠNG THÁI without polluting REPORT, and transitions cleanly from 26/11/2026', () => {
+        const baselineEmpty = buildBaselineContainerEvents(
+            ['WHLU2904564', 'OOLU1218606'],
+            'EMPTY_YARD',
+            '2026-11-25'
+        );
+        const baselineReturned = buildBaselineContainerEvents(
+            ['CBHU5778748'],
+            'RETURNED',
+            '2026-11-25'
+        );
+
+        expect(baselineEmpty.every(isBaselineContainerEvent)).toBe(true);
+        expect(baselineReturned.every(isBaselineContainerEvent)).toBe(true);
+
+        // Before 26/11/2026 weighbridge tickets: TRẠNG THÁI shows 2 empty + 1 returned, zero warnings, REPORT is empty
+        const initialStatuses = computeContainerStatuses([...baselineEmpty, ...baselineReturned]);
+        expect(initialStatuses.summary).toEqual({
+            loadedCount: 0,
+            emptyCount: 2,
+            returnedCount: 1,
+            totalTracked: 3
+        });
+        expect(initialStatuses.rows.every(r => !r.hasWarning)).toBe(true);
+        expect(computeContainerDailyReport([...baselineEmpty, ...baselineReturned]).rows).toHaveLength(0);
+
+        // On 26/11/2026: 1 empty cont is returned (TRA_CONT), 1 previously returned cont comes back loaded (HA_CONT)
+        const traOn26 = classifyEastwoodContainerRow(
+            makeRow({
+                soPhieu: '019200/26',
+                kl1: 20100,
+                kl2: 20100,
+                klHang: 0,
+                ngay1: '26/11/2026',
+                gio1: '08:00:00',
+                ngay2: '26/11/2026',
+                gio2: '08:05:00',
+                xuatNhap: 'Xuat',
+                loaiSalan: 'LẤY CONT RỖNG',
+                taiXe: '',
+                ghiChu: 'WHLU2904564'
+            })
+        );
+        const haOn26 = classifyEastwoodContainerRow(
+            makeRow({
+                soPhieu: '019201/26',
+                kl1: 41000,
+                kl2: 20000,
+                klHang: 21000,
+                ngay1: '26/11/2026',
+                gio1: '09:00:00',
+                ngay2: '26/11/2026',
+                gio2: '09:15:00',
+                xuatNhap: 'Nhap',
+                loaiSalan: '4 - Hạ Cont- Không Ván',
+                taiXe: 'CT03',
+                ghiChu: 'CBHU5778748'
+            })
+        );
+
+        const combined = [...baselineEmpty, ...baselineReturned, ...traOn26, ...haOn26];
+        const nextStatuses = computeContainerStatuses(combined);
+        expect(nextStatuses.summary).toEqual({
+            loadedCount: 1,   // CBHU5778748 returned to port loaded
+            emptyCount: 1,    // OOLU1218606 still empty on yard
+            returnedCount: 1, // WHLU2904564 returned on 26/11
+            totalTracked: 3
+        });
+
+        // REPORT only reflects 26/11/2026 real activity (1 IN, 1 OUT)
+        const nextReport = computeContainerDailyReport(combined);
+        expect(nextReport.rows).toHaveLength(1);
+        expect(nextReport.rows[0]!.reportDate).toBe('2026-11-26');
+        expect(nextReport.rows[0]!.containerIn).toBe(1);
+        expect(nextReport.rows[0]!.containerOut).toBe(1);
+        expect(nextReport.rows[0]!.containerLoad).toBe(0);
     });
 });
