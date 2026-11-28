@@ -777,6 +777,7 @@ async function processWeighbridgeUpload(files: FileList | File[], sourceRole: 'F
             if (updatedWhSet.has('KHO 4') && configs['KHO 4 - BK']) {
                 await WarehouseInventoryService.saveConfig(configs['KHO 4 - BK']);
             }
+            syncChannel.postMessage({ type: 'warehouse_inventory_updated' });
         }
 
         if (eastwoodContainerEvents.length > 0) {
@@ -1216,6 +1217,87 @@ function openEditTicketDialog(ticket: CSVRecord) {
     showTicketDialog.value = true;
 }
 
+function convertCSVRecordToRawRow(rec: CSVRecord): RawWeighbridgeRow {
+    return {
+        soPhieu: String(rec.ticketNo || rec.sourceTicketNo || '').trim(),
+        maLenh: String(rec.orderNo || '').trim(),
+        soXe: String(rec.plateNumber || '').trim(),
+        khachHang: String(rec.customer || '').trim(),
+        kl1: Number(rec.weight1) || 0,
+        kl2: Number(rec.weight2) || 0,
+        klHang: Number(rec.weightNet) || 0,
+        ngay1: String(rec.dateInStr || rec.dateOutStr || '').trim(),
+        gio1: String(rec.timeInStr || '').trim(),
+        ngay2: String(rec.dateOutStr || rec.dateInStr || '').trim(),
+        gio2: String(rec.timeOutStr || rec.timeInStr || '').trim(),
+        xuatNhap: String(rec.direction || (rec.fileSource === 'FILE_1' ? 'Nhap' : 'Xuat')).trim(),
+        loaiHang: String(rec.cargoType || '').trim(),
+        loaiSalan: String(rec.bargeName || '').trim(),
+        taiXe: String(rec.driverName || '').trim(),
+        ghiChu: String(rec.notes || '').trim()
+    };
+}
+
+/**
+ * Sync a single created, edited, or deleted Tab 1 weighbridge ticket to
+ * Warehouse Inventory (4 Warehouses) and Eastwood Container Yard.
+ */
+async function syncSingleTicketToInventoryAndContainers(
+    previousTicket: CSVRecord | null,
+    nextTicket: CSVRecord | null
+): Promise<{ whSynced: boolean; contSynced: boolean }> {
+    let whSynced = false;
+    let contSynced = false;
+
+    try {
+        // 1. Remove old record(s) matched by previous ticketNo + plateNumber (handles warehouse/flow/container changes cleanly)
+        if (previousTicket && (previousTicket.ticketNo || previousTicket.sourceTicketNo)) {
+            const oldSp = String(previousTicket.ticketNo || previousTicket.sourceTicketNo || '').trim();
+            const [delWh, delCont] = await Promise.all([
+                WarehouseInventoryService.deleteTicketsByScaleTicket(oldSp, previousTicket.plateNumber),
+                EastwoodContainerService.deleteEventsByScaleTicket(oldSp, previousTicket.plateNumber)
+            ]);
+            if (delWh > 0) whSynced = true;
+            if (delCont > 0) contSynced = true;
+        }
+
+        // 2. Re-classify and upsert nextTicket if present
+        if (nextTicket) {
+            const raw = convertCSVRecordToRawRow(nextTicket);
+            const [vehicleMap, vessels] = await Promise.all([
+                WarehouseInventoryService.getVehicles(),
+                WeighbridgeService.getVessels().catch(() => [] as any[])
+            ]);
+
+            const ewEvents = classifyEastwoodContainerRow(raw, vessels);
+            if (ewEvents.length > 0) {
+                await EastwoodContainerService.saveEventsBulk(ewEvents);
+                contSynced = true;
+            }
+
+            const whTicket = classifyWeighbridgeRow(raw, vehicleMap, vessels);
+            if (whTicket) {
+                await WarehouseInventoryService.saveTicketsBulkWithStats([whTicket], {
+                    preserveExistingFields: false
+                });
+                whSynced = true;
+            }
+        }
+
+        // 3. Notify open views to refresh immediately
+        if (whSynced) {
+            syncChannel.postMessage({ type: 'warehouse_inventory_updated' });
+        }
+        if (contSynced) {
+            syncChannel.postMessage({ type: 'eastwood_containers_updated' });
+        }
+    } catch (err) {
+        console.warn('Lỗi đồng bộ phiếu cân sang Tồn kho / Bãi Cont:', err);
+    }
+
+    return { whSynced, contSynced };
+}
+
 async function saveTicket() {
     const isNew = !editingTicket.value || !editingTicket.value.id;
     if (authStore.role !== 'admin' && !hasDetailPermission('allocator', 'al_data_manage', isNew ? 'create' : 'update')) {
@@ -1234,27 +1316,40 @@ async function saveTicket() {
         return;
     }
 
+    const previousTicket: CSVRecord | null = editingTicket.value ? { ...editingTicket.value } : null;
+    let savedRecord: CSVRecord;
     const currentList = [...csvRecords.value];
     if (editingTicket.value && editingTicket.value.id) {
+        savedRecord = { ...dialogTicket.value };
         const idx = currentList.findIndex(t => t.id === editingTicket.value!.id);
         if (idx !== -1) {
-            currentList[idx] = { ...dialogTicket.value };
-            addToast('Đã cập nhật phiếu cân thành công!', 'success');
+            currentList[idx] = savedRecord;
             await LogService.logAction('Sửa phiếu cân', 'Cập nhật phiếu cân: ' + dialogTicket.value.plateNumber);
         }
     } else {
         const id = 'ticket_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        currentList.push({
+        savedRecord = {
             ...dialogTicket.value,
             id
-        });
-        addToast('Đã thêm phiếu cân mới thành công!', 'success');
+        };
+        currentList.push(savedRecord);
         await LogService.logAction('Thêm phiếu cân', 'Thêm phiếu cân mới: ' + dialogTicket.value.plateNumber);
     }
 
     csvRecords.value = currentList;
     showTicketDialog.value = false;
     await saveTicketsToSupabase();
+    syncChannel.postMessage({ type: 'tickets' });
+
+    const { whSynced, contSynced } = await syncSingleTicketToInventoryAndContainers(previousTicket, savedRecord);
+    const syncNotes: string[] = [];
+    if (whSynced) syncNotes.push('Tồn kho');
+    if (contSynced) syncNotes.push('Bãi Cont');
+    const suffix = syncNotes.length > 0 ? ` (đã đồng bộ sang ${syncNotes.join(' & ')})` : '';
+    addToast(
+        isNew ? `Đã thêm phiếu cân mới thành công!${suffix}` : `Đã cập nhật phiếu cân thành công!${suffix}`,
+        'success'
+    );
 }
 
 async function deleteTicket(ticket: CSVRecord) {
@@ -1264,16 +1359,22 @@ async function deleteTicket(ticket: CSVRecord) {
     }
     const ok = await showConfirm({
         title: 'Xóa phiếu cân',
-        message: `Bạn có chắc chắn muốn xóa phiếu cân ${ticket.ticketNo || ticket.plateNumber} không?`,
+        message: `Bạn có chắc chắn muốn xóa phiếu cân ${ticket.ticketNo || ticket.plateNumber} không?\n(Nếu phiếu đã đồng bộ sang Tồn kho / Bãi Cont cũng sẽ được gỡ bỏ tương ứng)`,
         type: 'danger',
         okText: 'Xóa',
         cancelText: 'Hủy'
     });
     if (ok) {
         csvRecords.value = csvRecords.value.filter(t => t.id !== ticket.id);
-        addToast('Đã xóa phiếu cân!', 'info');
         await LogService.logAction('Xóa phiếu cân', 'Xóa phiếu cân: ' + (ticket.ticketNo || ticket.plateNumber));
         await saveTicketsToSupabase();
+        syncChannel.postMessage({ type: 'tickets' });
+        const { whSynced, contSynced } = await syncSingleTicketToInventoryAndContainers(ticket, null);
+        const syncNotes: string[] = [];
+        if (whSynced) syncNotes.push('Tồn kho');
+        if (contSynced) syncNotes.push('Bãi Cont');
+        const suffix = syncNotes.length > 0 ? ` (đã gỡ khỏi ${syncNotes.join(' & ')})` : '';
+        addToast(`Đã xóa phiếu cân!${suffix}`, 'info');
     }
 }
 

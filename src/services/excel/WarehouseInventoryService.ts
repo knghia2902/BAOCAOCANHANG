@@ -2997,6 +2997,50 @@ export const WarehouseInventoryService = {
         return true;
     },
 
+    /**
+     * Delete warehouse inventory ticket(s) matching a weighbridge scale ticket (soPhieu + plateNumber).
+     * Used when a user edits or deletes a single ticket in WeighbridgeDataImporter Tab 1.
+     */
+    async deleteTicketsByScaleTicket(soPhieu: string, vehiclePlate: string): Promise<number> {
+        const cleanSp = String(soPhieu || '').trim().toUpperCase();
+        if (!cleanSp) return 0;
+        const cleanPlate = normalizePlateKey(vehiclePlate || '');
+
+        const current = await this.getAllTickets(false);
+        const matchedIds: string[] = [];
+        const remaining: WarehouseInventoryTicket[] = [];
+
+        for (const t of current) {
+            const tSp = String(t.soPhieu || '').trim().toUpperCase();
+            const tPlate = normalizePlateKey(t.vehiclePlate || '');
+            const plateMatches =
+                !cleanPlate ||
+                !tPlate ||
+                tPlate === cleanPlate ||
+                tPlate.includes(cleanPlate) ||
+                cleanPlate.includes(tPlate);
+            if (tSp === cleanSp && plateMatches) {
+                matchedIds.push(t.id);
+            } else {
+                remaining.push(t);
+            }
+        }
+
+        if (matchedIds.length === 0) return 0;
+
+        await dbContext.set(LOCAL_TICKETS_KEY, remaining);
+        if (!isInventoryTestEnv) {
+            ticketsMemoryCache = { data: remaining, timestamp: Date.now() };
+        }
+        try {
+            if (!dedicatedTablesMissing) {
+                await supabase.from('warehouse_inventory_tickets').delete().in('id', matchedIds);
+            }
+        } catch (_) {}
+
+        return matchedIds.length;
+    },
+
     async clearWarehouseTickets(
         target?: ExtendedWarehouseId | WarehouseId | 'ALL' | 'DIRECT' | 'DIRECT_KHO4' | 'DIRECT_KHO123' | 'GROUP_KHO123',
         options?: { customerFilter?: string; customCustomerId?: string; isDeletingCustomer?: boolean }

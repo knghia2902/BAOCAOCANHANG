@@ -85,9 +85,10 @@ syncChannel.onmessage = async (event) => {
         event.data?.type === 'vehicles' ||
         event.data?.type === 'vehicles_updated' ||
         event.data?.type === 'warehouses_updated' ||
-        event.data?.type === 'master_data'
+        event.data?.type === 'master_data' ||
+        event.data?.type === 'warehouse_inventory_updated'
     ) {
-        await loadAllData();
+        await loadAllData(true, true);
     } else if (event.data?.type === 'eastwood_containers_updated') {
         await refreshEastwoodContainerSummary();
     }

@@ -832,6 +832,49 @@ export const EastwoodContainerService = {
         }
     },
 
+    /**
+     * Delete non-baseline Eastwood container event(s) matching a weighbridge scale ticket (soPhieu + plateNumber).
+     */
+    async deleteEventsByScaleTicket(soPhieu: string, plateNumber: string): Promise<number> {
+        const cleanSp = String(soPhieu || '').trim().toUpperCase();
+        if (!cleanSp) return 0;
+        const normPlate = (p: string) => String(p || '').split('/')[0]!.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const targetPlate = normPlate(plateNumber);
+
+        const existing = await this.getEvents();
+        const matchedIds: string[] = [];
+        const remaining: EastwoodContainerEvent[] = [];
+
+        for (const ev of existing) {
+            if (isBaselineContainerEvent(ev)) {
+                remaining.push(ev);
+                continue;
+            }
+            const evSp = String(ev.soPhieu || '').trim().toUpperCase();
+            const evPlate = normPlate(ev.plateNumber);
+            const plateMatches =
+                !targetPlate ||
+                !evPlate ||
+                evPlate === targetPlate ||
+                evPlate.includes(targetPlate) ||
+                targetPlate.includes(evPlate);
+            if (evSp === cleanSp && plateMatches) {
+                matchedIds.push(ev.id);
+            } else {
+                remaining.push(ev);
+            }
+        }
+
+        if (matchedIds.length === 0) return 0;
+
+        await dbContext.set(LOCAL_EVENTS_KEY, remaining);
+        try {
+            await supabase.from('eastwood_container_events').delete().in('id', matchedIds);
+        } catch (_) {}
+
+        return matchedIds.length;
+    },
+
     async clearAllEvents(): Promise<boolean> {
         await dbContext.set(LOCAL_EVENTS_KEY, []);
         try {
